@@ -26,7 +26,7 @@ const ATOMY_OFFICIAL_NOTICES = [
   }
 ];
 
-export default function NoticePage({ onNavigateHome }) {
+export default function NoticePage({ onNavigateHome, onNavigateView }) {
   // Active Tab: 'member' | 'product' | 'stock' | 'event' | 'career'
   const [activeTab, setActiveTab] = useState('member');
   const [searchField, setSearchField] = useState('all');
@@ -59,7 +59,13 @@ export default function NoticePage({ onNavigateHome }) {
         <div className="atomy-notice-top-row">
           <h1 className="atomy-notice-page-title">Notice</h1>
           <div className="atomy-notice-breadcrumb">
-            <span className="crumb-gray">About Us</span>
+            <span
+              className="crumb-gray"
+              style={{ cursor: 'pointer' }}
+              onClick={() => (onNavigateView ? onNavigateView('about-us') : onNavigateHome && onNavigateHome())}
+            >
+              About Us
+            </span>
             <span className="crumb-sep">&gt;</span>
             <span className="crumb-cyan">Notice</span>
           </div>

@@ -16,6 +16,7 @@ import {
   MapPin,
   X
 } from 'lucide-react';
+import DeliveryStatusStepper from './DeliveryStatusStepper';
 import './OrderHistoryPage.css';
 
 export default function OrderHistoryPage({ 
@@ -38,8 +39,8 @@ export default function OrderHistoryPage({
       orderDate: o.date ? o.date.split('T')[0] : new Date().toISOString().split('T')[0],
       status: o.status || 'Payment Completed',
       statusStep: o.status === 'Delivered' ? 5 : o.status === 'In Transit' ? 3 : o.status === 'Preparing Shipment' ? 2 : 1,
-      courier: o.courier || 'Blue Dart Express (Assigned)',
-      trackingNumber: o.trackingNumber || `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+      courier: o.courier || (o.status === 'Payment Completed' ? 'Awaiting Allocation' : 'Blue Dart Express'),
+      trackingNumber: o.trackingNumber || '',
       paymentMethod: o.paymentMethod || 'Online Payment',
       shippingAddress: o.address || {
         recipient: o.recipient || 'Atomy Customer',
@@ -128,22 +129,7 @@ export default function OrderHistoryPage({
     if (found) {
       setActiveTrackedOrder(found);
     } else {
-      setActiveTrackedOrder({
-        orderId: trackerSearchInput.trim().toUpperCase(),
-        orderDate: new Date().toISOString().split('T')[0],
-        status: 'In Transit',
-        statusStep: 3,
-        courier: 'Blue Dart Express',
-        trackingNumber: trackerSearchInput.trim().toUpperCase().startsWith('BD') 
-          ? trackerSearchInput.trim().toUpperCase() 
-          : `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
-        paymentMethod: 'Online Payment',
-        shippingAddress: {
-          recipient: 'Verified Customer',
-          address: 'Delivery address on record with carrier'
-        },
-        items: []
-      });
+      setActiveTrackedOrder(null);
     }
   };
 
@@ -226,31 +212,8 @@ export default function OrderHistoryPage({
               <span>Order Date: <strong>{activeTrackedOrder.orderDate}</strong></span>
             </div>
 
-            {/* 5-Step Visual Delivery Stepper */}
-            <div className="onpage-timeline-stepper">
-              {[
-                { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
-                { num: 2, label: 'Preparing', sub: 'Warehouse Packed' },
-                { num: 3, label: 'In Transit', sub: 'Blue Dart Dispatch' },
-                { num: 4, label: 'Out for Delivery', sub: 'Local Hub Hub' },
-                { num: 5, label: 'Delivered', sub: 'Package Received' }
-              ].map((s) => {
-                const isCompleted = (activeTrackedOrder.statusStep || 1) >= s.num;
-                const isCurrent = (activeTrackedOrder.statusStep || 1) === s.num;
-                return (
-                  <div 
-                    key={s.num} 
-                    className={`stepper-node ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}
-                  >
-                    <div className="node-icon-circle">
-                      {isCompleted ? <CheckCircle2 size={16} /> : s.num}
-                    </div>
-                    <span className="node-title">{s.label}</span>
-                    <span className="node-sub">{s.sub}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {/* 5-Step Visual Delivery Stepper with Animations & 1.5s Time-lapse */}
+            <DeliveryStatusStepper order={activeTrackedOrder} />
 
             {/* Bottom address banner */}
             <div className="tracker-address-banner">

@@ -343,6 +343,164 @@
   letter-spacing: -0.5px;
 }
 
+.pdp-mrp-prefix {
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+/* Member Pricing Styles */
+.pdp-member-pricing-block {
+  margin-bottom: 12px;
+}
+
+.pdp-dp-headline-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.pdp-dp-badge-pill {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+.pdp-dp-active-price {
+  color: #111827 !important;
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px;
+  margin-bottom: 0 !important;
+}
+
+.pdp-mrp-discount-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.pdp-mrp-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pdp-mrp-strike {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.pdp-member-save-pill {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 4px;
+}
+
+.pdp-retail-discount-pill {
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 4px;
+}
+
+.pdp-pv-member-unlocked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pdp-pv-member-tag {
+  font-size: 12px;
+  color: #0284c7;
+  font-weight: 600;
+  background: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* Membership Unlock Card for Non-Members */
+.pdp-membership-unlock-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 12px 0 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pdp-membership-unlock-card:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+  transform: translateY(-1px);
+}
+
+.pdp-unlock-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #065f46;
+  background: #bbf7d0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.pdp-unlock-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pdp-unlock-text strong {
+  font-size: 13.5px;
+  color: #065f46;
+}
+
+.pdp-unlock-text span {
+  font-size: 12px;
+  color: #047857;
+}
+
+.pdp-unlock-cta-btn {
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pdp-unlock-cta-btn:hover {
+  background: #047857;
+}
+
 /* Authentic Atomy PV Display Row */
 .pdp-pv-display-row {
   margin-top: 2px;

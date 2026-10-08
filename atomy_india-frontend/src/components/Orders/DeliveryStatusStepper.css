@@ -1,0 +1,413 @@
+/* ==========================================================================
+   ATOMY LIVE DELIVERY STATUS STEPPER WITH DOTTED LINES & ATTACHED VEHICLES
+   ========================================================================== */
+
+.delivery-stepper-wrapper {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 20px 20px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+
+/* Shipping Status Live Header - Synced with Admin */
+.shipping-status-live-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 16px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.status-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.live-status-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #00A3E0;
+  box-shadow: 0 0 0 4px rgba(0, 163, 224, 0.2);
+  animation: pulseLiveDot 1.4s infinite;
+}
+
+@keyframes pulseLiveDot {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.shipping-live-title {
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  color: #0f172a;
+}
+
+.shipping-carrier-pill {
+  background: #f0f9ff;
+  color: #0284c7;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #bae6fd;
+}
+
+.shipping-current-step-label {
+  color: #64748b;
+  font-size: 12.5px;
+}
+
+.stage-highlight {
+  color: #00A3E0;
+  font-weight: 700;
+}
+
+.status-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tracking-awb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.tracking-awb-badge strong {
+  color: #0f172a;
+  font-weight: 700;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.verified-transit-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   MAIN STEPPER FLOW & NODES
+   ========================================================================== */
+
+.delivery-stepper-flow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  padding: 10px 10px 14px;
+}
+
+/* Stage Node */
+.stepper-stage-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 115px;
+  cursor: pointer;
+  z-index: 5;
+  transition: transform 0.2s ease;
+}
+
+.stepper-stage-node:hover {
+  transform: translateY(-2px);
+}
+
+.stage-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 2.5px solid #cbd5e1;
+  color: #64748b;
+  font-size: 13.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  position: relative;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stepper-stage-node.completed .stage-circle {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.stage-check-icon {
+  stroke-width: 2.5;
+  color: #ffffff;
+}
+
+.stepper-stage-node.current .stage-circle {
+  background: #00A3E0;
+  border-color: #00A3E0;
+  color: #ffffff;
+  box-shadow: 0 0 0 6px rgba(0, 163, 224, 0.2), 0 6px 16px rgba(0, 163, 224, 0.35);
+  transform: scale(1.08);
+}
+
+.stage-glow-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px dashed rgba(0, 163, 224, 0.65);
+  animation: rotateStageGlow 6s linear infinite;
+}
+
+@keyframes rotateStageGlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.stage-text-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stage-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+  transition: color 0.2s ease;
+}
+
+.stepper-stage-node.current .stage-title {
+  color: #00A3E0;
+  font-weight: 800;
+}
+
+.stepper-stage-node.completed .stage-title {
+  color: #059669;
+}
+
+.stage-subtitle {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.stage-live-badge {
+  display: inline-block;
+  background: #00A3E0;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-top: 5px;
+  letter-spacing: 0.4px;
+}
+
+/* ==========================================================================
+   DOTTED CONNECTING TRACKS
+   ========================================================================== */
+
+.stepper-connector-track {
+  flex: 1;
+  height: 42px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 -4px;
+}
+
+/* Inactive Gray Dotted Line */
+.connector-bg-dots {
+  position: absolute;
+  top: 21px;
+  left: 6px;
+  right: 6px;
+  height: 0;
+  border-top: 4px dotted #cbd5e1;
+  z-index: 1;
+}
+
+/* Active Filled Dotted Line Wrapper (expands with lineProgress %) */
+.connector-fill-dots-wrap {
+  position: absolute;
+  top: 21px;
+  left: 6px;
+  height: 8px;
+  overflow: hidden;
+  z-index: 2;
+  transition: width 0.05s linear;
+}
+
+/* Active Cyan Dotted Line */
+.connector-fill-dots {
+  width: 1000px;
+  height: 0;
+  border-top: 4px dotted #00A3E0;
+  filter: drop-shadow(0 0 2px rgba(0, 163, 224, 0.7));
+}
+
+/* When Stage is Completed -> Turn Green Dotted Line */
+.stepper-connector-track.is-completed .connector-fill-dots {
+  border-top-color: #10b981;
+  filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.7));
+}
+
+/* ==========================================================================
+   STANDALONE VEHICLES RIDING DIRECTLY ON DOTTED TRACK
+   ========================================================================== */
+
+.mover-wrapper {
+  position: absolute;
+  top: 21px;
+  transform: translate(-50%, -75%);
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.mover-wrapper.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.mover-wrapper.is-done {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.mover-wrapper.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mover-object {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.18));
+}
+
+/* 1. Message Sending (smooth flight motion) */
+.message-mover {
+  animation: flyEnvelopeMotion 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes flyEnvelopeMotion {
+  0% { transform: translateY(0px) rotate(-1deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(-1deg); }
+}
+
+/* 2. Parcel Box (smooth conveyor motion) */
+.package-mover {
+  animation: boxConveyorMotion 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes boxConveyorMotion {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+  100% { transform: translateY(0px); }
+}
+
+/* 3. Blue Dart Truck (smooth road driving suspension - tires firmly grounded!) */
+.truck-mover {
+  animation: truckSuspensionMotion 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes truckSuspensionMotion {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-1.5px); }
+  100% { transform: translateY(0px); }
+}
+
+/* 4. Delivery Boy on Bike (smooth motorcycle driving suspension - tires firmly grounded!) */
+.bike-mover {
+  animation: bikeSuspensionMotion 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes bikeSuspensionMotion {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-1.5px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Narrative Story Banner */
+.stepper-stage-status-desc {
+  margin-top: 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 14px;
+  border: 1px dashed #cbd5e1;
+  font-size: 12.5px;
+  color: #334155;
+  line-height: 1.5;
+  animation: fadeInNarrative 0.3s ease-out;
+}
+
+@keyframes fadeInNarrative {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.status-narrative {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.narrative-tag {
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.narrative-tag.orange { background: #ea580c; }
+.narrative-tag.blue { background: #0284c7; }
+.narrative-tag.purple { background: #7c3aed; }
+.narrative-tag.green { background: #059669; }
+
+@media (max-width: 900px) {
+  .delivery-stepper-flow {
+    overflow-x: auto;
+    padding-bottom: 20px;
+  }
+  .stepper-stage-node {
+    min-width: 90px;
+  }
+  .stepper-connector-track {
+    min-width: 80px;
+  }
+}

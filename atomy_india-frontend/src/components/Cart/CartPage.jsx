@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ShoppingCart, ShoppingBag, Plus, Minus, X, ArrowLeft } from 'lucide-react';
 import './CartPage.css';
+import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS } from '../../data/mockData';
 
 const CART_PAGE_BEST_PRODUCTS = [
   {
@@ -135,9 +136,17 @@ export default function CartPage({
     return acc + itemPv * (item.qty || 1);
   }, 0);
 
-  const freeShippingThreshold = 4000;
-  const isFreeShipping = subtotal >= freeShippingThreshold || selectedItems.length === 0;
-  const shippingFee = (selectedItems.length > 0 && !isFreeShipping) ? 150 : 0;
+  // Check if any product specifies Free Delivery
+  const hasFreeDeliveryProduct = selectedItems.some(item => {
+    if (item.freeDelivery === true) return true;
+    if (item.freeDelivery === false) return false;
+    const cat = ALL_CATALOG_PRODUCTS?.find(p => p.id === item.id) || BEST_PRODUCTS?.find(p => p.id === item.id);
+    if (cat?.freeDelivery === true) return true;
+    if (Array.isArray(item.tags) && item.tags.some(t => typeof t === 'string' && t.toLowerCase().includes('free delivery'))) return true;
+    if (Array.isArray(cat?.tags) && cat.tags.some(t => typeof t === 'string' && t.toLowerCase().includes('free delivery'))) return true;
+    return false;
+  });
+  const shippingFee = (selectedItems.length > 0 && !hasFreeDeliveryProduct) ? 150 : 0;
   const grandTotal = subtotal + shippingFee;
 
   const handleScrollSlider = (direction) => {

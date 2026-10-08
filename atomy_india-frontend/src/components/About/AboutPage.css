@@ -1,0 +1,1009 @@
+/* AboutPage.css - Official Atomy India Customer Happiness Center (in.atomy.com/cst/main) 100% replica styling */
+
+.atomy-cst-main-page {
+  background-color: #ffffff;
+  min-height: 100vh;
+  font-family: 'Noto Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1e293b;
+  padding-bottom: 70px;
+  width: 100%;
+}
+
+/* 1. Breadcrumbs Bar */
+.cst-top-breadcrumb-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 12px 0;
+  margin-bottom: 24px;
+}
+
+.cst-breadcrumb-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.bread-home-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0096e6;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.bread-home-btn:hover {
+  text-decoration: underline;
+}
+
+.bread-arrow {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.bread-current-txt {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* 2. Main Page Header */
+.cst-title-head {
+  border-bottom: 2px solid #111827;
+  padding-bottom: 14px;
+  margin-bottom: 30px;
+  width: 100%;
+}
+
+.cst-title-head h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* 3. Customer Service FAQ Hero Section (cst-main__faq) */
+.cst-main__faq {
+  margin-bottom: 30px;
+}
+
+.cst-faq-welcome-header {
+  margin-bottom: 16px;
+}
+
+.cst-faq-welcome-header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.cst-welcome-badge {
+  font-size: 14px;
+  color: #0096e6;
+  font-weight: 500;
+}
+
+.cst-faq-search-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.faq-box-tag {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0096e6;
+  margin: 0 0 8px 0;
+}
+
+.faq-box-prompt {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 18px 0;
+}
+
+.cst-search-input-unit {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 30px;
+  padding: 0 16px;
+  height: 48px;
+  max-width: 650px;
+  transition: all 0.2s ease;
+}
+
+.cst-search-input-unit:focus-within {
+  border-color: #0096e6;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 150, 230, 0.12);
+}
+
+.cst-input-field {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.cst-input-field::placeholder {
+  color: #94a3b8;
+}
+
+.cst-clear-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.cst-clear-btn:hover {
+  color: #475569;
+}
+
+.cst-search-submit-btn {
+  background: none;
+  border: none;
+  color: #0096e6;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  transition: transform 0.15s;
+}
+
+.cst-search-submit-btn:hover {
+  transform: scale(1.1);
+}
+
+/* 4. Boards Section: TOP 5 FAQs & Notice (cst-main__board) */
+.cst-main__board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 34px;
+}
+
+@media (max-width: 860px) {
+  .cst-main__board {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cst-board-col {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.cst-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 14px;
+  margin-bottom: 12px;
+}
+
+.cst-board-header h4 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.cst-board-more-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.cst-board-more-btn:hover {
+  color: #0096e6;
+}
+
+.cst-board-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cst-faq-row-item {
+  padding: 12px 6px;
+  border-bottom: 1px solid #f8fafc;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cst-faq-row-item:last-child {
+  border-bottom: none;
+}
+
+.cst-faq-row-item:hover .faq-q-txt {
+  color: #0096e6;
+}
+
+.faq-q-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.faq-q-txt {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  transition: color 0.15s;
+}
+
+.faq-chevron {
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.faq-chevron.rotated {
+  transform: rotate(90deg);
+  color: #0096e6;
+}
+
+.cst-faq-inline-answer {
+  background: #f8fafc;
+  border-left: 3px solid #0096e6;
+  border-radius: 0 8px 8px 0;
+  padding: 12px 14px;
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.cst-faq-inline-answer p {
+  margin: 0;
+}
+
+.cst-notice-row-item {
+  padding: 12px 6px;
+  border-bottom: 1px solid #f8fafc;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.cst-notice-row-item:last-child {
+  border-bottom: none;
+}
+
+.cst-notice-row-item:hover .notice-headline-txt {
+  color: #0096e6;
+}
+
+.notice-category-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0096e6;
+  white-space: nowrap;
+}
+
+.notice-headline-txt {
+  font-size: 14px;
+  color: #334155;
+  transition: color 0.15s;
+}
+
+.cst-board-empty {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* 5. Quick Links Cards (cst-main__link) */
+.cst-main__link {
+  margin-bottom: 40px;
+}
+
+.cst-service-cards-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .cst-service-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cst-service-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.cst-service-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 22px 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.cst-service-card:hover {
+  border-color: #0096e6;
+  background: #f0f9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 150, 230, 0.12);
+}
+
+.cst-service-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f9ff;
+  color: #0096e6;
+  transition: transform 0.2s;
+}
+
+.cst-service-card:hover .cst-service-icon-wrap {
+  transform: scale(1.08);
+  background: #0096e6;
+  color: #ffffff;
+}
+
+.cst-service-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  text-align: center;
+}
+
+.cst-service-corp-card {
+  background: #fafafa;
+}
+
+.cst-service-corp-card .cst-service-icon-wrap {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.cst-service-corp-card:hover .cst-service-icon-wrap {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+/* 6. Company Information Tabs Section (cst-main__company) */
+.cst-main__company {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px 32px;
+  margin-bottom: 40px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* Primary Tabs (About Us | Management Info) */
+.cst-primary-tabs-nav {
+  display: flex;
+  border-bottom: 2px solid #0f172a;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.cst-prim-tab-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.cst-prim-tab-btn.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+}
+
+.cst-prim-tab-btn:hover:not(.active) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Secondary Sub-Tabs (Overview | Vision | Philosophy | Foundation | Motto) */
+.cst-secondary-subtabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+
+.cst-sub-pill {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cst-sub-pill:hover {
+  border-color: #0096e6;
+  color: #0096e6;
+}
+
+.cst-sub-pill.active {
+  background: #0096e6;
+  border-color: #0096e6;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Company Content Details */
+.cst-company__part h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 16px 0;
+}
+
+.cst-h-sub-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  background: #f8fafc;
+  border-left: 4px solid #0096e6;
+  border-radius: 0 10px 10px 0;
+  padding: 22px 26px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .cst-h-sub-box {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.cst-lead-txt-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lead-main {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.lead-masstige {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.sp-blue {
+  color: #0096e6;
+}
+
+.cst-masstige-img-wrap img {
+  max-width: 240px;
+  height: auto;
+  border-radius: 8px;
+}
+
+.cst-company__txt p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #334155;
+  margin-bottom: 16px;
+}
+
+.cst-three-cultures-strip {
+  background: #f0f9ff;
+  border-left: 3px solid #0096e6;
+  border-radius: 0 8px 8px 0;
+  padding: 14px 18px;
+  margin: 18px 0;
+}
+
+.cst-three-cultures-strip p {
+  margin: 0;
+  font-size: 14px;
+  color: #0369a1;
+}
+
+/* Vision Steps */
+.vision-step-box {
+  margin-bottom: 12px;
+}
+
+.step-num-pill {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0096e6;
+}
+
+.line-top {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
+  margin-top: 24px;
+}
+
+.cst-vision-principles-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-top: 18px;
+}
+
+.principles-lead {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 10px 0;
+}
+
+.century-commitment {
+  font-weight: 600;
+  color: #0096e6;
+  margin-top: 10px !important;
+}
+
+/* Foundation Pillars */
+.cst-foundation-pillar-row {
+  display: flex;
+  gap: 28px;
+  padding: 16px 0;
+}
+
+@media (max-width: 640px) {
+  .cst-foundation-pillar-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.cst-pillar-badge {
+  min-width: 130px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+.cst-pillar-detail {
+  flex: 1;
+}
+
+.cst-pillar-detail p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #334155;
+  margin-bottom: 10px;
+}
+
+.cst-pillar-bullets {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 10px 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #475569;
+}
+
+/* Motto */
+.cst-motto-headline-banner {
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 20px 24px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.pillar-lead-phrase {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0096e6;
+  margin-bottom: 6px !important;
+}
+
+/* Management Info Profiles */
+.cst-leader-profile-unit {
+  padding: 16px 0;
+}
+
+.leader-tit {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 16px 0;
+}
+
+.leader-card-flex {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .leader-card-flex {
+    flex-direction: column;
+  }
+}
+
+.leader-photo-box img {
+  width: 170px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.leader-bio-text {
+  flex: 1;
+}
+
+.leader-bio-text p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #334155;
+  margin-bottom: 12px;
+}
+
+.leader-bio-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* 7. Customer Counsel Contacts Bar (cst-main__counsel) */
+.cst-main__counsel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.cst-counsel-inner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .cst-counsel-inner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .cst-counsel-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cst-counsel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.cst-counsel-header-title b {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cst-counsel-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cst-phone-big {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0096e6;
+  letter-spacing: -0.3px;
+}
+
+.cst-schedule-sub {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.cst-mail-link {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0096e6;
+  text-decoration: none;
+}
+
+.cst-mail-link:hover {
+  text-decoration: underline;
+}
+
+.cst-counsel-inquiry-card {
+  grid-column: span 1;
+}
+
+.cst-inquiry-flex-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cst-inquiry-desc-side p {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 10px 0;
+}
+
+.cst-inquiry-open-btn {
+  background: #0096e6;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cst-inquiry-open-btn em {
+  font-style: normal;
+}
+
+.cst-inquiry-open-btn:hover {
+  background: #0284c7;
+  transform: translateY(-1px);
+}
+
+.cst-inquiry-img-side img {
+  width: 50px;
+  height: 50px;
+}
+
+/* 8. Inquiry Modal */
+.cst-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.cst-modal-box {
+  background: #ffffff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 540px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalPop 0.25s ease-out;
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.cst-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-title-with-icon h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.cst-modal-close-icon {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.cst-modal-close-icon:hover {
+  color: #0f172a;
+}
+
+.cst-inquiry-form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-group input,
+.form-group textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #0f172a;
+  outline: none;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #0096e6;
+  box-shadow: 0 0 0 3px rgba(0, 150, 230, 0.12);
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 500px) {
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.cancel-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.submit-btn {
+  background: #0096e6;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+
+.submit-btn:hover {
+  background: #0284c7;
+}
+
+.cst-modal-success {
+  padding: 40px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.cst-modal-success h4 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.cst-modal-success p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}

@@ -1,19 +1,59 @@
 import React, { useState } from 'react';
 import {
-  Play,
-  Download,
-  Share2,
-  Smartphone,
   ExternalLink,
   ChevronRight,
+  Play,
+  Download,
   Video,
   FileText,
-  Sparkles,
-  Layers,
-  ArrowRight,
-  X
+  X,
+  Compass
 } from 'lucide-react';
 import './AtomyHubPage.css';
+
+// 5 Official Atomy Hub Portals exactly from https://in.atomy.com/atomy/hub
+const OFFICIAL_HUB_ITEMS = [
+  {
+    id: 'atomy-com',
+    title: 'Atomy.com',
+    logo: 'https://image.atomy.com/IN/banner/90/562/251000000020562104816.svg',
+    desc: 'A company that exceeds customer satisfaction to achieve customer success.',
+    url: 'https://global.atomy.com/index.es?sid=a2',
+    isExternal: true
+  },
+  {
+    id: 'ch-atomy',
+    title: 'CH.ATOMY',
+    logo: 'https://image.atomy.com/IN/banner/90/563/251000000020563104843.svg',
+    desc: 'Videos, products, and various news content.',
+    url: 'https://ch.atomy.com/in',
+    isExternal: true
+  },
+  {
+    id: 'atomy-ticket',
+    title: 'Atomy Ticket',
+    logo: 'https://image.atomy.com/IN/banner/90/564/251000000020564104927.svg',
+    desc: "Stay updated with Atomy's global seminars instantly and receive notifications.",
+    url: 'https://ticket.atomy.com/h/main?jisa=in&ln=en',
+    isExternal: true
+  },
+  {
+    id: 'atomy-aza',
+    title: 'AtomyAZA',
+    logo: 'https://image.atomy.com/IN/banner/90/565/251000000020565104955.svg',
+    desc: 'An online shopping mall that suggests and sells trustworthy products.',
+    url: 'https://atomyaza.co.kr/',
+    isExternal: true
+  },
+  {
+    id: 'at-g-mall',
+    title: 'At.G Mall',
+    logo: 'https://image.atomy.com/IN/banner/90/566/251000000020566105020.svg',
+    desc: 'The fast way to Atomy Korea’ Products for global members.',
+    url: 'https://global.atomy.kr/',
+    isExternal: true
+  }
+];
 
 const HUB_VIDEOS = [
   {
@@ -90,153 +130,151 @@ const HUB_DOWNLOADS = [
 ];
 
 export default function AtomyHubPage({ onNavigateHome, onNavigateCategory }) {
-  const [activeTab, setActiveTab] = useState('media');
+  const [activeMediaTab, setActiveMediaTab] = useState('none'); // 'none', 'videos', 'downloads'
   const [activeVideoModal, setActiveVideoModal] = useState(null);
+
+  const handleShortcutClick = (item) => {
+    window.open(item.url, '_blank', 'noopener,noreferrer');
+  };
 
   const handleDownloadFile = (item) => {
     alert(`Initiating download for "${item.title}" (${item.format}, ${item.fileSize}).`);
   };
 
   return (
-    <div className="atomy-hub-page">
-      {/* 1. Breadcrumbs */}
-      <div className="hub-breadcrumb-bar">
-        <div className="hub-container">
-          <button type="button" className="bread-link" onClick={onNavigateHome}>
-            HOME
-          </button>
-          <ChevronRight size={14} className="bread-sep" />
-          <span className="bread-active">AtomyHUB</span>
+    <div className="atomy-hub-page-wrapper">
+      {/* 1. Breadcrumb bar */}
+      <div className="hub-top-breadcrumb-bar">
+        <div className="container hub-breadcrumb-container">
+          <div className="hub-breadcrumb">
+            <button type="button" className="bread-link" onClick={onNavigateHome}>
+              HOME
+            </button>
+            <ChevronRight size={14} className="bread-separator" />
+            <span className="bread-current">AtomyHub</span>
+          </div>
         </div>
       </div>
 
-      {/* 2. Header Banner */}
-      <section className="hub-header-banner">
-        <div className="hub-container">
-          <div className="hub-banner-content">
-            <span className="hub-eyebrow">DIGITAL ECOSYSTEM & MEDIA PORTAL</span>
-            <h1 className="hub-title">AtomyHUB Multimedia & Resource Center</h1>
-            <p className="hub-subtitle">
-              Your centralized gateway to official videos, marketing collateral, business presentations,
-              and downloadable catalogs to support your personal wellness and distributor success.
-            </p>
-          </div>
+      <div className="container hub-main-container">
+        {/* 2. Official Header */}
+        <div className="disp-top_title">
+          <h2>AtomyHub</h2>
         </div>
-      </section>
 
-      {/* 3. Sub Nav Tabs */}
-      <nav className="hub-nav-tabs-wrapper">
-        <div className="hub-container">
-          <div className="hub-nav-tabs">
-            <button
-              className={`hub-tab-btn ${activeTab === 'media' ? 'active' : ''}`}
-              onClick={() => setActiveTab('media')}
-            >
-              <Video size={16} />
-              <span>CH.ATOMY Videos</span>
-            </button>
-            <button
-              className={`hub-tab-btn ${activeTab === 'downloads' ? 'active' : ''}`}
-              onClick={() => setActiveTab('downloads')}
-            >
-              <Download size={16} />
-              <span>Download Center</span>
-            </button>
-            <button
-              className={`hub-tab-btn ${activeTab === 'apps' ? 'active' : ''}`}
-              onClick={() => setActiveTab('apps')}
-            >
-              <Smartphone size={16} />
-              <span>Mobile Apps & Tools</span>
-            </button>
-          </div>
+        {/* 3. Official 5-Portal Hub List (matching in.atomy.com/atomy/hub) */}
+        <div className="hub-list">
+          {OFFICIAL_HUB_ITEMS.map((hub) => (
+            <dl key={hub.id} className="hub-card-item">
+              <dt>
+                <span className="logo">
+                  <img
+                    src={hub.logo}
+                    alt={hub.title}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                </span>
+                <span className="tit">{hub.title}</span>
+              </dt>
+              <dd className="txt">{hub.desc}</dd>
+              <dd className="bt">
+                <button
+                  type="button"
+                  className="btn sd"
+                  onClick={() => handleShortcutClick(hub)}
+                  title={`Open ${hub.title}`}
+                >
+                  <em>Shortcut</em>
+                  <ChevronRight size={14} className="shortcut-icon" />
+                </button>
+              </dd>
+            </dl>
+          ))}
         </div>
-      </nav>
 
-      {/* 4. Tab Content Area */}
-      <div className="hub-container hub-content-container">
-        {/* TAB 1: MEDIA */}
-        {activeTab === 'media' && (
-          <div className="hub-pane-fade">
-            <div className="hub-pane-header">
-              <span className="kicker">CH.ATOMY STREAMING</span>
-              <h2>Featured Lectures & Product Documentaries</h2>
-              <p>Explore world-class video presentations developed by Atomy Global Broadcasting.</p>
+        {/* 4. CH.ATOMY Media & Catalog Resources Accordion / Section */}
+        <div className="hub-media-resources-section">
+          <div className="hub-section-header">
+            <div className="hub-section-title-wrap">
+              <Compass size={22} className="hub-section-icon" />
+              <h3>CH.ATOMY Multimedia & Official Publications</h3>
             </div>
+            <div className="hub-media-toggle-tabs">
+              <button
+                type="button"
+                className={`hub-media-toggle-btn ${activeMediaTab === 'videos' ? 'active' : ''}`}
+                onClick={() => setActiveMediaTab(activeMediaTab === 'videos' ? 'none' : 'videos')}
+              >
+                <Video size={16} />
+                <span>Featured Videos</span>
+              </button>
+              <button
+                type="button"
+                className={`hub-media-toggle-btn ${activeMediaTab === 'downloads' ? 'active' : ''}`}
+                onClick={() => setActiveMediaTab(activeMediaTab === 'downloads' ? 'none' : 'downloads')}
+              >
+                <FileText size={16} />
+                <span>Publications & Catalogs</span>
+              </button>
+            </div>
+          </div>
 
-            <div className="videos-grid">
+          {/* Videos Grid */}
+          {activeMediaTab === 'videos' && (
+            <div className="hub-videos-grid animate-fade">
               {HUB_VIDEOS.map((vid) => (
-                <div key={vid.id} className="hub-video-card" onClick={() => setActiveVideoModal(vid)}>
-                  <div className="video-thumb-wrap">
+                <div key={vid.id} className="hub-video-card">
+                  <div className="video-thumb-wrap" onClick={() => setActiveVideoModal(vid)}>
                     <img
                       src={vid.thumbnail}
                       alt={vid.title}
+                      className="video-thumb-img"
                       onError={(e) => {
-                        e.currentTarget.src = 'https://image.atomy.com/disp/siteInfo/seo/og_image_v20251013133919.png';
+                        e.target.src = 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg';
                       }}
                     />
-                    <div className="play-overlay">
+                    <div className="video-overlay">
                       <div className="play-circle">
-                        <Play size={20} fill="#ffffff" />
+                        <Play size={20} fill="#ffffff" color="#ffffff" />
                       </div>
                     </div>
-                    <span className="video-time-tag">{vid.duration}</span>
+                    <span className="video-duration">{vid.duration}</span>
                   </div>
-
                   <div className="video-card-body">
-                    <span className="vid-cat-tag">{vid.category}</span>
-                    <h3 className="vid-title">{vid.title}</h3>
-                    <p className="vid-desc">{vid.desc}</p>
-                    <div className="vid-speaker-row">
-                      <span>Speaker: <strong>{vid.speaker}</strong></span>
-                    </div>
+                    <span className="video-cat-badge">{vid.category}</span>
+                    <h4 className="video-title" onClick={() => setActiveVideoModal(vid)}>
+                      {vid.title}
+                    </h4>
+                    <p className="video-speaker">{vid.speaker}</p>
+                    <p className="video-desc">{vid.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
+          )}
 
-            <div className="ch-atomy-banner-strip">
-              <div>
-                <h3>Want 24/7 Unlimited Access to Over 3,000+ Lectures?</h3>
-                <p>Visit the official CH.ATOMY India portal and Atomy Official YouTube Channel for non-stop learning.</p>
-              </div>
-              <a
-                href="https://ch.atomy.com"
-                target="_blank"
-                rel="noreferrer"
-                className="ch-atomy-link-btn"
-              >
-                <span>Open CH.ATOMY Global</span>
-                <ExternalLink size={16} />
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: DOWNLOADS */}
-        {activeTab === 'downloads' && (
-          <div className="hub-pane-fade">
-            <div className="hub-pane-header">
-              <span className="kicker">OFFICIAL PUBLICATIONS & LITERATURE</span>
-              <h2>Download Center</h2>
-              <p>Download the latest official catalogs, compensation plan brochures, and distributor kits in high resolution.</p>
-            </div>
-
-            <div className="downloads-list-grid">
-              {HUB_DOWNLOADS.map((item) => (
-                <div key={item.id} className="download-item-card">
-                  <div className="dl-icon-wrap">
-                    <FileText size={28} color="#00A3E0" />
+          {/* Downloads Grid */}
+          {activeMediaTab === 'downloads' && (
+            <div className="hub-downloads-grid animate-fade">
+              {HUB_DOWNLOADS.map((doc) => (
+                <div key={doc.id} className="hub-download-card">
+                  <div className="doc-icon-wrap">
+                    <FileText size={28} />
                   </div>
-                  <div className="dl-text-wrap">
-                    <span className="dl-cat">{item.category} • {item.format} ({item.fileSize})</span>
-                    <h3 className="dl-title">{item.title}</h3>
-                    <p className="dl-desc">{item.desc}</p>
+                  <div className="doc-body">
+                    <div className="doc-top-row">
+                      <span className="doc-badge">{doc.category}</span>
+                      <span className="doc-size">{doc.fileSize}</span>
+                    </div>
+                    <h4 className="doc-title">{doc.title}</h4>
+                    <p className="doc-desc">{doc.desc}</p>
                   </div>
                   <button
                     type="button"
-                    className="dl-action-btn"
-                    onClick={() => handleDownloadFile(item)}
+                    className="doc-dl-btn"
+                    onClick={() => handleDownloadFile(doc)}
                   >
                     <Download size={16} />
                     <span>Download</span>
@@ -244,78 +282,44 @@ export default function AtomyHubPage({ onNavigateHome, onNavigateCategory }) {
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* TAB 3: APPS */}
-        {activeTab === 'apps' && (
-          <div className="hub-pane-fade">
-            <div className="hub-pane-header">
-              <span className="kicker">DIGITAL ATOMY</span>
-              <h2>Atomy Mobile Applications for iOS & Android</h2>
-              <p>Shop on the go, track daily Point Value, and manage your lineage network anywhere, anytime.</p>
-            </div>
-
-            <div className="apps-showcase-grid">
-              <div className="app-card">
-                <div className="app-badge">OFFICIAL SHOPPING</div>
-                <h3>Atomy Mobile App</h3>
-                <p>
-                  The official shopping mall and customer portal with real-time biometric login,
-                  1-click checkout, express delivery tracking, and order history.
-                </p>
-                <div className="app-buttons-row">
-                  <button className="store-dl-btn" onClick={() => alert('Redirecting to Google Play Store')}>
-                    <span>Google Play</span>
-                  </button>
-                  <button className="store-dl-btn" onClick={() => alert('Redirecting to Apple App Store')}>
-                    <span>App Store</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="app-card">
-                <div className="app-badge">BUSINESS TERMINAL</div>
-                <h3>Atomy Ticket & Event App</h3>
-                <p>
-                  Official digital ticketing and entry verification application for attending
-                  One Day Seminars and national Success Academy conferences.
-                </p>
-                <div className="app-buttons-row">
-                  <button className="store-dl-btn" onClick={() => alert('Redirecting to Google Play Store')}>
-                    <span>Google Play</span>
-                  </button>
-                  <button className="store-dl-btn" onClick={() => alert('Redirecting to Apple App Store')}>
-                    <span>App Store</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* 5. Video Player Modal */}
+      {/* Video Modal Player */}
       {activeVideoModal && (
-        <div className="video-player-modal-backdrop" onClick={() => setActiveVideoModal(null)}>
-          <div className="video-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="video-modal-header">
-              <div className="modal-title-cluster">
-                <span className="vid-cat-tag">{activeVideoModal.category}</span>
-                <h4>{activeVideoModal.title}</h4>
+        <div className="hub-video-modal-backdrop" onClick={() => setActiveVideoModal(null)}>
+          <div className="hub-video-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <span className="modal-cat">{activeVideoModal.category}</span>
+                <h3 className="modal-title">{activeVideoModal.title}</h3>
               </div>
-              <button className="video-modal-close" onClick={() => setActiveVideoModal(null)}>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setActiveVideoModal(null)}
+              >
                 <X size={20} />
               </button>
             </div>
-
-            <div className="video-modal-body">
+            <div className="modal-video-viewport">
               <div className="video-player-placeholder">
-                <Play size={48} color="#00A3E0" />
-                <p>Streaming Official Atomy High-Definition Lecture</p>
-                <span>Duration: {activeVideoModal.duration} • Speaker: {activeVideoModal.speaker}</span>
+                <Play size={48} className="player-icon" />
+                <p>Streaming CH.ATOMY Official Broadcast ({activeVideoModal.duration})</p>
+                <span className="player-caption">{activeVideoModal.speaker}</span>
               </div>
-              <p className="modal-video-desc">{activeVideoModal.desc}</p>
+            </div>
+            <div className="modal-footer">
+              <p className="modal-desc">{activeVideoModal.desc}</p>
+              <button
+                type="button"
+                className="modal-action-btn"
+                onClick={() => window.open('https://ch.atomy.com/in', '_blank')}
+              >
+                <span>Watch full HD on CH.ATOMY</span>
+                <ExternalLink size={14} />
+              </button>
             </div>
           </div>
         </div>

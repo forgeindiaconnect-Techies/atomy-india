@@ -44,16 +44,23 @@
   color: #ffffff;
 }
 
-.top-utility-links a {
+.top-utility-links a,
+.top-utility-links button {
   color: #ffffff;
+  background: transparent;
+  border: none;
   opacity: 0.95;
   font-weight: 500;
   font-size: 13.5px;
   text-decoration: none;
   transition: opacity 0.2s ease;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
 }
 
-.top-utility-links a:hover {
+.top-utility-links a:hover,
+.top-utility-links button:hover {
   opacity: 1;
   text-decoration: underline;
 }
@@ -62,6 +69,83 @@
   width: 1px;
   height: 12px;
   background-color: rgba(255, 255, 255, 0.45);
+}
+
+/* Membership Status Header Pill */
+.top-membership-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+}
+
+.top-membership-pill.member-active {
+  background: #ffffff;
+  color: #047857;
+  border: 1px solid #10b981;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.top-membership-pill.member-active .member-pill-sparkle {
+  color: #10b981;
+  font-size: 12px;
+}
+
+.top-membership-pill.member-active:hover {
+  background: #ecfdf5;
+  text-decoration: none !important;
+  transform: translateY(-1px);
+}
+
+.top-membership-pill.member-join {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.top-membership-pill.member-join .member-pill-sparkle {
+  color: #fef08a;
+  font-size: 12px;
+}
+
+.top-membership-pill.member-join:hover {
+  background: #ffffff;
+  color: #0077b6;
+  border-color: #ffffff;
+}
+
+.top-membership-pill.member-guest {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+}
+
+.top-membership-pill.member-guest:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* Search Dropdown Member DP Badges */
+.search-result-dp-price {
+  color: #059669 !important;
+  font-weight: 700;
+}
+
+.search-dp-tag {
+  font-size: 10px;
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 5px;
 }
 
 .region-selector {

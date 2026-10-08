@@ -1,18 +1,18 @@
 /* Product Section Common Layout */
 .product-showcase-section {
-  padding: 68px 0 58px;
+  padding: 34px 0 20px;
   background-color: #ffffff;
   position: relative;
 }
 
 .product-showcase-section.alt-bg {
-  background-color: #fafbfc;
-  border-top: 1px solid #f0f0f0;
+  background-color: transparent;
+  border-top: none;
 }
 
 .section-header-block {
   text-align: center;
-  margin-bottom: 36px;
+  margin-bottom: 22px;
 }
 
 .section-main-title {
@@ -70,10 +70,10 @@
 
 .product-cards-slider {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   overflow-x: auto;
   scroll-behavior: smooth;
-  padding: 12px 6px 24px;
+  padding: 8px 4px 14px;
   scrollbar-width: none;
 }
 
@@ -116,8 +116,8 @@
 
 /* Individual Product Card */
 .product-card {
-  flex: 0 0 calc((100% - 96px) / 5);
-  min-width: 225px;
+  flex: 0 0 calc((100% - 80px) / 5);
+  min-width: 240px;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -206,7 +206,7 @@
 
 /* Product Info */
 .product-info-wrap {
-  padding: 14px 4px 12px;
+  padding: 14px 4px 10px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -219,7 +219,7 @@
   font-weight: 600;
   color: #222222;
   line-height: 1.35;
-  margin-bottom: 10px;
+  margin-bottom: 3px;
   min-height: auto;
   max-height: 44px;
   display: -webkit-box;
@@ -304,7 +304,7 @@
   align-items: center;
   justify-content: flex-start;
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   font-size: 13px;
   color: #777777;
   width: 100%;
@@ -327,7 +327,7 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   font-size: 12px;
   color: #666666;
 }
@@ -335,8 +335,8 @@
 .free-delivery-badge {
   display: inline-block;
   margin-top: 0;
-  padding: 4px 10px;
-  font-size: 12px;
+  padding: 3px 8px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #555555;
   border: 1px solid #d0d0d0;
@@ -346,7 +346,8 @@
 
 /* 4-column variant for Hair & Body */
 .hair-body-cards .product-card {
-  flex: 0 0 calc((100% - 72px) / 4);
+  flex: 0 0 calc((100% - 60px) / 4);
+  min-width: 260px;
 }
 
 /* ========================================================
@@ -455,6 +456,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
 }
 
 .brand-product-title {
@@ -462,13 +464,19 @@
   font-weight: 600;
   color: #222222;
   line-height: 1.35;
-  margin-bottom: 8px;
-  height: 40px;
+  margin-bottom: 3px;
+  height: auto;
+  min-height: auto;
+  max-height: 42px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.brand-product-card .product-price-block {
+  margin-top: 0;
 }
 
 /* ========================================================

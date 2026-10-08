@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
+import ProductPriceDisplay from './ProductPriceDisplay';
 import './ProductSection.css';
 
 export default function BrandShowcaseSection({
@@ -10,7 +11,8 @@ export default function BrandShowcaseSection({
   bannerLink = "#",
   products = [],
   onAddToCart,
-  onProductClick
+  onProductClick,
+  isMember = false
 }) {
   const [, setCatalogTick] = useState(0);
 
@@ -84,32 +86,7 @@ export default function BrandShowcaseSection({
                     {product.name}
                   </h3>
 
-                  <div className="product-price-block">
-                    {hasOffer && (
-                      <div className="price-strike-row">
-                        <span className="price-mrp-label">MRP</span>
-                        <span className="price-original">
-                          ₹ {origPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                        <span className="price-percent">{discNum}% off</span>
-                      </div>
-                    )}
-                    <p className="product-price">
-                      {!hasOffer && <span className="price-mrp-label" style={{ marginRight: '5px' }}>MRP</span>}
-                      {product.price !== undefined && product.price !== null
-                        ? `₹ ${Number(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : (product.formattedPrice || '')}
-                    </p>
-                    {(product.dpPrice || product.distributorPrice) ? (
-                      <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: '700', marginTop: '3px', background: '#ecfdf5', padding: '2px 6px', borderRadius: '4px', display: 'inline-block' }}>
-                        DP: ₹ {Number(product.dpPrice || product.distributorPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <p className="product-pv-note">
-                    {(product.pv || 18000).toLocaleString('en-IN')} PV
-                  </p>
+                  <ProductPriceDisplay product={product} isMember={isMember} />
                 </div>
               </div>
             );

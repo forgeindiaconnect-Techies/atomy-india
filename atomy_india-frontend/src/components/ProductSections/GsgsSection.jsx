@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ShoppingCart, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { GSGS_PRODUCTS, GST_BADGE_IMAGE } from '../../data/mockData';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
+import ProductPriceDisplay from './ProductPriceDisplay';
 import './ProductSection.css';
 
-export default function GsgsSection({ onAddToCart, onProductClick }) {
+export default function GsgsSection({ onAddToCart, onProductClick, isMember = false }) {
   const [likedProducts, setLikedProducts] = useState({});
   const [, setCatalogTick] = useState(0);
   const sliderRef = useRef(null);
@@ -90,42 +91,7 @@ export default function GsgsSection({ onAddToCart, onProductClick }) {
                     >
                       {product.name}
                     </h3>
-                    {(() => {
-                      const price = Number(product.price) || 0;
-                      const origPrice = Number(product.originalPrice) || price;
-                      const discNum = product.discountPercent
-                        ? Number(String(product.discountPercent).replace(/[^0-9]/g, ''))
-                        : (origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0);
-                      const hasOffer = discNum > 0 && origPrice > price;
-
-                      return (
-                        <div className="product-price-block">
-                          {hasOffer && (
-                            <div className="price-strike-row">
-                              <span className="price-mrp-label">MRP</span>
-                              <span className="price-original">
-                                ₹ {origPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                              <span className="price-percent">{discNum}% off</span>
-                            </div>
-                          )}
-                          <p className="product-price">
-                            {!hasOffer && <span className="price-mrp-label" style={{ marginRight: '5px' }}>MRP</span>}
-                            {product.price !== undefined && product.price !== null
-                              ? `₹ ${Number(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                              : (product.formattedPrice || '')}
-                          </p>
-                          {(product.dpPrice || product.distributorPrice) ? (
-                            <div style={{ fontSize: '11.5px', color: '#059669', fontWeight: '700', marginTop: '3px', background: '#ecfdf5', padding: '2px 6px', borderRadius: '4px', display: 'inline-block' }}>
-                              DP: ₹ {Number(product.dpPrice || product.distributorPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })()}
-                    <p className="product-pv-note">
-                      {(product.pv || 4000).toLocaleString('en-IN')} PV
-                    </p>
+                    <ProductPriceDisplay product={product} isMember={isMember} />
 
                     <div className="product-meta-row">
                       <div

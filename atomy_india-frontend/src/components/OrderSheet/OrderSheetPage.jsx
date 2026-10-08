@@ -21,12 +21,15 @@ import {
   Loader2,
   Check,
   Plus,
+  Minus,
   Trash2,
   Edit2,
   Home,
   Briefcase
 } from 'lucide-react';
 import './OrderSheetPage.css';
+import { createCustomerOrder } from '../../services/api';
+import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS } from '../../data/mockData';
 import customPaymentQr from '../../assets/WhatsApp Image 2026-10-06 at 12.14.42 PM.jpeg';
 
 // Curated list of Bestseller Products with verified working CDN images
@@ -125,8 +128,50 @@ const INITIAL_DEFAULT_ADDRESS = {
   isDefault: true
 };
 
+// Helper: Check if item is specified as Free Delivery in product attributes or catalog
+export const isItemFreeDelivery = (item) => {
+  if (!item) return false;
+  if (item.freeDelivery === true) return true;
+  if (item.freeDelivery === false) return false;
+
+  const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
+    || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
+
+  if (catalogProd) {
+    if (catalogProd.freeDelivery === true) return true;
+    if (catalogProd.freeDelivery === false) return false;
+    if (Array.isArray(catalogProd.tags) && catalogProd.tags.some(t => typeof t === 'string' && t.toLowerCase().includes('free delivery'))) {
+      return true;
+    }
+  }
+
+  if (Array.isArray(item.tags) && item.tags.some(t => typeof t === 'string' && t.toLowerCase().includes('free delivery'))) {
+    return true;
+  }
+  return false;
+};
+
+// Helper: Determine product GST tax slab (12% Reduced for health/toothpaste or tagged, else 18% Standard)
+export const getProductGstRate = (item) => {
+  if (!item) return 18;
+  const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
+    || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
+
+  const isReduced = Boolean(
+    item.gstReduced === true ||
+    catalogProd?.gstReduced === true ||
+    (Array.isArray(item.tags) && item.tags.some(t => typeof t === 'string' && t.toUpperCase().includes('GST REDUCED'))) ||
+    (Array.isArray(catalogProd?.tags) && catalogProd?.tags.some(t => typeof t === 'string' && t.toUpperCase().includes('GST REDUCED'))) ||
+    item.category === 'health' ||
+    catalogProd?.category === 'health'
+  );
+  return isReduced ? 12 : 18;
+};
+
 export default function OrderSheetPage({ 
   cartItems = [], 
+  onUpdateQty,
+  onRemoveItem,
   onNavigateHome, 
   onNavigateBack,
   onNavigateCart, 
@@ -134,7 +179,8 @@ export default function OrderSheetPage({
   onOrderSuccess,
   onClearCart,
   onAddToCart,
-  onProductClick
+  onProductClick,
+  isMember = false
 }) {
   // Steps: 'sheet' (02 Order & Delivery) | 'payment' (03 Payment Gateway) | 'completed' (04 Order Completed)
   const [step, setStep] = useState('sheet');
@@ -266,16 +312,67 @@ export default function OrderSheetPage({
   }, [cartItems]);
 
   const totalPV = useMemo(() => {
+    if (!isMember) return 0;
     return cartItems.reduce((acc, item) => acc + ((item.pv || 0) * item.qty), 0);
-  }, [cartItems]);
+  }, [cartItems, isMember]);
 
   const totalQty = useMemo(() => {
     return cartItems.reduce((acc, item) => acc + item.qty, 0);
   }, [cartItems]);
 
-  // Delivery fee: Free for orders over ₹1,000; otherwise ₹99
-  const shippingFee = subtotal >= 1000 ? 0 : 99;
+  // Free delivery rule: Delivery is FREE only if at least one product mentions Free Delivery.
+  // Otherwise, standard doorstep courier fee of ₹ 150.00 is charged.
+  const hasFreeDeliveryProduct = useMemo(() => {
+    return cartItems.length > 0 && cartItems.some(item => isItemFreeDelivery(item));
+  }, [cartItems]);
+
+  const shippingFee = useMemo(() => {
+    if (cartItems.length === 0) return 0;
+    return hasFreeDeliveryProduct ? 0 : 150;
+  }, [cartItems.length, hasFreeDeliveryProduct]);
+
   const grandTotal = subtotal + shippingFee;
+
+  // GST Breakdown calculated per item based on product specification (18% standard, 12% reduced)
+  const gstSummary = useMemo(() => {
+    let totalGst = 0;
+    let standard18Base = 0;
+    let standard18Gst = 0;
+    let reduced12Base = 0;
+    let reduced12Gst = 0;
+    let count18 = 0;
+    let count12 = 0;
+
+    cartItems.forEach((item) => {
+      const rate = getProductGstRate(item);
+      const itemTotal = (item.price || 0) * (item.qty || 1);
+      const base = itemTotal / (1 + rate / 100);
+      const gst = itemTotal - base;
+
+      totalGst += gst;
+      if (rate === 12) {
+        reduced12Base += base;
+        reduced12Gst += gst;
+        count12 += (item.qty || 1);
+      } else {
+        standard18Base += base;
+        standard18Gst += gst;
+        count18 += (item.qty || 1);
+      }
+    });
+
+    return {
+      totalGst,
+      standard18Base,
+      standard18Gst,
+      reduced12Base,
+      reduced12Gst,
+      has18: count18 > 0,
+      has12: count12 > 0,
+      count18,
+      count12
+    };
+  }, [cartItems]);
 
   // Trigger Live GPS Current Location Detection inside Address Modal
   const handleDetectCurrentLocation = () => {
@@ -522,52 +619,108 @@ export default function OrderSheetPage({
   };
 
   // Step 2: Submit and Complete Order
-  const handlePlaceOrder = (e) => {
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
     setIsProcessing(true);
 
-    setTimeout(() => {
-      const orderId = `AT${new Date().toISOString().replace(/\D/g, '').slice(0, 12)}`;
-      const newOrder = {
-        orderId: orderId,
-        date: new Date().toISOString(),
-        orderDate: new Date().toISOString().split('T')[0],
-        status: 'Payment Completed',
-        courier: 'Blue Dart Express (Assigned)',
-        trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
-        paymentMethod: paymentMethod === 'UPI' ? 'UPI (Google Pay / PhonePe)' 
-                     : paymentMethod === 'CARD' ? 'Credit / Debit Card'
-                     : paymentMethod === 'NETBANKING' ? `Net Banking (${selectedBank})`
-                     : 'Cash on Delivery',
-        deliveryType: 'direct',
-        recipient: currentSelectedAddress?.recipientName || ordererName,
-        phone: currentSelectedAddress?.recipientPhone || ordererPhone,
-        address: {
-          recipient: currentSelectedAddress?.recipientName || ordererName,
-          phone: currentSelectedAddress?.recipientPhone || ordererPhone,
-          fullAddress: currentSelectedAddress 
-            ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}, ${currentSelectedAddress.city}, ${currentSelectedAddress.state} - ${currentSelectedAddress.pincode}`
-            : 'Doorstep Courier Delivery'
-        },
-        items: cartItems.map(it => ({ ...it })),
-        subtotal,
-        shippingFee,
-        grandTotal,
-        totalPV
-      };
+    const fullRecipientName = currentSelectedAddress?.recipientName || ordererName || 'Customer';
+    const fullRecipientPhone = currentSelectedAddress?.recipientPhone || ordererPhone || '9876543210';
+    const fullShippingAddress = currentSelectedAddress 
+      ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
+      : 'Doorstep Courier Delivery';
+    const city = currentSelectedAddress?.city || 'New Delhi';
+    const state = currentSelectedAddress?.state || 'Delhi';
+    const pincode = currentSelectedAddress?.pincode || '110001';
 
-      setPlacedOrderDetails(newOrder);
-      setIsProcessing(false);
-      setStep('completed');
+    let springPaymentMethod = 'ONLINE_UPI';
+    if (paymentMethod === 'CARD') springPaymentMethod = 'CREDIT_DEBIT_CARD';
+    else if (paymentMethod === 'NETBANKING') springPaymentMethod = 'NET_BANKING';
+    else if (paymentMethod === 'COD') springPaymentMethod = 'CASH_ON_DELIVERY';
 
-      if (onOrderSuccess) {
-        onOrderSuccess(newOrder);
-      }
-      if (onClearCart) {
-        onClearCart();
-      }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 1400);
+    const orderPayload = {
+      customerName: fullRecipientName,
+      customerEmail: ordererEmail || 'customer@atomy.com',
+      customerPhone: fullRecipientPhone,
+      shippingAddress: fullShippingAddress,
+      city,
+      state,
+      pincode,
+      paymentMethod: springPaymentMethod,
+      items: (cartItems && cartItems.length > 0 ? cartItems : []).map(it => ({
+        productId: it.id,
+        quantity: it.qty || 1
+      }))
+    };
+
+    let backendOrder = null;
+    try {
+      backendOrder = await createCustomerOrder(orderPayload);
+    } catch (err) {
+      console.warn('Backend order placement fallback to local generation:', err);
+    }
+
+    const assignedOrderId = backendOrder?.orderId || `ORD-${new Date().toISOString().replace(/\D/g, '').slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newOrder = {
+      orderId: assignedOrderId,
+      date: backendOrder?.createdAt || new Date().toISOString(),
+      orderDate: new Date().toISOString().split('T')[0],
+      status: 'Payment Completed',
+      courier: 'Blue Dart Express (Assigned)',
+      trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+      paymentMethod: paymentMethod === 'UPI' ? 'UPI (Google Pay / PhonePe)' 
+                   : paymentMethod === 'CARD' ? 'Credit / Debit Card'
+                   : paymentMethod === 'NETBANKING' ? `Net Banking (${selectedBank})`
+                   : 'Cash on Delivery',
+      deliveryType: 'direct',
+      recipient: fullRecipientName,
+      customerName: fullRecipientName,
+      customerEmail: ordererEmail || 'customer@atomy.com',
+      phone: fullRecipientPhone,
+      address: {
+        recipient: fullRecipientName,
+        phone: fullRecipientPhone,
+        fullAddress: `${fullShippingAddress}, ${city}, ${state} - ${pincode}`
+      },
+      shippingAddress: `${fullShippingAddress}, ${city}, ${state} - ${pincode}`,
+      city,
+      state,
+      pincode,
+      items: cartItems.map(it => ({ ...it })),
+      subtotal,
+      shippingFee,
+      grandTotal: backendOrder?.totalAmount ? Number(backendOrder.totalAmount) : grandTotal,
+      totalPV
+    };
+
+    // Store in localStorage across both keys
+    try {
+      const existing = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
+      localStorage.setItem('atomy_placed_orders', JSON.stringify([newOrder, ...existing]));
+      localStorage.setItem('atomy_admin_orders', JSON.stringify([newOrder, ...existing]));
+    } catch {}
+
+    // Broadcast in real-time across tabs/ports (to Admin on port 5174!)
+    try {
+      const channel = new BroadcastChannel('atomy_sync_channel');
+      channel.postMessage({ type: 'ORDER_PLACED', order: newOrder });
+    } catch {}
+    try {
+      const orderChannel = new BroadcastChannel('atomy_order_channel');
+      orderChannel.postMessage({ type: 'NEW_ORDER', order: newOrder });
+    } catch {}
+
+    setPlacedOrderDetails(newOrder);
+    setIsProcessing(false);
+    setStep('completed');
+
+    if (onOrderSuccess) {
+      onOrderSuccess(newOrder);
+    }
+    if (onClearCart) {
+      onClearCart();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Quick Add bestseller to cart
@@ -658,40 +811,100 @@ export default function OrderSheetPage({
                         </div>
                       ) : (
                         <div className="sheet-products-table">
-                          {cartItems.map((item) => (
-                            <div key={item.id} className="sheet-product-row">
-                              <div className="sheet-product-img">
-                                <img 
-                                  src={item.image} 
-                                  alt={item.name} 
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480';
-                                  }}
-                                />
-                              </div>
-                              <div className="sheet-product-info">
-                                <h4 className="sheet-product-title">{item.name}</h4>
-                                <span className="sheet-product-code">{item.id}</span>
-                                <div className="sheet-product-meta">
-                                  <span className="meta-qty">Qty: {item.qty}</span>
-                                  {item.pv > 0 && (
-                                    <span className="meta-pv">PV {(item.pv * item.qty).toLocaleString('en-IN')}</span>
+                          {cartItems.map((item) => {
+                            const isFreeDeliv = isItemFreeDelivery(item);
+                            const gstRate = getProductGstRate(item);
+                            return (
+                              <div key={item.id} className="sheet-product-row">
+                                <div className="sheet-product-img">
+                                  <img 
+                                    src={item.image} 
+                                    alt={item.name} 
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480';
+                                    }}
+                                  />
+                                </div>
+                                <div className="sheet-product-info">
+                                  <h4 className="sheet-product-title">{item.name}</h4>
+                                  <span className="sheet-product-code">{item.id}</span>
+                                  <div className="sheet-product-badges-row">
+                                    {isFreeDeliv ? (
+                                      <span className="sheet-badge-free-delivery">Free Delivery</span>
+                                    ) : (
+                                      <span className="sheet-badge-standard-delivery">Standard Delivery</span>
+                                    )}
+                                    <span className={`sheet-badge-gst ${gstRate === 12 ? 'reduced' : 'standard'}`}>
+                                      GST {gstRate}% {gstRate === 12 ? 'Reduced' : 'Standard'}
+                                    </span>
+                                  </div>
+                                  <div className="sheet-product-meta">
+                                    <span className="meta-qty">Qty: {item.qty}</span>
+                                    {item.pv > 0 && (
+                                      <span className="meta-pv">PV {(item.pv * item.qty).toLocaleString('en-IN')}</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Add and Remove Quantity & Remove Product Controls */}
+                                <div className="sheet-product-stepper-cell">
+                                  <div className="sheet-qty-stepper">
+                                    <button
+                                      type="button"
+                                      className="sheet-qty-btn minus"
+                                      onClick={() => {
+                                        if (item.qty > 1) {
+                                          if (onUpdateQty) onUpdateQty(item.id, item.qty - 1);
+                                        } else {
+                                          if (onRemoveItem) onRemoveItem(item.id);
+                                        }
+                                      }}
+                                      title={item.qty === 1 ? "Remove item" : "Decrease quantity"}
+                                      aria-label="Decrease quantity"
+                                    >
+                                      <Minus size={13} />
+                                    </button>
+                                    <span className="sheet-qty-num">{item.qty}</span>
+                                    <button
+                                      type="button"
+                                      className="sheet-qty-btn plus"
+                                      onClick={() => {
+                                        if (onUpdateQty) onUpdateQty(item.id, item.qty + 1);
+                                      }}
+                                      title="Increase quantity"
+                                      aria-label="Increase quantity"
+                                    >
+                                      <Plus size={13} />
+                                    </button>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="sheet-remove-item-btn"
+                                    onClick={() => {
+                                      if (onRemoveItem) onRemoveItem(item.id);
+                                    }}
+                                    title="Remove product from order"
+                                    aria-label="Remove product"
+                                  >
+                                    <Trash2 size={13} />
+                                    <span>Remove</span>
+                                  </button>
+                                </div>
+
+                                <div className="sheet-product-pricing">
+                                  <span className="sheet-item-price">
+                                    ₹ {(item.price * item.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                  </span>
+                                  {item.qty > 1 && (
+                                    <span className="sheet-unit-price">
+                                      (₹ {item.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })} each)
+                                    </span>
                                   )}
                                 </div>
                               </div>
-                              <div className="sheet-product-pricing">
-                                <span className="sheet-item-price">
-                                  ₹ {(item.price * item.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                </span>
-                                {item.qty > 1 && (
-                                  <span className="sheet-unit-price">
-                                    (₹ {item.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })} each)
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -896,16 +1109,40 @@ export default function OrderSheetPage({
                 <div className="payment-summary-card">
                   <h3 className="summary-title">Payment Summary</h3>
 
-                  <div className="summary-breakdown">
+                    <div className="summary-breakdown">
                     <div className="summary-line">
                       <span className="line-label">Product Total ({totalQty} items)</span>
                       <span className="line-value">₹ {subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
 
-                    <div className="summary-line pv-line">
-                      <span className="line-label">Accumulated PV Points</span>
-                      <span className="line-value pv-text">+{totalPV.toLocaleString('en-IN')} PV</span>
+                    {/* Product-based GST Breakdown */}
+                    <div className="summary-line gst-summary-line">
+                      <div className="line-label-gst-wrap">
+                        <span className="line-label">Applicable GST <span className="gst-inclusive-tag">(Included)</span></span>
+                        <div className="gst-rate-tag-row">
+                          {gstSummary.has18 && (
+                            <span className="gst-pill standard">
+                              18% Standard ({gstSummary.count18}): ₹ {gstSummary.standard18Gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          )}
+                          {gstSummary.has12 && (
+                            <span className="gst-pill reduced">
+                              12% Reduced ({gstSummary.count12}): ₹ {gstSummary.reduced12Gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="line-value gst-value">
+                        ₹ {gstSummary.totalGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
                     </div>
+
+                    {isMember && totalPV > 0 && (
+                      <div className="summary-line pv-line">
+                        <span className="line-label">Accumulated PV Points</span>
+                        <span className="line-value pv-text">+{totalPV.toLocaleString('en-IN')} PV</span>
+                      </div>
+                    )}
 
                     <div className="summary-line">
                       <span className="line-label">Doorstep Delivery Fee</span>
@@ -918,10 +1155,15 @@ export default function OrderSheetPage({
                       </span>
                     </div>
 
-                    {shippingFee === 0 && (
+                    {shippingFee === 0 ? (
                       <div className="free-shipping-note">
                         <CheckCircle2 size={13} color="#10b981" />
-                        <span>Free Standard Delivery Applied</span>
+                        <span>{hasFreeDeliveryProduct ? 'Free Delivery Applied (Eligible Item in Order)' : 'Free Standard Delivery Applied'}</span>
+                      </div>
+                    ) : (
+                      <div className="standard-shipping-note" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#d97706', fontWeight: 600 }}>
+                        <Truck size={13} color="#d97706" />
+                        <span>Standard Delivery Fee: ₹ 150.00 (No Free Delivery items)</span>
                       </div>
                     )}
 
@@ -1532,20 +1774,30 @@ export default function OrderSheetPage({
                     <span className="pg-sum-value">₹{(subtotal > 0 ? subtotal : (grandTotal > 0 ? grandTotal : 409)).toLocaleString('en-IN')}</span>
                   </div>
 
+                  {/* Applicable GST Line */}
+                  {gstSummary.totalGst > 0 && (
+                    <div className="pg-summary-nested-row" style={{ padding: '4px 0', fontSize: '12px', color: '#64748b' }}>
+                      <span className="pg-nested-label">Applicable GST (Included)</span>
+                      <span className="pg-nested-val" style={{ fontWeight: 600, color: '#334155' }}>
+                        ₹{gstSummary.totalGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Fees Accordion (Matching screenshot) */}
                   <div className="pg-summary-section">
                     <div
                       className="pg-summary-section-head clickable"
                       onClick={() => setIsFeesOpen(!isFeesOpen)}
                     >
-                      <span className="pg-sum-label">Fees</span>
+                      <span className="pg-sum-label">Doorstep Delivery</span>
                       {isFeesOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </div>
                     {isFeesOpen && (
                       <div className="pg-summary-nested-row">
-                        <span className="pg-nested-label">Platform Fee</span>
-                        <span className="pg-nested-val">
-                          {shippingFee === 0 ? 'FREE' : `₹${shippingFee}`}
+                        <span className="pg-nested-label">Delivery Fee</span>
+                        <span className="pg-nested-val" style={{ color: shippingFee === 0 ? '#10b981' : '#1e293b', fontWeight: 700 }}>
+                          {shippingFee === 0 ? 'FREE' : `₹${shippingFee.toFixed(2)}`}
                         </span>
                       </div>
                     )}

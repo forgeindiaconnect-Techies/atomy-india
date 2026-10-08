@@ -23,7 +23,10 @@ export default function Header({
   currentUser = null,
   onLogout,
   onNavigateProfile,
-  currentView = 'home'
+  currentView = 'home',
+  isMember = false,
+  onOpenMembershipModal,
+  onNavigateMembership
 }) {
   const [activePortal, setActivePortal] = useState('mall');
   const [searchQuery, setSearchQuery] = useState('');
@@ -199,6 +202,32 @@ export default function Header({
           {currentView !== 'admin' && (
             <div className="head-top-row">
               <div className="top-utility-links">
+                {isMember ? (
+                  <button
+                    type="button"
+                    className="top-membership-pill member-active"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (onNavigateMembership) onNavigateMembership();
+                    }}
+                  >
+                    Plan Active
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="top-utility-link-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (onOpenMembershipModal) onOpenMembershipModal();
+                      else if (onNavigateMembership) onNavigateMembership();
+                    }}
+                  >
+                    Join Member
+                  </button>
+                )}
+                <span className="top-utility-divider"></span>
+
                 {currentUser ? (
                   <button
                     type="button"
@@ -222,7 +251,16 @@ export default function Header({
                   </a>
                 )}
                 <span className="top-utility-divider"></span>
-                <a href="#about">About Us</a>
+                <a
+                  href="/about-us"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateView) onNavigateView('about-us');
+                    else window.location.href = '/about-us';
+                  }}
+                >
+                  About Us
+                </a>
                 <span className="top-utility-divider"></span>
                 <a
                   href="/profile"
@@ -405,8 +443,7 @@ export default function Header({
                                   <div className="search-result-title">{prod.name}</div>
                                   <div className="search-result-price-row">
                                     <span className="search-result-price">
-                                      ₹{' '}
-                                      {(prod.price || 0).toLocaleString('en-IN', {
+                                      ₹ {(prod.price || 0).toLocaleString('en-IN', {
                                         minimumFractionDigits: 2
                                       })}
                                     </span>
@@ -596,6 +633,10 @@ export default function Header({
                   href="https://global.atomy.com/menu.es?mid=a20101000000"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open('https://global.atomy.com/menu.es?mid=a20101000000', '_blank', 'noopener,noreferrer');
+                  }}
                 >
                   About Atomy
                 </a>

@@ -64,6 +64,7 @@ import {
 } from '../../services/soundAlerts';
 import ProductEditorPage from './ProductEditorPage';
 import AdPromotionManager from './AdPromotionManager';
+import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
 import {
   getAdConfig,
   saveAdConfig,
@@ -102,13 +103,8 @@ const INITIAL_SINGLE_PRODUCT = [
   }
 ];
 
-// All demo sales numbers and demo orders completely deleted - starts clean at 0
-const INITIAL_DEMO_ORDERS = [];
-
-// No hardcoded support tickets - clean production state
-const INITIAL_DEMO_TICKETS = [];
-
-const STORAGE_CLEAN_KEY = 'atomy_admin_zero_demo_v2';
+// Local storage initialization key
+const STORAGE_CLEAN_KEY = 'atomy_admin_clean_v8';
 
 export default function AdminDashboard({ onBackToStore }) {
   // Navigation tabs: 'overview' | 'inventory' | 'orders' | 'customers' | 'support' | 'settings' | 'floating-ad'
@@ -158,7 +154,7 @@ export default function AdminDashboard({ onBackToStore }) {
   // Active High-Impact Alert Banner state
   const [activeAlert, setActiveAlert] = useState(null);
 
-  // Purge any stale multi-item demo cache on initialization so sales numbers start completely clean (0)
+  // Purge any stale demo cache on initialization so metrics start completely clean
   const [products, setProducts] = useState(() => {
     try {
       if (localStorage.getItem(STORAGE_CLEAN_KEY) !== 'true') {
@@ -167,6 +163,7 @@ export default function AdminDashboard({ onBackToStore }) {
         localStorage.setItem('atomy_admin_orders', JSON.stringify([]));
         localStorage.setItem('atomy_admin_tickets', JSON.stringify([]));
         localStorage.removeItem('atomy_placed_orders');
+        localStorage.removeItem('atomy_members_registry');
         return INITIAL_SINGLE_PRODUCT;
       }
       const saved = localStorage.getItem('atomy_admin_products');
@@ -183,14 +180,28 @@ export default function AdminDashboard({ onBackToStore }) {
   const [currentEditingProduct, setCurrentEditingProduct] = useState(null);
   const [productToDelete, setProductToDelete] = useState(null);
 
-  // Orders State (Clean 0 sales numbers & 0 demo orders)
+  // Orders State (Clean 0 demo orders - only real customer orders from MySQL backend)
   const [orders, setOrders] = useState(() => {
     try {
       if (localStorage.getItem(STORAGE_CLEAN_KEY) !== 'true') {
         return [];
       }
       const adminOrders = localStorage.getItem('atomy_admin_orders');
-      return adminOrders ? JSON.parse(adminOrders) : [];
+      if (adminOrders) {
+        const parsed = JSON.parse(adminOrders);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(o => 
+            !o.orderId?.startsWith('ORD-20261005') && 
+            !o.orderId?.startsWith('ORD-20261008-3800') && 
+            !o.orderId?.startsWith('ORD-20261008-1863') && 
+            !o.orderId?.toUpperCase().includes('DEMO') &&
+            !o.customerName?.toLowerCase().includes('test') &&
+            !o.customerEmail?.toLowerCase().includes('example.com') &&
+            !o.customerEmail?.toLowerCase().includes('test')
+          );
+        }
+      }
+      return [];
     } catch {
       return [];
     }
@@ -359,8 +370,43 @@ export default function AdminDashboard({ onBackToStore }) {
         fetchAdminTickets()
       ]);
 
-      if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value) && ordersRes.value.length > 0) {
-        setOrders(ordersRes.value);
+      if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
+        const mappedOrders = ordersRes.value.map(bo => ({
+          orderId: bo.orderId,
+          createdAt: bo.createdAt || new Date().toISOString(),
+          customerName: bo.customerName || "Customer",
+          customerEmail: bo.customerEmail || "customer@atomy.com",
+          customerPhone: bo.customerPhone || "+91 98000 00000",
+          shippingAddress: bo.shippingAddress || "Direct Delivery",
+          city: bo.city || "New Delhi",
+          state: bo.state || "Delhi",
+          pincode: bo.pincode || "110001",
+          orderStatus: bo.orderStatus || "PLACED",
+          paymentMethod: bo.paymentMethod || "ONLINE_UPI",
+          paymentStatus: bo.paymentStatus || "PAID",
+          totalAmount: Number(bo.totalAmount) || 0,
+          shippingFee: Number(bo.shippingFee) || 0,
+          items: Array.isArray(bo.items) ? bo.items.map(it => ({
+            id: it.productId,
+            name: it.productName || it.name,
+            productName: it.productName || it.name,
+            image: it.productImage || it.image,
+            price: Number(it.price) || 0,
+            qty: it.quantity || it.qty || 1,
+            quantity: it.quantity || it.qty || 1
+          })) : [],
+          tracking: bo.tracking || null
+        })).filter(o => 
+          !o.orderId?.startsWith('ORD-20261005') && 
+          !o.orderId?.startsWith('ORD-20261008-3800') && 
+          !o.orderId?.startsWith('ORD-20261008-1863') && 
+          !o.orderId?.toUpperCase().includes('DEMO') &&
+          !o.customerName?.toLowerCase().includes('test') &&
+          !o.customerEmail?.toLowerCase().includes('example.com') &&
+          !o.customerEmail?.toLowerCase().includes('test')
+        );
+        setOrders(mappedOrders);
+        localStorage.setItem('atomy_admin_orders', JSON.stringify(mappedOrders));
       }
       if (prodsRes.status === 'fulfilled' && Array.isArray(prodsRes.value) && prodsRes.value.length > 0) {
         setProducts(prodsRes.value);
@@ -368,8 +414,10 @@ export default function AdminDashboard({ onBackToStore }) {
           localStorage.setItem('atomy_admin_products', JSON.stringify(prodsRes.value));
         } catch {}
       }
-      if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value) && ticketsRes.value.length > 0) {
-        setTickets(ticketsRes.value);
+      if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
+        const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
+        const cleanTickets = ticketsRes.value.filter(t => !demoIds.includes(t.ticketId));
+        setTickets(cleanTickets);
       }
     } catch (e) {
       console.warn('[Admin] Live backend syncing fallback to local cache:', e);
@@ -377,64 +425,159 @@ export default function AdminDashboard({ onBackToStore }) {
   };
 
   // Background Live-Polling Listener (checks every 10 seconds for new customer orders & support tickets)
+  // Background Live-Polling Listener & Cross-Channel Listener for live customer orders
   useEffect(() => {
-    const intervalTime = (soundSettings.pollingIntervalSec || 10) * 1000;
-    const interval = setInterval(() => {
+    // 1. Setup real-time BroadcastChannel listeners
+    let syncChannel, orderChannel;
+    try {
+      const handleIncomingOrder = (newOrderObj) => {
+        setOrders(prev => {
+          if (prev.some(o => o.orderId === newOrderObj.orderId)) return prev;
+          triggerOrderNotification(newOrderObj);
+          return [newOrderObj, ...prev];
+        });
+      };
+
+      syncChannel = new BroadcastChannel('atomy_sync_channel');
+      syncChannel.onmessage = (event) => {
+        const data = event.data;
+        if (data && (data.type === 'ORDER_PLACED' || data.type === 'NEW_ORDER') && data.order) {
+          const o = data.order;
+          handleIncomingOrder({
+            orderId: o.orderId,
+            createdAt: o.date || o.createdAt || new Date().toISOString(),
+            customerName: o.recipient || o.customerName || "Customer",
+            customerEmail: o.customerEmail || "customer@atomy.com",
+            customerPhone: o.phone || o.customerPhone || "+91 98000 00000",
+            shippingAddress: o.address?.fullAddress || o.shippingAddress || "Direct Delivery",
+            city: o.city || "New Delhi",
+            state: o.state || "Delhi",
+            pincode: o.pincode || "110001",
+            orderStatus: o.orderStatus || "PLACED",
+            paymentMethod: o.paymentMethod || "ONLINE_UPI",
+            paymentStatus: "PAID",
+            totalAmount: o.grandTotal || o.totalAmount || 0,
+            shippingFee: o.shippingFee || 0,
+            items: o.items || [],
+            tracking: null
+          });
+        }
+      };
+
+      orderChannel = new BroadcastChannel('atomy_order_channel');
+      orderChannel.onmessage = (event) => {
+        const data = event.data;
+        if (data && (data.type === 'ORDER_PLACED' || data.type === 'NEW_ORDER') && data.order) {
+          const o = data.order;
+          handleIncomingOrder({
+            orderId: o.orderId,
+            createdAt: o.date || o.createdAt || new Date().toISOString(),
+            customerName: o.recipient || o.customerName || "Customer",
+            customerEmail: o.customerEmail || "customer@atomy.com",
+            customerPhone: o.phone || o.customerPhone || "+91 98000 00000",
+            shippingAddress: o.address?.fullAddress || o.shippingAddress || "Direct Delivery",
+            city: o.city || "New Delhi",
+            state: o.state || "Delhi",
+            pincode: o.pincode || "110001",
+            orderStatus: o.orderStatus || "PLACED",
+            paymentMethod: o.paymentMethod || "ONLINE_UPI",
+            paymentStatus: "PAID",
+            totalAmount: o.grandTotal || o.totalAmount || 0,
+            shippingFee: o.shippingFee || 0,
+            items: o.items || [],
+            tracking: null
+          });
+        }
+      };
+    } catch (e) {}
+
+    // 2. Active Polling interval to check MySQL Spring Boot backend every 3 seconds
+    const intervalTime = Math.min((soundSettings.pollingIntervalSec || 10) * 1000, 3000);
+    const interval = setInterval(async () => {
+      // Poll orders from Spring Boot Backend
+      try {
+        const backendOrders = await fetchAdminOrders();
+        if (Array.isArray(backendOrders)) {
+          const mappedOrders = backendOrders.map(bo => ({
+            orderId: bo.orderId,
+            createdAt: bo.createdAt || new Date().toISOString(),
+            customerName: bo.customerName || "Customer",
+            customerEmail: bo.customerEmail || "customer@atomy.com",
+            customerPhone: bo.customerPhone || "+91 98000 00000",
+            shippingAddress: bo.shippingAddress || "Direct Delivery",
+            city: bo.city || "New Delhi",
+            state: bo.state || "Delhi",
+            pincode: bo.pincode || "110001",
+            orderStatus: bo.orderStatus || "PLACED",
+            paymentMethod: bo.paymentMethod || "ONLINE_UPI",
+            paymentStatus: bo.paymentStatus || "PAID",
+            totalAmount: Number(bo.totalAmount) || 0,
+            shippingFee: Number(bo.shippingFee) || 0,
+            items: Array.isArray(bo.items) ? bo.items.map(it => ({
+              id: it.productId,
+              name: it.productName,
+              image: it.productImage,
+              price: Number(it.price) || 0,
+              qty: it.quantity || 1
+            })) : [],
+            tracking: bo.tracking || null
+          })).filter(o => !o.orderId?.startsWith('ORD-20261005'));
+
+          setOrders(prev => {
+            const prevIds = new Set(prev.map(o => o.orderId));
+            mappedOrders.forEach(mo => {
+              if (!prevIds.has(mo.orderId) && prev.length > 0) {
+                triggerOrderNotification(mo);
+              }
+            });
+            return mappedOrders;
+          });
+        }
+      } catch (e) {}
+
       // Check localStorage for any fresh customer orders placed from customer storefront
       try {
         const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
         if (localOrdersRaw) {
           const freshList = JSON.parse(localOrdersRaw);
           if (Array.isArray(freshList) && freshList.length > 0) {
-            const latest = freshList[freshList.length - 1];
-            const alreadyHas = orders.some(o => o.orderId === latest.orderId);
-            if (!alreadyHas) {
-              const newOrderObj = {
-                orderId: latest.orderId,
-                createdAt: latest.date || new Date().toISOString(),
-                customerName: latest.recipient || "Customer",
-                customerEmail: "customer@atomy.com",
-                customerPhone: latest.phone || "+91 98000 00000",
-                shippingAddress: latest.address?.fullAddress || "Direct Delivery",
-                city: latest.city || "New Delhi",
-                state: latest.state || "Delhi",
-                pincode: latest.pincode || "110001",
-                orderStatus: "PLACED",
-                paymentMethod: latest.paymentMethod || "ONLINE_UPI",
-                paymentStatus: "PAID",
-                totalAmount: latest.grandTotal || 0,
-                shippingFee: latest.shippingFee || 0,
-                items: latest.items || [],
-                tracking: null
-              };
-
-              setOrders(prev => [newOrderObj, ...prev]);
-
-              // Trigger STRONG Notification
-              triggerOrderNotification(newOrderObj);
-            }
+            freshList.forEach(latest => {
+              setOrders(prev => {
+                const alreadyHas = prev.some(o => o.orderId === latest.orderId);
+                if (alreadyHas) return prev;
+                const newOrderObj = {
+                  orderId: latest.orderId,
+                  createdAt: latest.date || new Date().toISOString(),
+                  customerName: latest.recipient || latest.customerName || "Customer",
+                  customerEmail: latest.customerEmail || "customer@atomy.com",
+                  customerPhone: latest.phone || latest.customerPhone || "+91 98000 00000",
+                  shippingAddress: latest.address?.fullAddress || latest.shippingAddress || "Direct Delivery",
+                  city: latest.city || "New Delhi",
+                  state: latest.state || "Delhi",
+                  pincode: latest.pincode || "110001",
+                  orderStatus: latest.orderStatus || "PLACED",
+                  paymentMethod: latest.paymentMethod || "ONLINE_UPI",
+                  paymentStatus: "PAID",
+                  totalAmount: latest.grandTotal || latest.totalAmount || 0,
+                  shippingFee: latest.shippingFee || 0,
+                  items: latest.items || [],
+                  tracking: null
+                };
+                triggerOrderNotification(newOrderObj);
+                return [newOrderObj, ...prev];
+              });
+            });
           }
         }
       } catch (e) {}
-
-      // Also trigger sound if order count increased
-      if (orders.length > prevOrderCountRef.current || (orders[0] && orders[0].orderId !== prevFirstOrderIdRef.current)) {
-        if (orders[0] && orders[0].orderStatus === 'PLACED') {
-          triggerOrderNotification(orders[0]);
-        }
-        prevOrderCountRef.current = orders.length;
-        prevFirstOrderIdRef.current = orders[0]?.orderId;
-      }
-
-      if (tickets.length > prevTicketCountRef.current) {
-        const latestTicket = tickets[0];
-        triggerSupportNotification(latestTicket);
-        prevTicketCountRef.current = tickets.length;
-      }
     }, intervalTime);
 
-    return () => clearInterval(interval);
-  }, [orders, tickets, soundSettings]);
+    return () => {
+      clearInterval(interval);
+      try { syncChannel && syncChannel.close(); } catch {}
+      try { orderChannel && orderChannel.close(); } catch {}
+    };
+  }, [soundSettings]);
 
   // STRONG NOTIFICATION TRIGGERS
   const triggerOrderNotification = (order) => {
@@ -478,74 +621,6 @@ export default function AdminDashboard({ onBackToStore }) {
   const handleTestSupportSound = () => {
     playSupportAlertSound(soundSettings.volume);
     showToast('🎧 Sound Tested: Urgent support notification played');
-  };
-
-  // Simulation buttons for User Demonstration
-  const handleSimulateIncomingOrder = () => {
-    const randomId = `ORD-20261005-${Math.floor(1000 + Math.random() * 9000)}`;
-    const randomCustomer = [
-      { name: "Kavita Reddy", email: "kavita.reddy@gmail.com", phone: "+91 98490 22334", city: "Hyderabad" },
-      { name: "Amitabh Banerjee", email: "amitabh.b@tcs.com", phone: "+91 98300 55667", city: "Kolkata" },
-      { name: "Manpreet Kaur", email: "mkaur@yahoo.com", phone: "+91 98720 77889", city: "Chandigarh" }
-    ][Math.floor(Math.random() * 3)];
-
-    const simOrder = {
-      orderId: randomId,
-      createdAt: new Date().toISOString(),
-      customerName: randomCustomer.name,
-      customerEmail: randomCustomer.email,
-      customerPhone: randomCustomer.phone,
-      shippingAddress: "Plot 14, Commercial District Center",
-      city: randomCustomer.city,
-      state: "India",
-      pincode: "110001",
-      orderStatus: "PLACED",
-      paymentMethod: "ONLINE_UPI",
-      paymentStatus: "PAID",
-      totalAmount: 13000,
-      shippingFee: 0,
-      items: [
-        {
-          productId: "D00101",
-          productName: "HemoHIM *1set",
-          productImage: "https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg",
-          unitPrice: 13000,
-          quantity: 1,
-          pv: 80000
-        }
-      ],
-      tracking: null
-    };
-
-    setOrders(prev => [simOrder, ...prev]);
-    triggerOrderNotification(simOrder);
-    showToast(`Simulated Order ${randomId} received!`);
-  };
-
-  const handleSimulateIncomingTicket = () => {
-    const randomTicketId = `TCK-${Math.floor(1000 + Math.random() * 9000)}`;
-    const simTicket = {
-      ticketId: randomTicketId,
-      customerName: "Dr. Sandeep Malhotra",
-      customerEmail: "sandeep.malhotra@healthplus.org",
-      customerPhone: "+91 99100 88291",
-      orderId: "ORD-20261005-9182",
-      subject: "Urgent: Expedited delivery required for clinic seminar",
-      priority: "URGENT",
-      status: "OPEN",
-      createdAt: new Date().toISOString(),
-      messages: [
-        {
-          sender: "CUSTOMER",
-          message: "We need delivery confirmation by tomorrow 2 PM for our registered member clinic presentation.",
-          createdAt: new Date().toISOString()
-        }
-      ]
-    };
-
-    setTickets(prev => [simTicket, ...prev]);
-    triggerSupportNotification(simTicket);
-    showToast(`Simulated Support Ticket ${randomTicketId} received!`);
   };
 
   // 1. CALCULATE DASHBOARD OVERVIEW METRICS
@@ -704,6 +779,15 @@ export default function AdminDashboard({ onBackToStore }) {
     try {
       await deleteAdminProduct(productToDelete.id).catch(() => {});
       setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
+
+      // Broadcast product deletion across channels to customer website instantly
+      try {
+        const channel = new BroadcastChannel('atomy_product_channel');
+        channel.postMessage({ type: 'PRODUCT_DELETED', productId: productToDelete.id });
+        const syncChannel = new BroadcastChannel('atomy_sync_channel');
+        syncChannel.postMessage({ type: 'PRODUCT_DELETED', productId: productToDelete.id });
+      } catch {}
+
       showToast(`Product "${productToDelete.name}" (${productToDelete.id}) removed from catalog.`);
       setProductToDelete(null);
     } catch (err) {
@@ -764,6 +848,41 @@ export default function AdminDashboard({ onBackToStore }) {
       if (selectedOrderDetail && selectedOrderDetail.orderId === orderId) {
         setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newStatus }));
       }
+
+      // Sync with customer placed orders
+      try {
+        const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
+        if (localOrdersRaw) {
+          const list = JSON.parse(localOrdersRaw);
+          const statusMap = {
+            'PLACED': 'Payment Completed',
+            'PROCESSING': 'Preparing Shipment',
+            'SHIPPED': 'In Transit',
+            'OUT_FOR_DELIVERY': 'Out for Delivery',
+            'DELIVERED': 'Delivered',
+            'CANCELLED': 'Cancelled'
+          };
+          const updated = list.map(o => {
+            if (o.orderId === orderId) {
+              return {
+                ...o,
+                status: statusMap[newStatus] || newStatus,
+                orderStatus: newStatus
+              };
+            }
+            return o;
+          });
+          localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
+        }
+      } catch (e) {}
+
+      // Broadcast order status update across ports/tabs to customer website instantly
+      try {
+        const syncChannel = new BroadcastChannel('atomy_sync_channel');
+        syncChannel.postMessage({ type: 'ORDER_STATUS_UPDATED', orderId, newStatus });
+      } catch {}
+
       showToast(`Order ${orderId} status set to ${newStatus}`);
     } catch (err) {
       showToast('Error updating order: ' + err.message);
@@ -789,11 +908,11 @@ export default function AdminDashboard({ onBackToStore }) {
   const handleOpenTrackingModal = (order) => {
     setEditingTrackingOrder(order);
     setTrackingForm({
-      courierPartner: order.tracking?.courierPartner || 'Blue Dart Express',
-      trackingNumber: order.tracking?.trackingNumber || `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
-      currentStatus: order.orderStatus,
+      courierPartner: order.tracking?.courierPartner || order.courier || 'Blue Dart Express',
+      trackingNumber: order.tracking?.trackingNumber || order.trackingNumber || `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+      currentStatus: order.orderStatus || 'PLACED',
       currentLocation: order.tracking?.currentLocation || 'Gurugram Hub',
-      estimatedDelivery: order.tracking?.estimatedDelivery || '2-3 Business Days'
+      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || '2-3 Business Days'
     });
   };
 
@@ -802,11 +921,72 @@ export default function AdminDashboard({ onBackToStore }) {
     if (!editingTrackingOrder) return;
     try {
       await updateAdminOrderTracking(editingTrackingOrder.orderId, trackingForm).catch(() => {});
+      if (trackingForm.currentStatus) {
+        await updateAdminOrderStatus(editingTrackingOrder.orderId, trackingForm.currentStatus).catch(() => {});
+      }
+
+      const updatedOrderData = {
+        tracking: trackingForm,
+        orderStatus: trackingForm.currentStatus,
+        status: trackingForm.currentStatus,
+        courier: trackingForm.courierPartner,
+        trackingNumber: trackingForm.trackingNumber
+      };
+
       setOrders(prev => prev.map(o => o.orderId === editingTrackingOrder.orderId ? {
         ...o,
-        tracking: trackingForm,
-        orderStatus: trackingForm.currentStatus
+        ...updatedOrderData
       } : o));
+
+      if (selectedOrderDetail && selectedOrderDetail.orderId === editingTrackingOrder.orderId) {
+        setSelectedOrderDetail(prev => ({
+          ...prev,
+          ...updatedOrderData
+        }));
+      }
+
+      // Sync with customer placed orders
+      try {
+        const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
+        if (localOrdersRaw) {
+          const list = JSON.parse(localOrdersRaw);
+          const statusMap = {
+            'PLACED': 'Payment Completed',
+            'PROCESSING': 'Preparing Shipment',
+            'SHIPPED': 'In Transit',
+            'OUT_FOR_DELIVERY': 'Out for Delivery',
+            'DELIVERED': 'Delivered',
+            'CANCELLED': 'Cancelled'
+          };
+          const updated = list.map(o => {
+            if (o.orderId === editingTrackingOrder.orderId) {
+              return {
+                ...o,
+                status: statusMap[trackingForm.currentStatus] || trackingForm.currentStatus,
+                orderStatus: trackingForm.currentStatus,
+                courier: trackingForm.courierPartner,
+                trackingNumber: trackingForm.trackingNumber
+              };
+            }
+            return o;
+          });
+          localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
+          window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
+        }
+      } catch (e) {}
+
+      // Broadcast order status update across ports/tabs to customer website instantly
+      try {
+        const syncChannel = new BroadcastChannel('atomy_sync_channel');
+        syncChannel.postMessage({
+          type: 'ORDER_STATUS_UPDATED',
+          orderId: editingTrackingOrder.orderId,
+          newStatus: trackingForm.currentStatus,
+          courier: trackingForm.courierPartner,
+          trackingNumber: trackingForm.trackingNumber
+        });
+      } catch {}
+
       showToast(`Logistics Tracking saved for ${editingTrackingOrder.orderId}`);
       setEditingTrackingOrder(null);
     } catch (err) {
@@ -2610,30 +2790,8 @@ export default function AdminDashboard({ onBackToStore }) {
             </div>
 
             <div className="atomy-modal-body">
-              {/* Stepper Progress with Connected Traveling Line */}
-              <div className="order-stepper-row">
-                <div className="order-stepper-track">
-                  <div
-                    className="order-stepper-track-progress"
-                    style={{
-                      width: `${Math.max(0, Math.min(100, (Math.max(0, ['PLACED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].indexOf(selectedOrderDetail.orderStatus)) / 4) * 100))}%`
-                    }}
-                  />
-                </div>
-                {['PLACED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].map((step, idx) => {
-                  const currentIdx = ['PLACED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].indexOf(selectedOrderDetail.orderStatus);
-                  const isDone = currentIdx >= idx;
-                  const isCurrent = currentIdx === idx;
-                  return (
-                    <div key={step} className={`stepper-node ${isDone ? 'done' : ''} ${isCurrent ? 'current' : ''}`}>
-                      <div className="stepper-circle">
-                        {isDone && !isCurrent ? <Check size={14} strokeWidth={3} /> : (idx + 1)}
-                      </div>
-                      <div className="stepper-text">{step.replace(/_/g, ' ')}</div>
-                    </div>
-                  );
-                })}
-              </div>
+              {/* Live Animated Delivery Stepper matching Customer Experience */}
+              <DeliveryStatusStepper order={selectedOrderDetail} />
 
               {/* Customer & Delivery Meta Grid */}
               <div className="order-meta-info-grid">
@@ -2758,7 +2916,7 @@ export default function AdminDashboard({ onBackToStore }) {
           ======================================================== */}
       {editingTrackingOrder && (
         <div className="modal-backdrop-overlay" onClick={() => setEditingTrackingOrder(null)}>
-          <div className="atomy-modal-box" onClick={(e) => e.stopPropagation()}>
+          <div className="atomy-modal-box wide" onClick={(e) => e.stopPropagation()}>
             <div className="atomy-modal-header">
               <div className="modal-title-cluster">
                 <Truck size={20} color="#00A3E0" />
@@ -2770,6 +2928,48 @@ export default function AdminDashboard({ onBackToStore }) {
             </div>
 
             <form onSubmit={handleSaveTracking} className="atomy-modal-body">
+              {/* Live Animated Delivery Stepper matching Customer Experience */}
+              <DeliveryStatusStepper
+                order={{
+                  ...editingTrackingOrder,
+                  orderStatus: trackingForm.currentStatus,
+                  status: trackingForm.currentStatus,
+                  courier: trackingForm.courierPartner,
+                  trackingNumber: trackingForm.trackingNumber
+                }}
+              />
+
+              {/* Shipping Stage Update */}
+              <div className="modal-form-group" style={{ marginBottom: '16px' }}>
+                <label style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span>Fulfillment & Delivery Stage</span>
+                  <span style={{ fontSize: '11.5px', color: '#00A3E0', fontWeight: 'normal' }}>
+                    Select a stage to preview vehicle movement animation
+                  </span>
+                </label>
+                <select
+                  value={trackingForm.currentStatus}
+                  onChange={(e) => setTrackingForm({ ...trackingForm, currentStatus: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #00A3E0',
+                    background: '#f0f9ff',
+                    color: '#0284c7',
+                    fontWeight: 700,
+                    fontSize: '13.5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="PLACED">Stage 1: PLACED (Payment Confirmed)</option>
+                  <option value="PROCESSING">Stage 2: PROCESSING (Warehouse Packing)</option>
+                  <option value="SHIPPED">Stage 3: SHIPPED (In Transit - Blue Dart Line-haul)</option>
+                  <option value="OUT_FOR_DELIVERY">Stage 4: OUT FOR DELIVERY (Delivery Executive on Bike)</option>
+                  <option value="DELIVERED">Stage 5: DELIVERED (Package Received)</option>
+                </select>
+              </div>
+
               <div className="modal-row-2">
                 <div className="modal-form-group">
                   <label>Courier Service Partner</label>

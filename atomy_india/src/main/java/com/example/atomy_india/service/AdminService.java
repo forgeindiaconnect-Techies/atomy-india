@@ -215,10 +215,11 @@ public class AdminService {
 
     @Transactional
     public void deleteOrDeactivateProduct(String productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + productId));
-        product.setActive(false);
-        productRepository.save(product);
+        if (productId == null) return;
+        productRepository.findById(productId).ifPresent(product -> {
+            product.setActive(false);
+            productRepository.save(product);
+        });
     }
 
     // --- 5. Customer Support Desk ---

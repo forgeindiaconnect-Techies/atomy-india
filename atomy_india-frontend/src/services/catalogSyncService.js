@@ -105,16 +105,72 @@ export function mergeProductIntoCatalog(product) {
 
   // 3. Update across CATEGORY_CONFIGS
   if (CATEGORY_CONFIGS && typeof CATEGORY_CONFIGS === 'object') {
-    Object.values(CATEGORY_CONFIGS).forEach(cfg => {
+    const targetCatKey = (product.categoryId || 'health').toLowerCase().replace(/[\s-]+/g, '_');
+    Object.entries(CATEGORY_CONFIGS).forEach(([catKey, cfg]) => {
       if (cfg) {
-        if (Array.isArray(cfg.allProducts)) updateArrayInPlace(cfg.allProducts, merged);
-        if (Array.isArray(cfg.bestProducts)) updateArrayInPlace(cfg.bestProducts, merged);
+        if (catKey === targetCatKey) {
+          if (Array.isArray(cfg.allProducts)) {
+            const idx = cfg.allProducts.findIndex(p => p && String(p.id) === String(product.id));
+            if (idx >= 0) {
+              cfg.allProducts[idx] = { ...cfg.allProducts[idx], ...merged };
+            } else {
+              cfg.allProducts.unshift(merged);
+            }
+          }
+          if (Array.isArray(cfg.bestProducts)) {
+            updateArrayInPlace(cfg.bestProducts, merged);
+          }
+        } else {
+          // If category changed, remove from old category
+          if (Array.isArray(cfg.allProducts)) {
+            const idx = cfg.allProducts.findIndex(p => p && String(p.id) === String(product.id));
+            if (idx >= 0) cfg.allProducts.splice(idx, 1);
+          }
+        }
       }
     });
   }
 
   notifyListeners(merged);
   return merged;
+}
+
+/**
+ * Remove a single product from all live in-memory catalog structures
+ */
+export function removeProductFromCatalog(productId) {
+  if (!productId) return;
+  const idStr = String(productId);
+
+  // 1. Remove from ALL_CATALOG_PRODUCTS
+  if (Array.isArray(ALL_CATALOG_PRODUCTS)) {
+    const idx = ALL_CATALOG_PRODUCTS.findIndex(p => p && String(p.id) === idStr);
+    if (idx >= 0) ALL_CATALOG_PRODUCTS.splice(idx, 1);
+  }
+
+  const removeFromArray = (arr) => {
+    if (!Array.isArray(arr)) return;
+    const idx = arr.findIndex(p => p && String(p.id) === idStr);
+    if (idx >= 0) arr.splice(idx, 1);
+  };
+
+  removeFromArray(BEST_PRODUCTS);
+  removeFromArray(HAIR_BODY_PRODUCTS);
+  removeFromArray(FOOD_ESSENTIAL_PRODUCTS);
+  removeFromArray(HEALTH_ESSENTIAL_PRODUCTS);
+  removeFromArray(GSGS_PRODUCTS);
+  removeFromArray(ABSOLUTE_SKINCARE_PRODUCTS);
+
+  if (CATEGORY_CONFIGS && typeof CATEGORY_CONFIGS === 'object') {
+    Object.values(CATEGORY_CONFIGS).forEach(cfg => {
+      if (cfg) {
+        removeFromArray(cfg.allProducts);
+        removeFromArray(cfg.bestProducts);
+      }
+    });
+  }
+
+  notifyListeners({ type: 'DELETE', id: idStr });
 }
 
 /**
@@ -125,12 +181,21 @@ export async function syncCatalogFromBackend() {
     const res = await fetch(`${API_BASE}/products`);
     if (!res.ok) return null;
     const products = await res.json();
-    if (Array.isArray(products) && products.length > 0) {
+    if (Array.isArray(products)) {
+      const activeIds = new Set(products.map(p => String(p.id)));
+
+      // Merge active products
       products.forEach(p => mergeProductIntoCatalog(p));
+
+      // Remove any previously stored product that was deleted from MySQL
+      if (Array.isArray(ALL_CATALOG_PRODUCTS)) {
+        const toRemove = ALL_CATALOG_PRODUCTS.filter(p => p && p.id && !activeIds.has(String(p.id)));
+        toRemove.forEach(p => removeProductFromCatalog(p.id));
+      }
+
       return products;
     }
   } catch (err) {
-    // Backend offline or quiet fallback to mockData
     console.debug('Backend product sync quiet note:', err?.message || err);
   }
   return null;
@@ -139,13 +204,21 @@ export async function syncCatalogFromBackend() {
 // 4. Cross-Port Broadcast Channel for instant notification
 if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
   try {
-    const channel = new BroadcastChannel('atomy_product_channel');
-    channel.onmessage = (event) => {
+    const handleBroadcastMsg = (event) => {
       const data = event.data;
-      if (data && data.type === 'PRODUCT_UPDATED' && data.product) {
+      if (!data) return;
+      if ((data.type === 'PRODUCT_UPDATED' || data.type === 'PRODUCT_SAVED') && data.product) {
         mergeProductIntoCatalog(data.product);
+      } else if (data.type === 'PRODUCT_DELETED' && data.productId) {
+        removeProductFromCatalog(data.productId);
       }
     };
+
+    const prodChannel = new BroadcastChannel('atomy_product_channel');
+    prodChannel.onmessage = handleBroadcastMsg;
+
+    const syncChannel = new BroadcastChannel('atomy_sync_channel');
+    syncChannel.onmessage = handleBroadcastMsg;
   } catch (e) {
     console.warn('BroadcastChannel initialization note:', e);
   }

@@ -325,10 +325,147 @@
   display: block;
 }
 
-.sheet-unit-price {
-  font-size: 11px;
-  color: #94a3b8;
+/* Product Row Badges & Actions */
+.sheet-product-badges-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0;
 }
+
+.sheet-badge-free-delivery {
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.sheet-badge-standard-delivery {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.sheet-badge-gst {
+  font-size: 11px;
+  font-weight: 600;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+/* Stepper & Remove Action Cell */
+.sheet-product-stepper-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0 12px;
+}
+
+.sheet-qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.sheet-qty-btn {
+  background: #f8fafc;
+  border: none;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sheet-qty-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.sheet-qty-num {
+  min-width: 28px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.sheet-remove-item-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.sheet-remove-item-btn:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* GST Summary Breakdown */
+.gst-summary-line {
+  align-items: flex-start;
+}
+
+.line-label-gst-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gst-rate-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.gst-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.gst-pill.standard {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.gst-pill.reduced {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.gst-value {
+  color: #0f172a;
+}
+
 
 /* Forms in Sheet */
 .form-two-col {

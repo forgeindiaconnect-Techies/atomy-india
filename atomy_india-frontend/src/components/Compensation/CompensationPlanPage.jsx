@@ -1,481 +1,763 @@
 import React, { useState } from 'react';
 import {
-  Award,
-  TrendingUp,
-  ShieldCheck,
   ChevronRight,
-  HelpCircle,
-  Calculator,
-  Gift,
-  Coins,
-  CheckCircle2,
-  DollarSign,
-  Crown,
+  User,
   Users,
-  Building,
-  Info
+  ClipboardList,
+  Store,
+  Building2,
+  FileDown
 } from 'lucide-react';
+import bannerImg from '../../assets/bn_1280x200_0.jpg';
 import './CompensationPlanPage.css';
 
-export default function CompensationPlanPage({ onNavigateHome, onNavigateCategory }) {
-  const [activeTab, setActiveTab] = useState('classes');
+// Reusable Mastership Hexagon Badges matching Atomy India
+function MastershipHexBadge({ type }) {
+  switch (type) {
+    case 'sales':
+      return (
+        <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <text x="17" y="26" textAnchor="middle" fill="#ffffff" fontSize="21" fontWeight="700" fontFamily="sans-serif">$</text>
+        </svg>
+      );
+    case 'diamond':
+      return (
+        <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M17 10L24.5 16.5L17 28L9.5 16.5L17 10Z" stroke="#ffffff" strokeWidth="1.5" fill="none" strokeLinejoin="round" />
+          <path d="M9.5 16.5H24.5M17 10V28M12.5 16.5L17 28M21.5 16.5L17 28" stroke="#ffffff" strokeWidth="1" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'sharon':
+      return (
+        <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <circle cx="17" cy="16.5" r="3" fill="#ffffff" />
+          <path d="M17 11.5C15 11.5 13.5 13 13.5 15C13.5 17.5 17 22 17 22C17 22 20.5 17.5 20.5 15C20.5 13 19 11.5 17 11.5Z" stroke="#ffffff" strokeWidth="1.3" fill="none" />
+          <path d="M14 20C11.5 21.5 11 24.5 11 26" stroke="#ffffff" strokeWidth="1.3" strokeLinecap="round" />
+          <path d="M20 20C22.5 21.5 23 24.5 23 26" stroke="#ffffff" strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
+      );
+    case 'star':
+      return (
+        <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <polygon points="17,9 19.5,15 26,15.5 21.2,19.5 22.8,26 17,22.5 11.2,26 12.8,19.5 8,15.5 14.5,15" fill="#ffffff" />
+        </svg>
+      );
+    case 'royal':
+      return (
+        <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M9 25H25M9 25L11 15.5L14 19.5L17 13L20 19.5L23 15.5L25 25H9Z" stroke="#ffffff" strokeWidth="1.6" fill="none" strokeLinejoin="round" />
+          <circle cx="11" cy="14" r="1.2" fill="#ffffff" />
+          <circle cx="17" cy="11.5" r="1.2" fill="#ffffff" />
+          <circle cx="23" cy="14" r="1.2" fill="#ffffff" />
+        </svg>
+      );
+    case 'crown':
+      return (
+        <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M9 25H25L26 16.5L20.5 20L17 12L13.5 20L8 16.5L9 25Z" fill="#ffffff" />
+          <circle cx="8" cy="15" r="1.3" fill="#ffffff" />
+          <circle cx="17" cy="10.5" r="1.3" fill="#ffffff" />
+          <circle cx="26" cy="15" r="1.3" fill="#ffffff" />
+        </svg>
+      );
+    case 'imperial':
+      return (
+        <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M8 25H26M10.5 25L10.5 18C10.5 15 13.5 13 17 13C20.5 13 23.5 15 23.5 18L23.5 25M17 13V8.5M14.5 10.5H19.5" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <circle cx="17" cy="17" r="1.6" fill="#ffffff" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
 
-  // Interactive Calculator State
-  const [calcPersonalPv, setCalcPersonalPv] = useState(300000);
-  const [calcLeftPv, setCalcLeftPv] = useState(300000);
-  const [calcRightPv, setCalcRightPv] = useState(300000);
+export default function CompensationPlanPage({ onNavigateHome, onNavigateBack, onNavigateView }) {
+  const [activeTab, setActiveTab] = useState('dealership'); // dealership, commission, promotion
 
-  // Dealership Classes
-  const DEALERSHIP_CLASSES = [
-    {
-      level: '1. Member',
-      pvRequirement: '10,000 ~ 299,999 Personal PV',
-      desc: 'Activated membership eligible to accumulate group PV from downline purchases on both left and right legs.',
-      scoreEligible: 'Eligible for Score 5 matching (approx. ₹ 1,321/day)'
-    },
-    {
-      level: '2. Agent',
-      pvRequirement: '300,000+ Personal PV (or Member with previous month smaller leg ≥ 600,000 PV)',
-      desc: 'Core business builder level eligible for higher General Commission match tier.',
-      scoreEligible: 'Eligible for Score 15 matching (approx. ₹ 3,964/day)'
-    },
-    {
-      level: '3. Special Agent',
-      pvRequirement: '700,000+ Personal PV (or Agent with previous month smaller leg ≥ 1.4 Million PV)',
-      desc: 'Leader qualification tier required to challenge the first Mastership rank: Sales Master.',
-      scoreEligible: 'Eligible for Score 30 matching (approx. ₹ 7,928/day) & Sales Mastership'
-    },
-    {
-      level: '4. Dealer',
-      pvRequirement: '1,500,000+ Personal PV (or Special Agent with previous month smaller leg ≥ 3.0 Million PV)',
-      desc: 'Advanced leadership tier eligible for Diamond Master challenge.',
-      scoreEligible: 'Eligible for Score 60 matching (approx. ₹ 15,857/day) & Diamond Mastership'
-    },
-    {
-      level: '5. Exclusive Distributor (E.D.)',
-      pvRequirement: '2,400,000+ Personal PV (Lifelong Personal PV ceiling reached)',
-      desc: 'Highest personal dealership level. No further personal PV accumulation is ever required.',
-      scoreEligible: 'Eligible for Maximum Score tiers (up to ₹ 79,286/day) & Imperial Master challenge'
-    }
-  ];
-
-  // General Commission Score Table
-  const COMMISSION_TABLE = [
-    { grade: 'Grade 8', classReq: 'Member', leftRightPv: '300,000 / 300,000 PV', score: 5, estPayout: '₹ 1,321' },
-    { grade: 'Grade 7', classReq: 'Agent', leftRightPv: '300,000 / 300,000 PV', score: 15, estPayout: '₹ 3,964' },
-    { grade: 'Grade 6', classReq: 'Special Agent', leftRightPv: '700,000 / 700,000 PV', score: 30, estPayout: '₹ 7,928' },
-    { grade: 'Grade 5', classReq: 'Dealer', leftRightPv: '1,500,000 / 1,500,000 PV', score: 60, estPayout: '₹ 15,857' },
-    { grade: 'Grade 4', classReq: 'Exclusive Distributor', leftRightPv: '2,400,000 / 2,400,000 PV', score: 90, estPayout: '₹ 23,785' },
-    { grade: 'Grade 3', classReq: 'Exclusive Distributor', leftRightPv: '6,000,000 / 6,000,000 PV', score: 150, estPayout: '₹ 39,643' },
-    { grade: 'Grade 2', classReq: 'Exclusive Distributor', leftRightPv: '20,000,000 / 20,000,000 PV', score: 250, estPayout: '₹ 66,071' },
-    { grade: 'Grade 1', classReq: 'Exclusive Distributor', leftRightPv: '50,000,000 / 50,000,000 PV', score: 300, estPayout: '₹ 79,286' }
-  ];
-
-  // 7 Masterships
-  const MASTERSHIPS = [
-    {
-      title: 'Sales Master (SM)',
-      share: '10% of Global PV (Shared exclusively among Sales Masters)',
-      condition: 'Special Agent with a minimum of 2.5 Million Group PV acquired on each leg during the challenge cycle (1st–15th or 16th–end of month).',
-      incentive: '1x Atomy HemoHIM Set, 1x Atomy The Fame Skincare Set, 1x Evening Care 4 Set'
-    },
-    {
-      title: 'Diamond Master (DM)',
-      share: '5% of Global PV',
-      condition: 'Dealer with a minimum of 2 Sales Masters on each leg during the challenge cycle.',
-      incentive: '₹ 50,000 Cash Reward, 1x HemoHIM Set, 1x The Fame Set, 1x Evening Care 4 Set'
-    },
-    {
-      title: 'Sharon-Rose Master (SRM)',
-      share: '2% of Global PV',
-      condition: 'Exclusive Distributor with a minimum of 2 Diamond Masters on each leg.',
-      incentive: '₹ 1,20,000 Direct Cash Reward + 2x Overseas Travel Tickets (3 Nights / 4 Days)'
-    },
-    {
-      title: 'Star Master (STM)',
-      share: '1.2% of Global PV',
-      condition: 'Exclusive Distributor with a minimum of 2 Sharon-Rose Masters on each leg.',
-      incentive: '₹ 6,000,000 Direct Cash Reward + 4x Overseas Travel Tickets'
-    },
-    {
-      title: 'Royal Master (RM)',
-      share: '0.4% of Global PV',
-      condition: 'Exclusive Distributor with a minimum of 2 Star Masters on each leg.',
-      incentive: '₹ 30,000,000 Direct Cash Reward + ₹ 1,20,000 Monthly Operational Expense Card + Luxury Car Rental + 4x Overseas Tickets (10 Nights / 11 Days)'
-    },
-    {
-      title: 'Crown Master (CM)',
-      share: '0.2% of Global PV',
-      condition: 'Exclusive Distributor with a minimum of 2 Royal Masters on each leg.',
-      incentive: '₹ 1.8 Crore Direct Cash Reward + ₹ 3,00,000 Monthly Operational Card + Luxury Sedan Car + 4x Travel Tickets (10 Nights / 11 Days)'
-    },
-    {
-      title: 'Imperial Master (IM)',
-      share: '0.1% of Global PV',
-      condition: 'Exclusive Distributor with a minimum of 2 Crown Masters on each leg.',
-      incentive: '₹ 5.0 CRORE Cash delivered on stage in a forklift! + ₹ 6,00,000 Monthly Expense Card + Luxury Chauffeur-driven Car + 1,700 sq.ft Furnished Office + 4x Luxury Travel Tickets'
-    }
-  ];
-
-  // Calculation Logic
-  const calculateDailyMatch = () => {
-    const smallerLeg = Math.min(calcLeftPv, calcRightPv);
-    if (calcPersonalPv < 10000 || smallerLeg < 300000) {
-      return { score: 0, payout: 0, reason: 'Minimum 10,000 Personal PV and 300,000 Group PV required on both legs.' };
-    }
-
-    if (smallerLeg >= 50000000 && calcPersonalPv >= 2400000) return { score: 300, payout: 79286, tier: 'Grade 1 (Score 300)' };
-    if (smallerLeg >= 20000000 && calcPersonalPv >= 2400000) return { score: 250, payout: 66071, tier: 'Grade 2 (Score 250)' };
-    if (smallerLeg >= 6000000 && calcPersonalPv >= 2400000) return { score: 150, payout: 39643, tier: 'Grade 3 (Score 150)' };
-    if (smallerLeg >= 2400000 && calcPersonalPv >= 2400000) return { score: 90, payout: 23785, tier: 'Grade 4 (Score 90)' };
-    if (smallerLeg >= 1500000 && calcPersonalPv >= 1500000) return { score: 60, payout: 15857, tier: 'Grade 5 (Score 60)' };
-    if (smallerLeg >= 700000 && calcPersonalPv >= 700000) return { score: 30, payout: 7928, tier: 'Grade 6 (Score 30)' };
-    if (smallerLeg >= 300000 && calcPersonalPv >= 300000) return { score: 15, payout: 3964, tier: 'Grade 7 (Score 15)' };
-    if (smallerLeg >= 300000 && calcPersonalPv >= 10000) return { score: 5, payout: 1321, tier: 'Grade 8 (Score 5)' };
-
-    return { score: 0, payout: 0, reason: 'Pending matching threshold.' };
+  const handleDownloadPdf = () => {
+    const link = document.createElement('a');
+    link.href = '/Atomy_Compensation_Plan_May_2026.pdf';
+    link.download = 'Atomy Compensation Plan - May 2026.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const calcResult = calculateDailyMatch();
-
   return (
-    <div className="comp-plan-page">
-      {/* 1. Breadcrumbs */}
-      <div className="comp-breadcrumb-bar">
-        <div className="comp-container">
-          <button type="button" className="bread-link" onClick={onNavigateHome}>
-            HOME
-          </button>
-          <ChevronRight size={14} className="bread-sep" />
-          <span className="bread-active">Compensation Plan</span>
-        </div>
-      </div>
+    <div className="cst-plan-wrapper">
+      <div className="container cst-plan-main-container">
+        {/* Top Header Row with Title, Breadcrumb & Download PDF */}
+        <div className="cst-plan-title-bar">
+          <h1 className="cst-page-title">Compensation Plan</h1>
 
-      {/* 2. Header Banner */}
-      <section className="comp-header-banner">
-        <div className="comp-container">
-          <div className="comp-banner-content">
-            <span className="comp-eyebrow">ATOMY INDIA MARKETING SYSTEM</span>
-            <h1 className="comp-title">Righteous, Balanced & Generous Compensation Plan</h1>
-            <p className="comp-subtitle">
-              Designed so that ordinary consumers and dedicated distributors alike can achieve sustainable residual income.
-              Transparent, permanent personal PV, with a daily commission payout structure capped fairly to prevent income polarization.
+          <div className="cst-top-right-group">
+            <div className="cst-breadcrumb">
+              <span
+                className="bread-link"
+                onClick={() => (onNavigateView ? onNavigateView('about-us') : onNavigateHome())}
+              >
+                About Us
+              </span>
+              <span className="bread-sep">&gt;</span>
+              <span className="bread-active">Compensation Plan</span>
+            </div>
+
+            <button
+              type="button"
+              className="cst-pdf-download-btn"
+              onClick={handleDownloadPdf}
+              title="Download Atomy Compensation Plan - May 2026 PDF"
+            >
+              <FileDown size={16} />
+              <span>Download PDF</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Hero Visual Banner (matching bn_1280x200_0.jpg) */}
+        <div
+          className="cst-plan-hero-banner"
+          style={{ backgroundImage: `url(${bannerImg})` }}
+        >
+          <div className="cst-plan-hero-text">
+            <p>
+              The Well-Balanced, Righteous<br />
+              Marketing Plan shows the<br />
+              Company's Vision for Success<br />
+              of All Atomy Members.
             </p>
           </div>
         </div>
-      </section>
 
-      {/* 3. Sub Nav Tabs */}
-      <nav className="comp-nav-tabs-wrapper">
-        <div className="comp-container">
-          <div className="comp-nav-tabs">
-            <button
-              className={`comp-tab-btn ${activeTab === 'classes' ? 'active' : ''}`}
-              onClick={() => setActiveTab('classes')}
-            >
-              <Users size={16} />
-              <span>Dealership Classes</span>
-            </button>
-            <button
-              className={`comp-tab-btn ${activeTab === 'general' ? 'active' : ''}`}
-              onClick={() => setActiveTab('general')}
-            >
-              <Coins size={16} />
-              <span>General Commission</span>
-            </button>
-            <button
-              className={`comp-tab-btn ${activeTab === 'mastership' ? 'active' : ''}`}
-              onClick={() => setActiveTab('mastership')}
-            >
-              <Crown size={16} />
-              <span>Mastership Bonus (20%)</span>
-            </button>
-            <button
-              className={`comp-tab-btn ${activeTab === 'awards' ? 'active' : ''}`}
-              onClick={() => setActiveTab('awards')}
-            >
-              <Gift size={16} />
-              <span>Promotion Incentives</span>
-            </button>
-            <button
-              className={`comp-tab-btn ${activeTab === 'calculator' ? 'active' : ''}`}
-              onClick={() => setActiveTab('calculator')}
-            >
-              <Calculator size={16} />
-              <span>Matching Calculator</span>
-            </button>
-          </div>
+        {/* 3 Interactive Nav Tabs */}
+        <div className="cst-plan-tabs-row" role="tablist">
+          <button
+            type="button"
+            className={`cst-tab-btn ${activeTab === 'dealership' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dealership')}
+            role="tab"
+            aria-selected={activeTab === 'dealership'}
+          >
+            <span>Dealership Class</span>
+          </button>
+          <button
+            type="button"
+            className={`cst-tab-btn ${activeTab === 'commission' ? 'active' : ''}`}
+            onClick={() => setActiveTab('commission')}
+            role="tab"
+            aria-selected={activeTab === 'commission'}
+          >
+            <span>Commission</span>
+          </button>
+          <button
+            type="button"
+            className={`cst-tab-btn ${activeTab === 'promotion' ? 'active' : ''}`}
+            onClick={() => setActiveTab('promotion')}
+            role="tab"
+            aria-selected={activeTab === 'promotion'}
+          >
+            <span>Promotion Criteria</span>
+          </button>
         </div>
-      </nav>
 
-      {/* 4. Tab Body */}
-      <div className="comp-container comp-content-container">
-        {/* TAB 1: DEALERSHIP CLASSES */}
-        {activeTab === 'classes' && (
-          <div className="comp-pane-fade">
-            <div className="pane-header-center">
-              <span className="kicker-tag">MEMBERSHIP CLASSIFICATION</span>
-              <h2 className="pane-main-heading">5 Dealership Classes of Atomy Members</h2>
-              <p className="pane-desc">
-                Classification is determined by your accumulated personal Point Value (PV)
-                or downline smaller-leg sales volume achieved in the preceding month.
-                <strong> Personal PV never resets or expires as long as your membership is active!</strong>
-              </p>
+        {/* TAB 1: DEALERSHIP CLASS (Exactly matching Original in.atomy.com style & flow) */}
+        {activeTab === 'dealership' && (
+          <div className="cst-plan-panel animate-fade-in">
+            <div className="cst-plan-header-block">
+              <h3 className="cst-section-title">Class Sequence and Conditions</h3>
+              <div className="cst-sub-desc">
+                <span className="main-sub">Minimum PV that must be obtained for each level.</span>
+                <span className="noti">* Based on personal sales and could be changed every month depends on downline sales.</span>
+              </div>
             </div>
 
-            <div className="dealership-cards-grid">
-              {DEALERSHIP_CLASSES.map((cls, idx) => (
-                <div key={idx} className="dealership-card">
-                  <div className="card-top-pill">Tier 0{idx + 1}</div>
-                  <h3 className="class-name">{cls.level}</h3>
-                  <div className="class-pv-badge">{cls.pvRequirement}</div>
-                  <p className="class-desc">{cls.desc}</p>
-                  <div className="class-eligibility-box">
-                    <CheckCircle2 size={15} color="#00A3E0" />
-                    <span>{cls.scoreEligible}</span>
-                  </div>
+            {/* 5 Dealership Flow Sequence Boxes with Connecting Chevron Arrows */}
+            <div className="cst-dealership-cards-grid">
+              {/* 1. SALES REP */}
+              <div className="cst-class-card">
+                <div className="cst-class-header">
+                  <User size={24} className="cst-class-icon" />
+                  <span className="cst-class-title">SALES REP</span>
                 </div>
-              ))}
-            </div>
-
-            <div className="comp-info-callout">
-              <Info size={24} color="#00A3E0" />
-              <div>
-                <h4>Key Principle: Personal PV Never Expire</h4>
-                <p>
-                  Unlike other conventional direct selling companies where your personal volume is flushed each month,
-                  Atomy accumulates your personal purchases for life up to 2.4 Million PV ceiling.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: GENERAL COMMISSION */}
-        {activeTab === 'general' && (
-          <div className="comp-pane-fade">
-            <div className="pane-header-center">
-              <span className="kicker-tag">DAILY COMMISSION SYSTEM</span>
-              <h2 className="pane-main-heading">General Commission (44% of Global PV)</h2>
-              <p className="pane-desc">
-                Calculated on a daily basis when your smaller group leg matches a commission grade threshold.
-                Once matched, both leg group PVs reset to zero and resume accumulating the next day!
-              </p>
-            </div>
-
-            <div className="comp-table-card">
-              <table className="atomy-comp-table">
-                <thead>
-                  <tr>
-                    <th>Grade</th>
-                    <th>Dealership Class</th>
-                    <th>Daily Matching (Smaller Leg)</th>
-                    <th>Score</th>
-                    <th style={{ textAlign: 'right' }}>Est. Daily Payout (INR)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMMISSION_TABLE.map((row, idx) => (
-                    <tr key={idx}>
-                      <td className="grade-col"><strong>{row.grade}</strong></td>
-                      <td>{row.classReq}</td>
-                      <td><span className="pv-range-pill">{row.leftRightPv}</span></td>
-                      <td><span className="score-badge">{row.score} pts</span></td>
-                      <td style={{ textAlign: 'right' }} className="payout-col">
-                        <strong>{row.estPayout}</strong> / day
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="comp-features-row">
-              <div className="feat-box">
-                <h4>Daily Calculation & Flush</h4>
-                <p>Matches occur daily. Unmatched group PV carries over indefinitely until your smaller leg reaches 300,000 PV.</p>
-              </div>
-              <div className="feat-box">
-                <h4>Weekly Direct Bank Deposit</h4>
-                <p>Calculated daily from Wednesday to Tuesday and disbursed directly into your registered Indian bank account every following Tuesday.</p>
-              </div>
-              <div className="feat-box">
-                <h4>Income Ceiling Cap</h4>
-                <p>Grade 1 is capped at 50M PV (Score 300 / approx ₹ 79,286 per day) to ensure the 35% statutory commission pool is distributed fairly among beginner members.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: MASTERSHIP BONUS */}
-        {activeTab === 'mastership' && (
-          <div className="comp-pane-fade">
-            <div className="pane-header-center">
-              <span className="kicker-tag">GLOBAL PROFIT SHARING</span>
-              <h2 className="pane-main-heading">7 Ranks of Mastership (20% of Global Sales PV)</h2>
-              <p className="pane-desc">
-                Calculated twice per month: <strong>1st to 15th</strong> (1st Period) and <strong>16th to end of month</strong> (2nd Period).
-                Notice how 10% of total PV is reserved exclusively for the beginner rank: Sales Master!
-              </p>
-            </div>
-
-            <div className="masterships-grid">
-              {MASTERSHIPS.map((m, idx) => (
-                <div key={idx} className={`mastership-card ${idx === 6 ? 'imperial-card' : ''}`}>
-                  <div className="mastership-header">
-                    <span className="rank-num">0{idx + 1}</span>
-                    <h3 className="mastership-title">{m.title}</h3>
-                    <span className="pv-share-tag">{m.share}</span>
-                  </div>
-                  <div className="mastership-body">
-                    <div className="qualify-row">
-                      <strong>Qualification Requirement:</strong>
-                      <p>{m.condition}</p>
-                    </div>
-                    <div className="incentive-row">
-                      <strong>Promotion Incentive:</strong>
-                      <p>{m.incentive}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: AWARDS */}
-        {activeTab === 'awards' && (
-          <div className="comp-pane-fade">
-            <div className="pane-header-center">
-              <span className="kicker-tag">ONE-TIME MILESTONE RECOGNITION</span>
-              <h2 className="pane-main-heading">Mastership Promotional Incentives & Cash Prizes</h2>
-              <p className="pane-desc">
-                When you achieve a Mastership rank for the first time, Atomy rewards your dedication
-                with extraordinary gifts and milestone cash rewards handed personally by Chairman Han-Gill Park!
-              </p>
-            </div>
-
-            <div className="awards-showcase-grid">
-              <div className="award-banner-card sm-award">
-                <div className="award-badge">SALES MASTER</div>
-                <h3>Flagship Product Gift Hamper</h3>
-                <p>1 Box Atomy HemoHIM + 1 Set The Fame Skincare + 1 Set Evening Care 4</p>
-              </div>
-
-              <div className="award-banner-card dm-award">
-                <div className="award-badge">DIAMOND MASTER</div>
-                <h3>₹ 50,000 Cash + Product Hamper</h3>
-                <p>Direct cash award plus full skincare and health product packages.</p>
-              </div>
-
-              <div className="award-banner-card srm-award">
-                <div className="award-badge">SHARON-ROSE MASTER</div>
-                <h3>₹ 1,20,000 Cash + 2x Overseas Travel</h3>
-                <p>Cash prize plus luxury 4-day international holiday for two.</p>
-              </div>
-
-              <div className="award-banner-card stm-award">
-                <div className="award-badge">STAR MASTER</div>
-                <h3>₹ 6,00,000 Direct Cash + 4x Travel Tickets</h3>
-                <p>Family holiday package for four with comprehensive travel allowance.</p>
-              </div>
-
-              <div className="award-banner-card rm-award">
-                <div className="award-badge">ROYAL MASTER</div>
-                <h3>₹ 30,00,000 Cash + Luxury Car + Expense Card</h3>
-                <p>₹ 1,20,000 monthly operational allowance + 11-day luxury cruise tickets.</p>
-              </div>
-
-              <div className="award-banner-card cm-award">
-                <div className="award-badge">CROWN MASTER</div>
-                <h3>₹ 1.8 CRORE Cash + Luxury Sedan Car</h3>
-                <p>₹ 3,00,000 monthly operational credit card + 4x luxury overseas tickets.</p>
-              </div>
-
-              <div className="award-banner-card im-award full-width">
-                <Crown size={32} color="#f59e0b" />
-                <div className="award-badge gold">IMPERIAL MASTER (HIGHEST PIN)</div>
-                <h2>₹ 5.0 CRORE Cash in Forklift + Chauffeur + 1,700 sq.ft Office</h2>
-                <p>
-                  Delivered on stage during the grand World Success Academy, along with a ₹ 6,00,000 monthly operational card,
-                  a luxury sedan with a company-paid personal driver, and fully furnished corporate office suite.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 5: CALCULATOR */}
-        {activeTab === 'calculator' && (
-          <div className="comp-pane-fade">
-            <div className="pane-header-center">
-              <span className="kicker-tag">INTERACTIVE SIMULATOR</span>
-              <h2 className="pane-main-heading">General Commission Matching Calculator</h2>
-              <p className="pane-desc">
-                Enter your Personal PV and your daily Left Leg / Right Leg group volume to see your potential daily matching score and INR payout!
-              </p>
-            </div>
-
-            <div className="calc-simulator-card">
-              <div className="calc-inputs-grid">
-                <div className="calc-input-group">
-                  <label>Your Personal Accumulated PV</label>
-                  <input
-                    type="number"
-                    value={calcPersonalPv}
-                    step={10000}
-                    onChange={(e) => setCalcPersonalPv(Number(e.target.value) || 0)}
-                    className="calc-input"
-                  />
-                  <span className="input-hint">300,000 PV unlocks Agent tier</span>
-                </div>
-
-                <div className="calc-input-group">
-                  <label>Left Leg Group PV</label>
-                  <input
-                    type="number"
-                    value={calcLeftPv}
-                    step={50000}
-                    onChange={(e) => setCalcLeftPv(Number(e.target.value) || 0)}
-                    className="calc-input"
-                  />
-                  <span className="input-hint">Accumulated downline purchases</span>
-                </div>
-
-                <div className="calc-input-group">
-                  <label>Right Leg Group PV</label>
-                  <input
-                    type="number"
-                    value={calcRightPv}
-                    step={50000}
-                    onChange={(e) => setCalcRightPv(Number(e.target.value) || 0)}
-                    className="calc-input"
-                  />
-                  <span className="input-hint">Accumulated downline purchases</span>
-                </div>
-              </div>
-
-              {/* Result Preview Box */}
-              <div className="calc-result-box">
-                <div className="result-left">
-                  <span className="result-kicker">MATCHING RESULT</span>
-                  <div className="result-tier-name">
-                    {calcResult.score > 0 ? calcResult.tier : 'No Match'}
-                  </div>
-                  <p className="result-subtext">
-                    {calcResult.score > 0
-                      ? `Matching Score: ${calcResult.score} Points. Group PV resets to 0 after daily calculation.`
-                      : calcResult.reason}
+                <div className="cst-class-body">
+                  <p className="cst-class-sub">
+                    Accumulated between<br />
+                    <strong>10,000 PV ~ 2,99,999 PV</strong>
                   </p>
                 </div>
-                <div className="result-right">
-                  <span className="payout-label">ESTIMATED DAILY PAYOUT</span>
-                  <div className="payout-amount">
-                    ₹ {calcResult.payout.toLocaleString('en-IN')}
-                  </div>
-                  <span className="payout-period">Per Matching Day</span>
+              </div>
+
+              {/* 2. AGENT */}
+              <div className="cst-class-card">
+                <div className="cst-class-header">
+                  <Users size={24} className="cst-class-icon" />
+                  <span className="cst-class-title">AGENT</span>
+                </div>
+                <div className="cst-class-body">
+                  <p className="cst-class-sub">
+                    Accumulate a minimum of<br />
+                    <strong>3 Lakh PV</strong> or a Sales Rep with a smaller leg of at least <strong>6 Lakh PV</strong> accumulated in the previous month
+                  </p>
                 </div>
               </div>
+
+              {/* 3. SPECIAL AGENT */}
+              <div className="cst-class-card">
+                <div className="cst-class-header">
+                  <ClipboardList size={24} className="cst-class-icon" />
+                  <span className="cst-class-title">SPECIAL AGENT</span>
+                </div>
+                <div className="cst-class-body">
+                  <p className="cst-class-sub">
+                    Accumulated a minimum of<br />
+                    <strong>7 Lakh PV</strong> or an Agent with a smaller leg of at least <strong>14 Lakh PV</strong> accumulated in the previous month
+                  </p>
+                </div>
+              </div>
+
+              {/* 4. DEALER */}
+              <div className="cst-class-card">
+                <div className="cst-class-header">
+                  <Store size={24} className="cst-class-icon" />
+                  <span className="cst-class-title">DEALER</span>
+                </div>
+                <div className="cst-class-body">
+                  <p className="cst-class-sub">
+                    Accumulated a minimum of<br />
+                    <strong>15 Lakh PV</strong> or an Special Agent with a smaller leg of at least <strong>30 Lakh PV</strong> accumulated in the previous month
+                  </p>
+                </div>
+              </div>
+
+              {/* 5. EXCLUSIVE DISTRIBUTOR */}
+              <div className="cst-class-card">
+                <div className="cst-class-header">
+                  <Building2 size={24} className="cst-class-icon" />
+                  <span className="cst-class-title">
+                    EXCLUSIVE<br />DISTRIBUTOR
+                  </span>
+                </div>
+                <div className="cst-class-body">
+                  <p className="cst-class-sub">
+                    Accumulated a minimum of<br />
+                    <strong>24 Lakh PV</strong> or an Dealer with a smaller leg of at least <strong>48 Lakh PV</strong> accumulated in the previous month
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: COMMISSION */}
+        {activeTab === 'commission' && (
+          <div className="cst-plan-panel animate-fade-in">
+            {/* Commission Standard */}
+            <div className="cst-plan-part">
+              <div className="cst-plan-header-block">
+                <h3 className="cst-section-title">Commission Standard</h3>
+                <div className="cst-sub-desc">
+                  <span className="main-sub">
+                    Based on membership class sequence, General commission, Mastership Bonus, and Education commission, the total payment allowance of the member will be paid by settling 70% of the attainment point(PV).
+                  </span>
+                  <span className="noti">※ The total amount of commission to members does not exceed 35% of total sales income.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Commission Types */}
+            <div className="cst-plan-part">
+              <div className="cst-plan-header-block">
+                <h3 className="cst-section-title">Commission Types</h3>
+                <div className="cst-sub-desc">
+                  <span className="main-sub">Distributors will be entitled to the following Five types of benefits and incentives:</span>
+                </div>
+              </div>
+
+              <div className="cst-table-wrapper">
+                <table className="cst-data-table">
+                  <colgroup>
+                    <col style={{ width: '28%' }} />
+                    <col style={{ width: '72%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>Types</th>
+                      <th>Prerequisite</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="bold-cell">Type-1, Retail Profit</td>
+                      <td>Distributor can earn Upto 25% by selling products of the Company on MRP</td>
+                    </tr>
+                    <tr>
+                      <td className="bold-cell">Type-2, General Commission</td>
+                      <td>Upto 44% of Global PVs* will be distributed to qualified members/distributors who fulfill the requirements of General Commission as mentioned in the Compensation Plan</td>
+                    </tr>
+                    <tr>
+                      <td className="bold-cell">Type-3, Mastership Bonus</td>
+                      <td>This is the third type of commission, in which 20% of Global PVs* will be distributed amongst the achievers (7 levels of Mastership)</td>
+                    </tr>
+                    <tr>
+                      <td className="bold-cell">Type-4, Mastership Promotion &amp; Incentives</td>
+                      <td>On achievement of Mastership Rank One Time incentives will be awarded to qualified members/distributors</td>
+                    </tr>
+                    <tr>
+                      <td className="bold-cell">Type-5, Education Centre Commission</td>
+                      <td>In approved Education Centres, training will be provided related to Atomy's Compensation Plan, Product. Policies and procedures shall be provided to any consumer or any Distributor/Prospective Distributor. 6% of Centre's total PV is paid to the applicable Centre to cover operational expenses</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="cst-note-callout">
+                *Global PVs - Refers to the sum total of PVs accumulated by the Distributors associated with Atomy group companies at a global level.
+              </div>
+            </div>
+
+            {/* General Commission (44%) */}
+            <div className="cst-plan-part">
+              <div className="cst-plan-header-block">
+                <h3 className="cst-section-title">General Commission</h3>
+                <div className="cst-sub-desc">
+                  <span className="main-sub">
+                    44% of entire sales PV will be distributed between qualified members every week according to the rate. Individuals must first accumulate at least 10,000 PV in order to accumulate downline PVs.
+                  </span>
+                </div>
+              </div>
+
+              <div className="cst-table-wrapper">
+                <table className="cst-data-table">
+                  <colgroup>
+                    <col style={{ width: '25%' }} />
+                    <col style={{ width: '25%' }} />
+                    <col style={{ width: '25%' }} />
+                    <col style={{ width: '25%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>Grade/Score</th>
+                      <th>My Grade Standard</th>
+                      <th>Daily Small Leg**</th>
+                      <th>Commission in INR</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="center-cell bold-cell">8 level / 5 pts</td>
+                      <td className="center-cell">SALES REP</td>
+                      <td className="center-cell">Accumulated &ge; 3 lakh PV</td>
+                      <td className="center-cell inr-cell">₹1,321</td>
+                    </tr>
+                    <tr>
+                      <td className="center-cell bold-cell">7 level / 15 pts</td>
+                      <td className="center-cell">AGENT</td>
+                      <td className="center-cell">Accumulated &ge; 3 lakh PV</td>
+                      <td className="center-cell inr-cell">₹3,964</td>
+                    </tr>
+                    <tr>
+                      <td className="center-cell bold-cell">6 level / 30 pts</td>
+                      <td className="center-cell">SPECIAL AGENT</td>
+                      <td className="center-cell">&ge; 7 lakh PV</td>
+                      <td className="center-cell inr-cell">₹7,929</td>
+                    </tr>
+                    <tr>
+                      <td className="center-cell bold-cell">5 level / 60 pts</td>
+                      <td className="center-cell">DEALER</td>
+                      <td className="center-cell">&ge; 15 lakh PV</td>
+                      <td className="center-cell inr-cell">₹15,857</td>
+                    </tr>
+                    <tr>
+                      <td className="center-cell bold-cell">4 level / 90 pts</td>
+                      <td className="center-cell">EXCLUSIVE DISTRIBUTOR</td>
+                      <td className="center-cell">&ge; 24 lakh PV</td>
+                      <td className="center-cell inr-cell">₹23,786</td>
+                    </tr>
+                    <tr>
+                      <td className="center-cell bold-cell">3 level / 150 pts</td>
+                      <td className="center-cell">EXCLUSIVE DISTRIBUTOR</td>
+                      <td className="center-cell">&ge; 60 lakh PV</td>
+                      <td className="center-cell inr-cell">₹39,644</td>
+                    </tr>
+                    <tr>
+                      <td className="center-cell bold-cell">2 level / 250 pts</td>
+                      <td className="center-cell">EXCLUSIVE DISTRIBUTOR</td>
+                      <td className="center-cell">&ge; 2 Crore PV</td>
+                      <td className="center-cell inr-cell">₹66,073</td>
+                    </tr>
+                    <tr>
+                      <td className="center-cell bold-cell">1 level / 300 pts</td>
+                      <td className="center-cell">EXCLUSIVE DISTRIBUTOR</td>
+                      <td className="center-cell">&ge; 5 Crore PV</td>
+                      <td className="center-cell inr-cell">₹79,287</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="cst-note-callout">
+                <p>• Sponsorship allowance is paid on the following Tuesday by adding up weeks after daily closing from Wednesday to next Tuesday.</p>
+                <p>• Personal PV may be added to the smaller leg for calculating commission.</p>
+                <p>• Personal PV (applied to the small leg) - left leg PV, and right leg PV will be flushed and reset to 0 when a general commission match occurs during daily settlement.</p>
+                <p><strong>** My Accumulated PV does not reset.</strong></p>
+              </div>
+            </div>
+
+            {/* Mastership Bonus (20%) */}
+            <div className="cst-plan-part">
+              <div className="cst-plan-header-block">
+                <h3 className="cst-section-title">Mastership Bonus</h3>
+                <div className="cst-sub-desc">
+                  <span className="main-sub">20% of entire sales PV will be distributed according to each mastership.</span>
+                </div>
+              </div>
+
+              <div className="cst-table-wrapper">
+                <table className="cst-data-table">
+                  <colgroup>
+                    <col style={{ width: '26%' }} />
+                    <col style={{ width: '46%' }} />
+                    <col style={{ width: '28%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>Mastership</th>
+                      <th>Conditions for Maintaining Qualifications</th>
+                      <th>Mastership Bonus</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="sales" />
+                          <span className="cst-master-name">Sales Master</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>Special Agent</strong> with a minimum of 25 lakh Group PV under each leg.<br />
+                        If the total PV of the smaller leg exceeds 3 lakh PV, personal PV acquired during the point accumulation period can be added to the smaller leg to achieve Mastership.
+                      </td>
+                      <td><strong>10% of total PV</strong> distributed equally to Sales Masters</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="diamond" />
+                          <span className="cst-master-name">Diamond Master</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>Dealer</strong> with minimum 2 Sales Masters under each leg
+                      </td>
+                      <td><strong>5% of total PV</strong> distributed equally to Diamond Masters and higher Masterships</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="sharon" />
+                          <span className="cst-master-name">Sharon Rose Master</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>Exclusive Distributor</strong> with minimum 2 Diamond Masters under each leg
+                      </td>
+                      <td><strong>2% of total PV</strong> distributed equally to Sharon-Rose Masters and higher Masterships</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="star" />
+                          <span className="cst-master-name">Star Master</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>Exclusive Distributor</strong> with minimum 2 Sharon-Rose Masters under each leg
+                      </td>
+                      <td><strong>1.2% of total PV</strong> distributed equally to Star Masters and higher Masterships</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="royal" />
+                          <span className="cst-master-name">Royal Master</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>Exclusive Distributor</strong> with minimum 2 Star Masters under each leg
+                      </td>
+                      <td><strong>1% of total PV</strong> distributed equally to Royal Masters and higher Masterships</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="crown" />
+                          <span className="cst-master-name">Crown Master</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>Exclusive Distributor</strong> with minimum 2 Royal Masters under each leg
+                      </td>
+                      <td><strong>0.5% of total PV</strong> distributed equally to Crown Masters and higher Masterships</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="imperial" />
+                          <span className="cst-master-name">Imperial Master</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>Exclusive Distributor</strong> with minimum 2 Crown Masters under each leg
+                      </td>
+                      <td><strong>0.3% of total PV</strong> distributed equally to Imperial Masters</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="cst-note-callout">
+                <p>• Mastership Bonus for the 1st period will be paid on the 22nd and 2nd period will be paid on 7th of each month.</p>
+                <p>• Point Value Accumulation Period: 1st – 15th, 16th – End of month.</p>
+              </div>
+            </div>
+
+            {/* Education Centre Commission (6%) */}
+            <div className="cst-plan-part">
+              <div className="cst-plan-header-block">
+                <h3 className="cst-section-title">Education Centre Commission</h3>
+                <div className="cst-sub-desc">
+                  <span className="main-sub">
+                    6% of a centre's total PV is paid to the applicable Education centre to cover operational expenses.
+                  </span>
+                  <span className="noti">
+                    ※ The total amount of commission to members/distributors cannot exceed 35% of total sales income. All calculations of commissions and bonus are automatically set to this limit. Note – Commissions, bonuses and incentives shall be disbursed after deducting applicable taxes as per rules and regulations.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: PROMOTION CRITERIA (Matching User's Reference Screenshot) */}
+        {activeTab === 'promotion' && (
+          <div className="cst-plan-panel animate-fade-in">
+            {/* Section 1: Promotion Criteria by Mastership */}
+            <div className="cst-plan-part">
+              <div className="cst-plan-header-block">
+                <h3 className="cst-section-title">Promotion Criteria by Mastership</h3>
+              </div>
+
+              {/* Exact 2 Split Cards matching Screenshot */}
+              <div className="cst-criteria-split-container">
+                {/* Left Card: No restriction on promotion */}
+                <div className="cst-criteria-split-card">
+                  <div className="criteria-left-pane">
+                    <div className="criteria-dark-circle-icon">
+                      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                        <circle cx="18" cy="18" r="18" fill="#2d3748" />
+                        <rect x="10" y="12" width="16" height="15" rx="2.5" stroke="#ffffff" strokeWidth="1.6" />
+                        <line x1="14" y1="9.5" x2="14" y2="13" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+                        <line x1="22" y1="9.5" x2="22" y2="13" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+                        <line x1="10" y1="16.5" x2="26" y2="16.5" stroke="#ffffff" strokeWidth="1.2" />
+                        <path d="M14 21L16.5 23.5L22 18" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <span className="criteria-pane-title">No restriction on promotion</span>
+                  </div>
+                  <div className="criteria-right-pane">
+                    <div className="criteria-ranks-grid">
+                      <div className="criteria-rank-item">• Sales Master</div>
+                      <div className="criteria-rank-item">• Diamond Master</div>
+                      <div className="criteria-rank-item">• Sharon Rose Master</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Card: Must achieve previous Mastership 3 times */}
+                <div className="cst-criteria-split-card">
+                  <div className="criteria-left-pane">
+                    <div className="criteria-dark-circle-icon">
+                      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                        <circle cx="18" cy="18" r="18" fill="#2d3748" />
+                        <circle cx="18" cy="18" r="12" stroke="#ffffff" strokeWidth="1.5" />
+                        <path d="M18 23V13M18 13L14 17M18 13L22 17" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <span className="criteria-pane-title">Must achieve previous Mastership 3 times before being promoted onto the next Mastership level</span>
+                  </div>
+                  <div className="criteria-right-pane">
+                    <div className="criteria-ranks-grid">
+                      <div className="criteria-rank-item">• Star Master</div>
+                      <div className="criteria-rank-item">• Royal Master</div>
+                      <div className="criteria-rank-item">• Crown Master</div>
+                      <div className="criteria-rank-item">• Imperial Master</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Exact Bullets matching Screenshot */}
+              <ul className="cst-criteria-bullets-list">
+                <li>• No conditions for continuous position maintenance</li>
+                <li>• Unlimited Timeline (only with valid membership status)</li>
+                <li>• Promotion of two levels in one entry is not permitted beyond Diamond Master level</li>
+              </ul>
+            </div>
+
+            {/* Section 2: Mastership Promotion & Incentives Table (matching Screenshot) */}
+            <div className="cst-plan-part">
+              <div className="cst-plan-header-block">
+                <h3 className="cst-section-title">Mastership Promotion &amp; Incentives</h3>
+              </div>
+
+              <div className="cst-table-wrapper cst-promo-table-wrapper">
+                <table className="cst-data-table cst-promo-table">
+                  <colgroup>
+                    <col style={{ width: '28%' }} />
+                    <col style={{ width: '72%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th className="promo-th-mastership">Mastership</th>
+                      <th className="promo-th-incentives">Incentives</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* 1. Sales Master */}
+                    <tr>
+                      <td className="promo-td-mastership">
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="sales" />
+                          <span className="cst-master-name">Sales Master</span>
+                        </div>
+                      </td>
+                      <td className="promo-td-incentives">
+                        *INR 30,000 Cash
+                      </td>
+                    </tr>
+
+                    {/* 2. Diamond Master */}
+                    <tr>
+                      <td className="promo-td-mastership">
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="diamond" />
+                          <span className="cst-master-name">Diamond Master</span>
+                        </div>
+                      </td>
+                      <td className="promo-td-incentives">
+                        *INR 90,000 Cash
+                      </td>
+                    </tr>
+
+                    {/* 3. Sharon Rose Master */}
+                    <tr>
+                      <td className="promo-td-mastership">
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="sharon" />
+                          <span className="cst-master-name">Sharon Rose Master</span>
+                        </div>
+                      </td>
+                      <td className="promo-td-incentives">
+                        *INR 1.2 lakh Cash,<br />
+                        2 pax Tour Packages (3 Nights and 4 Days)
+                      </td>
+                    </tr>
+
+                    {/* 4. Star Master */}
+                    <tr>
+                      <td className="promo-td-mastership">
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="star" />
+                          <span className="cst-master-name">Star Master</span>
+                        </div>
+                      </td>
+                      <td className="promo-td-incentives">
+                        *INR 6 lakh Cash,<br />
+                        4 pax Tour Packages (3 Nights and 4 Days)
+                      </td>
+                    </tr>
+
+                    {/* 5. Royal Master */}
+                    <tr>
+                      <td className="promo-td-mastership">
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="royal" />
+                          <span className="cst-master-name">Royal Master</span>
+                        </div>
+                      </td>
+                      <td className="promo-td-incentives">
+                        *INR 30 lakh Cash,<br />
+                        *INR 1.2 lakh per month# for sponsorship activities,<br />
+                        Car rental fee#,<br />
+                        4 pax Tour Packages (10 Nights and 11 Days)
+                      </td>
+                    </tr>
+
+                    {/* 6. Crown Master */}
+                    <tr>
+                      <td className="promo-td-mastership">
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="crown" />
+                          <span className="cst-master-name">Crown Master</span>
+                        </div>
+                      </td>
+                      <td className="promo-td-incentives">
+                        *INR 1.8 Crore Cash,<br />
+                        *INR 3 lakh per month# for sponsorship activities,<br />
+                        a Luxury car#,<br />
+                        4 pax Tour Packages (10 Nights and 11 Days)
+                      </td>
+                    </tr>
+
+                    {/* 7. Imperial Master */}
+                    <tr>
+                      <td className="promo-td-mastership">
+                        <div className="cst-mastership-cell">
+                          <MastershipHexBadge type="imperial" />
+                          <span className="cst-master-name">Imperial Master</span>
+                        </div>
+                      </td>
+                      <td className="promo-td-incentives">
+                        *INR 6 crore Cash,<br />
+                        *INR 6 lakh per month# for sponsorship activities,<br />
+                        a Luxury car#,<br />
+                        an Office of Approx. 1,700 sq.ft.# with a Personal Assistant#,<br />
+                        a Driver#,<br />
+                        4 pax Tour Packages (10 Nights and 11 Days)
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Terms and conditions */}
+            <div className="cst-plan-part">
+              <div className="cst-plan-header-block">
+                <h3 className="cst-section-title">Terms and conditions</h3>
+              </div>
+
+              <ul className="cst-criteria-bullets-list">
+                <li>• Products are based on purchase price</li>
+                <li>• Sharon-Rose/Star Master – Travel tickets *INR 50,000 eq/person</li>
+                <li>• Royal/Crown/Imperial Master – Travel tickets *INR 2.4 lakh eq/person</li>
+                <li>• Car rental fee - *INR 60,000 eq/month#</li>
+                <li>• Crown Master luxury car# - *INR 40 lakh</li>
+                <li>• Imperial Master luxury car# - *INR 50 lakh</li>
+                <li>• Imperial Master office rent allowance - *INR 1.5 lakh eq/month#</li>
+                <li>• Imperial Master personal assistant salary - *INR 50,000 eq/month#</li>
+                <li>• Imperial Master driver salary - *INR 50,000 eq/month#</li>
+                <li>• Tax will be deducted as applicable per government regulations</li>
+              </ul>
             </div>
           </div>
         )}

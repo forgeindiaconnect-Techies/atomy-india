@@ -1,6 +1,18 @@
+/* ==========================================================================
+   ATOMY PROMO WIDE BANNER STRIP (User Guide & Resource Material)
+   Matches Original Atomy India Portal Styling
+   ========================================================================== */
+
 .promo-banner-strip-section {
-  padding: 24px 0;
-  background-color: #ffffff;
+  padding: 20px 0;
+  background-color: transparent;
+  width: 100%;
+}
+
+.promo-banner-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
 }
 
 .promo-banner-box {
@@ -8,37 +20,89 @@
   width: 100%;
   position: relative;
   overflow: hidden;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .promo-banner-box:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .promo-banner-img {
   width: 100%;
   height: auto;
+  min-height: 90px;
+  max-height: 140px;
   display: block;
   object-fit: cover;
+  object-position: right center;
 }
 
-.promo-banner-label {
+.promo-banner-overlay-content {
   position: absolute;
-  top: 50%;
-  left: 60px;
-  transform: translateY(-50%);
-  display: none; /* hidden if text is embedded inside image */
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 54px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.promo-banner-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 600;
+  color: #111827;
+  letter-spacing: -0.01em;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  transition: color 0.2s ease;
+}
+
+/* User Guide has an underline as in the original site */
+.promo-banner-text-link.has-underline .promo-banner-text-word {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1.5px;
+}
+
+.promo-banner-chevron {
+  color: #4b5563;
+  stroke-width: 2.2;
+  transition: transform 0.25s ease, color 0.2s ease;
+}
+
+.promo-banner-box:hover .promo-banner-text-link {
+  color: #00A3E0;
+}
+
+.promo-banner-box:hover .promo-banner-chevron {
+  transform: translateX(4px);
+  color: #00A3E0;
 }
 
 @media (max-width: 768px) {
   .promo-banner-strip-section {
-    padding: 16px 0;
+    padding: 12px 0;
   }
 
-  .promo-banner-box {
-    border-radius: 10px;
+  .promo-banner-overlay-content {
+    padding-left: 20px;
+  }
+
+  .promo-banner-text-link {
+    font-size: 15px;
+    gap: 6px;
+  }
+
+  .promo-banner-img {
+    min-height: 65px;
   }
 }

@@ -1,0 +1,374 @@
+/* ==========================================================================
+   ATOMY MEMBERSHIP SUBSCRIPTION MODAL - CLEAN WHITE & ATOMY CYAN DESIGN
+   ========================================================================== */
+
+.membership-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.membership-modal-card {
+  width: 100%;
+  max-width: 580px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalEnter 0.25s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Header */
+.membership-modal-top {
+  padding: 24px 28px 18px;
+  background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.membership-gold-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #fef3c7;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.membership-modal-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.membership-modal-close:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.modal-main-title {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.modal-main-desc {
+  margin: 0;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.modal-main-desc strong {
+  color: #0f172a;
+}
+
+/* Body */
+.membership-modal-body {
+  padding: 24px 28px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Perks Grid */
+.membership-perks-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.perk-highlight-box {
+  display: flex;
+  gap: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.perk-icon-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.perk-icon-circle.blue {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.perk-icon-circle.purple {
+  background-color: #ede9fe;
+  color: #7c3aed;
+}
+
+.perk-highlight-box h4 {
+  margin: 0 0 3px 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.perk-highlight-box p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* Plan Choices */
+.plan-choices-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plan-choices-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.plan-card-option {
+  position: relative;
+  background-color: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.plan-card-option:hover {
+  border-color: #00A3E0;
+}
+
+.plan-card-option.selected {
+  border-color: #00A3E0;
+  background-color: #f0f9ff;
+  box-shadow: 0 0 0 1px #00A3E0;
+}
+
+.save-badge {
+  position: absolute;
+  top: -10px;
+  right: 12px;
+  background-color: #00A3E0;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.plan-card-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plan-radio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-radio.checked {
+  border-color: #00A3E0;
+}
+
+.radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #00A3E0;
+}
+
+.plan-period-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.plan-price-large {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 4px;
+}
+
+.per-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.plan-validity-text {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Actions */
+.membership-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-modal-action {
+  width: 100%;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-modal-action.primary {
+  background-color: #00A3E0;
+  color: #ffffff;
+}
+
+.btn-modal-action.primary:hover:not(:disabled) {
+  background-color: #008cc2;
+}
+
+.btn-modal-action:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.modal-guarantee-note {
+  text-align: center;
+  margin: 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Already Member State */
+.already-member-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 10px 0;
+  gap: 12px;
+}
+
+.active-shield-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: #dcfce7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.already-member-box h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.already-member-box p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #64748b;
+  max-width: 440px;
+}
+
+.member-perks-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  background-color: #f8fafc;
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin: 8px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.perk-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+@media (max-width: 580px) {
+  .membership-perks-grid,
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,576 +1,575 @@
-/* ==========================================================================
-   COMPENSATION PLAN PAGE STYLES
-   ========================================================================== */
+/* CompensationPlanPage.css - Official Atomy India UI */
 
-.comp-plan-page {
+.cst-plan-wrapper {
+  background-color: #ffffff;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #333333;
+  padding: 20px 0 60px 0;
   width: 100%;
-  min-height: 80vh;
-  background-color: #f8fafc;
-  font-family: var(--font-main, 'Noto Sans', 'Inter', sans-serif);
-  color: #1e293b;
-  padding-bottom: 80px;
 }
 
-.comp-container {
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 24px;
+/* Main Container - Aligns with Tool Bar on the left and Quick Menu on the right */
+.cst-plan-main-container {
+  padding-top: 20px;
+  padding-bottom: 60px;
 }
 
-/* Breadcrumbs */
-.comp-breadcrumb-bar {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 12px 0;
-  font-size: 12.5px;
-}
-
-.comp-breadcrumb-bar .comp-container {
+/* 1. Top Title & Breadcrumb & PDF Download Bar */
+.cst-plan-title-bar {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
-/* Header Banner */
-.comp-header-banner {
-  background: linear-gradient(135deg, #05263b 0%, #004d73 50%, #007799 100%);
-  color: #ffffff;
-  padding: 56px 0;
-}
-
-.comp-eyebrow {
-  display: inline-block;
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: #38bdf8;
-  margin-bottom: 10px;
-}
-
-.comp-title {
-  font-size: 32px;
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0 0 12px;
-  letter-spacing: -0.01em;
-}
-
-.comp-subtitle {
-  font-size: 15px;
-  color: #e0f2fe;
-  max-width: 720px;
+.cst-page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
   margin: 0;
-  line-height: 1.6;
+  letter-spacing: -0.5px;
 }
 
-/* Nav Tabs */
-.comp-nav-tabs-wrapper {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 76px;
-  z-index: 20;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.comp-nav-tabs {
+.cst-top-right-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 10px 0;
-  scrollbar-width: none;
+  gap: 24px;
 }
 
-.comp-nav-tabs::-webkit-scrollbar {
+.cst-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.cst-breadcrumb .bread-link {
+  color: #6b7280;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.cst-breadcrumb .bread-link:hover {
+  color: #0096e6;
+  text-decoration: underline;
+}
+
+.cst-breadcrumb .bread-sep {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.cst-breadcrumb .bread-active {
+  color: #0096e6;
+  font-weight: 600;
+}
+
+.cst-pdf-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #0096e6;
+  color: #ffffff;
+  border: 1px solid #0096e6;
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 150, 230, 0.2);
+}
+
+.cst-pdf-download-btn:hover {
+  background-color: #0082c8;
+  border-color: #0082c8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 150, 230, 0.3);
+}
+
+/* 2. Visual Banner */
+.cst-plan-hero-banner {
+  width: 100%;
+  height: 220px;
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  padding: 0 60px;
+  margin-bottom: 28px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cst-plan-hero-text p {
+  font-size: 21px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.42;
+  margin: 0;
+  max-width: 500px;
+  letter-spacing: -0.2px;
+}
+
+/* 3. 3 Navigation Tabs */
+.cst-plan-tabs-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 36px;
+  background-color: #ffffff;
+  width: 100%;
+}
+
+.cst-tab-btn {
+  background: none;
+  border: none;
+  padding: 18px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.cst-tab-btn:hover {
+  color: #0096e6;
+}
+
+.cst-tab-btn.active {
+  color: #0096e6;
+  font-weight: 700;
+}
+
+.cst-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #0096e6;
+}
+
+/* 4. Section Header Block */
+.cst-plan-header-block {
+  margin-bottom: 24px;
+}
+
+.cst-section-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.3px;
+}
+
+.cst-sub-desc .main-sub {
+  display: block;
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.cst-sub-desc .noti {
+  display: block;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+/* 5. 5 Dealership Flow Sequence Boxes (Exactly matching original in.atomy.com style) */
+.cst-dealership-cards-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 20px;
+  margin-top: 24px;
+  margin-bottom: 48px;
+  width: 100%;
+}
+
+.cst-class-card {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #ffffff;
+  padding: 24px 14px 22px 14px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.cst-class-card:hover {
+  border-color: #0096e6;
+  box-shadow: 0 4px 14px rgba(0, 150, 230, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Sequence flow indicator arrow between cards matching original Atomy CST */
+.cst-class-card::after {
+  content: "";
+  position: absolute;
+  right: -13px;
+  top: calc(50% - 9px);
+  width: 0;
+  height: 0;
+  border-bottom: #0096e6 solid 13px;
+  border-left: transparent solid 13px;
+  transform: rotate(-45deg);
+  z-index: 2;
+}
+
+.cst-class-card:last-child::after {
   display: none;
 }
 
-.comp-tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 30px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: #475569;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.18s ease;
-}
-
-.comp-tab-btn:hover {
-  background-color: #f1f5f9;
-  color: #0f172a;
-}
-
-.comp-tab-btn.active {
-  background-color: #00A3E0;
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.3);
-}
-
-/* Content Area */
-.comp-content-container {
-  padding-top: 40px;
-}
-
-.comp-pane-fade {
-  animation: fadeInPane 0.26s ease;
-}
-
-.pane-header-center {
-  text-align: center;
-  max-width: 740px;
-  margin: 0 auto 36px;
-}
-
-.kicker-tag {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: #00A3E0;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.pane-main-heading {
-  font-size: 26px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 10px;
-  letter-spacing: -0.01em;
-}
-
-.pane-desc {
-  font-size: 14.5px;
-  line-height: 1.6;
-  color: #64748b;
-  margin: 0;
-}
-
-/* Dealership Cards Grid */
-.dealership-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.dealership-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-  display: flex;
-  flex-direction: column;
-}
-
-.card-top-pill {
-  display: inline-block;
-  align-self: flex-start;
-  font-size: 10.5px;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background-color: #f1f5f9;
-  color: #475569;
-  margin-bottom: 12px;
-}
-
-.class-name {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 8px;
-}
-
-.class-pv-badge {
-  font-size: 12px;
-  font-weight: 700;
-  color: #0284c7;
-  background-color: #e0f2fe;
-  padding: 4px 10px;
-  border-radius: 6px;
-  margin-bottom: 12px;
-}
-
-.class-desc {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #64748b;
-  margin: 0 0 16px;
-  flex: 1;
-}
-
-.class-eligibility-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: #f8fafc;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #334155;
-}
-
-.comp-info-callout {
-  background: #ffffff;
-  border: 1px solid #bae6fd;
-  border-radius: 12px;
-  padding: 20px 24px;
+.cst-class-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 4px 14px rgba(0, 163, 224, 0.08);
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  width: 100%;
 }
 
-.comp-info-callout h4 {
+.cst-class-icon {
+  color: #0096e6;
+  flex-shrink: 0;
+}
+
+.cst-class-title {
+  color: #0096e6;
+  font-weight: 700;
   font-size: 15px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 4px;
+  line-height: 1.25;
+  text-align: center;
+  letter-spacing: 0.2px;
 }
 
-.comp-info-callout p {
+.cst-class-body {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.cst-class-sub {
   font-size: 13.5px;
-  color: #475569;
+  color: #555555;
+  line-height: 1.55;
   margin: 0;
+  text-align: center;
 }
 
-/* Commission Table */
-.comp-table-card {
+.cst-class-sub strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+/* Parts in Commission & Promotion tabs */
+.cst-plan-part {
+  margin-bottom: 38px;
+  width: 100%;
+}
+
+/* Mastership Cell with Badge */
+.cst-mastership-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-left: 12px;
+}
+
+.mastership-hex-badge {
+  flex-shrink: 0;
+  width: 34px;
+  height: 38px;
+}
+
+.cst-master-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #0096e6;
+}
+
+/* Tables matching Atomy India standards */
+.cst-table-wrapper {
+  border-top: 2px solid #111827;
+  margin: 16px 0 24px 0;
+  overflow-x: auto;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  margin-bottom: 28px;
+  width: 100%;
 }
 
-.atomy-comp-table {
+.cst-data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
-}
-
-.atomy-comp-table th {
-  background-color: #f8fafc;
-  padding: 14px 18px;
   text-align: left;
-  font-weight: 700;
-  color: #475569;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.atomy-comp-table td {
-  padding: 14px 18px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
-}
-
-.grade-col {
-  color: #00A3E0;
-}
-
-.pv-range-pill {
-  background-color: #f1f5f9;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-family: monospace;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.score-badge {
-  background-color: #e0f2fe;
-  color: #0284c7;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 12px;
-}
-
-.payout-col strong {
-  font-size: 15px;
-  color: #16a34a;
-}
-
-.comp-features-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.feat-box {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 22px;
-}
-
-.feat-box h4 {
-  font-size: 15px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 8px;
-}
-
-.feat-box p {
-  font-size: 13px;
-  line-height: 1.55;
-  color: #64748b;
-  margin: 0;
-}
-
-/* Masterships Grid */
-.masterships-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.mastership-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 22px 26px;
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 24px;
-  align-items: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-}
-
-.mastership-card.imperial-card {
-  border: 2px solid #f59e0b;
-  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
-}
-
-.mastership-header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.rank-num {
-  font-size: 26px;
-  font-weight: 900;
-  color: #cbd5e1;
-}
-
-.mastership-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-}
-
-.pv-share-tag {
-  font-size: 12px;
-  font-weight: 700;
-  color: #00A3E0;
-}
-
-.qualify-row, .incentive-row {
-  margin-bottom: 8px;
   font-size: 13.5px;
+  color: #374151;
 }
 
-.qualify-row:last-child, .incentive-row:last-child {
+.cst-data-table th {
+  background-color: #f9fafb;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 700;
+  color: #111827;
+}
+
+.cst-data-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+
+.cst-data-table .bold-cell {
+  font-weight: 700;
+  color: #111827;
+}
+
+.cst-data-table .center-cell {
+  text-align: center;
+}
+
+.cst-data-table .inr-cell {
+  font-weight: 700;
+  color: #0096e6;
+}
+
+/* Callout notes */
+.cst-note-callout {
+  background-color: #f8fafc;
+  border-left: 3px solid #0096e6;
+  padding: 14px 18px;
+  margin: 16px 0 32px 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cst-note-callout p {
+  margin: 0 0 6px 0;
+}
+
+.cst-note-callout p:last-child {
   margin-bottom: 0;
 }
 
-.qualify-row strong, .incentive-row strong {
-  display: block;
-  font-size: 12px;
-  color: #64748b;
-  text-transform: uppercase;
+/* PROMOTION CRITERIA (Matching User's Reference Screenshot) */
+.cst-criteria-split-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 18px 0 20px 0;
+  width: 100%;
+}
+
+.cst-criteria-split-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  min-height: 110px;
+}
+
+.criteria-left-pane {
+  width: 50%;
+  background-color: #f8fafc;
+  padding: 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-right: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.criteria-dark-circle-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.criteria-pane-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.45;
+}
+
+.criteria-right-pane {
+  flex: 1;
+  background-color: #ffffff;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+}
+
+.criteria-ranks-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 20px;
+  width: 100%;
+}
+
+.criteria-rank-item {
+  font-size: 13.5px;
+  color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cst-criteria-bullets-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 34px 0;
+  width: 100%;
+}
+
+.cst-criteria-bullets-list li {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.85;
   margin-bottom: 2px;
 }
 
-.qualify-row p, .incentive-row p {
-  margin: 0;
-  color: #334155;
-}
-
-/* Awards Showcase Grid */
-.awards-showcase-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-.award-banner-card {
+/* Mastership Promotion & Incentives Table (matching Screenshot) */
+.cst-promo-table-wrapper {
+  border-top: 2px solid #111827;
+  margin: 18px 0 32px 0;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 26px;
-}
-
-.award-banner-card.full-width {
-  grid-column: 1 / -1;
-  background: linear-gradient(135deg, #fefce8 0%, #fff7ed 100%);
-  border: 2px solid #f59e0b;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.award-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 3px 10px;
-  border-radius: 4px;
-  background-color: #e0f2fe;
-  color: #0284c7;
-  margin-bottom: 10px;
-}
-
-.award-badge.gold {
-  background-color: #f59e0b;
-  color: #ffffff;
-}
-
-.award-banner-card h3 {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 8px;
-}
-
-.award-banner-card p {
-  font-size: 13.5px;
-  color: #475569;
-  margin: 0;
-}
-
-/* Calculator Card */
-.calc-simulator-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 36px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-}
-
-.calc-inputs-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.calc-input-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 8px;
-}
-
-.calc-input {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-  outline: none;
 }
 
-.calc-input:focus {
-  border-color: #00A3E0;
-  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.15);
+.cst-promo-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.input-hint {
-  display: block;
-  font-size: 11.5px;
-  color: #64748b;
-  margin-top: 6px;
+.promo-th-mastership {
+  background-color: #f8fafc !important;
+  padding: 15px 24px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  border-right: 1px solid #e5e7eb !important;
+  text-align: center !important;
 }
 
-.calc-result-box {
-  background: linear-gradient(135deg, #022b42 0%, #004d73 100%);
-  color: #ffffff;
-  border-radius: 12px;
-  padding: 28px 36px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.promo-th-incentives {
+  background-color: #f8fafc !important;
+  padding: 15px 28px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  text-align: center !important;
 }
 
-.result-kicker {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: #38bdf8;
-  display: block;
-  margin-bottom: 6px;
+.promo-td-mastership {
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  border-right: 1px solid #e5e7eb !important;
+  vertical-align: middle !important;
 }
 
-.result-tier-name {
-  font-size: 22px;
-  font-weight: 800;
-  margin-bottom: 6px;
+.promo-td-incentives {
+  padding: 18px 28px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  vertical-align: middle !important;
+  font-size: 13.5px !important;
+  color: #1e293b !important;
+  line-height: 1.65 !important;
+  font-weight: 500 !important;
 }
 
-.result-subtext {
-  font-size: 13px;
-  color: #e0f2fe;
-  margin: 0;
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-in-out;
 }
 
-.result-right {
-  text-align: right;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.payout-label {
-  font-size: 11px;
-  font-weight: 800;
-  color: #e0f2fe;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.payout-amount {
-  font-size: 32px;
-  font-weight: 900;
-  color: #4ade80;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.payout-period {
-  font-size: 12px;
-  color: #e0f2fe;
-}
-
-@media (max-width: 860px) {
-  .mastership-card {
+/* Responsive adjustments */
+@media (max-width: 1080px) {
+  .cst-dealership-cards-grid {
+    flex-wrap: wrap;
+  }
+  .cst-class-card {
+    min-width: calc(33.333% - 14px);
+    margin-bottom: 14px;
+  }
+  .cst-class-card::after {
+    display: none;
+  }
+  .cst-criteria-split-container {
     grid-template-columns: 1fr;
   }
-  .awards-showcase-grid,
-  .calc-inputs-grid,
-  .comp-features-row {
-    grid-template-columns: 1fr;
+}
+
+@media (max-width: 768px) {
+  .cst-plan-hero-banner {
+    padding: 0 24px;
+    height: 180px;
   }
-  .calc-result-box {
+  .cst-plan-hero-text p {
+    font-size: 17px;
+  }
+  .cst-tab-btn {
+    font-size: 15px;
+    padding: 14px 0;
+  }
+  .cst-class-card {
+    min-width: 100%;
+  }
+  .cst-plan-title-bar {
     flex-direction: column;
-    text-align: center;
-    gap: 20px;
+    align-items: flex-start;
   }
-  .result-right {
-    text-align: center;
+  .criteria-left-pane {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .cst-criteria-split-card {
+    flex-direction: column;
   }
 }

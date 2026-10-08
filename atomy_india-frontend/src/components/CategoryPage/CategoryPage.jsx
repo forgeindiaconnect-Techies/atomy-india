@@ -4,6 +4,7 @@ import { CATEGORIES, CATEGORY_CONFIGS, GST_BADGE_IMAGE } from '../../data/mockDa
 import { getCategoryBanners } from '../../services/bannerService';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
 import { CarouselPauseIcon, CarouselPlayIcon, CarouselLayersIcon } from '../common/CarouselControlsIcons';
+import ProductPriceDisplay from '../ProductSections/ProductPriceDisplay';
 import './CategoryPage.css';
 
 const FALLBACK_PRODUCT_IMAGE = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
@@ -15,7 +16,8 @@ export default function CategoryPage({
   onAddToCart,
   onProductClick,
   onNavigateHome,
-  onNavigateBack
+  onNavigateBack,
+  isMember = false
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeSubcategory, setActiveSubcategory] = useState('All');
@@ -128,57 +130,7 @@ export default function CategoryPage({
 
   // Helper to format discount content and authentic prices
   const renderPricing = (product) => {
-    const rawPrice = Number(product.price) || 0;
-    const currentPrice = `₹ ${rawPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const origNum = Number(product.originalPrice) || rawPrice;
-
-    const discNum = product.discountPercent
-      ? Number(String(product.discountPercent).replace(/[^0-9]/g, ''))
-      : (origNum > rawPrice ? Math.round(((origNum - rawPrice) / origNum) * 100) : 0);
-
-    const hasOffer = discNum > 0 && origNum > rawPrice;
-    const pvValue = product.pv ? product.pv.toLocaleString('en-IN') : Math.round(rawPrice * 4.5).toLocaleString('en-IN');
-
-    if (hasOffer) {
-      const originalPrice = `₹ ${origNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      return (
-        <div className="cate-pricing-wrap">
-          <div className="price-strike-row">
-            <span className="price-mrp-label">MRP</span>
-            <span className="price-original">{originalPrice}</span>
-            <span className="price-percent">{discNum}% off</span>
-          </div>
-          <div className="cate-product-price">
-            {currentPrice}
-          </div>
-          {(product.dpPrice || product.distributorPrice) ? (
-            <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700', marginTop: '2px', background: '#ecfdf5', padding: '1px 5px', borderRadius: '4px', display: 'inline-block' }}>
-              DP: ₹ {Number(product.dpPrice || product.distributorPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-          ) : null}
-          <div className="cate-product-pv">
-            {pvValue} PV
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="cate-pricing-wrap">
-        <div className="cate-product-price">
-          <span style={{ fontSize: '12px', color: '#777777', fontWeight: '500', marginRight: '5px' }}>MRP</span>
-          {currentPrice}
-        </div>
-        {(product.dpPrice || product.distributorPrice) ? (
-          <div style={{ fontSize: '11px', color: '#059669', fontWeight: '700', marginTop: '2px', background: '#ecfdf5', padding: '1px 5px', borderRadius: '4px', display: 'inline-block' }}>
-            DP: ₹ {Number(product.dpPrice || product.distributorPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
-        ) : null}
-        <div className="cate-product-pv">
-          {pvValue} PV
-        </div>
-      </div>
-    );
+    return <ProductPriceDisplay product={product} isMember={isMember} />;
   };
 
   // Reset states when category changes
