@@ -1,0 +1,465 @@
+/* Customer Sign In Page Styling - Authentic Atomy Design */
+.atomy-signin-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #f2f4f7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  font-family: var(--font-main, 'Noto Sans', 'Inter', sans-serif);
+}
+
+.signin-inner-container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Centered Atomy Blue Logo */
+.signin-logo-wrap {
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.signin-atomy-logo {
+  height: 52px;
+  width: auto;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.signin-atomy-logo:hover {
+  transform: scale(1.03);
+}
+
+/* White Card - Wider with spacious side areas */
+.signin-card {
+  width: 100%;
+  background: #ffffff;
+  padding: 44px 56px 64px;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+/* Card Heading & Divider */
+.auth-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signin-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-align: left;
+}
+
+.signin-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  text-align: left;
+}
+
+.signin-divider-line {
+  width: 100%;
+  height: 1.5px;
+  background-color: #333333;
+  margin-top: 14px;
+  margin-bottom: 34px;
+}
+
+/* Centered Content Block - Leaves clean spacious margins on left & right */
+.signin-content-center {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Form Controls - Standard Compact Size */
+.signin-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-input-group {
+  width: 100%;
+}
+
+.signin-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #222222;
+  background-color: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.signin-input::placeholder {
+  color: #a0a0a0;
+  font-weight: 400;
+}
+
+.signin-input:focus {
+  border-color: #00A3E0;
+  box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.15);
+}
+
+/* Sign In Button */
+.signin-submit-btn {
+  width: 100%;
+  height: 46px;
+  margin-top: 6px;
+  background-color: #d2d9de;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.signin-submit-btn.active,
+.signin-submit-btn:hover {
+  background-color: #00A3E0;
+}
+
+.signin-submit-btn:active {
+  transform: scale(0.99);
+}
+
+/* Save ID Checkbox */
+.save-id-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  cursor: pointer;
+  user-select: none;
+  width: fit-content;
+}
+
+.custom-round-checkbox {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1.6px solid #cbd5e1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.custom-round-checkbox.checked {
+  background: #00A3E0;
+  border-color: #00A3E0;
+}
+
+.save-id-label {
+  font-size: 13.5px;
+  color: #555555;
+  font-weight: 500;
+}
+
+/* Social Login Row */
+.signin-social-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 30px 0 26px;
+}
+
+.social-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+}
+
+.social-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.facebook-btn {
+  background-color: #1877f2;
+}
+
+.google-btn {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.qr-btn {
+  background-color: #f1f3f5;
+  border: 1px solid #e5e7eb;
+}
+
+/* Footer Links */
+.signin-footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.sub-link {
+  font-size: 13px;
+  color: #333333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.sub-link:hover {
+  color: #00A3E0;
+  text-decoration: underline;
+}
+
+.link-divider {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+/* Return to Mall Link */
+.signin-bottom-return {
+  margin-top: 24px;
+}
+
+.signin-bottom-return a {
+  font-size: 13.5px;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.signin-bottom-return a:hover {
+  color: #00A3E0;
+  text-decoration: underline;
+}
+
+/* Customer Auth Switch Tabs (Sign In vs Sign Up) */
+.customer-auth-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 8px;
+}
+
+.customer-auth-tab-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  font-weight: 500;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px 4px 10px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.customer-auth-tab-btn:hover {
+  color: #334155;
+}
+
+.customer-auth-tab-btn.active {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.customer-auth-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #00A3E0;
+  border-radius: 2px;
+}
+
+/* Prominent Google Sign In Button */
+.google-signin-prominent-btn {
+  width: 100%;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background-color: #ffffff;
+  border: 1.5px solid #dadce0;
+  border-radius: 4px;
+  color: #3c4043;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
+  transition: all 0.2s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.google-signin-prominent-btn:hover {
+  background-color: #f8fafc;
+  border-color: #c4c7cc;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.16);
+  transform: translateY(-1px);
+}
+
+.google-signin-prominent-btn:active {
+  transform: translateY(0);
+}
+
+/* Separator Row */
+.auth-separator-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.auth-separator-line {
+  flex: 1;
+  height: 1px;
+  background-color: #e2e8f0;
+}
+
+.auth-separator-text {
+  font-size: 12px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Google OAuth Account Picker Modal */
+.google-oauth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.google-oauth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.google-oauth-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.google-close-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.google-close-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.google-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.google-account-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-sizing: border-box;
+}
+
+.google-account-item:hover {
+  background: #f8fafc;
+  border-color: #00A3E0;
+  box-shadow: 0 2px 8px rgba(0, 163, 224, 0.12);
+}
+
+.google-avatar-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 520px) {
+  .signin-card {
+    padding: 30px 20px 32px;
+  }
+  .customer-auth-tabs {
+    gap: 20px;
+  }
+  .customer-auth-tab-btn {
+    font-size: 20px;
+  }
+}

@@ -1,0 +1,699 @@
+/* Product Section Common Layout */
+.product-showcase-section {
+  padding: 68px 0 58px;
+  background-color: #ffffff;
+  position: relative;
+}
+
+.product-showcase-section.alt-bg {
+  background-color: #fafbfc;
+  border-top: 1px solid #f0f0f0;
+}
+
+.section-header-block {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.section-main-title {
+  font-size: 34px;
+  font-weight: 800;
+  color: #111111;
+  letter-spacing: -0.8px;
+  margin-bottom: 10px;
+}
+
+.section-sub-title {
+  font-size: 17px;
+  color: #666666;
+  font-weight: 400;
+}
+
+/* Category Filter Tabs */
+.filter-tabs-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 40px;
+}
+
+.filter-tab-pill {
+  padding: 10px 28px;
+  border-radius: 28px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  border: 1.5px solid #d9d9d9;
+  background-color: #ffffff;
+  color: #555555;
+  transition: var(--transition);
+}
+
+.filter-tab-pill:hover {
+  border-color: var(--atomy-blue);
+  color: var(--atomy-blue);
+}
+
+.filter-tab-pill.active {
+  background-color: var(--atomy-blue);
+  border-color: var(--atomy-blue);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(0, 163, 224, 0.3);
+}
+
+/* Carousel / Grid Wrapper */
+.product-carousel-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.product-cards-slider {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 12px 6px 24px;
+  scrollbar-width: none;
+}
+
+.product-cards-slider::-webkit-scrollbar {
+  display: none;
+}
+
+/* Navigation Arrow Controls for Products */
+.product-nav-arrow {
+  position: absolute;
+  top: 38%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  color: #444444;
+  border: 1px solid #ebebeb;
+  transition: all 0.2s ease;
+}
+
+.product-nav-arrow:hover {
+  background-color: var(--atomy-blue);
+  color: #ffffff;
+  border-color: var(--atomy-blue);
+}
+
+.product-nav-arrow.prev {
+  left: -24px;
+}
+
+.product-nav-arrow.next {
+  right: -24px;
+}
+
+/* Individual Product Card */
+.product-card {
+  flex: 0 0 calc((100% - 96px) / 5);
+  min-width: 225px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Image Container */
+.product-img-wrap {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #f7f7f7;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.product-card:hover .product-img {
+  transform: scale(1.06);
+}
+
+/* Rank Badge */
+.product-rank-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: var(--atomy-blue);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  font-style: italic;
+  padding: 5px 12px;
+  z-index: 2;
+  border-bottom-right-radius: 6px;
+}
+
+/* GST Reduced Flag Seal */
+.product-gst-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 58px;
+  height: 58px;
+  z-index: 2;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.12));
+}
+
+/* Floating Cart Action Button on Image */
+.product-cart-quick-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: var(--atomy-blue);
+  border: 1.5px solid var(--atomy-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
+  z-index: 3;
+}
+
+.product-cart-quick-btn:hover {
+  background-color: var(--atomy-blue);
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+/* Product Info */
+.product-info-wrap {
+  padding: 14px 4px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.product-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222222;
+  line-height: 1.35;
+  margin-bottom: 10px;
+  min-height: auto;
+  max-height: 44px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-price-block {
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.price-strike-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.price-mrp-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #777777;
+  text-decoration: none;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.price-original {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #777777;
+  text-decoration: line-through;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.price-percent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e53935;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.product-price {
+  font-size: 21px;
+  font-weight: 800;
+  color: #111111;
+  letter-spacing: -0.4px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.product-pv-note,
+.distributor-pv-note {
+  font-size: 16px;
+  color: #00A3E0;
+  line-height: 1.25;
+  margin-top: 3px;
+  margin-bottom: 10px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.product-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #777777;
+  width: 100%;
+}
+
+.likes-counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.likes-counter:hover {
+  color: #e53935;
+}
+
+.product-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #666666;
+}
+
+.free-delivery-badge {
+  display: inline-block;
+  margin-top: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555555;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+/* 4-column variant for Hair & Body */
+.hair-body-cards .product-card {
+  flex: 0 0 calc((100% - 72px) / 4);
+}
+
+/* ========================================================
+   Brand Showcase Section (Absolute Skincare & Health Essential)
+   ======================================================== */
+.brand-showcase-section {
+  padding: 64px 0 54px;
+}
+
+.brand-hero-banner {
+  margin-bottom: 32px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.brand-hero-banner:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.brand-banner-link {
+  display: block;
+  width: 100%;
+}
+
+.brand-banner-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.brand-products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px 24px;
+}
+
+.brand-product-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(196, 196, 196, 0.45);
+  transition: transform 0.2s ease;
+}
+
+.brand-product-card:hover {
+  transform: translateY(-3px);
+}
+
+.brand-product-img-wrap {
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  background-color: #f8f8f8;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-product-card .price-strike-row {
+  gap: 5px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.brand-product-card .price-mrp-label {
+  font-size: 11px;
+}
+
+.brand-product-card .price-original {
+  font-size: 12.5px;
+}
+
+.brand-product-card .price-percent {
+  font-size: 10.5px;
+  padding: 1px 5px;
+}
+
+.brand-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.brand-product-card:hover .brand-product-img {
+  transform: scale(1.08);
+}
+
+.brand-cart-btn {
+  width: 32px;
+  height: 32px;
+  bottom: 6px;
+  right: 6px;
+}
+
+.brand-product-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-product-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #222222;
+  line-height: 1.35;
+  margin-bottom: 8px;
+  height: 40px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ========================================================
+   Atomy Food Essential Section (mnPick)
+   ======================================================== */
+.food-essential-section {
+  padding: 68px 0 60px;
+  background-color: #ffffff;
+  position: relative;
+}
+
+.food-essential-section::after {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 320px;
+  background-color: #f4f7fa;
+  z-index: 1;
+}
+
+.food-essential-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 52px;
+  position: relative;
+  z-index: 2;
+}
+
+.food-essential-title-col {
+  width: 230px;
+  flex-shrink: 0;
+  margin-top: 130px;
+}
+
+.food-section-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #111111;
+  line-height: 1.25;
+  letter-spacing: -0.6px;
+  margin-bottom: 12px;
+}
+
+.food-section-subtitle {
+  font-size: 16.5px;
+  color: #666666;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.food-essential-grid {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.food-product-item {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  width: 250px;
+}
+
+.food-img-container {
+  position: relative;
+  width: 250px;
+  height: 250px;
+  margin: 0 auto;
+}
+
+.food-circle-img-wrap {
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.food-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.food-product-item:hover .food-product-img {
+  transform: scale(1.08);
+}
+
+.food-tag-pill {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 0;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 6px;
+  z-index: 3;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.food-info-container {
+  width: 250px;
+  margin: 0 auto;
+  padding: 18px 0 10px;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.food-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.food-product-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #222222;
+  line-height: 1.35;
+  flex: 1;
+}
+
+.food-cart-btn {
+  position: static;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+/* ========================================================
+   GSGS Section (Exactly 3 cards visible, remainder scrollable)
+   ======================================================== */
+.gsgs-showcase-section {
+  padding: 64px 0 56px;
+  background-color: #ffffff;
+}
+
+.gsgs-cards-slider .gsgs-product-card {
+  flex: 0 0 calc((100% - 48px) / 3);
+  min-width: 280px;
+}
+
+.gsgs-img-wrap {
+  aspect-ratio: 1 / 1;
+}
+
+/* ========================================================
+   Responsive Media Queries
+   ======================================================== */
+@media (max-width: 1100px) {
+  .brand-products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .food-essential-wrap {
+    flex-direction: column;
+    gap: 28px;
+    align-items: center;
+  }
+
+  .food-essential-title-col {
+    width: 100%;
+    margin-top: 0;
+    text-align: center;
+  }
+
+  .food-essential-grid {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .gsgs-cards-slider .gsgs-product-card {
+    flex: 0 0 calc((100% - 24px) / 2);
+  }
+}
+
+@media (max-width: 768px) {
+  .brand-products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .food-essential-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .gsgs-cards-slider .gsgs-product-card {
+    flex: 0 0 260px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .product-card {
+    flex: 0 0 calc((100% - 48px) / 3);
+  }
+  .hair-body-cards .product-card {
+    flex: 0 0 calc((100% - 48px) / 3);
+  }
+}
+
+@media (max-width: 640px) {
+  .product-card, .hair-body-cards .product-card {
+    flex: 0 0 215px;
+  }
+}
+

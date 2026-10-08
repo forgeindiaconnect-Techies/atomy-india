@@ -1,0 +1,458 @@
+.hero-slider-section {
+  position: relative;
+  width: 100%;
+  height: 440px;
+  overflow: hidden;
+  user-select: none;
+  background-color: #072044;
+}
+
+.hero-slider-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.65s cubic-bezier(0.25, 1, 0.4, 1);
+  will-change: transform;
+}
+
+.hero-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Full-bleed background cover spanning 100% of width and height */
+.hero-slide-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 1;
+}
+
+/* Text Overlay positioned cleanly on top of the slide without opaque box */
+.hero-text-overlay-wrap {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 50px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.hero-text-box {
+  max-width: 560px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Content hidden when slide not active, smoothly fades in when slide opens */
+.hero-subtitle {
+  font-size: 21px;
+  font-weight: 500;
+  color: inherit;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  backface-visibility: hidden;
+}
+
+.hero-title {
+  font-size: 46px;
+  font-weight: 800;
+  color: inherit;
+  line-height: 1.15;
+  margin-bottom: 16px;
+  letter-spacing: -1px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  backface-visibility: hidden;
+}
+
+/* When the slide is active (opens), content fades smoothly into view */
+.hero-slide.active .hero-subtitle {
+  opacity: 1;
+  transition: opacity 0.5s ease 0.12s;
+}
+
+.hero-slide.active .hero-title {
+  opacity: 1;
+  transition: opacity 0.5s ease 0.22s;
+}
+
+.hero-arrow-indicator {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-top: 4px;
+  background: transparent;
+}
+
+.hero-arrow-indicator .arrow-draw-wrapper {
+  display: flex;
+  align-items: center;
+  width: 68px;
+  height: 18px;
+  position: relative;
+  clip-path: inset(0 100% 0 0);
+  opacity: 0;
+  transition: clip-path 1s cubic-bezier(0.25, 1, 0.4, 1) 0.3s, opacity 0.3s ease 0.3s;
+  pointer-events: auto;
+  backface-visibility: hidden;
+}
+
+/* Arrow appears automatically when the slide opens */
+.hero-slide.active .arrow-draw-wrapper {
+  clip-path: inset(0 0 0 0);
+  opacity: 1;
+}
+
+/* Faded/lightened arrow color */
+.hero-arrow-indicator .half-arrow-svg {
+  display: block;
+  width: 68px;
+  height: 18px;
+  color: inherit;
+  opacity: 0.62;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.hero-arrow-indicator:hover .half-arrow-svg {
+  opacity: 0.95;
+  transform: translateX(4px);
+}
+
+/* Slider Controls: Left & Right Arrows */
+.slider-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 84px;
+  background-color: rgba(0, 0, 0, 0.25);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.slider-arrow:hover {
+  background-color: rgba(0, 0, 0, 0.55);
+}
+
+.slider-arrow.prev {
+  left: 0;
+}
+
+.slider-arrow.next {
+  right: 0;
+}
+
+/* Bottom Right Indicator Badge (matches user's reference image: individual backgrounds) */
+.slider-controls-badge {
+  position: absolute;
+  bottom: 24px;
+  right: calc((100% - 1280px) / 2 + 50px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  backdrop-filter: none;
+}
+
+@media (max-width: 1360px) {
+  .slider-controls-badge {
+    right: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .slider-controls-badge {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+.slider-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 13px;
+  border-radius: 28px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 28px;
+  user-select: none;
+  font-family: inherit;
+}
+
+.slider-btn-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease, transform 0.15s ease;
+  user-select: none;
+}
+
+.slider-btn-icon:hover {
+  background: rgba(0, 0, 0, 0.75);
+  transform: scale(1.05);
+}
+
+.slider-btn-icon.view-all-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.slider-btn-icon.view-all-btn:hover {
+  background: rgba(0, 0, 0, 0.75);
+  transform: scale(1.05);
+}
+
+/* ========================================================
+   View All Modal Popup (Atomy Official Style - Full Height & Line)
+   ======================================================== */
+.view-all-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px 24px;
+  overscroll-behavior: contain;
+  touch-action: none;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.view-all-modal-dialog {
+  background-color: #ffffff;
+  width: 760px;
+  max-width: 95vw;
+  height: calc(100vh - 40px);
+  max-height: calc(100vh - 40px);
+  border-radius: 4px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  animation: dialogScale 0.2s ease;
+}
+
+@keyframes dialogScale {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.view-all-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 34px 18px;
+  border-bottom: 2px solid #111111;
+  background-color: #ffffff;
+  flex-shrink: 0;
+}
+
+.view-all-modal-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+.view-all-modal-close {
+  background: transparent;
+  border: none;
+  color: #111111;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: opacity 0.2s ease;
+}
+
+.view-all-modal-close:hover {
+  opacity: 0.7;
+}
+
+.view-all-modal-body {
+  padding: 24px 34px 34px;
+  overflow-y: auto;
+  flex: 1;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: #00a3e0 #f1f1f1;
+}
+
+/* Custom Cyan Scrollbar matching Atomy Official design */
+.view-all-modal-body::-webkit-scrollbar {
+  width: 7px;
+}
+
+.view-all-modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.view-all-modal-body::-webkit-scrollbar-thumb {
+  background: #00a3e0;
+  border-radius: 10px;
+}
+
+.view-all-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #008cc2;
+}
+
+.view-all-banners-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.view-all-banner-item {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.view-all-banner-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.view-all-banner-item.active {
+  border-color: #00a3e0;
+}
+
+.view-all-banner-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.view-all-banner-txt {
+  position: absolute;
+  left: 46px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 58%;
+  pointer-events: none;
+}
+
+.view-all-banner-sub {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #222222;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+}
+
+.view-all-banner-tit {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111111;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+@media (max-width: 992px) {
+  .hero-slider-section {
+    height: 380px;
+  }
+  .hero-title {
+    font-size: 34px;
+  }
+  .hero-subtitle {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-slider-section {
+    height: 300px;
+  }
+  .hero-text-overlay-wrap {
+    padding: 0 20px;
+  }
+  .hero-title {
+    font-size: 26px;
+  }
+  .hero-subtitle {
+    font-size: 14px;
+  }
+  .slider-arrow {
+    display: none;
+  }
+  .view-all-modal-dialog {
+    width: 92vw;
+  }
+  .view-all-modal-header {
+    padding: 16px 20px;
+  }
+  .view-all-modal-body {
+    padding: 16px 20px;
+  }
+}

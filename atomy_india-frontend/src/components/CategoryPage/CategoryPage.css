@@ -1,0 +1,866 @@
+/* Category Landing Page Styles */
+.category-landing-page {
+  background-color: #ffffff;
+  padding-bottom: 60px;
+  min-height: 80vh;
+}
+
+/* 1. Category Switcher Dropdown Top Bar */
+.cate-top-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px 0 20px 0;
+  position: relative;
+  background-color: #ffffff;
+}
+
+.cate-top-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.cate-top-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 16px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.cate-top-toggle-btn:hover {
+  background-color: #f7f9fa;
+}
+
+.cate-top-toggle-btn h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 0.5px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.cate-dropdown-arrow {
+  color: #222222;
+  transition: transform 0.25s ease;
+}
+
+.cate-top-toggle-btn.open .cate-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.cate-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  border: 1px solid #eef2f5;
+  width: 220px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: cateFadeIn 0.2s ease-out;
+}
+
+@keyframes cateFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.cate-dropdown-menu ul {
+  list-style: none;
+  padding: 8px 0;
+  margin: 0;
+}
+
+.cate-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cate-dropdown-item:hover {
+  background-color: #f0f7fd;
+  color: #009fe3;
+}
+
+.cate-dropdown-item.active {
+  background-color: #e6f4fc;
+  color: #009fe3;
+  font-weight: 700;
+}
+
+/* Category Container */
+.category-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 2. Category Hero Banner (matches Image 1: in.atomy.com) */
+.cate-mnBn {
+  position: relative;
+  width: 100%;
+  height: 294px;
+  min-height: 294px;
+  max-height: 294px;
+  margin-bottom: 0;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.cate-mnBn-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.65s cubic-bezier(0.25, 1, 0.4, 1);
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.cate-mnBn .slideBx {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: block;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.cate-mnBn .slideBx_img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.cate-mnBn .slideBx_img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cate-mnBn .slideBx_txt {
+  position: absolute;
+  left: 140px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  max-width: 520px;
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+
+/* Content hidden when slide not active, smoothly fades in when slide opens */
+.cate-mnBn .slideBx_txt_tit {
+  color: #333333;
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 45px;
+  margin: 0;
+  letter-spacing: -0.5px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.cate-mnBn .slideBx_txt_sub {
+  margin: 10px 0 0 0;
+  color: #666666;
+  font-size: 16px;
+  line-height: 1.4;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* When category banner opens / becomes active, content fades cleanly into view */
+.cate-mnBn .slideBx.active .slideBx_txt_tit {
+  opacity: 1;
+  transition: opacity 0.5s ease 0.12s;
+}
+
+.cate-mnBn .slideBx.active .slideBx_txt_sub {
+  opacity: 1;
+  transition: opacity 0.5s ease 0.22s;
+}
+
+.cate-mnBn .slideBx_txt_arw {
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+  color: #444444;
+  height: 24px;
+}
+
+.cate-mnBn .slideBx_txt_arw .arrow-draw-wrapper {
+  display: flex;
+  align-items: center;
+  width: 68px;
+  height: 18px;
+  position: relative;
+  clip-path: inset(0 100% 0 0);
+  opacity: 0;
+  transition: clip-path 1s cubic-bezier(0.25, 1, 0.4, 1) 0.3s, opacity 0.3s ease 0.3s;
+  pointer-events: auto;
+  backface-visibility: hidden;
+}
+
+/* Arrow appears automatically when the category slide opens */
+.cate-mnBn .slideBx.active .arrow-draw-wrapper {
+  clip-path: inset(0 0 0 0);
+  opacity: 1;
+}
+
+/* Faded/lightened arrow color */
+.cate-mnBn .half-arrow-svg {
+  display: block;
+  width: 68px;
+  height: 18px;
+  color: inherit;
+  opacity: 0.62;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.cate-mnBn .slideBx_txt_arw:hover .half-arrow-svg {
+  opacity: 0.95;
+  transform: translateX(4px);
+}
+
+/* Swiper Controls (Image 1: 32px x 64px black semi-transparent rects on edges) */
+.swiper-control.btn_bk .swiper-button-prev,
+.swiper-control.btn_bk .swiper-button-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 32px;
+  height: 64px;
+  background: rgba(0, 0, 0, 0.22);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  padding: 0;
+}
+
+.swiper-control.btn_bk .swiper-button-prev:hover,
+.swiper-control.btn_bk .swiper-button-next:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.swiper-control.btn_bk .swiper-button-prev {
+  left: 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.swiper-control.btn_bk .swiper-button-next {
+  right: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+/* Bottom-right auto_set controls (matches user's reference image: individual backgrounds) */
+.swiper-control .auto_set {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 5;
+  background: transparent;
+}
+
+.swiper-control .auto_set .pg_num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 13px;
+  border-radius: 28px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 28px;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: inherit;
+  user-select: none;
+}
+
+.swiper-control .auto_set button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s ease, transform 0.15s ease;
+  user-select: none;
+}
+
+.swiper-control .auto_set button:hover {
+  background: rgba(0, 0, 0, 0.75);
+  transform: scale(1.05);
+}
+
+/* 3. Subcategories Tabs (matches Image 1: full width equal-column tabs) */
+.cate-subcategories-bar {
+  width: 100%;
+  border-bottom: 1px solid #e5e5e5;
+  margin: 0 0 35px 0;
+  background: #ffffff;
+  position: sticky;
+  top: 58px;
+  z-index: 90;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.cate-subcategories-list {
+  display: flex;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.cate-sub-tab-btn {
+  flex: 1;
+  text-align: center;
+  height: 52px;
+  line-height: 52px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333333;
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.cate-sub-tab-btn:hover {
+  color: #009fe3;
+}
+
+.cate-sub-tab-btn.active {
+  color: #009fe3;
+  font-weight: 700;
+}
+
+.cate-sub-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2.5px;
+  background-color: #009fe3;
+}
+
+/* 4. Best Product Section (matches User's Image 3) */
+.cate-best-section {
+  margin-bottom: 50px;
+}
+
+.cate-section-heading {
+  margin-bottom: 20px;
+}
+
+.cate-section-heading h3 {
+  font-family: "Noto Sans", "Noto Sans KR", sans-serif;
+  font-size: 28px;
+  line-height: 39px;
+  font-weight: 700;
+  color: #111111;
+  letter-spacing: -0.02rem;
+  margin: 0;
+}
+
+.cate-best-slider-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cate-best-cards-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: 10px 4px 18px 4px;
+  width: 100%;
+  cursor: grab;
+  user-select: none;
+  -webkit-overflow-scrolling: touch;
+  contain: layout paint;
+}
+
+.cate-best-cards-row.dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
+
+.cate-best-cards-row::-webkit-scrollbar {
+  display: none;
+}
+
+.cate-slider-arrow {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  color: #555555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
+}
+
+.cate-slider-arrow:hover {
+  background: #009fe3;
+  color: #ffffff;
+  border-color: #009fe3;
+}
+
+.cate-slider-arrow.left {
+  left: -22px;
+}
+
+.cate-slider-arrow.right {
+  right: -22px;
+}
+
+/* Product Card Style - Clean Flat Style Matching Official in.atomy.com */
+.cate-product-card {
+  flex: 0 0 240px;
+  width: 240px;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+  transition: none;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.cate-product-card:hover {
+  box-shadow: none;
+  background: transparent;
+}
+
+.cate-product-img-box {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  aspect-ratio: 1 / 1;
+  background-color: #f8f9fb;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  contain: paint;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.cate-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Hover effect ONLY when cursor is directly on the image */
+.cate-product-img-box:hover .cate-product-img {
+  transform: scale(1.05) translateZ(0);
+}
+
+/* Recommendation Product Section - 4 items per row (305px cards with 20px gap) */
+.cate-recommendation-section .cate-best-cards-row {
+  gap: 20px;
+}
+
+.cate-recommendation-section .cate-product-card {
+  flex: 0 0 305px;
+  width: 305px;
+}
+
+.cate-recommendation-section .cate-product-img-box {
+  width: 305px;
+  height: 305px;
+  aspect-ratio: 1 / 1;
+}
+
+.cate-recommendation-section .cate-product-name {
+  font-size: 15px;
+  height: 42px;
+}
+
+.cate-recommendation-section .cate-product-price {
+  font-size: 20px;
+}
+
+/* Badges */
+.cate-flag-gst {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 52px;
+  height: 52px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cate-flag-veg {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #2e7d32;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+.cate-flag-nonveg {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #d32f2f;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+/* Cyan Cart Button (bottom-right of image) */
+.cate-cart-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  background-color: #ffffff;
+  border: 1px solid #d4effc;
+  color: #009fe3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  transition: all 0.2s ease;
+}
+
+.cate-cart-btn:hover {
+  background-color: #009fe3;
+  color: #ffffff;
+}
+
+/* Product Info */
+.cate-product-info {
+  padding: 14px 4px 10px 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.cate-product-name {
+  font-family: "Noto Sans", "Noto Sans KR", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #111111;
+  margin: 0 0 10px 0;
+  line-height: 22px;
+  min-height: auto;
+  max-height: 44px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  cursor: pointer;
+}
+
+.cate-product-name:hover {
+  color: #009fe3;
+}
+
+.cate-pricing-wrap {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+.cate-pricing-wrap .price-strike-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.2;
+  margin-bottom: 5px;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.cate-pricing-wrap .price-mrp-label {
+  font-family: "Noto Sans", "Noto Sans KR", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #777777;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cate-pricing-wrap .price-original {
+  font-family: "Noto Sans", "Noto Sans KR", sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #777777;
+  text-decoration: line-through;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cate-pricing-wrap .price-percent {
+  font-family: "Noto Sans", "Noto Sans KR", sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e53935;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cate-product-price {
+  font-family: "Noto Sans", "Noto Sans KR", sans-serif;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 700;
+  color: #111111;
+  margin: 0;
+}
+
+.cate-product-pv {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #00A3E0;
+  margin-top: 3px;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
+}
+
+.cate-product-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 18px;
+  color: #777777;
+  font-family: "Noto Sans", "Noto Sans KR", sans-serif;
+  margin-top: 8px;
+}
+
+.cate-likes-text {
+  font-weight: 400;
+}
+
+/* 5. Main Category Products Catalog Grid */
+.cate-all-products-section {
+  margin-top: 20px;
+}
+
+.cate-sort-controls-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 14px 4px;
+  margin-bottom: 24px;
+}
+
+.cate-total-count {
+  font-size: 14px;
+  color: #444444;
+}
+
+.cate-total-count strong {
+  color: #009fe3;
+  font-weight: 700;
+}
+
+.cate-sort-dropdown-wrap {
+  position: relative;
+}
+
+.cate-sort-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #dcdcdc;
+  padding: 7px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #333333;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.cate-sort-select-btn:hover {
+  border-color: #009fe3;
+}
+
+.cate-sort-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 4px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  min-width: 140px;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.cate-sort-option {
+  width: 100%;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  color: #444444;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cate-sort-option:hover {
+  background-color: #f5f8fb;
+  color: #009fe3;
+}
+
+.cate-sort-option.selected {
+  font-weight: 700;
+  color: #009fe3;
+  background-color: #f0f7fd;
+}
+
+.cate-products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px 20px;
+}
+
+.cate-products-grid .cate-product-card {
+  flex: none;
+  width: 100%;
+}
+
+.cate-products-grid .cate-product-img-box {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .cate-products-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .cate-hero-banner {
+    padding: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cate-products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cate-hero-banner {
+    flex-direction: column;
+    text-align: center;
+    padding: 24px 20px;
+  }
+  .cate-hero-text {
+    max-width: 100%;
+    margin-bottom: 20px;
+  }
+  .cate-hero-arrow-indicator {
+    margin: 0 auto;
+  }
+  .cate-slider-arrow {
+    display: none;
+  }
+}

@@ -1,0 +1,712 @@
+/* ==========================================================================
+   PRODUCT FULL-PAGE EDITOR & MICROSOFT WORD CANVAS STYLES
+   ========================================================================== */
+
+.product-editor-full-page {
+  width: 100%;
+  min-height: 100%;
+  background-color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 32px;
+}
+
+/* --------------------------------------------------------------------------
+   1. TOP NAVIGATION & ACTION BAR
+   -------------------------------------------------------------------------- */
+.editor-top-nav-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+.top-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.editor-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.editor-back-btn:hover {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+
+.editor-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.editor-main-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.editor-id-pill {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: 1px solid #bae6fd;
+}
+
+.top-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.editor-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #00A3E0;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 163, 224, 0.35);
+  transition: all 0.18s ease;
+}
+
+.editor-save-btn:hover {
+  background-color: #0284c7;
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   2. PAGE CONTAINER & PANELS
+   -------------------------------------------------------------------------- */
+.editor-page-container {
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 24px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.editor-card-panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: #ffffff;
+}
+
+.panel-header h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 3px;
+}
+
+.panel-header p {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+.panel-body {
+  padding: 22px 24px;
+}
+
+/* Form Grids */
+.editor-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.editor-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+}
+
+.editor-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.editor-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-form-group label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.editor-form-group input,
+.editor-select {
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  background-color: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.editor-form-group input:focus,
+.editor-select:focus {
+  border-color: #00A3E0;
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.12);
+}
+
+.input-large-text {
+  font-size: 15px !important;
+  font-weight: 600;
+}
+
+/* Photo Preview Section */
+.photo-preview-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 22px;
+  align-items: center;
+}
+
+.photo-preview-box {
+  width: 140px;
+  height: 140px;
+  border-radius: 10px;
+  border: 2px dashed #cbd5e1;
+  background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.photo-preview-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.photo-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.photo-input-group input {
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+}
+
+.input-hint {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.editor-flags-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.checkbox-flag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.checkbox-flag input {
+  accent-color: #00A3E0;
+  width: 16px;
+  height: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   3. MICROSOFT WORD STYLE INFORMATION & BROCHURE CANVAS
+   -------------------------------------------------------------------------- */
+.ms-word-container-panel {
+  border-color: #bfdbfe;
+  background-color: #fafbfc;
+}
+
+.word-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(to right, #f8fafc, #ffffff);
+  border-bottom: 2px solid #00A3E0;
+}
+
+.ms-word-header-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ms-word-app-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #185abd 0%, #103f91 100%);
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(24, 90, 189, 0.3);
+}
+
+.word-template-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+  padding: 8px 15px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.word-template-btn:hover {
+  background-color: #e0f2fe;
+}
+
+/* Ribbon Toolbar (Authentic MS Word Style) */
+.ms-word-ribbon {
+  background-color: #ffffff;
+  border-bottom: 1px solid #cbd5e1;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.ribbon-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ribbon-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #e2e8f0;
+  margin: 0 6px;
+}
+
+.ribbon-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.ribbon-icon-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.ribbon-icon-btn:active {
+  background-color: #e2e8f0;
+}
+
+.ribbon-select {
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  background-color: #ffffff;
+  outline: none;
+}
+
+.ribbon-color-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.ribbon-color-picker:hover {
+  background-color: #f8fafc;
+}
+
+.ribbon-color-picker input[type="color"] {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.color-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  border-bottom: 3px solid #00A3E0;
+  line-height: 1;
+}
+
+.highlight-label {
+  border-bottom: 3px solid #eab308;
+}
+
+.ribbon-photo-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 6px;
+  border: 1px solid #00A3E0;
+  background-color: #00A3E0;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ribbon-photo-action-btn:hover {
+  background-color: #0284c7;
+}
+
+.ribbon-photo-action-btn.secondary {
+  background-color: #ffffff;
+  color: #0284c7;
+  border-color: #cbd5e1;
+}
+
+.ribbon-photo-action-btn.secondary:hover {
+  background-color: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+/* Word Workspace & Ruler */
+.ms-word-workspace {
+  background-color: #e2e8f0;
+  padding: 24px 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ms-word-ruler-bar {
+  max-width: 900px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.word-count-badge {
+  background-color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-size: 11px;
+}
+
+/* Document Paper Canvas Sheet */
+.ms-word-page-canvas {
+  max-width: 900px;
+  width: 100%;
+  min-height: 600px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  padding: 48px 56px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: #1e293b;
+  outline: none;
+  overflow-y: auto;
+  position: relative;
+}
+
+.ms-word-page-canvas:empty:before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  font-style: italic;
+  pointer-events: none;
+}
+
+.ms-word-page-canvas h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 18px;
+  margin-bottom: 10px;
+}
+
+.ms-word-page-canvas h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #00A3E0;
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+.ms-word-page-canvas h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.ms-word-page-canvas p {
+  margin: 0 0 12px;
+}
+
+.ms-word-page-canvas ul,
+.ms-word-page-canvas ol {
+  margin: 0 0 14px 24px;
+  padding: 0;
+}
+
+.ms-word-page-canvas li {
+  margin-bottom: 6px;
+}
+
+.ms-word-page-canvas img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.word-canvas-footer-tip {
+  padding: 12px 24px;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.word-canvas-footer-tip code {
+  background-color: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* --------------------------------------------------------------------------
+   4. IN-FLOW BOTTOM SAVE ACTION BAR
+   -------------------------------------------------------------------------- */
+.editor-bottom-bar {
+  position: relative;
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  margin-top: 36px;
+  margin-bottom: 24px;
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+.bottom-bar-left {
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+.bottom-bar-left strong {
+  color: #0f172a;
+}
+
+.bottom-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .editor-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .editor-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  .photo-preview-grid {
+    grid-template-columns: 1fr;
+  }
+  .ms-word-page-canvas {
+    padding: 24px;
+  }
+  .editor-bottom-bar {
+    padding: 16px 20px;
+    flex-direction: column;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .editor-bottom-bar .bottom-bar-right {
+    justify-content: flex-end;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   PRICING, DISCOUNT AUTO-DEDUCTION & DISTRIBUTOR DP STYLES
+   -------------------------------------------------------------------------- */
+.editor-field-helper {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+.input-with-affix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-affix input {
+  width: 100%;
+  padding-right: 32px;
+}
+
+.input-affix-right {
+  position: absolute;
+  right: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.discount-calc-badge {
+  font-size: 10px;
+  font-weight: 800;
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.dp-highlight-group {
+  background: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.dp-plan-badge {
+  font-size: 9px;
+  font-weight: 800;
+  background: #10b981;
+  color: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dp-input-field {
+  border-color: #86efac !important;
+  background: #ffffff !important;
+  font-weight: 700;
+  color: #065f46 !important;
+}
+
+.dp-input-field:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+}

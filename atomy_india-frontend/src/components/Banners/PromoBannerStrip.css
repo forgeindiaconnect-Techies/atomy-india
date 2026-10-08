@@ -1,0 +1,44 @@
+.promo-banner-strip-section {
+  padding: 24px 0;
+  background-color: #ffffff;
+}
+
+.promo-banner-box {
+  display: block;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.promo-banner-box:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.promo-banner-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.promo-banner-label {
+  position: absolute;
+  top: 50%;
+  left: 60px;
+  transform: translateY(-50%);
+  display: none; /* hidden if text is embedded inside image */
+}
+
+@media (max-width: 768px) {
+  .promo-banner-strip-section {
+    padding: 16px 0;
+  }
+
+  .promo-banner-box {
+    border-radius: 10px;
+  }
+}

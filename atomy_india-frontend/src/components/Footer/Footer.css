@@ -1,0 +1,189 @@
+/* Footer Wrapper in Light Cement Color */
+.footer-wrapper {
+  background-color: #e8ecef;
+  border-top: 1px solid #ced4da;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Agreement Links Header Bar (Subtle Cement Tone) */
+.footer-agreements-bar {
+  border-bottom: 1px solid #ced4da;
+  padding: 16px 0;
+  background-color: #dee2e6;
+}
+
+.footer-agreements-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  font-size: 12.5px;
+}
+
+.footer-agreements-list a {
+  color: #374151;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.footer-agreements-list a:hover {
+  color: var(--atomy-blue);
+  text-decoration: underline;
+}
+
+.footer-link-divider {
+  width: 1px;
+  height: 11px;
+  background-color: #adb5bd;
+}
+
+/* Main Footer Columns */
+.footer-main-container {
+  padding: 38px 0 48px;
+}
+
+.footer-columns-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 48px;
+}
+
+/* Left Column */
+.footer-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.footer-contact-block {
+  font-size: 12.5px;
+  color: #4b5563;
+  line-height: 1.55;
+}
+
+.footer-contact-block strong {
+  color: #111827;
+}
+
+.footer-company-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 4px;
+}
+
+.footer-address-block {
+  font-size: 12.5px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.footer-address-block strong {
+  color: #1f2937;
+}
+
+.footer-tax-info {
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.footer-copyright {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 8px;
+}
+
+/* Right Column: Customer Support */
+.footer-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cs-header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.cs-phone-number {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.5px;
+  margin: 2px 0 6px;
+}
+
+.cs-details {
+  font-size: 12.5px;
+  color: #4b5563;
+  line-height: 1.65;
+}
+
+.cs-details strong {
+  color: #111827;
+}
+
+.cs-inquiry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ffffff;
+  border: 1px solid #ced4da;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1f2937;
+  border-radius: 4px;
+  width: fit-content;
+  margin-top: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.cs-inquiry-btn:hover {
+  border-color: var(--atomy-blue);
+  color: var(--atomy-blue);
+  background-color: #f8fafc;
+  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.15);
+}
+
+/* Social Media Channels */
+.footer-social-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.social-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.social-icon-btn:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.social-icon-btn.fb { background-color: #1877F2; }
+.social-icon-btn.yt { background-color: #FF0000; }
+.social-icon-btn.ig { background-color: #E4405F; }
+.social-icon-btn.li { background-color: #0A66C2; }
+.social-icon-btn.tg { background-color: #26A5E4; }
+
+@media (max-width: 900px) {
+  .footer-columns-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}

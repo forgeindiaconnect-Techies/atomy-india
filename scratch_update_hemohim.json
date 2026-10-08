@@ -1,0 +1,19 @@
+{
+  "id": "D00101",
+  "name": "HemoHIM *1set",
+  "price": 13650.0,
+  "originalPrice": 15000.0,
+  "discountPercent": 9,
+  "dpPrice": 0,
+  "categoryId": "hemohim",
+  "subcategory": "HemoHIM",
+  "image": "https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg",
+  "gstReduced": true,
+  "isVeg": true,
+  "isNonVeg": false,
+  "freeDelivery": true,
+  "active": true,
+  "pv": 80000,
+  "likesCount": 224,
+  "tags": "Best Seller"
+}

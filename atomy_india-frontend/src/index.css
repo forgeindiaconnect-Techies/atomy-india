@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+:root {
+  --atomy-blue: #00A3E0;
+  --atomy-blue-dark: #008cc2;
+  --atomy-blue-light: #e6f6fc;
+  --atomy-navy: #0d2b45;
+  --atomy-black: #222222;
+  --atomy-gray-dark: #555555;
+  --atomy-gray-mid: #888888;
+  --atomy-gray-light: #eaeaea;
+  --atomy-gray-bg: #f7f9fa;
+  --atomy-white: #ffffff;
+  --atomy-red: #e53935;
+  --font-main: "Noto Sans", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Official Atomy Typography Scale */
+  --font-size-h1: 36px;
+  --font-size-h2: 32px;
+  --font-size-h3: 28px;
+  --font-size-h4: 22px;
+  --font-size-title: 18px;
+  --font-size-body: 16px;
+  --font-size-sub: 14px;
+  --font-size-caption: 12px;
+  --font-size-tiny: 11px;
+
+  --line-height-h2: 45px;
+  --line-height-h3: 39px;
+  --line-height-h4: 30px;
+  --line-height-title: 25px;
+  --line-height-body: 22px;
+  --line-height-sub: 20px;
+  --line-height-caption: 17px;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  font-family: var(--font-main);
+  color: var(--atomy-black);
+  background-color: var(--atomy-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Spacious Container Utilities matching full desktop layout */
+.container {
+  width: 100%;
+  max-width: 1420px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+@media (max-width: 992px) {
+  .container {
+    padding: 0 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 16px;
+  }
+}

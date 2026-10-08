@@ -1,0 +1,1708 @@
+/* =========================================================
+   AUTHENTIC OFFICIAL ATOMY PRODUCT DETAILS PAGE (PDP) CSS
+   Matches official in.atomy.com product pages (D00101)
+   ========================================================= */
+
+.pdp-page-wrapper {
+  background-color: #ffffff;
+  color: #222222;
+  font-family: var(--font-main, 'Noto Sans', 'Inter', sans-serif);
+  padding-bottom: 90px;
+}
+
+/* 1. Breadcrumbs Bar (matches User Screenshot 1: Home > HemoHIM) */
+.pdp-breadcrumb-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 0;
+}
+
+.pdp-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.pdp-back-button {
+  display: inline-flex;
+  align-items: center;
+  background: #e6f6fc;
+  border: 1px solid #bae6fd;
+  color: #00A3E0;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pdp-back-button:hover {
+  background: #00A3E0;
+  color: #ffffff;
+}
+
+.pdp-crumb-sep {
+  color: #cbd5e1;
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+.pdp-breadcrumbs a {
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.pdp-breadcrumbs a:hover {
+  color: #00A3E0;
+  text-decoration: underline;
+}
+
+.pdp-breadcrumbs .crumb-arrow {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pdp-breadcrumbs .crumb-current {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+/* 3. Main Product Showcase & Buying Layout */
+.pdp-main-section {
+  padding: 32px 0 48px;
+}
+
+.pdp-grid-container {
+  display: grid;
+  grid-template-columns: 520px 1fr;
+  gap: 60px;
+  align-items: flex-start;
+}
+
+@media (max-width: 1024px) {
+  .pdp-grid-container {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+/* Left Column: Gallery */
+.pdp-gallery-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pdp-main-image-card {
+  position: relative;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.pdp-hero-image {
+  max-width: 96%;
+  max-height: 96%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.pdp-main-image-card:hover .pdp-hero-image {
+  transform: scale(1.02);
+}
+
+.pdp-gst-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  height: 52px;
+  width: auto;
+  z-index: 3;
+}
+
+/* Gallery Navigation Arrows overlay on image (matches Image 1) */
+.pdp-img-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 68px;
+  border-radius: 0;
+  background-color: rgba(0, 0, 0, 0.22);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  transition: background-color 0.2s ease;
+  z-index: 4;
+}
+
+.pdp-img-nav-btn:hover {
+  background-color: rgba(0, 0, 0, 0.42);
+  color: #ffffff;
+}
+
+.pdp-img-nav-btn.prev {
+  left: 0;
+}
+
+.pdp-img-nav-btn.next {
+  right: 0;
+}
+
+.pdp-img-counter-pill {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.12);
+  color: #222222;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 14px;
+  border-radius: 14px;
+  letter-spacing: 0.5px;
+  z-index: 4;
+}
+
+.pdp-img-expand-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 0;
+  background-color: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #222222;
+  transition: transform 0.15s ease, color 0.15s ease;
+  z-index: 4;
+}
+
+.pdp-img-expand-btn:hover {
+  color: #00A3E0;
+  transform: scale(1.12);
+}
+
+/* Thumbnail Strip */
+.pdp-thumbnails-strip {
+  display: flex;
+  gap: 12px;
+}
+
+.pdp-thumb-item {
+  width: 76px;
+  height: 76px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: #ffffff;
+  padding: 4px;
+  transition: border-color 0.2s;
+}
+
+.pdp-thumb-item:hover {
+  border-color: #94a3b8;
+}
+
+.pdp-thumb-item.active {
+  border-color: #00A3E0;
+  border-width: 2px;
+}
+
+.pdp-thumb-item img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Right Column: Main Info & Sticky Qty Block */
+.pdp-buy-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top Meta Row (Rating & Print/Heart/Share) */
+.pdp-top-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pdp-review-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.pdp-rating-num {
+  font-weight: 700;
+  color: #111827;
+}
+
+.pdp-reviews-count-text {
+  color: #64748b;
+}
+
+.pdp-review-link-btn {
+  background: none;
+  border: none;
+  color: #111827;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+.pdp-review-link-btn:hover {
+  color: #00A3E0;
+}
+
+.pdp-action-icons-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdp-icon-tool-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 4px;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.pdp-icon-tool-btn:hover {
+  color: #00A3E0;
+  background-color: #f1f5f9;
+}
+
+.pdp-icon-tool-btn.liked {
+  color: #ef4444;
+}
+
+/* Free Delivery Badge (matches Screenshot 1) */
+.pdp-badge-line {
+  margin-bottom: 8px;
+}
+
+.pdp-free-deliv-pill {
+  display: inline-block;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+/* Title (matches Screenshot 1) */
+.pdp-official-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  margin: 0 0 10px;
+}
+
+/* Large Indian Rupee Price (matches Screenshot 1) */
+.pdp-price-amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+/* Authentic Atomy PV Display Row */
+.pdp-pv-display-row {
+  margin-top: 2px;
+  margin-bottom: 12px;
+}
+
+.pdp-pv-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: #00A3E0;
+  letter-spacing: -0.3px;
+  display: block;
+}
+
+/* Product Number (matches Screenshot 1) */
+.pdp-product-number-line {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 16px;
+}
+
+/* Social Proof Counters (matches Screenshot 1 with cyan icons) */
+.pdp-stats-indicators-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 16px;
+}
+
+.stat-indicator-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+}
+
+/* Shipping Details Line */
+.pdp-shipping-details-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 13px;
+  padding-bottom: 20px;
+}
+
+.pdp-shipping-details-row .ship-label {
+  font-weight: 600;
+  color: #1e293b;
+  min-width: 110px;
+}
+
+.pdp-shipping-details-row .ship-val {
+  color: #334155;
+}
+
+/* Hero Qty Purchase Card (Stays in hero, does NOT float early) */
+.pdp-sticky-purchase-wrapper {
+  position: relative;
+  background-color: #ffffff;
+  padding-top: 10px;
+}
+
+.pdp-qty-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+/* Light Gray Container Box */
+.pdp-qty-gray-box {
+  background-color: #f7f7f8;
+  border-radius: 4px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.pdp-qty-item-name {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.pdp-qty-stepper-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Stepper [ - ] [ 1 ] [ + ] */
+.pdp-official-stepper {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.stepper-btn-minus,
+.stepper-btn-plus {
+  width: 32px;
+  height: 32px;
+  background-color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s;
+}
+
+.stepper-btn-minus:hover:not(:disabled),
+.stepper-btn-plus:hover {
+  background-color: #f3f4f6;
+}
+
+.stepper-btn-minus:disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.stepper-val-box {
+  width: 40px;
+  height: 32px;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.pdp-qty-box-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Total Product Price Summary Row */
+.pdp-total-price-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.pdp-total-price-summary-row .total-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pdp-total-price-summary-row .total-amount-box {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pdp-total-price-summary-row .units-count {
+  font-size: 13px;
+  color: #334155;
+}
+
+.pdp-total-price-summary-row .bold-total-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Action Buttons: Easy Purchase | Cart (50/50), and Buy Now (100%) */
+.pdp-floating-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.pdp-action-buttons-subrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.pdp-easy-purchase-btn,
+.pdp-action-buttons-subrow .pdp-easy-purchase-btn {
+  flex: 1 1 0%;
+  width: 50%;
+  min-width: 0;
+  height: 44px;
+  background-color: #ffffff;
+  border: 1px solid #00A3E0;
+  color: #00A3E0;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.pdp-easy-purchase-btn:hover,
+.pdp-action-buttons-subrow .pdp-easy-purchase-btn:hover {
+  background-color: #f0f9fd;
+}
+
+.pdp-cart-btn,
+.pdp-action-buttons-subrow .pdp-cart-btn {
+  flex: 1 1 0%;
+  width: 50%;
+  min-width: 0;
+  height: 44px;
+  background-color: #2f3337;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.pdp-cart-btn:hover,
+.pdp-action-buttons-subrow .pdp-cart-btn:hover {
+  background-color: #1f2937;
+}
+
+.pdp-buy-now-btn {
+  width: 100%;
+  height: 44px;
+  background-color: #00A3E0;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.pdp-buy-now-btn:hover {
+  background-color: #008ec4;
+}
+
+/* 4. Tabbed Information Section (Exact match to User Screenshot) */
+.pdp-sticky-tabs-container {
+  position: relative;
+  width: 100%;
+}
+
+.pdp-tabs-section {
+  position: relative;
+  border-top: 1px solid #e2e8f0;
+  padding: 0 0 60px;
+  background-color: #ffffff;
+}
+
+/* Full-width edge-to-edge sticky tab bar wrapper (Exact match to User Screenshot) */
+.pdp-tabs-sticky-bar-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #ffffff;
+  border-bottom: 1px solid #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.pdp-tab-headers-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  border-bottom: none;
+  position: relative;
+}
+
+.pdp-tabs-quick-corner {
+  margin-left: 8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Quick Menu Corner Pill on PDP */
+.pdp-tabs-quick-corner .quick-menu-corner-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px 0 12px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 20px;
+  color: #0369a1;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.12);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-pill:hover {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border-color: #00A3E0;
+  color: #0284c7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.22);
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-pill.active {
+  background: #00A3E0;
+  border-color: #0087ba;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 163, 224, 0.35);
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-pill.active .pulse-ping {
+  display: none;
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-pill.active .pulse-dot {
+  background-color: #ffffff;
+}
+
+/* Quick Menu Dropdown on PDP */
+.pdp-tabs-quick-corner .quick-menu-corner-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 250px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+  z-index: 1000;
+  padding: 8px 0;
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 18px;
+  color: #333333;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-item:hover {
+  background-color: #f8fafc;
+  color: var(--atomy-blue);
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-lucide {
+  color: #555555;
+  flex-shrink: 0;
+}
+
+.pdp-tab-nav-btn {
+  flex: 1;
+  text-align: center;
+  padding: 15px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #374151;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s ease;
+}
+
+.pdp-tab-nav-btn:hover {
+  color: #00A3E0;
+}
+
+.pdp-tab-nav-btn.active {
+  color: #00A3E0;
+  font-weight: 600;
+  border-bottom: 2px solid #00A3E0;
+}
+
+/* 3/4 + 1/4 Grid Layout (matches User Screenshots) */
+.pdp-details-layout-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: 36px;
+  width: 100%;
+  padding-top: 26px;
+}
+
+/* Left Column: ~3/4 of the page for product information */
+.pdp-details-main-col {
+  flex: 1 1 0%;
+  width: calc(74% - 24px);
+  min-width: 0;
+}
+
+/* Right Column: ~1/4 of the page for floating sticky purchase card */
+.pdp-details-sticky-col {
+  flex: 0 0 310px;
+  width: 310px;
+  position: sticky;
+  top: 66px; /* Sits cleanly 16px below the sticky tab bar */
+  z-index: 50;
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pdp-details-sticky-col.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Tab 1 Details: Product information accordion (matches User Screenshot) */
+.pdp-accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #d1d5db;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  cursor: pointer;
+}
+
+.accordion-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111111;
+  margin: 0;
+}
+
+.accordion-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #555555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Official Specifications Table (matches User Screenshot) */
+.pdp-official-specs-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 2px solid #111111;
+  border-bottom: 2px solid #111111;
+  margin-bottom: 28px;
+}
+
+.pdp-official-specs-table th,
+.pdp-official-specs-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  vertical-align: top;
+}
+
+.pdp-official-specs-table th {
+  width: 210px;
+  background-color: #ffffff;
+  color: #555555;
+  font-weight: 500;
+}
+
+.pdp-official-specs-table td {
+  color: #111111;
+}
+
+/* Thicker border separating Feedback / Contact section (matches User Screenshot) */
+.pdp-official-specs-table tr.pdp-specs-contact-row th,
+.pdp-official-specs-table tr.pdp-specs-contact-row td {
+  border-top: 2px solid #111111;
+  border-bottom: 2px solid #111111;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.specs-caution-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.spec-caution-item {
+  color: #222222;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Floating Purchase Card (matches Screenshots 1 & 2) */
+.pdp-floating-purchase-card {
+  background-color: #ffffff;
+  width: 100%;
+}
+
+.pdp-qty-price-pv-stack {
+  text-align: right;
+}
+
+.pdp-qty-box-pv {
+  font-size: 13px;
+  font-weight: 700;
+  color: #00A3E0;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+.pdp-total-pv-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  font-size: 13.5px;
+}
+
+.pdp-total-pv-summary-row .total-label {
+  color: #666666;
+  font-weight: 400;
+}
+
+.pdp-total-pv-summary-row .total-pv-box {
+  font-size: 15px;
+  font-weight: 700;
+  color: #00A3E0;
+}
+
+
+@media (max-width: 992px) {
+  .pdp-details-layout-grid {
+    flex-direction: column;
+    gap: 32px;
+  }
+  .pdp-details-main-col {
+    width: 100%;
+  }
+  .pdp-details-sticky-col {
+    width: 100%;
+    position: static;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+}
+
+.pdp-brand-quality-card {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 24px;
+}
+
+.pdp-brand-quality-card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0369a1;
+  margin: 0 0 8px;
+}
+
+.pdp-brand-quality-card p {
+  font-size: 13px;
+  color: #0c4a6e;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Tab 2 Reviews */
+.reviews-summary-header {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 36px;
+  background-color: #f8fafc;
+  padding: 28px;
+  border-radius: 8px;
+  border: 1px solid #edf2f7;
+  margin-bottom: 32px;
+}
+
+.rating-overview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #e2e8f0;
+  padding-right: 24px;
+}
+
+.rating-overview .overall-score {
+  font-size: 48px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.stars-row {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 8px;
+}
+
+.total-ratings-text {
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
+}
+
+.ratings-bars-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.bar-track {
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background-color: #f59e0b;
+  border-radius: 4px;
+}
+
+.customer-reviews-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.single-review-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 18px 20px;
+}
+
+.review-top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.reviewer-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+}
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.review-date {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-left: auto;
+}
+
+.review-stars {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.review-body {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Tab 3 & 4 Policies */
+.tab-section-heading {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 24px;
+}
+
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  .policy-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.policy-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 22px;
+  background-color: #fafbfc;
+}
+
+.policy-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 12px 0 8px;
+}
+
+.policy-card p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 5. Related Products Section (Exact Match to User Screenshot 4) */
+.pdp-related-section {
+  background-color: #ffffff;
+  padding: 48px 0 20px;
+  border-top: 1px solid #edf2f7;
+}
+
+.related-header {
+  margin-bottom: 24px;
+}
+
+.related-main-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.related-sub-title {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+.related-carousel-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Circular Navigation Arrow Buttons */
+.related-arrow-btn {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #475569;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.related-arrow-btn:hover {
+  background-color: #ffffff;
+  color: #00A3E0;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.related-arrow-btn.left {
+  left: -20px;
+}
+
+.related-arrow-btn.right {
+  right: -20px;
+}
+
+/* Scrollable Cards Track (5 items per row) */
+.related-cards-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: 8px 4px;
+  width: 100%;
+}
+
+.related-cards-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Individual Related Product Card (matches Screenshot 4) */
+.related-product-card {
+  flex: 0 0 calc((100% - 64px) / 5);
+  min-width: 210px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1200px) {
+  .related-product-card {
+    flex: 0 0 calc((100% - 48px) / 4);
+  }
+}
+
+@media (max-width: 900px) {
+  .related-product-card {
+    flex: 0 0 calc((100% - 32px) / 3);
+  }
+}
+
+@media (max-width: 600px) {
+  .related-product-card {
+    flex: 0 0 calc((100% - 16px) / 2);
+  }
+}
+
+/* Square Image Box with Quick Cart */
+.related-img-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.related-card-img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  cursor: pointer;
+  transition: transform 0.25s;
+}
+
+.related-card-img:hover {
+  transform: scale(1.04);
+}
+
+/* Quick Cart Button in bottom-right corner of image */
+.related-quick-cart-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #00A3E0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s;
+}
+
+.related-quick-cart-btn:hover {
+  background-color: #00A3E0;
+  color: #ffffff;
+  border-color: #00A3E0;
+}
+
+/* Info Box below image */
+.related-info-box {
+  padding: 12px 2px 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.related-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.4;
+  margin: 0 0 6px;
+  cursor: pointer;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 38px;
+}
+
+.related-item-title:hover {
+  color: #00A3E0;
+  text-decoration: underline;
+}
+
+.related-item-price {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.related-distributor-note {
+  font-size: 12px;
+  color: #00A3E0;
+  line-height: 1.3;
+  margin: 0 0 6px;
+}
+
+.related-likes-line {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Subtle animations */
+.animate-fade {
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   OFFICIAL ATOMY EXPANDED PRODUCT DETAILS & PRESENTATION CSS
+   ========================================================= */
+
+/* Expand Details Toggle Button (matches Screenshot 1) */
+.pdp-expand-toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0 28px;
+}
+
+.pdp-expand-details-btn {
+  background: #ffffff;
+  border: 1px solid #dcdfe6;
+  color: #333333;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 24px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.pdp-expand-details-btn em {
+  font-style: normal;
+  font-weight: 500;
+}
+
+.pdp-expand-details-btn:hover {
+  border-color: #00A3E0;
+  color: #00A3E0;
+}
+
+/* Presentation Container */
+.pdp-expanded-presentation {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  padding-top: 10px;
+}
+
+.pdp-presentation-block {
+  background-color: #ffffff;
+}
+
+.pdp-presentation-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #00A3E0;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.pdp-pres-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 6px;
+  letter-spacing: -0.3px;
+}
+
+.pdp-pres-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+/* 1. Product Specification Card */
+.pdp-pres-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .pdp-pres-specs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spec-card-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.spec-cell-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.spec-cell-val {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+
+
+/* ========================================================
+   Official Atomy Multi-Page Graphic Brochure Stack
+   ======================================================== */
+.pdp-official-brochure-container {
+  width: 100%;
+  margin: 30px 0 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pdp-brochure-images-stack {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+  margin-top: 16px;
+}
+
+.pdp-official-brochure-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* ========================================================
+   View Product Img Modal / Lightbox (matches User Screenshot 2)
+   ======================================================== */
+.pdp-img-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: pdpModalFadeIn 0.2s ease-out;
+}
+
+@keyframes pdpModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.pdp-img-modal-content {
+  position: relative;
+  background-color: #ffffff;
+  width: 660px;
+  max-width: 95vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  animation: pdpModalScaleUp 0.2s ease-out;
+  overflow: hidden;
+}
+
+@keyframes pdpModalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Top-Right Close Button */
+.pdp-modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.pdp-modal-close-btn:hover {
+  color: #00A3E0;
+  transform: scale(1.15);
+}
+
+/* Image Stage */
+.pdp-modal-stage {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  max-height: calc(88vh - 130px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  padding: 24px 44px 12px 44px;
+  overflow: hidden;
+}
+
+/* Modal Side Navigation Arrows (gray rectangular bars matching Screenshot 2) */
+.pdp-modal-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 70px;
+  background-color: rgba(0, 0, 0, 0.22);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.pdp-modal-nav-btn:hover {
+  background-color: rgba(0, 0, 0, 0.42);
+}
+
+.pdp-modal-nav-btn.prev {
+  left: 0;
+}
+
+.pdp-modal-nav-btn.next {
+  right: 0;
+}
+
+/* Viewport and Zoomable Image */
+.pdp-modal-img-viewport {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.pdp-modal-img-viewport.zoomed {
+  cursor: zoom-out;
+  overflow: auto;
+}
+
+.pdp-modal-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0.2, 1);
+  user-select: none;
+}
+
+.pdp-modal-img-viewport.zoomed .pdp-modal-img {
+  transform: scale(1.85);
+}
+
+/* Magnifier / Zoom Button at bottom-right corner */
+.pdp-modal-zoom-btn {
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #222222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.pdp-modal-zoom-btn:hover {
+  color: #00A3E0;
+  transform: scale(1.15);
+}
+
+/* Bottom Thumbnails Strip (matches Screenshot 2) */
+.pdp-modal-thumbs-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px 20px;
+  background-color: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pdp-modal-thumb-box {
+  width: 58px;
+  height: 58px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 3px;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.pdp-modal-thumb-box:hover {
+  border-color: #94a3b8;
+}
+
+/* Active thumbnail has solid black border matching Screenshot 2 */
+.pdp-modal-thumb-box.active {
+  border: 2px solid #000000;
+}
+
+.pdp-modal-thumb-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 640px) {
+  .pdp-img-modal-content {
+    width: 100%;
+    max-height: 96vh;
+  }
+  .pdp-modal-stage {
+    height: 360px;
+    padding: 20px 30px 10px 30px;
+  }
+  .pdp-modal-thumb-box {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+

@@ -1,0 +1,40 @@
+.notice-ticker-section {
+  width: 100%;
+  background-color: #fcfcfc;
+  border-top: 1px solid #ebebeb;
+  border-bottom: 1px solid #ebebeb;
+  padding: 18px 0;
+}
+
+.notice-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notice-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  color: #333333;
+  font-weight: 600;
+  transition: color 0.2s ease;
+  width: 100%;
+}
+
+.notice-link:hover {
+  color: var(--atomy-blue);
+}
+
+.notice-title {
+  color: #333333;
+  letter-spacing: -0.2px;
+}
+
+.notice-arrow-btn {
+  margin-left: auto;
+  color: #777777;
+  display: flex;
+  align-items: center;
+}

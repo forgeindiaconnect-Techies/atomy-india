@@ -1,0 +1,508 @@
+/* ==========================================================================
+   SEMINARS & SUCCESS ACADEMY PAGE STYLES
+   ========================================================================== */
+
+.seminars-page {
+  width: 100%;
+  min-height: 80vh;
+  background-color: #f8fafc;
+  font-family: var(--font-main, 'Noto Sans', 'Inter', sans-serif);
+  color: #1e293b;
+  padding-bottom: 80px;
+}
+
+.seminars-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Breadcrumbs */
+.seminars-breadcrumb-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 12px 0;
+  font-size: 12.5px;
+}
+
+.seminars-breadcrumb-bar .seminars-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Header Banner */
+.seminars-header-banner {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0284c7 100%);
+  color: #ffffff;
+  padding: 56px 0;
+}
+
+.seminars-eyebrow {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #38bdf8;
+  margin-bottom: 10px;
+}
+
+.seminars-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+}
+
+.seminars-subtitle {
+  font-size: 15px;
+  color: #e0f2fe;
+  max-width: 720px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* System Highlights */
+.seminars-system-section {
+  padding: 40px 0 20px;
+}
+
+.system-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.system-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 30px 26px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.system-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.system-icon-wrap.academy {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.system-icon-wrap.oneday {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.system-icon-wrap.broadcast {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.system-card h3 {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 10px;
+}
+
+.system-card p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+}
+
+/* Schedule Section */
+.seminars-table-section {
+  padding-top: 30px;
+}
+
+.schedule-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.schedule-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.schedule-sub {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+.filter-pill-group {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-btn {
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.filter-btn:hover {
+  border-color: #00A3E0;
+  color: #00A3E0;
+}
+
+.filter-btn.active {
+  background: #00A3E0;
+  border-color: #00A3E0;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Seminars List Grid */
+.seminars-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 22px;
+}
+
+.seminar-event-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.seminar-event-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+  border-color: #bae6fd;
+}
+
+.event-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.event-type-badge {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.badge-academy {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.badge-oneday {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.status-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.status-pill.open {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-pill.filling_fast {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.event-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 14px;
+  line-height: 1.35;
+}
+
+.event-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.meta-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.meta-row strong {
+  color: #64748b;
+  margin-right: 4px;
+}
+
+.event-highlight-text {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #64748b;
+  background-color: #f8fafc;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 0 0 20px;
+  flex: 1;
+}
+
+.event-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+}
+
+.seats-text {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.seats-text strong {
+  color: #00A3E0;
+}
+
+.book-seat-btn {
+  background-color: #00A3E0;
+  color: #ffffff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.16s ease;
+}
+
+.book-seat-btn:hover {
+  background-color: #0284c7;
+}
+
+/* Modal */
+.seminar-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.seminar-modal-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  max-width: 560px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  animation: modalPop 0.2s ease-out;
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.seminar-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.seminar-modal-header h3 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+}
+
+.seminar-modal-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.seminar-modal-body {
+  padding: 24px;
+}
+
+.event-summary-box {
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.event-summary-box h4 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0369a1;
+  margin: 0 0 6px;
+}
+
+.event-summary-box p {
+  font-size: 13px;
+  color: #0f172a;
+  margin: 2px 0;
+}
+
+.modal-form-group {
+  margin-bottom: 16px;
+}
+
+.modal-form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.modal-form-group input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 7px;
+  border: 1px solid #cbd5e1;
+  font-size: 13.5px;
+  outline: none;
+}
+
+.modal-form-group input:focus {
+  border-color: #00A3E0;
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.15);
+}
+
+.form-info-note {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+  margin-bottom: 20px;
+}
+
+.modal-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-cancel {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-confirm {
+  background-color: #00A3E0;
+  color: #ffffff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Success Box */
+.booking-success-box {
+  text-align: center;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.booking-success-box h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 14px 0 8px;
+}
+
+.booking-success-box p {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+
+.ticket-meta-pill {
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 12px 20px;
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: #334155;
+  margin-bottom: 24px;
+}
+
+.modal-done-btn {
+  background-color: #00A3E0;
+  color: #ffffff;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 860px) {
+  .system-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

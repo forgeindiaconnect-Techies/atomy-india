@@ -1,0 +1,433 @@
+/* ==========================================================================
+   NewLaunchBadge.css - Bottom-Left Floating Product Launch & Showcase Modal
+   ========================================================================== */
+
+/* --- Bottom-Left Floating Card --- */
+.new-launch-floating-card {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 998;
+  background: #ffffff;
+  border: 1.5px solid #00a3e0;
+  border-radius: 14px;
+  padding: 10px 14px 10px 10px;
+  box-shadow: 0 8px 24px rgba(0, 163, 224, 0.22), 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: all 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+}
+
+/* Pulsing outer ring */
+.launch-pulse-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 17px;
+  border: 2px solid #00a3e0;
+  opacity: 0;
+  animation: launchPulse 2.8s infinite;
+  pointer-events: none;
+}
+
+@keyframes launchPulse {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}
+
+/* Hover effect on card */
+.new-launch-floating-card:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow: 0 14px 32px rgba(0, 163, 224, 0.35), 0 4px 12px rgba(0, 0, 0, 0.12);
+  border-color: #0077b6;
+}
+
+.new-launch-floating-card:hover .launch-arrow-action {
+  transform: translateX(4px);
+  color: #00a3e0;
+}
+
+.new-launch-floating-card:hover .launch-thumb-img {
+  transform: scale(1.08);
+}
+
+/* Dismiss mini button */
+.launch-dismiss-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.new-launch-floating-card:hover .launch-dismiss-btn {
+  opacity: 1;
+}
+
+.launch-dismiss-btn:hover {
+  background: #ef4444;
+  transform: scale(1.15);
+}
+
+/* Inner row layout */
+.launch-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Thumbnail wrapper */
+.launch-thumb-wrapper {
+  width: 48px;
+  height: 58px;
+  border-radius: 8px;
+  background: #f8fafc;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+}
+
+.launch-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.launch-sparkle-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffd166;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Text info */
+.launch-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.launch-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.launch-pill-tag {
+  background: linear-gradient(135deg, #00a3e0 0%, #0077b6 100%);
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1.5px 6px;
+  border-radius: 10px;
+  letter-spacing: 0.3px;
+}
+
+.launch-brand-tag {
+  font-size: 10.5px;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.launch-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.launch-price-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.launch-price {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0077b6;
+}
+
+.launch-pv {
+  font-size: 11px;
+  font-weight: 600;
+  color: #10b981;
+  background: #ecfdf5;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* Arrow action */
+.launch-arrow-action {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+/* --- Showcase Modal --- */
+.new-launch-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.new-launch-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  max-height: 92vh;
+  background: #ffffff;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-corner-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.modal-corner-close:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: scale(1.1);
+}
+
+/* Poster Container */
+.launch-poster-container {
+  width: 100%;
+  max-height: 68vh;
+  overflow-y: auto;
+  background: #f1f5f9;
+  display: flex;
+  justify-content: center;
+}
+
+.launch-poster-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+/* Action Bar below Poster */
+.launch-modal-action-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.launch-btn-cart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 9px;
+  background: #f0f9ff;
+  border: 1.5px solid #00a3e0;
+  color: #0077b6;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.launch-btn-cart:hover {
+  background: #e0f2fe;
+  transform: translateY(-1px);
+}
+
+.launch-btn-buy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 9px;
+  background: #00a3e0;
+  border: 1.5px solid #0093ca;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.25);
+  transition: all 0.18s ease;
+}
+
+.launch-btn-buy:hover {
+  background: #008cc0;
+  transform: translateY(-1px);
+}
+
+/* Bottom Bar matching user's exact image: Left checkbox, Right close button */
+.launch-modal-bottom-bar {
+  padding: 12px 20px;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.launch-do-not-show-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14.5px;
+  color: #475569;
+  font-family: inherit;
+}
+
+.launch-do-not-show-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #94a3b8;
+  border-radius: 3px;
+  accent-color: #00a3e0;
+  cursor: pointer;
+}
+
+.launch-do-not-show-text {
+  font-size: 14px;
+  color: #475569;
+  letter-spacing: -0.2px;
+}
+
+.launch-bottom-close-btn {
+  background: none;
+  border: none;
+  color: #334155;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.launch-bottom-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: scale(1.1);
+}
+
+/* Animations */
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-zoom-in {
+  animation: zoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .new-launch-floating-card {
+    left: 14px;
+    bottom: 16px;
+    max-width: calc(100vw - 90px);
+  }
+  .new-launch-modal-card {
+    max-width: 95vw;
+  }
+}
