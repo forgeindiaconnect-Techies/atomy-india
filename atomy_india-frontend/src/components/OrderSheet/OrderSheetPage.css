@@ -249,8 +249,14 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 0;
+  padding: 16px 42px 16px 12px;
   border-bottom: 1px solid #f1f5f9;
+  position: relative;
+  transition: background-color 0.15s ease;
+}
+
+.sheet-product-row:hover {
+  background-color: #fbfcfe;
 }
 
 .sheet-product-row:last-child {
@@ -408,24 +414,34 @@
   color: #1e293b;
 }
 
-.sheet-remove-item-btn {
-  display: inline-flex;
+/* Corner 'X' Remove Button in Top Right Corner of the Box */
+.sheet-remove-corner-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   background: transparent;
   border: none;
-  color: #ef4444;
-  font-size: 11.5px;
-  font-weight: 600;
+  border-radius: 6px;
+  color: #94a3b8;
   cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 4px;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  z-index: 3;
 }
 
-.sheet-remove-item-btn:hover {
-  background: #fef2f2;
-  color: #dc2626;
+.sheet-remove-corner-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: scale(1.12);
+}
+
+.sheet-remove-corner-btn:active {
+  transform: scale(0.96);
 }
 
 /* GST Summary Breakdown */
@@ -806,6 +822,87 @@
 }
 
 .summary-line .line-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Product Total with Arrow Toggle */
+.product-total-summary-row {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease;
+  padding: 2px 0;
+}
+
+.product-total-summary-row:hover .line-label {
+  color: #00A3E0;
+}
+
+.product-total-label-with-arrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.product-tax-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.product-total-summary-row:hover .product-tax-toggle-btn {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  color: #00A3E0;
+}
+
+.product-tax-toggle-btn.open {
+  background: #00A3E0;
+  border-color: #00A3E0;
+  color: #ffffff;
+}
+
+/* Collapsible Tax Breakdown Panel */
+.summary-tax-breakdown-panel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #00A3E0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: -2px 0 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeInDownTax 0.2s ease-out;
+}
+
+@keyframes fadeInDownTax {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.summary-tax-breakdown-panel .tax-subrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.summary-tax-breakdown-panel .tax-subrow .tax-subvalue {
   font-weight: 600;
   color: #1e293b;
 }
@@ -3109,6 +3206,199 @@
   .pg-right-summary-column {
     position: static;
   }
+}
+
+/* ==========================================================================
+   ESTIMATED DELIVERY DATE & TIME TIMELINES (Prominent Styling)
+   ========================================================================== */
+
+/* Step 02: Order Products Top Delivery Estimate Strip */
+.sheet-delivery-estimate-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1.5px solid #bae6fd;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+}
+
+.delivery-strip-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.delivery-strip-icon-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.15);
+  flex-shrink: 0;
+}
+
+.delivery-strip-text .strip-primary {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0369a1;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.delivery-strip-text .strip-primary strong {
+  color: #0284c7;
+}
+
+.delivery-strip-text .strip-secondary {
+  font-size: 12px;
+  color: #075985;
+  display: block;
+}
+
+.delivery-strip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #7dd3fc;
+  color: #0284c7;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.dispatch-pulse-dot {
+  width: 7px;
+  height: 7px;
+  background: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse-dot-anim 1.6s infinite ease-in-out;
+}
+
+@keyframes pulse-dot-anim {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+/* Step 02: Payment Summary Estimated Delivery Row */
+.delivery-estimate-row {
+  background: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px dashed #cbd5e1;
+  margin: 8px 0 2px 0;
+}
+
+.delivery-date-highlight {
+  color: #0284c7 !important;
+  font-weight: 800 !important;
+  font-size: 13.5px !important;
+}
+
+.summary-delivery-subtext {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+/* Step 03: Payment Gateway Left Address Pill */
+.pg-delivery-eta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #0369a1;
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* Step 03: Payment Gateway Right Summary ETA Section */
+.pg-eta-section {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+}
+
+.pg-eta-date-val {
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+  font-size: 12.5px !important;
+}
+
+.pg-eta-transit-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Step 04: Order Confirmation Prominent ETA Box */
+.delivery-confirmed-eta-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
+  border: 1.5px solid #a7f3d0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 18px 0;
+  text-align: left;
+}
+
+.eta-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+  flex-shrink: 0;
+}
+
+.eta-content {
+  flex: 1;
+}
+
+.eta-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #059669;
+  margin-bottom: 3px;
+}
+
+.eta-dates {
+  font-size: 15px;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.eta-dates strong {
+  color: #0284c7;
+  font-weight: 800;
+}
+
+.eta-sub {
+  font-size: 12px;
+  color: #64748b;
 }
 
 

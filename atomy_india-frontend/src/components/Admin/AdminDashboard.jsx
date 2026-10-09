@@ -55,7 +55,9 @@ import {
   deleteAdminProduct,
   fetchAdminTickets,
   replyAdminTicket,
-  updateAdminTicketStatus
+  updateAdminTicketStatus,
+  clearAllAdminTickets,
+  fetchAdminCustomers
 } from '../../services/api';
 import {
   playOrderAlertSound,
@@ -253,6 +255,7 @@ export default function AdminDashboard({ onBackToStore }) {
   // Customer Drawer / Modal State
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [backendCustomers, setBackendCustomers] = useState([]);
 
   // Admin Profile & Top Nav Notification Dropdown State
   const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
@@ -363,12 +366,17 @@ export default function AdminDashboard({ onBackToStore }) {
 
   const syncWithBackend = async () => {
     try {
-      const [statsRes, ordersRes, prodsRes, ticketsRes] = await Promise.allSettled([
+      const [statsRes, ordersRes, prodsRes, ticketsRes, custsRes] = await Promise.allSettled([
         fetchAdminStats(),
         fetchAdminOrders(),
         fetchAdminProducts(),
-        fetchAdminTickets()
+        fetchAdminTickets(),
+        fetchAdminCustomers()
       ]);
+
+      if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value)) {
+        setBackendCustomers(custsRes.value);
+      }
 
       if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
         const mappedOrders = ordersRes.value.map(bo => ({
@@ -416,19 +424,67 @@ export default function AdminDashboard({ onBackToStore }) {
       }
       if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
         const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-        const cleanTickets = ticketsRes.value.filter(t => !demoIds.includes(t.ticketId));
+        const cleanTickets = ticketsRes.value.filter(t => !demoIds.includes(t.ticketId)).map(t => ({
+          ...t,
+          messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
+            ...m,
+            createdAt: m.sentAt || m.createdAt || t.createdAt || new Date().toISOString(),
+            message: m.message || t.subject
+          })) : [{ sender: 'CUSTOMER', message: t.subject || 'Customer Inquiry', createdAt: t.createdAt }]
+        }));
         setTickets(cleanTickets);
+        try {
+          localStorage.setItem('atomy_admin_tickets', JSON.stringify(cleanTickets));
+        } catch {}
+        setSelectedTicket(curr => {
+          if (!curr) return cleanTickets[0] || null;
+          const match = cleanTickets.find(t => t.ticketId === curr.ticketId);
+          return match || curr;
+        });
       }
     } catch (e) {
       console.warn('[Admin] Live backend syncing fallback to local cache:', e);
     }
   };
 
-  // Background Live-Polling Listener (checks every 10 seconds for new customer orders & support tickets)
   // Background Live-Polling Listener & Cross-Channel Listener for live customer orders
+  // STRONG NOTIFICATION TRIGGERS
+  const triggerOrderNotification = (order) => {
+    if (soundSettings.orderSoundEnabled) {
+      playOrderAlertSound(soundSettings.volume);
+    }
+    setActiveAlert({
+      type: 'order',
+      title: 'NEW CUSTOMER ORDER RECEIVED!',
+      message: `Order #${order.orderId} placed by ${order.customerName} for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`,
+      time: 'Just now',
+      targetId: order.orderId
+    });
+    sendDesktopNotification(`🚨 Atomy India: New Order #${order.orderId}`, {
+      body: `Customer ${order.customerName} placed an order for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`
+    });
+  };
+
+  const triggerSupportNotification = (ticket) => {
+    if (soundSettings.supportSoundEnabled) {
+      playSupportAlertSound(soundSettings.volume);
+    }
+    setActiveAlert({
+      type: 'support',
+      title: 'NEW CUSTOMER SUPPORT INQUIRY!',
+      message: `Ticket #${ticket.ticketId} from ${ticket.customerName}: "${ticket.subject || ticket.message || 'Customer Support Request'}"`,
+      time: 'Just now',
+      targetId: ticket.ticketId
+    });
+    sendDesktopNotification(`🎧 Atomy Support: Inquiry from ${ticket.customerName}`, {
+      body: ticket.subject || ticket.message || 'New customer support inquiry received'
+    });
+  };
+
+  // Background Live-Polling Listener & Cross-Channel Listener for live customer orders & support tickets
   useEffect(() => {
     // 1. Setup real-time BroadcastChannel listeners
-    let syncChannel, orderChannel;
+    let syncChannel, orderChannel, supportChannel;
     try {
       const handleIncomingOrder = (newOrderObj) => {
         setOrders(prev => {
@@ -436,6 +492,36 @@ export default function AdminDashboard({ onBackToStore }) {
           triggerOrderNotification(newOrderObj);
           return [newOrderObj, ...prev];
         });
+      };
+
+      const handleIncomingTicket = (newTicketObj) => {
+        if (!newTicketObj || !newTicketObj.ticketId) return;
+        setTickets(prev => {
+          if (prev.some(t => t.ticketId === newTicketObj.ticketId)) return prev;
+          triggerSupportNotification(newTicketObj);
+          return [newTicketObj, ...prev];
+        });
+      };
+
+      const handleTicketReplyBroadcast = () => {
+        fetchAdminTickets().then(backendTickets => {
+          if (Array.isArray(backendTickets)) {
+            const cleanTickets = backendTickets.map(t => ({
+              ...t,
+              messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
+                ...m,
+                createdAt: m.sentAt || m.createdAt || t.createdAt || new Date().toISOString(),
+                message: m.message || t.subject
+              })) : [{ sender: 'CUSTOMER', message: t.subject || 'Customer Inquiry', createdAt: t.createdAt }]
+            }));
+            setTickets(cleanTickets);
+            setSelectedTicket(curr => {
+              if (!curr) return cleanTickets[0] || null;
+              const match = cleanTickets.find(t => t.ticketId === curr.ticketId);
+              return match || curr;
+            });
+          }
+        }).catch(() => {});
       };
 
       syncChannel = new BroadcastChannel('atomy_sync_channel');
@@ -461,6 +547,12 @@ export default function AdminDashboard({ onBackToStore }) {
             items: o.items || [],
             tracking: null
           });
+        }
+        if (data && (data.type === 'NEW_TICKET' || data.type === 'SUPPORT_INQUIRY' || data.type === 'NEW_SUPPORT_TICKET') && data.ticket) {
+          handleIncomingTicket(data.ticket);
+        }
+        if (data && (data.type === 'TICKET_REPLY' || data.type === 'NEW_MESSAGE')) {
+          handleTicketReplyBroadcast();
         }
       };
 
@@ -489,9 +581,39 @@ export default function AdminDashboard({ onBackToStore }) {
           });
         }
       };
+
+      supportChannel = new BroadcastChannel('atomy_support_channel');
+      supportChannel.onmessage = (event) => {
+        const data = event.data;
+        if (data && (data.type === 'NEW_TICKET' || data.type === 'SUPPORT_INQUIRY' || data.type === 'NEW_SUPPORT_TICKET') && data.ticket) {
+          handleIncomingTicket(data.ticket);
+        }
+        if (data && (data.type === 'TICKET_REPLY' || data.type === 'NEW_MESSAGE')) {
+          handleTicketReplyBroadcast();
+        }
+      };
     } catch (e) {}
 
-    // 2. Active Polling interval to check MySQL Spring Boot backend every 3 seconds
+    // 2. Cross-tab storage synchronization listener
+    const handleStorageUpdate = (e) => {
+      if (e.key === 'atomy_admin_tickets' && e.newValue) {
+        try {
+          const freshList = JSON.parse(e.newValue);
+          if (Array.isArray(freshList)) {
+            freshList.forEach(item => {
+              setTickets(prev => {
+                if (prev.some(t => t.ticketId === item.ticketId)) return prev;
+                triggerSupportNotification(item);
+                return [item, ...prev];
+              });
+            });
+          }
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageUpdate);
+
+    // 3. Active Polling interval to check backend & storage every 3 seconds
     const intervalTime = Math.min((soundSettings.pollingIntervalSec || 10) * 1000, 3000);
     const interval = setInterval(async () => {
       // Poll orders from Spring Boot Backend
@@ -570,47 +692,67 @@ export default function AdminDashboard({ onBackToStore }) {
           }
         }
       } catch (e) {}
+
+      // Poll support tickets from Spring Boot Backend
+      try {
+        const backendTickets = await fetchAdminTickets();
+        if (Array.isArray(backendTickets)) {
+          const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
+          const cleanTickets = backendTickets.filter(t => !demoIds.includes(t.ticketId)).map(t => ({
+            ...t,
+            messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
+              ...m,
+              createdAt: m.sentAt || m.createdAt || t.createdAt || new Date().toISOString(),
+              message: m.message || t.subject
+            })) : [{ sender: 'CUSTOMER', message: t.subject || 'Customer Inquiry', createdAt: t.createdAt }]
+          }));
+          setTickets(prev => {
+            const prevIds = new Set(prev.map(t => t.ticketId));
+            cleanTickets.forEach(bt => {
+              if (!prevIds.has(bt.ticketId) && prev.length > 0) {
+                triggerSupportNotification(bt);
+              }
+            });
+            const merged = [...cleanTickets];
+            prev.forEach(pt => {
+              if (!merged.some(m => m.ticketId === pt.ticketId)) merged.push(pt);
+            });
+            return merged;
+          });
+          setSelectedTicket(curr => {
+            if (!curr) return cleanTickets[0] || null;
+            const match = cleanTickets.find(t => t.ticketId === curr.ticketId);
+            return match || curr;
+          });
+        }
+      } catch (e) {}
+
+      // Check localStorage for tickets submitted from storefront
+      try {
+        const localTicketsRaw = localStorage.getItem('atomy_admin_tickets');
+        if (localTicketsRaw) {
+          const freshTickets = JSON.parse(localTicketsRaw);
+          if (Array.isArray(freshTickets) && freshTickets.length > 0) {
+            freshTickets.forEach(lt => {
+              setTickets(prev => {
+                if (prev.some(t => t.ticketId === lt.ticketId)) return prev;
+                triggerSupportNotification(lt);
+                return [lt, ...prev];
+              });
+            });
+          }
+        }
+      } catch (e) {}
     }, intervalTime);
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener('storage', handleStorageUpdate);
       try { syncChannel && syncChannel.close(); } catch {}
       try { orderChannel && orderChannel.close(); } catch {}
+      try { supportChannel && supportChannel.close(); } catch {}
     };
   }, [soundSettings]);
-
-  // STRONG NOTIFICATION TRIGGERS
-  const triggerOrderNotification = (order) => {
-    if (soundSettings.orderSoundEnabled) {
-      playOrderAlertSound(soundSettings.volume);
-    }
-    setActiveAlert({
-      type: 'order',
-      title: 'NEW CUSTOMER ORDER RECEIVED!',
-      message: `Order #${order.orderId} placed by ${order.customerName} for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`,
-      time: 'Just now',
-      targetId: order.orderId
-    });
-    sendDesktopNotification(`🚨 Atomy India: New Order #${order.orderId}`, {
-      body: `Customer ${order.customerName} placed an order for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`
-    });
-  };
-
-  const triggerSupportNotification = (ticket) => {
-    if (soundSettings.supportSoundEnabled) {
-      playSupportAlertSound(soundSettings.volume);
-    }
-    setActiveAlert({
-      type: 'support',
-      title: 'NEW CUSTOMER SUPPORT INQUIRY!',
-      message: `Ticket #${ticket.ticketId} from ${ticket.customerName}: "${ticket.subject}"`,
-      time: 'Just now',
-      targetId: ticket.ticketId
-    });
-    sendDesktopNotification(`🎧 Atomy Support: Inquiry from ${ticket.customerName}`, {
-      body: ticket.subject
-    });
-  };
 
   // Test sound triggers
   const handleTestOrderSound = () => {
@@ -1015,6 +1157,7 @@ export default function AdminDashboard({ onBackToStore }) {
 
   // 4. CUSTOMER AGGREGATION DIRECTORY
   const customersList = useMemo(() => {
+    if (backendCustomers.length > 0) return backendCustomers;
     const custMap = new Map();
     orders.forEach(o => {
       const email = (o.customerEmail || o.customerPhone || 'unknown').toLowerCase();
@@ -1094,6 +1237,22 @@ export default function AdminDashboard({ onBackToStore }) {
       showToast(`Ticket status updated to ${newStatus}`);
     } catch (err) {
       showToast('Error: ' + err.message);
+    }
+  };
+
+  const handleClearAllTickets = async () => {
+    if (!window.confirm("Are you sure you want to clear all support tickets and start completely fresh? This will remove all inquiries and messages.")) return;
+    try {
+      await clearAllAdminTickets().catch(() => {});
+      setTickets([]);
+      setSelectedTicket(null);
+      try {
+        localStorage.removeItem('atomy_admin_tickets');
+        localStorage.removeItem('atomy_customer_tickets');
+      } catch {}
+      showToast('All support inquiries cleared! Starting fresh.');
+    } catch (err) {
+      showToast('Error clearing tickets: ' + err.message);
     }
   };
 
@@ -2016,34 +2175,39 @@ export default function AdminDashboard({ onBackToStore }) {
                           <td>
                             <div className="customer-avatar-row">
                               <div className="customer-avatar-circle">
-                                {c.name.slice(0, 1).toUpperCase()}
+                                {(c.name || 'C').slice(0, 1).toUpperCase()}
                               </div>
                               <div>
                                 <div className="cell-primary-text">{c.name}</div>
+                                {c.customerId && (
+                                  <div className="cell-secondary-text" style={{ fontSize: '11px', color: '#00A3E0', fontWeight: '700' }}>
+                                    {c.customerId}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </td>
                           <td>
                             <div className="cell-secondary-text">{c.email}</div>
-                            <div className="cell-secondary-text">{c.phone}</div>
+                            <div className="cell-secondary-text">{c.phone || 'N/A'}</div>
                           </td>
                           <td>
-                            <div>{c.city}, {c.state}</div>
-                            <div className="cell-secondary-text">{c.pincode}</div>
+                            <div>{c.city || 'N/A'}, {c.state || ''}</div>
+                            <div className="cell-secondary-text">{c.pincode || ''}</div>
                           </td>
                           <td>
-                            <strong>{c.totalOrders} order{c.totalOrders > 1 ? 's' : ''}</strong>
+                            <strong>{c.totalOrders || 0} order{(c.totalOrders || 0) > 1 ? 's' : ''}</strong>
                           </td>
                           <td className="cell-price">
-                            ₹ {c.totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            ₹ {Number(c.totalSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                           <td>
-                            <span className={`tier-badge ${c.tier.toLowerCase().replace(/\s+/g, '-')}`}>
-                              {c.tier}
+                            <span className={`tier-badge ${(c.tier || 'Standard').toLowerCase().replace(/\s+/g, '-')}`}>
+                              {c.tier || 'Standard Customer'}
                             </span>
                           </td>
                           <td className="cell-secondary-text">
-                            {new Date(c.lastOrderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {c.lastOrderDate || c.createdAt ? new Date(c.lastOrderDate || c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently Joined'}
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             <button
@@ -2142,6 +2306,19 @@ export default function AdminDashboard({ onBackToStore }) {
                     <option value="CLOSED">CLOSED ({tickets.filter(t => t.status === 'CLOSED').length})</option>
                   </select>
                 </div>
+
+                {tickets.length > 0 && (
+                  <button
+                    type="button"
+                    className="atomy-btn-secondary"
+                    style={{ color: '#ef4444', borderColor: '#fca5a5', padding: '0 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    onClick={handleClearAllTickets}
+                    title="Clear all tickets and start fresh"
+                  >
+                    <Trash2 size={14} />
+                    <span>Clear All Inquiries</span>
+                  </button>
+                )}
               </div>
 
               {tickets.length === 0 ? (
@@ -2262,7 +2439,7 @@ export default function AdminDashboard({ onBackToStore }) {
                                 </div>
                                 <div className="chat-bubble-text">{msg.message}</div>
                                 <div className="chat-bubble-time">
-                                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  {new Date(msg.sentAt || msg.createdAt || msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </div>
                               </div>
                             </div>

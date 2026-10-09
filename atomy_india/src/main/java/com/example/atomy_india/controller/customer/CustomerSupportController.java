@@ -17,6 +17,14 @@ public class CustomerSupportController {
     @Autowired
     private CustomerService customerService;
 
+    @GetMapping("/tickets")
+    public ResponseEntity<java.util.List<SupportTicket>> getTicketsByEmail(@RequestParam(required = false) String email) {
+        if (email != null && !email.trim().isEmpty()) {
+            return ResponseEntity.ok(customerService.getTicketsByEmail(email.trim()));
+        }
+        return ResponseEntity.ok(customerService.getAllRecentTickets());
+    }
+
     @PostMapping("/tickets")
     public ResponseEntity<SupportTicket> createTicket(@RequestBody CreateTicketRequest req) {
         return ResponseEntity.ok(customerService.createTicket(req));
@@ -29,7 +37,7 @@ public class CustomerSupportController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/tickets/{ticketId}/messages")
+    @PostMapping({"/tickets/{ticketId}/messages", "/tickets/{ticketId}/reply"})
     public ResponseEntity<TicketMessage> replyTicket(
             @PathVariable String ticketId,
             @RequestBody ReplyTicketRequest req) {

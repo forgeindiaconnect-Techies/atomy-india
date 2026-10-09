@@ -22,7 +22,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const shippingFee = subtotal >= 1000 ? 0 : 99;
+  const shippingFee = subtotal >= 4500 ? 0 : 150;
   const totalAmount = subtotal + shippingFee;
 
   const handleChange = (e) => {

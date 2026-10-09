@@ -210,8 +210,10 @@ export default function Header({
                       e.preventDefault();
                       if (onNavigateMembership) onNavigateMembership();
                     }}
+                    title="Atomy Distributor Membership Active - Wholesale DP Pricing Unlocked"
                   >
-                    Plan Active
+                    <span className="member-pill-sparkle">★</span>
+                    <span>Membership Active</span>
                   </button>
                 ) : (
                   <button
@@ -479,6 +481,26 @@ export default function Header({
                 >
                   <span className="customer-greeting-text">
                     Hello, <strong className="customer-greeting-name">{userGreetingName}</strong>
+                    {isMember && (
+                      <span
+                        className="member-badge-chip"
+                        style={{
+                          marginLeft: '8px',
+                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                          color: '#ffffff',
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.18)'
+                        }}
+                      >
+                        ★ DP Member
+                      </span>
+                    )}
                   </span>
 
                   {/* Clean single-line hover tooltip showing ONLY the full name */}

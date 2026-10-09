@@ -68,7 +68,10 @@ export default function NewLaunchBadge({
 
     if (prev !== 'home' && currentView === 'home') {
       if (adConfig.isActive && !isCancelledByUser && !isAdSuppressedForToday()) {
-        setIsOpen(true);
+        const timer = setTimeout(() => {
+          setIsOpen(true);
+        }, 400);
+        return () => clearTimeout(timer);
       }
     }
   }, [currentView, isCancelledByUser, adConfig.isActive]);

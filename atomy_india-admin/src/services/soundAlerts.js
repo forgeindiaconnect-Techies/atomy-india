@@ -5,10 +5,10 @@ let sharedAudioCtx = null;
 
 function getAudioContext() {
   if (typeof window === 'undefined') return null;
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
   if (!sharedAudioCtx) {
-    sharedAudioCtx = new AudioContext();
+    sharedAudioCtx = new AudioContextClass();
   }
   if (sharedAudioCtx.state === 'suspended') {
     sharedAudioCtx.resume().catch(() => {});
@@ -16,26 +16,54 @@ function getAudioContext() {
   return sharedAudioCtx;
 }
 
+// Auto-unlock WebAudio on initial window interaction across all events
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    try {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+    } catch {}
+  };
+  ['click', 'keydown', 'pointerdown', 'touchstart', 'scroll', 'focus', 'mousemove'].forEach(ev => {
+    window.addEventListener(ev, unlockAudio, { passive: true, once: ev === 'mousemove' });
+  });
+}
+
 /**
  * Strong Order Alert Sound:
- * A rich 4-tone ascending melodic fanfare chime (E5 - G#5 - B5 - E6)
- * with sparkling harmonics and warm decay.
+ * A rich 2-phrase ascending melodic fanfare alarm chime (E5-G#5-B5-E6 + G#5-B5-E6-G#6)
+ * with sparkling harmonics, high visibility, and warm bell decay.
  */
-export function playOrderAlertSound(volume = 0.8) {
+export async function playOrderAlertSound(volume = 0.9) {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
 
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch {}
+    }
+
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(Math.max(0.05, Math.min(volume, 1.0)), ctx.currentTime);
+    const safeVol = Math.max(0.2, Math.min(volume, 1.0));
+    masterGain.gain.setValueAtTime(safeVol, ctx.currentTime);
     masterGain.connect(ctx.destination);
 
-    // Chime notes: E5 (659.25), G#5 (830.61), B5 (987.77), E6 (1318.51)
+    // 2-phrase fanfare chime sequence
     const notes = [
-      { freq: 659.25, time: 0.00, dur: 0.65 },
-      { freq: 830.61, time: 0.11, dur: 0.65 },
-      { freq: 987.77, time: 0.22, dur: 0.70 },
-      { freq: 1318.51, time: 0.33, dur: 1.10 }
+      // Phrase 1 (Melodic order fanfare)
+      { freq: 659.25, time: 0.00, dur: 0.55 },
+      { freq: 830.61, time: 0.12, dur: 0.55 },
+      { freq: 987.77, time: 0.24, dur: 0.60 },
+      { freq: 1318.51, time: 0.36, dur: 0.95 },
+      // Phrase 2 (Second emphasis chime)
+      { freq: 830.61, time: 0.55, dur: 0.45 },
+      { freq: 987.77, time: 0.67, dur: 0.50 },
+      { freq: 1318.51, time: 0.79, dur: 0.55 },
+      { freq: 1661.22, time: 0.91, dur: 1.10 }
     ];
 
     notes.forEach(({ freq, time, dur }) => {
@@ -56,7 +84,7 @@ export function playOrderAlertSound(volume = 0.8) {
 
       // Chime envelope: fast attack, exponential bell decay
       noteGain.gain.setValueAtTime(0, startTime);
-      noteGain.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+      noteGain.gain.linearRampToValueAtTime(0.6, startTime + 0.02);
       noteGain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
 
       osc.connect(noteGain);

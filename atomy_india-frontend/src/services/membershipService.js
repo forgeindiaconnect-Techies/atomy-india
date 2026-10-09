@@ -154,22 +154,26 @@ export function cancelMembership(user) {
 export function isUserMember(currentUser) {
   if (!currentUser) return false;
 
-  // If this person has had their membership cancelled or is not explicitly active
-  if (currentUser.isMember !== true || !currentUser.membership || currentUser.membership.status !== 'ACTIVE') {
-    return false;
+  // 1. Explicit membership flag from database / session
+  if (currentUser.isMember === true) {
+    return true;
   }
 
-  // Clean out any stale test membership
-  if (currentUser.membership?.id === 'ATM-MEM-414' || currentUser.membership?.paymentId?.includes('test')) {
-    currentUser.isMember = false;
-    delete currentUser.membership;
-    try {
-      localStorage.setItem('atomy_current_user', JSON.stringify(currentUser));
-    } catch {}
-    return false;
+  // 2. Active membership sub-object on user
+  if (currentUser.membership && (currentUser.membership.status === 'ACTIVE' || currentUser.membership.active === true)) {
+    return true;
   }
 
-  return true;
+  // 3. Check registry for active membership by email
+  try {
+    const reg = getMembersRegistry();
+    const userEmail = (currentUser.email || '').toLowerCase().trim();
+    if (userEmail && reg.some(m => (m.customerEmail || m.email || '').toLowerCase().trim() === userEmail && (m.status === 'ACTIVE' || !m.status))) {
+      return true;
+    }
+  } catch {}
+
+  return false;
 }
 
 /**
@@ -318,6 +322,7 @@ export async function enrollMembership(user, plan = 'ANNUAL', paymentDetails = {
       sessionUser.isMember = true;
       sessionUser.membership = {
         active: true,
+        status: 'ACTIVE',
         plan,
         expiryDate: memberRecord.expiryDate,
         id: memberRecord.id

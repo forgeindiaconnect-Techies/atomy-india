@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ShoppingCart, ShoppingBag, Plus, Minus, X, ArrowLeft } from 'lucide-react';
 import './CartPage.css';
 import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS } from '../../data/mockData';
+import { calculateCartTaxSummary } from '../../services/taxService';
 
 const CART_PAGE_BEST_PRODUCTS = [
   {
@@ -80,6 +81,7 @@ const CART_PAGE_BEST_PRODUCTS = [
 
 export default function CartPage({
   cartItems = [],
+  currentUser = null,
   onUpdateQty,
   onRemoveItem,
   onCheckout,
@@ -89,6 +91,18 @@ export default function CartPage({
   onAddToCart,
   onNavigateSignIn
 }) {
+  // Determine if active user is logged in (from prop or localStorage)
+  const isLoggedIn = Boolean(
+    currentUser || (() => {
+      try {
+        const saved = localStorage.getItem('atomy_current_user');
+        return saved ? JSON.parse(saved) : null;
+      } catch {
+        return null;
+      }
+    })()
+  );
+
   const [selectedIds, setSelectedIds] = useState(() => 
     cartItems.map(item => item.id)
   );
@@ -131,6 +145,7 @@ export default function CartPage({
 
   const selectedItems = cartItems.filter(item => selectedIds.includes(item.id));
   const subtotal = selectedItems.reduce((acc, item) => acc + (item.price || 0) * (item.qty || 1), 0);
+  const cartTaxSummary = calculateCartTaxSummary(selectedItems);
   const totalPV = selectedItems.reduce((acc, item) => {
     const itemPv = item.pv || Math.round((item.price || 1000) * 4.5);
     return acc + itemPv * (item.qty || 1);
@@ -146,7 +161,9 @@ export default function CartPage({
     if (Array.isArray(cat?.tags) && cat.tags.some(t => typeof t === 'string' && t.toLowerCase().includes('free delivery'))) return true;
     return false;
   });
-  const shippingFee = (selectedItems.length > 0 && !hasFreeDeliveryProduct) ? 150 : 0;
+  const freeShippingThreshold = 4500;
+  const isFreeDeliveryEligible = subtotal >= freeShippingThreshold || hasFreeDeliveryProduct;
+  const shippingFee = (selectedItems.length > 0 && !isFreeDeliveryEligible) ? 150 : 0;
   const grandTotal = subtotal + shippingFee;
 
   const handleScrollSlider = (direction) => {
@@ -192,24 +209,50 @@ export default function CartPage({
           {cartItems.length === 0 ? (
             /* Empty Cart State */
             <div className="cart-empty-wrapper">
-              <div className="cart-login">
-                <div className="tit">
-                  <h3>Sign in to receive benefits.</h3>
-                  <span>Points can be earned once you join as a member</span>
+              {!isLoggedIn && (
+                <div className="cart-login">
+                  <div className="tit">
+                    <h3>Sign in to receive benefits.</h3>
+                    <span>Points can be earned once you join as a member</span>
+                  </div>
+                  <div className="bt">
+                    <button 
+                      className="btn ln mg" 
+                      type="button" 
+                      onClick={onNavigateSignIn}
+                    >
+                      <em>Sign in</em>
+                    </button>
+                  </div>
                 </div>
-                <div className="bt">
-                  <button 
-                    className="btn ln mg" 
-                    type="button" 
-                    onClick={onNavigateSignIn}
-                  >
-                    <em>Sign in</em>
-                  </button>
-                </div>
-              </div>
+              )}
 
-              <div className="cart-none">
-                <span>There are no items in the cart</span>
+              <div className="cart-none" style={{ flexDirection: 'column', textAlign: 'center', padding: '80px 20px' }}>
+                <ShoppingBag size={48} color="#94a3b8" style={{ marginBottom: '14px', strokeWidth: 1.5 }} />
+                <span style={{ fontSize: '18px', fontWeight: 600, color: '#334155' }}>There are no items in the cart</span>
+                <p style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', maxWidth: '380px' }}>
+                  Explore our curated Atomy catalog to discover health, skincare, and daily lifestyle essentials.
+                </p>
+                <button
+                  type="button"
+                  className="btn-browse-shop"
+                  onClick={onNavigateHome}
+                  style={{
+                    marginTop: '20px',
+                    padding: '11px 28px',
+                    backgroundColor: '#00A3E0',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0, 163, 224, 0.25)',
+                    transition: 'background-color 0.2s ease'
+                  }}
+                >
+                  Start Shopping
+                </button>
               </div>
             </div>
           ) : (
@@ -256,16 +299,16 @@ export default function CartPage({
                   </div>
                 </div>
 
-                {/* Free Shipping Indicator */}
+                {/* Free Delivery Indicator based on product specification */}
                 <div className="cart-group_indi">
                   <div className="txt">
-                    {subtotal >= freeShippingThreshold ? (
+                    {hasFreeDeliveryProduct ? (
                       <span className="free-ship-success">
-                        <em>Free shipping</em> applied to this order!
+                        <em>Free Delivery</em> applied to this order! (Eligible product included)
                       </span>
                     ) : (
                       <span>
-                        <em>₹{(freeShippingThreshold - subtotal).toLocaleString('en-IN')}</em> more to get free shipping
+                        <em>Standard Delivery (₹ 150.00)</em> applied. Add any product with Free Delivery for free doorstep shipping.
                       </span>
                     )}
                   </div>
@@ -390,6 +433,11 @@ export default function CartPage({
                 <span className="tit">Total</span>
                 <span className="prc"><em>₹</em><b>{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</b></span>
               </li>
+              <li style={{ padding: '2px 0 6px', textAlign: 'right', listStyle: 'none' }}>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+                  (Final amount inclusive of GST: ₹ {cartTaxSummary.totalGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                </span>
+              </li>
               <li className="bx_sub">
                 <span className="txt">Promotions may be applied.</span>
               </li>
@@ -424,42 +472,53 @@ export default function CartPage({
                   <b>{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</b>
                 </span>
               </li>
+              <li style={{ padding: '2px 0 6px', textAlign: 'right', listStyle: 'none' }}>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+                  (Final amount inclusive of GST: ₹ {cartTaxSummary.totalGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                </span>
+              </li>
               <li className="bx_sub">
-                <span className="txt">
-                  Promotions may be applied.
+                <span className="txt" style={{ color: isFreeDeliveryEligible ? '#059669' : '#0284c7', fontWeight: 600 }}>
+                  {isFreeDeliveryEligible
+                    ? '✓ Free delivery applied (orders above ₹ 4,500.00)'
+                    : `Add ₹ ${(4500 - subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })} more for Free Delivery`}
                 </span>
               </li>
             </ul>
           </div>
 
-          {/* Two Buttons: Easy Purchase + Total Items Checkout (.fxd-btn) */}
+          {/* Place Order Button (.fxd-btn) navigating to Payment Summary */}
           <div className={`fxd-btn ${selectedItems.length === 0 ? 'disabled' : ''}`}>
             <button
               type="button"
-              className="easy"
+              className="btn-cart-place-order"
               disabled={selectedItems.length === 0}
               onClick={() => {
                 if (selectedItems.length > 0) {
-                  onCheckout && onCheckout();
+                  onCheckout && onCheckout(selectedItems);
                 }
               }}
-            >
-              <em>Easy Purchase</em>
-            </button>
-            <button
-              type="button"
-              className="sp"
-              disabled={selectedItems.length === 0}
-              onClick={() => {
-                if (selectedItems.length > 0) {
-                  onCheckout && onCheckout();
-                }
+              style={{
+                width: '100%',
+                height: '52px',
+                background: selectedItems.length === 0 ? '#d8dde0' : '#00b6f0',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '16px',
+                fontWeight: '700',
+                cursor: selectedItems.length === 0 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                letterSpacing: '0.2px',
+                transition: 'all 0.2s ease'
               }}
             >
               <em>
                 {selectedItems.length === 0
-                  ? '0 items in total'
-                  : `${selectedItems.length} items in total`}
+                  ? 'Place Order (0 items)'
+                  : `Place Order (${selectedItems.length} ${selectedItems.length === 1 ? 'item' : 'items'})`}
               </em>
             </button>
           </div>

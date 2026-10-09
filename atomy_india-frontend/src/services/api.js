@@ -49,6 +49,12 @@ export async function getSupportTicket(ticketId) {
   return res.json();
 }
 
+export async function getCustomerTicketsByEmail(email) {
+  const res = await fetch(`${API_BASE}/support/tickets?email=${encodeURIComponent(email)}`);
+  if (!res.ok) throw new Error('Failed to retrieve customer tickets');
+  return res.json();
+}
+
 export async function addCustomerTicketReply(ticketId, message) {
   const res = await fetch(`${API_BASE}/support/tickets/${encodeURIComponent(ticketId)}/reply`, {
     method: 'POST',
@@ -165,6 +171,14 @@ export async function updateAdminTicketStatus(ticketId, status) {
   return res.json();
 }
 
+export async function clearAllAdminTickets() {
+  const res = await fetch(`${API_BASE}/admin/support/tickets`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error('Failed to clear tickets');
+  return res.json();
+}
+
 export async function fetchAdminProducts() {
   const [prodRes, invRes] = await Promise.all([
     fetch(`${API_BASE}/products`),
@@ -191,4 +205,54 @@ export async function fetchAdminProducts() {
     };
   });
 }
+
+// ==========================================
+// CUSTOMER AUTH & REGISTRATION API (MYSQL)
+// ==========================================
+
+export async function registerCustomer(customerData) {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(customerData)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Registration failed');
+  }
+  return data;
+}
+
+export async function loginCustomer(credentials) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Sign in failed');
+  }
+  return data;
+}
+
+export async function googleAuthCustomer(googleData) {
+  const res = await fetch(`${API_BASE}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(googleData)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Google authentication failed');
+  }
+  return data;
+}
+
+export async function fetchAdminCustomers() {
+  const res = await fetch(`${API_BASE}/admin/customers`);
+  if (!res.ok) throw new Error('Failed to fetch customers list');
+  return res.json();
+}
+
 

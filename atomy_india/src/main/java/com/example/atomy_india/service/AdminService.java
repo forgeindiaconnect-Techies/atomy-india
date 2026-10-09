@@ -256,4 +256,14 @@ public class AdminService {
         ticketRepository.save(ticket);
         return msg;
     }
+
+    @Transactional
+    public void clearAllTickets() {
+        ticketRepository.deleteAll();
+    }
+
+    @Transactional
+    public void deleteTicket(String ticketId) {
+        ticketRepository.deleteById(ticketId);
+    }
 }

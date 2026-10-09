@@ -1,6 +1,7 @@
 package com.example.atomy_india.controller.customer;
 
 import com.example.atomy_india.model.Membership;
+import com.example.atomy_india.repository.CustomerUserRepository;
 import com.example.atomy_india.repository.MembershipRepository;
 import com.example.atomy_india.repository.PromotionSettingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ public class CustomerMembershipController {
 
     @Autowired
     private PromotionSettingRepository promotionSettingRepository;
+
+    @Autowired
+    private CustomerUserRepository customerUserRepository;
 
     private static final String DEFAULT_SETTINGS_JSON = "{"
             + "\"className\":\"Atomy Distributor Membership\","
@@ -88,6 +92,14 @@ public class CustomerMembershipController {
             }
 
             Membership saved = membershipRepository.save(membership);
+
+            // Synchronize with CustomerUser record in database
+            final String customerEmail = email;
+            customerUserRepository.findByEmail(customerEmail).ifPresent(user -> {
+                user.setIsMember(true);
+                customerUserRepository.save(user);
+            });
+
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));

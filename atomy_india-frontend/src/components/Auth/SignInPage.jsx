@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, User, Mail } from 'lucide-react';
 import { clearAdSuppressionForLogin } from '../../services/adPromotionService';
+import { registerCustomer, loginCustomer, googleAuthCustomer } from '../../services/api';
 import './SignInPage.css';
 
 export default function SignInPage({
@@ -36,7 +37,7 @@ export default function SignInPage({
     }
   }, [isSignUp]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -51,55 +52,113 @@ export default function SignInPage({
       }
     } else {
       if (!username.trim() || !password) {
-        setErrorMessage('Please enter your ID and password.');
+        setErrorMessage('Please enter your email and password.');
         return;
       }
     }
 
     setSubmitted(true);
-    if (saveId) {
-      localStorage.setItem('atomy_saved_id', username.trim());
-    } else {
-      localStorage.removeItem('atomy_saved_id');
-    }
 
-    // Always clear ad suppression so the promotional ad pops up on login or signup!
-    clearAdSuppressionForLogin();
+    try {
+      if (isSignUp) {
+        const regRes = await registerCustomer({
+          fullName: fullName.trim(),
+          email: email.trim(),
+          username: username.trim(),
+          password: password,
+          source: 'EMAIL_SIGNUP'
+        });
 
-    const userData = isSignUp
-      ? {
-        name: fullName.trim(),
-        email: email.trim(),
-        username: username.trim(),
-        role: 'customer'
+        if (!regRes || !regRes.customer) {
+          throw new Error(regRes?.message || 'Registration failed. Please try again.');
+        }
+
+        if (saveId) {
+          localStorage.setItem('atomy_saved_id', username.trim());
+        } else {
+          localStorage.removeItem('atomy_saved_id');
+        }
+
+        clearAdSuppressionForLogin();
+
+        const userData = {
+          id: regRes.customer.id,
+          customerId: regRes.customer.customerId,
+          name: regRes.customer.fullName || fullName.trim(),
+          email: regRes.customer.email || email.trim(),
+          username: regRes.customer.username || username.trim(),
+          phone: regRes.customer.phone || '',
+          isMember: Boolean(regRes.customer.isMember),
+          role: 'customer'
+        };
+
+        onLoginSuccess && onLoginSuccess(userData, true);
+      } else {
+        const loginRes = await loginCustomer({
+          usernameOrEmail: username.trim(),
+          password: password
+        });
+
+        if (!loginRes || !loginRes.customer) {
+          throw new Error(loginRes?.message || 'Invalid username or password.');
+        }
+
+        if (saveId) {
+          localStorage.setItem('atomy_saved_id', username.trim());
+        } else {
+          localStorage.removeItem('atomy_saved_id');
+        }
+
+        clearAdSuppressionForLogin();
+
+        const userData = {
+          id: loginRes.customer.id,
+          customerId: loginRes.customer.customerId,
+          name: loginRes.customer.fullName || username.trim(),
+          email: loginRes.customer.email,
+          username: loginRes.customer.username || username.trim(),
+          phone: loginRes.customer.phone || '',
+          isMember: Boolean(loginRes.customer.isMember),
+          role: 'customer'
+        };
+
+        onLoginSuccess && onLoginSuccess(userData, false);
       }
-      : {
-        name: username.trim(),
-        username: username.trim(),
-        email: `${username.trim().toLowerCase().replace(/\s+/g, '')}@atomy.in`,
-        role: 'customer'
-      };
-
-    setTimeout(() => {
-      onLoginSuccess && onLoginSuccess(userData, isSignUp);
-    }, 500);
+    } catch (err) {
+      setSubmitted(false);
+      setErrorMessage(err.message || 'Authentication failed. Please verify your credentials and try again.');
+    }
   };
 
-  const handleGoogleAccountSelect = (googleUser) => {
+  const handleGoogleAccountSelect = async (googleUser) => {
     setIsGoogleModalOpen(false);
     clearAdSuppressionForLogin();
     localStorage.setItem('atomy_saved_id', googleUser.name);
 
-    const userData = {
-      name: googleUser.name,
-      email: googleUser.email,
-      username: googleUser.email.split('@')[0],
-      role: 'customer'
-    };
+    try {
+      const gRes = await googleAuthCustomer({
+        email: googleUser.email,
+        name: googleUser.name
+      });
 
-    setTimeout(() => {
-      onLoginSuccess && onLoginSuccess(userData, isSignUp);
-    }, 400);
+      if (!gRes || !gRes.customer) {
+        throw new Error('Google authentication failed');
+      }
+
+      const userData = {
+        id: gRes.customer.id,
+        customerId: gRes.customer.customerId,
+        name: gRes.customer.fullName || googleUser.name,
+        email: gRes.customer.email || googleUser.email,
+        username: gRes.customer.username || googleUser.email.split('@')[0],
+        isMember: Boolean(gRes.customer.isMember),
+        role: 'customer'
+      };
+
+      onLoginSuccess && onLoginSuccess(userData, false);
+    } catch (err) {
+      setErrorMessage('Google sign-in error: ' + err.message);
+    }
   };
 
   const handleCustomGoogleSubmit = (e) => {
@@ -151,7 +210,7 @@ export default function SignInPage({
             <p className="signin-subtitle">
               {isSignUp
                 ? 'Create a customer account to shop Atomy products'
-                : 'Welcome back! Enter your Customer ID & Password to sign in'}
+                : 'Welcome back! Enter your email and password to sign in'}
             </p>
           </div>
           <div className="signin-divider-line"></div>
@@ -193,12 +252,12 @@ export default function SignInPage({
 
               <div className="form-input-group">
                 <input
-                  type="text"
-                  placeholder={isSignUp ? "Choose Username / Customer ID" : "ID / Username"}
+                  type={isSignUp ? "text" : "email"}
+                  placeholder={isSignUp ? "Choose Username" : "Email Address"}
                   className="signin-input"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
+                  autoComplete={isSignUp ? "username" : "email"}
                   required
                 />
               </div>
@@ -247,7 +306,7 @@ export default function SignInPage({
                   <div className={`custom-round-checkbox ${saveId ? 'checked' : ''}`}>
                     {saveId && <Check size={12} strokeWidth={3} />}
                   </div>
-                  <span className="save-id-label">Remember ID</span>
+                  <span className="save-id-label">Remember Email</span>
                 </div>
               )}
             </form>

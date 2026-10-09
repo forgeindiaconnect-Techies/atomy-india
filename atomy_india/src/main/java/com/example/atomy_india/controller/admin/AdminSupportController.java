@@ -35,10 +35,18 @@ public class AdminSupportController {
     @PutMapping("/tickets/{ticketId}/status")
     public ResponseEntity<SupportTicket> updateTicketStatus(
             @PathVariable String ticketId,
-            @RequestBody Map<String, String> body) {
+            @RequestParam(required = false) String status,
+            @RequestBody(required = false) Map<String, String> body) {
         try {
-            SupportTicket.TicketStatus status = SupportTicket.TicketStatus.valueOf(body.get("status"));
-            return ResponseEntity.ok(adminService.updateTicketStatus(ticketId, status));
+            String statusStr = status;
+            if ((statusStr == null || statusStr.isEmpty()) && body != null && body.containsKey("status")) {
+                statusStr = body.get("status");
+            }
+            if (statusStr == null || statusStr.isEmpty()) {
+                return ResponseEntity.badRequest().build();
+            }
+            SupportTicket.TicketStatus newStatus = SupportTicket.TicketStatus.valueOf(statusStr.toUpperCase());
+            return ResponseEntity.ok(adminService.updateTicketStatus(ticketId, newStatus));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -49,5 +57,17 @@ public class AdminSupportController {
             @PathVariable String ticketId,
             @RequestBody ReplyTicketRequest req) {
         return ResponseEntity.ok(adminService.adminReplyToTicket(ticketId, req.getMessage()));
+    }
+
+    @DeleteMapping("/tickets")
+    public ResponseEntity<Map<String, String>> clearAllTickets() {
+        adminService.clearAllTickets();
+        return ResponseEntity.ok(Map.of("message", "All support tickets cleared successfully"));
+    }
+
+    @DeleteMapping("/tickets/{ticketId}")
+    public ResponseEntity<Void> deleteTicket(@PathVariable String ticketId) {
+        adminService.deleteTicket(ticketId);
+        return ResponseEntity.ok().build();
     }
 }

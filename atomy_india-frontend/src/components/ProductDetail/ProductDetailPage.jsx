@@ -23,6 +23,8 @@ import {
   getRelatedProducts
 } from '../../data/mockData';
 import { getProductDetailConfig, getGenericName } from '../../data/productDetailsData';
+import { getProductStats, recordProductAddedToCart } from '../../services/productStatsService';
+import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import './ProductDetailPage.css';
 
@@ -40,7 +42,8 @@ export default function ProductDetailPage({
   onNavigateContact,
   onOpenRecentlyViewed,
   favorites = [],
-  onToggleFavorite
+  onToggleFavorite,
+  isMember = false
 }) {
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   const [isImgModalOpen, setIsImgModalOpen] = useState(false);
@@ -137,12 +140,25 @@ export default function ProductDetailPage({
 
   const isFavorite = favorites.some((f) => f.id === product?.id);
 
+  // Dynamic persistent stats (Likes strictly tied to customer favorites; purchased & addedToCart to actions)
+  const [stats, setStats] = useState(() => getProductStats(product, isFavorite));
+
+  useEffect(() => {
+    setStats(getProductStats(product, isFavorite));
+  }, [product?.id, isFavorite]);
+
+  useEffect(() => {
+    const handleStatsSync = () => {
+      setStats(getProductStats(product, isFavorite));
+    };
+    window.addEventListener('atomy:product-stats-updated', handleStatsSync);
+    return () => window.removeEventListener('atomy:product-stats-updated', handleStatsSync);
+  }, [product, isFavorite]);
+
   const handleToggleLike = () => {
     if (onToggleFavorite && product) {
       onToggleFavorite(product);
     }
-    setIsLiked(!isFavorite);
-    setLikesCount((prev) => (isFavorite ? prev - 1 : prev + 1));
   };
 
   const handleShare = () => {
@@ -178,7 +194,9 @@ export default function ProductDetailPage({
     }
   };
 
-  const unitPrice = product.price || 1350;
+  const unitPrice = isMember && (product.dpPrice || product.distributorPrice)
+    ? Number(product.dpPrice || product.distributorPrice)
+    : (Number(product.price) || 1350);
   const totalPrice = unitPrice * qty;
   const itemPv = product.pv || officialData?.pv || 6700;
   const totalPv = itemPv * qty;
@@ -375,19 +393,20 @@ export default function ProductDetailPage({
                   title="Print Product Page"
                   aria-label="Print"
                 >
-                  <Printer size={18} />
+                  <Printer size={26} strokeWidth={1.8} />
                 </button>
                 <button
                   type="button"
-                  className={`pdp-icon-tool-btn ${isFavorite || isLiked ? 'liked' : ''}`}
+                  className={`pdp-icon-tool-btn ${isFavorite ? 'liked' : ''}`}
                   onClick={handleToggleLike}
                   title={isFavorite ? "Remove from Favorites" : "Save to Favorites"}
                   aria-label="Favorites"
                 >
                   <Heart
-                    size={18}
-                    fill={isFavorite || isLiked ? "#ef4444" : "none"}
-                    color={isFavorite || isLiked ? "#ef4444" : "#444444"}
+                    size={26}
+                    strokeWidth={1.8}
+                    fill={isFavorite ? "#ef4444" : "none"}
+                    color={isFavorite ? "#ef4444" : "#1e293b"}
                   />
                 </button>
                 <button
@@ -397,7 +416,7 @@ export default function ProductDetailPage({
                   title="Share Product"
                   aria-label="Share"
                 >
-                  <Share2 size={18} />
+                  <Share2 size={26} strokeWidth={1.8} />
                 </button>
               </div>
             </div>
@@ -410,23 +429,19 @@ export default function ProductDetailPage({
             {/* Product Title (matches Screenshot 1) */}
             <h1 className="pdp-official-title">{product.name}</h1>
 
-            {/* Price & Offer Row */}
+            {/* Official Price & Tax Breakdown Block (Matches Atomy India Specifications) */}
             {(() => {
               const origVal = Number(product.originalPrice) || 0;
               const discVal = product.discountPercent
                 ? Number(String(product.discountPercent).replace(/[^0-9]/g, ''))
                 : (origVal > unitPrice ? Math.round(((origVal - unitPrice) / origVal) * 100) : 0);
               const hasOffer = discVal > 0 && origVal > unitPrice;
+              const { rate: gstRate, base: unitGstBase, gst: unitGst } = calculateProductTax(unitPrice, product);
 
               return (
-                <>
-                  <div className="pdp-price-amount">
-                    {!hasOffer && <span style={{ fontSize: '16px', color: '#64748b', fontWeight: '500', marginRight: '6px' }}>MRP</span>}
-                    ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </div>
-
+                <div className="pdp-official-pricing-card">
                   {hasOffer && (
-                    <div className="pdp-mrp-discount-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 10px' }}>
+                    <div className="pdp-mrp-discount-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 6px' }}>
                       <span style={{ fontSize: '13px', color: '#64748b' }}>MRP:</span>
                       <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '14px', fontWeight: '500' }}>
                         ₹ {origVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -436,48 +451,71 @@ export default function ProductDetailPage({
                       </span>
                     </div>
                   )}
-                </>
+
+                  {/* Top Line: ₹ 2,855.60 (Including Tax) 13,500 PV ⓘ */}
+                  <div className="pdp-tax-headline-row">
+                    <span className="pdp-price-amount-hero">
+                      ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <span className="pdp-including-tax-label">
+                      (Including Tax)
+                    </span>
+                    <span className="pdp-pv-amount-hero">
+                      {itemPv.toLocaleString('en-IN')} PV
+                    </span>
+                    <span className="pdp-pv-info-icon" title="Point Value (PV) earned upon purchase">
+                      ⓘ
+                    </span>
+                  </div>
+
+                  {/* 3-Row Tax & Base Breakdown Table */}
+                  <div className="pdp-tax-breakdown-list">
+                    <div className="pdp-tax-breakdown-line">
+                      <span className="pdp-tax-line-title">
+                        {isMember ? 'Distributor price' : 'Base Price'}
+                      </span>
+                      <span className="pdp-tax-line-amount">
+                        <strong>₹ {unitGstBase.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                        <span className="pdp-tax-excl-note"> (Excluding Tax)</span>
+                      </span>
+                    </div>
+
+                    <div className="pdp-tax-breakdown-line">
+                      <span className="pdp-tax-line-title">{gstRate === 5 ? 'GST (5%)' : 'GST'}</span>
+                      <span className="pdp-tax-line-amount">
+                        ₹ {unitGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="pdp-tax-breakdown-line">
+                      <span className="pdp-tax-line-title">Total Price</span>
+                      <span className="pdp-tax-line-amount">
+                        ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               );
             })()}
-
-            {/* DP (Distributor Price) Row for Member Advantage */}
-            {(product.dpPrice || product.distributorPrice) && (
-              <div className="pdp-dp-price-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '8px 14px', borderRadius: '8px', margin: '10px 0 14px' }}>
-                <span style={{ fontSize: '11px', fontWeight: '800', background: '#10b981', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', letterSpacing: '0.05em' }}>
-                  DP PRICE
-                </span>
-                <span style={{ fontSize: '15px', fontWeight: '800', color: '#065f46' }}>
-                  ₹ {Number(product.dpPrice || product.distributorPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
-                <span style={{ fontSize: '12px', color: '#047857' }}>
-                  • Atomy Member Advantage Plan (Upcoming)
-                </span>
-              </div>
-            )}
-
-            {/* Authentic Atomy PV Display */}
-            <div className="pdp-pv-display-row">
-              <span className="pdp-pv-amount">{itemPv.toLocaleString('en-IN')} PV</span>
-            </div>
 
             {/* Product Number */}
             <p className="pdp-product-number-line">
               Product number {product.id || 'D00101'}
             </p>
 
-            {/* Social Proof Counter Stats (matches Screenshot 1 with cyan icons) */}
+            {/* Social Proof Counter Stats (matches Screenshot 2 with cyan icons) */}
             <div className="pdp-stats-indicators-row">
               <div className="stat-indicator-item">
                 <Heart size={16} color="#00A3E0" />
-                <span>{likesCount} Likes</span>
+                <span>{stats.likes.toLocaleString('en-IN')} Likes</span>
               </div>
               <div className="stat-indicator-item">
                 <FileText size={16} color="#00A3E0" />
-                <span>{product.purchased || '1,219'} Purchased</span>
+                <span>{stats.purchased.toLocaleString('en-IN')} Purchased</span>
               </div>
               <div className="stat-indicator-item">
                 <ShoppingBag size={16} color="#00A3E0" />
-                <span>{product.addedToCart || '2,333'} Added to cart</span>
+                <span>{stats.addedToCart.toLocaleString('en-IN')} Added to cart</span>
               </div>
             </div>
 
@@ -540,6 +578,9 @@ export default function ProductDetailPage({
                     ₹ {totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
+              </div>
+              <div style={{ textAlign: 'right', fontSize: '11.5px', color: '#64748b', marginTop: '-4px', marginBottom: '10px' }}>
+                (Final amount inclusive of GST: ₹ {calculateProductTax(totalPrice, product).gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
               </div>
 
               {/* Total PV Summary Row */}
@@ -1093,6 +1134,9 @@ export default function ProductDetailPage({
                       ₹ {totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '11.5px', color: '#64748b', marginTop: '-4px', marginBottom: '10px' }}>
+                  (Final amount inclusive of GST: ₹ {calculateProductTax(totalPrice, product).gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                 </div>
 
                 {/* Total PV Summary Row */}

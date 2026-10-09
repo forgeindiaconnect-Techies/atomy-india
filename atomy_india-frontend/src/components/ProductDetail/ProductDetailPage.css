@@ -284,25 +284,26 @@
 .pdp-action-icons-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .pdp-icon-tool-btn {
   background: none;
   border: none;
   cursor: pointer;
-  color: #475569;
+  color: #1e293b;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
-  border-radius: 4px;
-  transition: color 0.2s, background-color 0.2s;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .pdp-icon-tool-btn:hover {
   color: #00A3E0;
   background-color: #f1f5f9;
+  transform: scale(1.1);
 }
 
 .pdp-icon-tool-btn.liked {
@@ -348,6 +349,91 @@
   color: #64748b;
   font-weight: 500;
   margin-right: 6px;
+}
+
+/* Official Tax & Distributor/Base Price Breakdown Structure (Matches User Image) */
+.pdp-official-pricing-card {
+  margin: 10px 0 16px;
+}
+
+.pdp-tax-headline-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  column-gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pdp-price-amount-hero {
+  font-size: 32px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  font-family: inherit;
+}
+
+.pdp-including-tax-label {
+  font-size: 16px;
+  font-weight: 400;
+  color: #111827;
+  margin-right: 14px;
+}
+
+.pdp-pv-amount-hero {
+  font-size: 23px;
+  font-weight: 700;
+  color: #00A3E0;
+  letter-spacing: -0.3px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pdp-pv-info-icon {
+  font-size: 15px;
+  color: #94a3b8;
+  cursor: help;
+  user-select: none;
+  margin-left: 2px;
+  font-weight: 600;
+}
+
+.pdp-tax-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.pdp-tax-breakdown-line {
+  display: flex;
+  align-items: baseline;
+  font-size: 15px;
+  color: #111827;
+  line-height: 1.5;
+}
+
+.pdp-tax-line-title {
+  width: 175px;
+  min-width: 175px;
+  color: #111827;
+  font-weight: 400;
+}
+
+.pdp-tax-line-amount {
+  color: #111827;
+  font-weight: 400;
+}
+
+.pdp-tax-line-amount strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.pdp-tax-excl-note {
+  font-weight: 400;
+  color: #111827;
 }
 
 /* Member Pricing Styles */

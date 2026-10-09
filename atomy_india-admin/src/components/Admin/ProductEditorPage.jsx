@@ -603,23 +603,113 @@ export default function ProductEditorPage({
                     <span>Pure Vegetarian (Green)</span>
                   </label>
 
-                  <label className="checkbox-flag">
+                  <label className={`checkbox-flag ${formData.gstReduced ? 'active-flag-gst' : ''}`}>
                     <input
                       type="checkbox"
                       checked={formData.gstReduced}
-                      onChange={(e) => setFormData({ ...formData, gstReduced: e.target.checked })}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        let updatedTags = Array.isArray(formData.tags)
+                          ? [...formData.tags]
+                          : typeof formData.tags === 'string'
+                            ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+                            : [];
+                        if (checked && !updatedTags.some(t => t.toUpperCase().includes('GST REDUCED'))) {
+                          updatedTags.push('#GST REDUCED');
+                        } else if (!checked) {
+                          updatedTags = updatedTags.filter(t => !t.toUpperCase().includes('GST REDUCED'));
+                        }
+                        setFormData({ ...formData, gstReduced: checked, tags: updatedTags });
+                      }}
                     />
-                    <span>5% GST Reduced Rate</span>
+                    <span>5% GST Reduced Rate Badge (#GST REDUCED)</span>
                   </label>
 
-                  <label className="checkbox-flag">
+                  <label className={`checkbox-flag ${formData.freeDelivery ? 'active-flag-delivery' : ''}`}>
                     <input
                       type="checkbox"
                       checked={formData.freeDelivery}
-                      onChange={(e) => setFormData({ ...formData, freeDelivery: e.target.checked })}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        let updatedTags = Array.isArray(formData.tags)
+                          ? [...formData.tags]
+                          : typeof formData.tags === 'string'
+                            ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+                            : [];
+                        if (checked && !updatedTags.some(t => t.toUpperCase().includes('FREE DELIVERY'))) {
+                          updatedTags.push('#FREE DELIVERY');
+                        } else if (!checked) {
+                          updatedTags = updatedTags.filter(t => !t.toUpperCase().includes('FREE DELIVERY'));
+                        }
+                        setFormData({ ...formData, freeDelivery: checked, tags: updatedTags });
+                      }}
                     />
-                    <span>Free Home Delivery Eligible</span>
+                    <span>Free Home Delivery Eligible (#FREE DELIVERY)</span>
                   </label>
+                </div>
+
+                {/* Quick Promotional Tag Chips */}
+                <div className="editor-tag-chips-section" style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed #e2e8f0' }}>
+                  <label style={{ fontSize: '12.5px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                    Quick Promotional Tags:
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {[
+                      { tag: '#GST REDUCED', isGst: true },
+                      { tag: '#FREE DELIVERY', isDeliv: true },
+                      { tag: '#BEST SELLER' },
+                      { tag: '#NEW' },
+                      { tag: '#IMMUNITY' },
+                      { tag: '#POPULAR' }
+                    ].map(({ tag, isGst, isDeliv }) => {
+                      const tagsArr = Array.isArray(formData.tags) 
+                        ? formData.tags 
+                        : typeof formData.tags === 'string' 
+                          ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) 
+                          : [];
+                      const isSelected = isGst ? formData.gstReduced : isDeliv ? formData.freeDelivery : tagsArr.includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => {
+                            let nextTags = [...tagsArr];
+                            if (isGst) {
+                              const nextVal = !formData.gstReduced;
+                              if (nextVal && !nextTags.includes(tag)) nextTags.push(tag);
+                              if (!nextVal) nextTags = nextTags.filter(t => t !== tag);
+                              setFormData({ ...formData, gstReduced: nextVal, tags: nextTags });
+                            } else if (isDeliv) {
+                              const nextVal = !formData.freeDelivery;
+                              if (nextVal && !nextTags.includes(tag)) nextTags.push(tag);
+                              if (!nextVal) nextTags = nextTags.filter(t => t !== tag);
+                              setFormData({ ...formData, freeDelivery: nextVal, tags: nextTags });
+                            } else {
+                              if (isSelected) {
+                                nextTags = nextTags.filter(t => t !== tag);
+                              } else {
+                                nextTags.push(tag);
+                              }
+                              setFormData({ ...formData, tags: nextTags });
+                            }
+                          }}
+                          style={{
+                            padding: '4px 11px',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            border: isSelected ? '1.5px solid #00A3E0' : '1px solid #cbd5e1',
+                            background: isSelected ? '#e0f2fe' : '#ffffff',
+                            color: isSelected ? '#0284c7' : '#64748b',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {isSelected ? `✓ ${tag}` : `+ ${tag}`}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

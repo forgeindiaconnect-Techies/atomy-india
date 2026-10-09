@@ -21,7 +21,6 @@ import {
   isUserMember,
   cancelMembership
 } from '../../services/membershipService';
-import MembershipPaymentModal from './MembershipPaymentModal';
 import './MembershipPage.css';
 
 export default function MembershipPage({
@@ -30,25 +29,25 @@ export default function MembershipPage({
   onNavigateHome,
   onNavigateBack,
   onNavigateSignIn,
-  onMembershipActivated
+  onMembershipActivated,
+  onNavigatePaymentPage
 }) {
   const [selectedPlan, setSelectedPlan] = useState('ANNUAL');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [activeFaq, setActiveFaq] = useState(null);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   const settings = getMembershipSettings();
   const hasActiveMembership = isUserMember(currentUser);
 
-  const handleSubscribe = () => {
-    if (!currentUser) {
-      if (onNavigateSignIn) {
-        onNavigateSignIn('signin');
-      }
+  const handleSubscribe = (plan = selectedPlan) => {
+    if (onNavigatePaymentPage) {
+      onNavigatePaymentPage(plan);
       return;
     }
 
-    setIsPaymentModalOpen(true);
+    if (!currentUser && onNavigateSignIn) {
+      onNavigateSignIn('signin');
+      return;
+    }
   };
 
   const handlePaymentSuccess = (member) => {
@@ -240,10 +239,10 @@ export default function MembershipPage({
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedPlan('MONTHLY');
-                  handleSubscribe();
+                  handleSubscribe('MONTHLY');
                 }}
               >
-                {hasActiveMembership ? 'Renew Monthly' : 'Choose Monthly Plan'}
+                {hasActiveMembership ? 'Renew Monthly' : 'Continue with Monthly Plan'}
               </button>
             </div>
 
@@ -282,26 +281,17 @@ export default function MembershipPage({
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedPlan('ANNUAL');
-                  handleSubscribe();
+                  handleSubscribe('ANNUAL');
                 }}
               >
-                {hasActiveMembership ? 'Renew Annual Plan' : 'Choose Annual Plan (Recommended)'}
+                {hasActiveMembership ? 'Renew Annual Plan' : 'Continue with Annual Plan (Recommended)'}
               </button>
             </div>
           </div>
 
           {/* Action CTA */}
           <div className="membership-cta-block">
-            {!currentUser ? (
-              <button
-                type="button"
-                className="main-subscribe-btn"
-                onClick={handleSubscribe}
-              >
-                <span>Sign In to Activate Distributor Membership</span>
-                <ArrowRight size={18} />
-              </button>
-            ) : hasActiveMembership ? (
+            {hasActiveMembership ? (
               <div className="already-active-prompt">
                 <ShieldCheck size={20} color="#059669" />
                 <span>Your Atomy Distributor Membership is currently active. You enjoy wholesale DP pricing on all orders!</span>
@@ -309,18 +299,12 @@ export default function MembershipPage({
             ) : (
               <button
                 type="button"
-                className={`main-subscribe-btn ${isProcessing ? 'loading' : ''}`}
-                onClick={handleSubscribe}
-                disabled={isProcessing}
+                id="btn-membership-continue-checkout"
+                className="main-subscribe-btn"
+                onClick={() => handleSubscribe(selectedPlan)}
               >
-                {isProcessing ? (
-                  <span>Activating Your Atomy Membership...</span>
-                ) : (
-                  <>
-                    <span>Activate {selectedPlan === 'ANNUAL' ? 'Annual' : 'Monthly'} Membership (₹ {selectedPlan === 'ANNUAL' ? settings.annualFee : settings.monthlyFee})</span>
-                    <ArrowRight size={18} />
-                  </>
-                )}
+                <span>Continue to Payment & Checkout (₹ {selectedPlan === 'ANNUAL' ? settings.annualFee : settings.monthlyFee})</span>
+                <ArrowRight size={18} />
               </button>
             )}
             <p className="security-guarantee-note">
@@ -395,16 +379,6 @@ export default function MembershipPage({
           </div>
         </div>
       </div>
-
-      {/* Interactive Payment Checkout Modal */}
-      <MembershipPaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        currentUser={currentUser}
-        plan={selectedPlan}
-        planAmount={selectedPlan === 'ANNUAL' ? settings.annualFee : settings.monthlyFee}
-        onSuccess={handlePaymentSuccess}
-      />
     </div>
   );
 }

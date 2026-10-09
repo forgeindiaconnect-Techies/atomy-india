@@ -57,7 +57,9 @@ import {
   deleteAdminProduct,
   fetchAdminTickets,
   replyAdminTicket,
-  updateAdminTicketStatus
+  updateAdminTicketStatus,
+  clearAllAdminTickets,
+  fetchAdminCustomers
 } from '../../services/api';
 import {
   playOrderAlertSound,
@@ -189,7 +191,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       if (localStorage.getItem(STORAGE_CLEAN_KEY) !== 'true') {
         return [];
       }
-      const adminOrders = localStorage.getItem('atomy_admin_orders');
+      let adminOrders = localStorage.getItem('atomy_admin_orders');
+      if (!adminOrders || adminOrders === '[]') {
+        adminOrders = localStorage.getItem('atomy_placed_orders');
+      }
       if (adminOrders) {
         const parsed = JSON.parse(adminOrders);
         if (Array.isArray(parsed)) {
@@ -201,7 +206,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             !o.customerName?.toLowerCase().includes('test') &&
             !o.customerEmail?.toLowerCase().includes('example.com') &&
             !o.customerEmail?.toLowerCase().includes('test')
-          );
+          ).map(o => ({
+            ...o,
+            orderStatus: o.orderStatus || (String(o.status || '').toUpperCase().includes('PAYMENT COMPLETED') ? 'PLACED' : (o.status || 'PLACED')),
+            estimatedDeliveryDate: o.estimatedDeliveryDate || '5 - 8 Business Days',
+            estimatedDelivery: o.estimatedDelivery || '5 - 8 Business Days'
+          }));
         }
       }
       return [];
@@ -256,6 +266,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   // Customer Drawer / Modal State
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [backendCustomers, setBackendCustomers] = useState([]);
 
   // Admin Profile & Top Nav Notification Dropdown State
   const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
@@ -367,12 +378,17 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
   const syncWithBackend = async () => {
     try {
-      const [statsRes, ordersRes, prodsRes, ticketsRes] = await Promise.allSettled([
+      const [statsRes, ordersRes, prodsRes, ticketsRes, custsRes] = await Promise.allSettled([
         fetchAdminStats(),
         fetchAdminOrders(),
         fetchAdminProducts(),
-        fetchAdminTickets()
+        fetchAdminTickets(),
+        fetchAdminCustomers()
       ]);
+
+      if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value)) {
+        setBackendCustomers(custsRes.value);
+      }
 
       if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
         const mappedOrders = ordersRes.value.map(bo => ({
@@ -420,18 +436,66 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       }
       if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
         const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-        const cleanTickets = ticketsRes.value.filter(t => !demoIds.includes(t.ticketId));
+        const cleanTickets = ticketsRes.value.filter(t => !demoIds.includes(t.ticketId)).map(t => ({
+          ...t,
+          messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
+            ...m,
+            createdAt: m.sentAt || m.createdAt || t.createdAt || new Date().toISOString(),
+            message: m.message || t.subject
+          })) : [{ sender: 'CUSTOMER', message: t.subject || 'Customer Inquiry', createdAt: t.createdAt }]
+        }));
         setTickets(cleanTickets);
+        try {
+          localStorage.setItem('atomy_admin_tickets', JSON.stringify(cleanTickets));
+        } catch {}
+        setSelectedTicket(curr => {
+          if (!curr) return cleanTickets[0] || null;
+          const match = cleanTickets.find(t => t.ticketId === curr.ticketId);
+          return match || curr;
+        });
       }
     } catch (e) {
       console.warn('[Admin] Live backend syncing fallback to local cache:', e);
     }
   };
 
-  // Background Live-Polling Listener & Cross-Channel Listener for live customer orders
+  // STRONG NOTIFICATION TRIGGERS
+  const triggerOrderNotification = (order) => {
+    if (soundSettings.orderSoundEnabled) {
+      playOrderAlertSound(soundSettings.volume);
+    }
+    setActiveAlert({
+      type: 'order',
+      title: 'NEW CUSTOMER ORDER RECEIVED!',
+      message: `Order #${order.orderId} placed by ${order.customerName} for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`,
+      time: 'Just now',
+      targetId: order.orderId
+    });
+    sendDesktopNotification(`🚨 Atomy India: New Order #${order.orderId}`, {
+      body: `Customer ${order.customerName} placed an order for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`
+    });
+  };
+
+  const triggerSupportNotification = (ticket) => {
+    if (soundSettings.supportSoundEnabled) {
+      playSupportAlertSound(soundSettings.volume);
+    }
+    setActiveAlert({
+      type: 'support',
+      title: 'NEW CUSTOMER SUPPORT INQUIRY!',
+      message: `Ticket #${ticket.ticketId} from ${ticket.customerName}: "${ticket.subject || ticket.message || 'Customer Support Request'}"`,
+      time: 'Just now',
+      targetId: ticket.ticketId
+    });
+    sendDesktopNotification(`🎧 Atomy Support: Inquiry from ${ticket.customerName}`, {
+      body: ticket.subject || ticket.message || 'New customer support inquiry received'
+    });
+  };
+
+  // Background Live-Polling Listener & Cross-Channel Listener for live customer orders & support tickets
   useEffect(() => {
     // 1. Setup real-time BroadcastChannel listeners
-    let syncChannel, orderChannel;
+    let syncChannel, orderChannel, supportChannel;
     try {
       const handleIncomingOrder = (newOrderObj) => {
         setOrders(prev => {
@@ -439,6 +503,36 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           triggerOrderNotification(newOrderObj);
           return [newOrderObj, ...prev];
         });
+      };
+
+      const handleIncomingTicket = (newTicketObj) => {
+        if (!newTicketObj || !newTicketObj.ticketId) return;
+        setTickets(prev => {
+          if (prev.some(t => t.ticketId === newTicketObj.ticketId)) return prev;
+          triggerSupportNotification(newTicketObj);
+          return [newTicketObj, ...prev];
+        });
+      };
+
+      const handleTicketReplyBroadcast = () => {
+        fetchAdminTickets().then(backendTickets => {
+          if (Array.isArray(backendTickets)) {
+            const cleanTickets = backendTickets.map(t => ({
+              ...t,
+              messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
+                ...m,
+                createdAt: m.sentAt || m.createdAt || t.createdAt || new Date().toISOString(),
+                message: m.message || t.subject
+              })) : [{ sender: 'CUSTOMER', message: t.subject || 'Customer Inquiry', createdAt: t.createdAt }]
+            }));
+            setTickets(cleanTickets);
+            setSelectedTicket(curr => {
+              if (!curr) return cleanTickets[0] || null;
+              const match = cleanTickets.find(t => t.ticketId === curr.ticketId);
+              return match || curr;
+            });
+          }
+        }).catch(() => {});
       };
 
       syncChannel = new BroadcastChannel('atomy_sync_channel');
@@ -462,8 +556,16 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             totalAmount: o.grandTotal || o.totalAmount || 0,
             shippingFee: o.shippingFee || 0,
             items: o.items || [],
-            tracking: null
+            tracking: null,
+            estimatedDelivery: o.estimatedDelivery || "5 - 8 Business Days",
+            estimatedDeliveryDate: o.estimatedDeliveryDate || ""
           });
+        }
+        if (data && (data.type === 'NEW_TICKET' || data.type === 'SUPPORT_INQUIRY' || data.type === 'NEW_SUPPORT_TICKET') && data.ticket) {
+          handleIncomingTicket(data.ticket);
+        }
+        if (data && (data.type === 'TICKET_REPLY' || data.type === 'NEW_MESSAGE')) {
+          handleTicketReplyBroadcast();
         }
       };
 
@@ -488,13 +590,45 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             totalAmount: o.grandTotal || o.totalAmount || 0,
             shippingFee: o.shippingFee || 0,
             items: o.items || [],
-            tracking: null
+            tracking: null,
+            estimatedDelivery: o.estimatedDelivery || "5 - 8 Business Days",
+            estimatedDeliveryDate: o.estimatedDeliveryDate || ""
           });
+        }
+      };
+
+      supportChannel = new BroadcastChannel('atomy_support_channel');
+      supportChannel.onmessage = (event) => {
+        const data = event.data;
+        if (data && (data.type === 'NEW_TICKET' || data.type === 'SUPPORT_INQUIRY' || data.type === 'NEW_SUPPORT_TICKET') && data.ticket) {
+          handleIncomingTicket(data.ticket);
+        }
+        if (data && (data.type === 'TICKET_REPLY' || data.type === 'NEW_MESSAGE')) {
+          handleTicketReplyBroadcast();
         }
       };
     } catch (e) { }
 
-    // 2. Active Polling interval to check MySQL Spring Boot backend every 3 seconds
+    // 2. Cross-tab storage synchronization listener
+    const handleStorageUpdate = (e) => {
+      if (e.key === 'atomy_admin_tickets' && e.newValue) {
+        try {
+          const freshList = JSON.parse(e.newValue);
+          if (Array.isArray(freshList)) {
+            freshList.forEach(item => {
+              setTickets(prev => {
+                if (prev.some(t => t.ticketId === item.ticketId)) return prev;
+                triggerSupportNotification(item);
+                return [item, ...prev];
+              });
+            });
+          }
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageUpdate);
+
+    // 3. Active Polling interval to check backend & storage every 3 seconds
     const intervalTime = Math.min((soundSettings.pollingIntervalSec || 10) * 1000, 3000);
     const interval = setInterval(async () => {
       // Poll orders from Spring Boot Backend
@@ -538,7 +672,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         }
       } catch (e) { }
 
-      // Check localStorage for any fresh customer orders placed from customer storefront
+      // Check localStorage for any fresh customer orders placed from storefront
       try {
         const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
         if (localOrdersRaw) {
@@ -564,10 +698,63 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   totalAmount: latest.grandTotal || latest.totalAmount || 0,
                   shippingFee: latest.shippingFee || 0,
                   items: latest.items || [],
-                  tracking: null
+                  tracking: null,
+                  estimatedDelivery: latest.estimatedDelivery || "5 - 8 Business Days",
+                  estimatedDeliveryDate: latest.estimatedDeliveryDate || ""
                 };
                 triggerOrderNotification(newOrderObj);
                 return [newOrderObj, ...prev];
+              });
+            });
+          }
+        }
+      } catch (e) { }
+
+      // Poll support tickets from Spring Boot Backend
+      try {
+        const backendTickets = await fetchAdminTickets();
+        if (Array.isArray(backendTickets)) {
+          const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
+          const cleanTickets = backendTickets.filter(t => !demoIds.includes(t.ticketId)).map(t => ({
+            ...t,
+            messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
+              ...m,
+              createdAt: m.sentAt || m.createdAt || t.createdAt || new Date().toISOString(),
+              message: m.message || t.subject
+            })) : [{ sender: 'CUSTOMER', message: t.subject || 'Customer Inquiry', createdAt: t.createdAt }]
+          }));
+          setTickets(prev => {
+            const prevIds = new Set(prev.map(t => t.ticketId));
+            cleanTickets.forEach(bt => {
+              if (!prevIds.has(bt.ticketId) && prev.length > 0) {
+                triggerSupportNotification(bt);
+              }
+            });
+            const merged = [...cleanTickets];
+            prev.forEach(pt => {
+              if (!merged.some(m => m.ticketId === pt.ticketId)) merged.push(pt);
+            });
+            return merged;
+          });
+          setSelectedTicket(curr => {
+            if (!curr) return cleanTickets[0] || null;
+            const match = cleanTickets.find(t => t.ticketId === curr.ticketId);
+            return match || curr;
+          });
+        }
+      } catch (e) { }
+
+      // Check localStorage for tickets submitted from storefront
+      try {
+        const localTicketsRaw = localStorage.getItem('atomy_admin_tickets');
+        if (localTicketsRaw) {
+          const freshTickets = JSON.parse(localTicketsRaw);
+          if (Array.isArray(freshTickets) && freshTickets.length > 0) {
+            freshTickets.forEach(lt => {
+              setTickets(prev => {
+                if (prev.some(t => t.ticketId === lt.ticketId)) return prev;
+                triggerSupportNotification(lt);
+                return [lt, ...prev];
               });
             });
           }
@@ -577,43 +764,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener('storage', handleStorageUpdate);
       try { syncChannel && syncChannel.close(); } catch { }
       try { orderChannel && orderChannel.close(); } catch { }
+      try { supportChannel && supportChannel.close(); } catch { }
     };
   }, [soundSettings]);
-
-  // STRONG NOTIFICATION TRIGGERS
-  const triggerOrderNotification = (order) => {
-    if (soundSettings.orderSoundEnabled) {
-      playOrderAlertSound(soundSettings.volume);
-    }
-    setActiveAlert({
-      type: 'order',
-      title: 'NEW CUSTOMER ORDER RECEIVED!',
-      message: `Order #${order.orderId} placed by ${order.customerName} for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`,
-      time: 'Just now',
-      targetId: order.orderId
-    });
-    sendDesktopNotification(`🚨 Atomy India: New Order #${order.orderId}`, {
-      body: `Customer ${order.customerName} placed an order for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`
-    });
-  };
-
-  const triggerSupportNotification = (ticket) => {
-    if (soundSettings.supportSoundEnabled) {
-      playSupportAlertSound(soundSettings.volume);
-    }
-    setActiveAlert({
-      type: 'support',
-      title: 'NEW CUSTOMER SUPPORT INQUIRY!',
-      message: `Ticket #${ticket.ticketId} from ${ticket.customerName}: "${ticket.subject}"`,
-      time: 'Just now',
-      targetId: ticket.ticketId
-    });
-    sendDesktopNotification(`🎧 Atomy Support: Inquiry from ${ticket.customerName}`, {
-      body: ticket.subject
-    });
-  };
 
   // Test sound triggers
   const handleTestOrderSound = () => {
@@ -652,15 +808,22 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         todayOrdersCount += 1;
       }
 
-      if (o.orderStatus === 'PLACED') placedCount++;
-      else if (o.orderStatus === 'PROCESSING') processingCount++;
-      else if (o.orderStatus === 'SHIPPED' || o.orderStatus === 'OUT_FOR_DELIVERY') shippedCount++;
-      else if (o.orderStatus === 'DELIVERED') deliveredCount++;
+      const st = String(o.orderStatus || o.status || 'PLACED').toUpperCase();
+      if (st === 'PLACED' || st.includes('PAYMENT COMPLETED') || st === 'NEW' || st === 'PAID') {
+        placedCount++;
+      }
+      else if (st === 'PROCESSING' || st.includes('PREPARING')) processingCount++;
+      else if (st === 'SHIPPED' || st === 'OUT_FOR_DELIVERY' || st.includes('TRANSIT')) shippedCount++;
+      else if (st === 'DELIVERED') deliveredCount++;
     });
 
     const lowStockCount = products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= (p.lowStockThreshold || 10)).length;
     const outOfStockCount = products.filter(p => p.stockQuantity === 0).length;
     const openTicketsCount = tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
+    const recentNewOrders = orders.filter(o => {
+      const st = String(o.orderStatus || o.status || 'PLACED').toUpperCase();
+      return st === 'PLACED' || st.includes('PAYMENT COMPLETED') || st === 'NEW' || st === 'PAID';
+    }).slice(0, 5);
 
     return {
       todaySale,
@@ -673,7 +836,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       totalOrders: orders.length,
       lowStockCount,
       outOfStockCount,
-      openTicketsCount
+      openTicketsCount,
+      recentNewOrders
     };
   }, [orders, products, tickets]);
 
@@ -1018,6 +1182,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
   // 4. CUSTOMER AGGREGATION DIRECTORY
   const customersList = useMemo(() => {
+    if (backendCustomers.length > 0) return backendCustomers;
     const custMap = new Map();
     orders.forEach(o => {
       const email = (o.customerEmail || o.customerPhone || 'unknown').toLowerCase();
@@ -1097,6 +1262,22 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       showToast(`Ticket status updated to ${newStatus}`);
     } catch (err) {
       showToast('Error: ' + err.message);
+    }
+  };
+
+  const handleClearAllTickets = async () => {
+    if (!window.confirm("Are you sure you want to clear all support tickets and start completely fresh? This will remove all inquiries and messages.")) return;
+    try {
+      await clearAllAdminTickets().catch(() => {});
+      setTickets([]);
+      setSelectedTicket(null);
+      try {
+        localStorage.removeItem('atomy_admin_tickets');
+        localStorage.removeItem('atomy_customer_tickets');
+      } catch {}
+      showToast('All support inquiries cleared! Starting fresh.');
+    } catch (err) {
+      showToast('Error clearing tickets: ' + err.message);
     }
   };
 
@@ -1737,6 +1918,18 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                               <td>
                                 <div className="cell-primary-text">{p.name}</div>
                                 <div className="cell-secondary-text">{p.subcategory || 'Standard Catalog'}</div>
+                                <div style={{ display: 'flex', gap: '5px', marginTop: '5px', flexWrap: 'wrap' }}>
+                                  {p.gstReduced && (
+                                    <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd', padding: '1px 7px', borderRadius: '4px' }}>
+                                      5% GST Reduced
+                                    </span>
+                                  )}
+                                  {p.freeDelivery && (
+                                    <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', padding: '1px 7px', borderRadius: '4px' }}>
+                                      Free Delivery
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td>
                                 <span className="category-tag-badge">
@@ -1921,6 +2114,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 <div className="address-line-sub">
                                   {o.city}, {o.state} <span className="pincode-pill">{o.pincode}</span>
                                 </div>
+                                {o.estimatedDeliveryDate && (
+                                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Truck size={12} />
+                                    <span>Est: {o.estimatedDeliveryDate}</span>
+                                  </div>
+                                )}
                               </td>
                               <td style={{ textAlign: 'center' }}>
                                 <span className="items-count-badge">
@@ -2082,34 +2281,39 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                               <td>
                                 <div className="customer-avatar-row">
                                   <div className="customer-avatar-circle">
-                                    {c.name.slice(0, 1).toUpperCase()}
+                                    {(c.name || 'C').slice(0, 1).toUpperCase()}
                                   </div>
                                   <div>
                                     <div className="cell-primary-text">{c.name}</div>
+                                    {c.customerId && (
+                                      <div className="cell-secondary-text" style={{ fontSize: '11px', color: '#00A3E0', fontWeight: '700' }}>
+                                        {c.customerId}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </td>
                               <td>
                                 <div className="cell-secondary-text">{c.email}</div>
-                                <div className="cell-secondary-text">{c.phone}</div>
+                                <div className="cell-secondary-text">{c.phone || 'N/A'}</div>
                               </td>
                               <td>
-                                <div>{c.city}, {c.state}</div>
-                                <div className="cell-secondary-text">{c.pincode}</div>
+                                <div>{c.city || 'N/A'}, {c.state || ''}</div>
+                                <div className="cell-secondary-text">{c.pincode || ''}</div>
                               </td>
                               <td>
-                                <strong>{c.totalOrders} order{c.totalOrders > 1 ? 's' : ''}</strong>
+                                <strong>{c.totalOrders || 0} order{(c.totalOrders || 0) > 1 ? 's' : ''}</strong>
                               </td>
                               <td className="cell-price">
-                                ₹ {c.totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                ₹ {Number(c.totalSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                               </td>
                               <td>
-                                <span className={`tier-badge ${c.tier.toLowerCase().replace(/\s+/g, '-')}`}>
-                                  {c.tier}
+                                <span className={`tier-badge ${(c.tier || 'Standard').toLowerCase().replace(/\s+/g, '-')}`}>
+                                  {c.tier || 'Standard Customer'}
                                 </span>
                               </td>
                               <td className="cell-secondary-text">
-                                {new Date(c.lastOrderDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                {c.lastOrderDate || c.createdAt ? new Date(c.lastOrderDate || c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently Joined'}
                               </td>
                               <td style={{ textAlign: 'right' }}>
                                 <button
@@ -2217,6 +2421,19 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                         <option value="CLOSED">CLOSED ({tickets.filter(t => t.status === 'CLOSED').length})</option>
                       </select>
                     </div>
+
+                    {tickets.length > 0 && (
+                      <button
+                        type="button"
+                        className="atomy-btn-secondary"
+                        style={{ color: '#ef4444', borderColor: '#fca5a5', padding: '0 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        onClick={handleClearAllTickets}
+                        title="Clear all tickets and start fresh"
+                      >
+                        <Trash2 size={14} />
+                        <span>Clear All Inquiries</span>
+                      </button>
+                    )}
                   </div>
 
                   {tickets.length === 0 ? (
@@ -2337,7 +2554,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                     </div>
                                     <div className="chat-bubble-text">{msg.message}</div>
                                     <div className="chat-bubble-time">
-                                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      {new Date(msg.sentAt || msg.createdAt || msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                   </div>
                                 </div>
@@ -2915,6 +3132,16 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   </div>
                   <div className="meta-card-sub">
                     Method: {selectedOrderDetail.paymentMethod || 'ONLINE'} • {selectedOrderDetail.paymentStatus || 'PAID'}
+                  </div>
+                </div>
+
+                <div className="meta-info-card">
+                  <div className="meta-card-label">ESTIMATED DELIVERY</div>
+                  <div className="meta-card-main" style={{ color: '#00A3E0', fontWeight: 700 }}>
+                    {selectedOrderDetail.estimatedDeliveryDate || '5 - 8 Business Days'}
+                  </div>
+                  <div className="meta-card-sub">
+                    Carrier: {selectedOrderDetail.courier || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
                   </div>
                 </div>
               </div>

@@ -23,13 +23,16 @@ import {
   Plus,
   Minus,
   Trash2,
+  X,
   Edit2,
   Home,
-  Briefcase
+  Briefcase,
+  Clock
 } from 'lucide-react';
 import './OrderSheetPage.css';
 import { createCustomerOrder } from '../../services/api';
 import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS } from '../../data/mockData';
+import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
 import customPaymentQr from '../../assets/WhatsApp Image 2026-10-06 at 12.14.42 PM.jpeg';
 
 // Curated list of Bestseller Products with verified working CDN images
@@ -151,21 +154,30 @@ export const isItemFreeDelivery = (item) => {
   return false;
 };
 
-// Helper: Determine product GST tax slab (12% Reduced for health/toothpaste or tagged, else 18% Standard)
+// Helper: Determine product GST tax slab (5% Reduced for products with GST Reduced card/badge, else 18% Standard)
 export const getProductGstRate = (item) => {
-  if (!item) return 18;
-  const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
-    || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
+  return isProductGstReduced(item) ? 5 : 18;
+};
 
-  const isReduced = Boolean(
-    item.gstReduced === true ||
-    catalogProd?.gstReduced === true ||
-    (Array.isArray(item.tags) && item.tags.some(t => typeof t === 'string' && t.toUpperCase().includes('GST REDUCED'))) ||
-    (Array.isArray(catalogProd?.tags) && catalogProd?.tags.some(t => typeof t === 'string' && t.toUpperCase().includes('GST REDUCED'))) ||
-    item.category === 'health' ||
-    catalogProd?.category === 'health'
-  );
-  return isReduced ? 12 : 18;
+// Helper: Calculate standard Indian e-commerce delivery timeline (start date to 8 days, e.g. 10 Oct – 17 Oct 2026)
+export const getEstimatedDeliveryRange = (baseDate = new Date()) => {
+  const startD = new Date(baseDate);
+  startD.setDate(startD.getDate() + 1);
+
+  const endD = new Date(baseDate);
+  endD.setDate(endD.getDate() + 8);
+
+  const startStr = startD.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const endStr = endD.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  return {
+    dateRange: `${startStr} – ${endStr}`,
+    startDateFormatted: startStr,
+    endDateFormatted: endStr,
+    timeFrame: '8 Days',
+    carrier: 'Blue Dart Express',
+    dispatchTime: 'Dispatched within 24 hours'
+  };
 };
 
 export default function OrderSheetPage({ 
@@ -180,16 +192,13 @@ export default function OrderSheetPage({
   onClearCart,
   onAddToCart,
   onProductClick,
-  isMember = false
+  isMember = false,
+  currentUser = null
 }) {
   // Steps: 'sheet' (02 Order & Delivery) | 'payment' (03 Payment Gateway) | 'completed' (04 Order Completed)
   const [step, setStep] = useState('sheet');
   const [isProductsExpanded, setIsProductsExpanded] = useState(true);
-
-  // Customer / Orderer Information
-  const [ordererName, setOrdererName] = useState('Naveen Kumar');
-  const [ordererPhone, setOrdererPhone] = useState('9876543210');
-  const [ordererEmail, setOrdererEmail] = useState('naveen@example.com');
+  const [isTaxBreakdownOpen, setIsTaxBreakdownOpen] = useState(false);
 
   // Delivery Addresses List & Active Selection (Synced with localStorage)
   const [addresses, setAddresses] = useState(() => {
@@ -320,59 +329,45 @@ export default function OrderSheetPage({
     return cartItems.reduce((acc, item) => acc + item.qty, 0);
   }, [cartItems]);
 
-  // Free delivery rule: Delivery is FREE only if at least one product mentions Free Delivery.
+  // Free delivery rule: Delivery is FREE for orders above ₹ 4,500.00 OR if at least one product mentions Free Delivery.
   // Otherwise, standard doorstep courier fee of ₹ 150.00 is charged.
   const hasFreeDeliveryProduct = useMemo(() => {
     return cartItems.length > 0 && cartItems.some(item => isItemFreeDelivery(item));
   }, [cartItems]);
 
+  const isFreeDeliveryEligible = useMemo(() => {
+    if (cartItems.length === 0) return false;
+    return subtotal >= 4500 || hasFreeDeliveryProduct;
+  }, [subtotal, hasFreeDeliveryProduct, cartItems.length]);
+
   const shippingFee = useMemo(() => {
     if (cartItems.length === 0) return 0;
-    return hasFreeDeliveryProduct ? 0 : 150;
-  }, [cartItems.length, hasFreeDeliveryProduct]);
+    return isFreeDeliveryEligible ? 0 : 150;
+  }, [cartItems.length, isFreeDeliveryEligible]);
 
   const grandTotal = subtotal + shippingFee;
 
-  // GST Breakdown calculated per item based on product specification (18% standard, 12% reduced)
+  // GST Breakdown: Product amounts are already GST-included final amounts (5% for GST Reduced items, 18% standard)
   const gstSummary = useMemo(() => {
     let totalGst = 0;
-    let standard18Base = 0;
-    let standard18Gst = 0;
-    let reduced12Base = 0;
-    let reduced12Gst = 0;
-    let count18 = 0;
-    let count12 = 0;
+    let totalBase = 0;
 
     cartItems.forEach((item) => {
-      const rate = getProductGstRate(item);
       const itemTotal = (item.price || 0) * (item.qty || 1);
-      const base = itemTotal / (1 + rate / 100);
-      const gst = itemTotal - base;
+      const { base, gst } = calculateProductTax(itemTotal, item);
 
       totalGst += gst;
-      if (rate === 12) {
-        reduced12Base += base;
-        reduced12Gst += gst;
-        count12 += (item.qty || 1);
-      } else {
-        standard18Base += base;
-        standard18Gst += gst;
-        count18 += (item.qty || 1);
-      }
+      totalBase += base;
     });
 
     return {
       totalGst,
-      standard18Base,
-      standard18Gst,
-      reduced12Base,
-      reduced12Gst,
-      has18: count18 > 0,
-      has12: count12 > 0,
-      count18,
-      count12
+      totalBase
     };
   }, [cartItems]);
+
+  // Dynamic estimated delivery date calculation (3 - 5 business days, e.g. Oct 13 – Oct 15, 2026)
+  const estimatedDeliveryInfo = useMemo(() => getEstimatedDeliveryRange(), []);
 
   // Trigger Live GPS Current Location Detection inside Address Modal
   const handleDetectCurrentLocation = () => {
@@ -623,8 +618,9 @@ export default function OrderSheetPage({
     e.preventDefault();
     setIsProcessing(true);
 
-    const fullRecipientName = currentSelectedAddress?.recipientName || ordererName || 'Customer';
-    const fullRecipientPhone = currentSelectedAddress?.recipientPhone || ordererPhone || '9876543210';
+    const fullRecipientName = currentSelectedAddress?.recipientName || currentUser?.name || 'Customer';
+    const fullRecipientPhone = currentSelectedAddress?.recipientPhone || currentUser?.phone || '9876543210';
+    const customerEmail = currentUser?.email || 'customer@atomy.com';
     const fullShippingAddress = currentSelectedAddress 
       ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
       : 'Doorstep Courier Delivery';
@@ -639,7 +635,7 @@ export default function OrderSheetPage({
 
     const orderPayload = {
       customerName: fullRecipientName,
-      customerEmail: ordererEmail || 'customer@atomy.com',
+      customerEmail: customerEmail,
       customerPhone: fullRecipientPhone,
       shippingAddress: fullShippingAddress,
       city,
@@ -666,6 +662,9 @@ export default function OrderSheetPage({
       date: backendOrder?.createdAt || new Date().toISOString(),
       orderDate: new Date().toISOString().split('T')[0],
       status: 'Payment Completed',
+      orderStatus: 'PLACED',
+      estimatedDelivery: estimatedDeliveryInfo.timeFrame,
+      estimatedDeliveryDate: estimatedDeliveryInfo.dateRange,
       courier: 'Blue Dart Express (Assigned)',
       trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
       paymentMethod: paymentMethod === 'UPI' ? 'UPI (Google Pay / PhonePe)' 
@@ -675,7 +674,7 @@ export default function OrderSheetPage({
       deliveryType: 'direct',
       recipient: fullRecipientName,
       customerName: fullRecipientName,
-      customerEmail: ordererEmail || 'customer@atomy.com',
+      customerEmail: customerEmail,
       phone: fullRecipientPhone,
       address: {
         recipient: fullRecipientName,
@@ -810,7 +809,8 @@ export default function OrderSheetPage({
                           </div>
                         </div>
                       ) : (
-                        <div className="sheet-products-table">
+                        <>
+                          <div className="sheet-products-table">
                           {cartItems.map((item) => {
                             const isFreeDeliv = isItemFreeDelivery(item);
                             const gstRate = getProductGstRate(item);
@@ -835,8 +835,8 @@ export default function OrderSheetPage({
                                     ) : (
                                       <span className="sheet-badge-standard-delivery">Standard Delivery</span>
                                     )}
-                                    <span className={`sheet-badge-gst ${gstRate === 12 ? 'reduced' : 'standard'}`}>
-                                      GST {gstRate}% {gstRate === 12 ? 'Reduced' : 'Standard'}
+                                    <span className="sheet-badge-gst standard">
+                                      {gstRate === 5 ? '5% GST (Reduced)' : 'GST (Included)'}
                                     </span>
                                   </div>
                                   <div className="sheet-product-meta">
@@ -847,7 +847,7 @@ export default function OrderSheetPage({
                                   </div>
                                 </div>
 
-                                {/* Add and Remove Quantity & Remove Product Controls */}
+                                {/* Quantity Stepper */}
                                 <div className="sheet-product-stepper-cell">
                                   <div className="sheet-qty-stepper">
                                     <button
@@ -878,19 +878,20 @@ export default function OrderSheetPage({
                                       <Plus size={13} />
                                     </button>
                                   </div>
-                                  <button
-                                    type="button"
-                                    className="sheet-remove-item-btn"
-                                    onClick={() => {
-                                      if (onRemoveItem) onRemoveItem(item.id);
-                                    }}
-                                    title="Remove product from order"
-                                    aria-label="Remove product"
-                                  >
-                                    <Trash2 size={13} />
-                                    <span>Remove</span>
-                                  </button>
                                 </div>
+
+                                {/* X Mark Button in Top Right Corner of Box */}
+                                <button
+                                  type="button"
+                                  className="sheet-remove-corner-btn"
+                                  onClick={() => {
+                                    if (onRemoveItem) onRemoveItem(item.id);
+                                  }}
+                                  title="Remove product from order"
+                                  aria-label="Remove product"
+                                >
+                                  <X size={20} />
+                                </button>
 
                                 <div className="sheet-product-pricing">
                                   <span className="sheet-item-price">
@@ -906,64 +907,13 @@ export default function OrderSheetPage({
                             );
                           })}
                         </div>
-                      )}
+                      </>
+                    )}
                     </div>
                   )}
                 </div>
 
-                {/* Section 2: Customer / Orderer Information */}
-                <div className="sheet-card">
-                  <div className="sheet-card-header">
-                    <div className="card-header-title">
-                      <Info size={20} color="#00A3E0" />
-                      <span>Orderer Information (Direct Customer)</span>
-                    </div>
-                  </div>
-                  <div className="sheet-card-body">
-                    <div className="form-two-col">
-                      <div className="sheet-form-group">
-                        <label>Customer Name *</label>
-                        <input
-                          type="text"
-                          value={ordererName}
-                          onChange={(e) => setOrdererName(e.target.value)}
-                          placeholder="Enter full name"
-                          className="sheet-input"
-                          required
-                        />
-                      </div>
-                      <div className="sheet-form-group">
-                        <label>Mobile Number *</label>
-                        <div className="input-with-prefix">
-                          <span className="input-prefix">+91</span>
-                          <input
-                            type="tel"
-                            value={ordererPhone}
-                            onChange={(e) => setOrdererPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                            placeholder="10-digit mobile number"
-                            className="sheet-input"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="sheet-form-group full-width">
-                      <label>Email Address for Order Invoice *</label>
-                      <input
-                        type="email"
-                        value={ordererEmail}
-                        onChange={(e) => setOrdererEmail(e.target.value)}
-                        placeholder="e.g. yourname@example.com"
-                        className="sheet-input"
-                        required
-                      />
-                      <span className="field-hint">Your order receipt and delivery tracking notifications will be dispatched to this email.</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section 3: Delivery Information (Door Delivery with Saved Addresses like Quick Order) */}
+                {/* Section 2: Delivery Address (Doorstep Courier Delivery) */}
                 <div className="sheet-card">
                   <div className="sheet-card-header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                     <div className="card-header-title">
@@ -1110,32 +1060,39 @@ export default function OrderSheetPage({
                   <h3 className="summary-title">Payment Summary</h3>
 
                     <div className="summary-breakdown">
-                    <div className="summary-line">
-                      <span className="line-label">Product Total ({totalQty} items)</span>
+                    {/* Product Total with corner toggle arrow to show Base Price & GST breakdown */}
+                    <div 
+                      className="summary-line product-total-summary-row"
+                      onClick={() => setIsTaxBreakdownOpen(!isTaxBreakdownOpen)}
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                      title="Click to view Base Price and GST breakdown"
+                    >
+                      <div className="product-total-label-with-arrow">
+                        <span className="line-label">Product Total ({totalQty} items)</span>
+                        <span className={`product-tax-toggle-btn ${isTaxBreakdownOpen ? 'open' : ''}`} aria-label="Toggle GST breakdown">
+                          {isTaxBreakdownOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                        </span>
+                      </div>
                       <span className="line-value">₹ {subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
 
-                    {/* Product-based GST Breakdown */}
-                    <div className="summary-line gst-summary-line">
-                      <div className="line-label-gst-wrap">
-                        <span className="line-label">Applicable GST <span className="gst-inclusive-tag">(Included)</span></span>
-                        <div className="gst-rate-tag-row">
-                          {gstSummary.has18 && (
-                            <span className="gst-pill standard">
-                              18% Standard ({gstSummary.count18}): ₹ {gstSummary.standard18Gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          )}
-                          {gstSummary.has12 && (
-                            <span className="gst-pill reduced">
-                              12% Reduced ({gstSummary.count12}): ₹ {gstSummary.reduced12Gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          )}
+                    {/* Collapsible Base Price & GST Breakdown */}
+                    {isTaxBreakdownOpen && (
+                      <div className="summary-tax-breakdown-panel">
+                        <div className="tax-subrow">
+                          <span className="tax-sublabel">Base Price</span>
+                          <span className="tax-subvalue">
+                            ₹ {gstSummary.totalBase.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="tax-subrow">
+                          <span className="tax-sublabel">GST (Included in price)</span>
+                          <span className="tax-subvalue">
+                            ₹ {gstSummary.totalGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                         </div>
                       </div>
-                      <span className="line-value gst-value">
-                        ₹ {gstSummary.totalGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
+                    )}
 
                     {isMember && totalPV > 0 && (
                       <div className="summary-line pv-line">
@@ -1158,14 +1115,34 @@ export default function OrderSheetPage({
                     {shippingFee === 0 ? (
                       <div className="free-shipping-note">
                         <CheckCircle2 size={13} color="#10b981" />
-                        <span>{hasFreeDeliveryProduct ? 'Free Delivery Applied (Eligible Item in Order)' : 'Free Standard Delivery Applied'}</span>
+                        <span>
+                          {subtotal >= 4500 
+                            ? 'Free Delivery Applied (Order above ₹ 4,500.00)' 
+                            : hasFreeDeliveryProduct 
+                            ? 'Free Delivery Applied (Eligible Item in Order)' 
+                            : 'Free Delivery Applied'}
+                        </span>
                       </div>
                     ) : (
                       <div className="standard-shipping-note" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#d97706', fontWeight: 600 }}>
                         <Truck size={13} color="#d97706" />
-                        <span>Standard Delivery Fee: ₹ 150.00 (No Free Delivery items)</span>
+                        <span>Standard Delivery Fee: ₹ 150.00 (Add ₹ {(4500 - subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })} more for Free Delivery)</span>
                       </div>
                     )}
+
+                    {/* Live Estimated Delivery Date Row in Summary */}
+                    <div className="summary-line delivery-estimate-row">
+                      <span className="line-label">
+                        <Truck size={14} color="#00A3E0" style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                        Estimated Delivery
+                      </span>
+                      <span className="line-value delivery-date-highlight">
+                        {estimatedDeliveryInfo.dateRange}
+                      </span>
+                    </div>
+                    <div className="summary-delivery-subtext">
+                      Expected delivery within {estimatedDeliveryInfo.timeFrame}
+                    </div>
 
                     {/* Destination preview in summary */}
                     {currentSelectedAddress && (
@@ -1217,18 +1194,6 @@ export default function OrderSheetPage({
                     <span>Proceed to Payment</span>
                     <ChevronRight size={18} />
                   </button>
-
-                  {/* Trust Badges */}
-                  <div className="sidebar-trust-badges">
-                    <div className="trust-badge-item">
-                      <ShieldCheck size={16} color="#00A3E0" />
-                      <span>100% Genuine Atomy Guarantee</span>
-                    </div>
-                    <div className="trust-badge-item">
-                      <RotateCcw size={16} color="#00A3E0" />
-                      <span>30-Day Return & Exchange Guarantee</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1394,6 +1359,10 @@ export default function OrderSheetPage({
                     <p className="pg-dest-line">
                       {currentSelectedAddress.addressLine1}, {currentSelectedAddress.city} - {currentSelectedAddress.pincode}
                     </p>
+                    <div className="pg-delivery-eta-pill">
+                      <Clock size={12} color="#0284c7" />
+                      <span>Est. Delivery: <strong>{estimatedDeliveryInfo.dateRange}</strong> ({estimatedDeliveryInfo.timeFrame})</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1777,7 +1746,7 @@ export default function OrderSheetPage({
                   {/* Applicable GST Line */}
                   {gstSummary.totalGst > 0 && (
                     <div className="pg-summary-nested-row" style={{ padding: '4px 0', fontSize: '12px', color: '#64748b' }}>
-                      <span className="pg-nested-label">Applicable GST (Included)</span>
+                      <span className="pg-nested-label">GST (Included in price)</span>
                       <span className="pg-nested-val" style={{ fontWeight: 600, color: '#334155' }}>
                         ₹{gstSummary.totalGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
@@ -1812,6 +1781,22 @@ export default function OrderSheetPage({
                       </div>
                     </div>
                   )}
+
+                  {/* Estimated Delivery Row in Gateway Summary */}
+                  <div className="pg-summary-section pg-eta-section">
+                    <div className="pg-summary-nested-row pg-eta-row">
+                      <span className="pg-nested-label">
+                        <Truck size={13} color="#00A3E0" style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                        Estimated Delivery
+                      </span>
+                      <span className="pg-nested-val pg-eta-date-val">
+                        {estimatedDeliveryInfo.dateRange}
+                      </span>
+                    </div>
+                    <div className="pg-eta-transit-sub">
+                      Arrival in {estimatedDeliveryInfo.timeFrame}
+                    </div>
+                  </div>
 
                   {/* Total Amount Blue Highlight Container (Matching screenshot) */}
                   <div className="pg-total-amount-box">
@@ -1894,6 +1879,22 @@ export default function OrderSheetPage({
                       <strong>Delivery Destination:</strong>
                       <p>{placedOrderDetails.address.fullAddress}</p>
                       <span>Recipient: {placedOrderDetails.recipient} ({placedOrderDetails.phone})</span>
+                    </div>
+                  </div>
+
+                  {/* Prominent Estimated Delivery Date Box */}
+                  <div className="delivery-confirmed-eta-box">
+                    <div className="eta-icon-circle">
+                      <Truck size={22} color="#00A3E0" />
+                    </div>
+                    <div className="eta-content">
+                      <div className="eta-badge">Doorstep Express Delivery</div>
+                      <div className="eta-dates">
+                        Estimated Delivery: <strong>{placedOrderDetails.estimatedDeliveryDate || estimatedDeliveryInfo.dateRange}</strong>
+                      </div>
+                      <div className="eta-sub">
+                        Standard transit: {placedOrderDetails.estimatedDelivery || estimatedDeliveryInfo.timeFrame} • Courier: {placedOrderDetails.courier || 'Blue Dart Express'} (Tracking: {placedOrderDetails.trackingNumber})
+                      </div>
                     </div>
                   </div>
 

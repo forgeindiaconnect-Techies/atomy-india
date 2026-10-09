@@ -2,11 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ShoppingCart, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { HAIR_BODY_PRODUCTS, GST_BADGE_IMAGE } from '../../data/mockData';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
+import { getProductStats } from '../../services/productStatsService';
 import ProductPriceDisplay from './ProductPriceDisplay';
 import './ProductSection.css';
 
-export default function HairBodySection({ onAddToCart, onProductClick, isMember = false }) {
-  const [likedProducts, setLikedProducts] = useState({});
+export default function HairBodySection({
+  onAddToCart,
+  onProductClick,
+  isMember = false,
+  favorites = [],
+  onToggleFavorite
+}) {
   const [, setCatalogTick] = useState(0);
   const sliderRef = useRef(null);
 
@@ -51,8 +57,9 @@ export default function HairBodySection({ onAddToCart, onProductClick, isMember 
 
           <div className="product-cards-slider hair-body-cards" ref={sliderRef}>
             {HAIR_BODY_PRODUCTS.map((product) => {
-              const isLiked = likedProducts[product.id];
-              const likesCount = (product.likes || 0) + (isLiked ? 1 : 0);
+              const isLiked = favorites.some((f) => f.id === product.id);
+              const stats = getProductStats(product, isLiked);
+              const likesCount = stats.likes;
 
               return (
                 <div key={product.id} className="product-card">
@@ -98,7 +105,9 @@ export default function HairBodySection({ onAddToCart, onProductClick, isMember 
                     <div className="product-meta-row">
                       <div
                         className="likes-counter"
-                        onClick={() => toggleLike(product.id)}
+                        onClick={() => onToggleFavorite && onToggleFavorite(product)}
+                        title={isLiked ? "Remove from Favorites" : "Add to Favorites"}
+                        style={{ cursor: 'pointer' }}
                       >
                         <Heart
                           size={14}

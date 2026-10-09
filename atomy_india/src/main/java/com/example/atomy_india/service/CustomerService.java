@@ -166,17 +166,22 @@ public class CustomerService {
 
     @Transactional
     public SupportTicket createTicket(CreateTicketRequest req) {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        int rand = 100 + new Random().nextInt(900);
-        String ticketId = "TICK-" + timestamp + "-" + rand;
+        String ticketId = req.getTicketId();
+        if (ticketId == null || ticketId.trim().isEmpty()) {
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            int rand = 1000 + new Random().nextInt(9000);
+            ticketId = "TCK-" + timestamp + "-" + rand;
+        } else {
+            ticketId = ticketId.trim().toUpperCase();
+        }
 
         SupportTicket ticket = new SupportTicket(
                 ticketId,
-                req.getCustomerName(),
-                req.getCustomerEmail(),
+                req.getCustomerName() != null ? req.getCustomerName() : "Valued Customer",
+                req.getCustomerEmail() != null ? req.getCustomerEmail() : "customer@atomy.com",
                 req.getCustomerPhone(),
                 req.getOrderId(),
-                req.getSubject(),
+                req.getSubject() != null ? req.getSubject() : "Support Inquiry",
                 req.getCategory() != null ? req.getCategory() : SupportTicket.TicketCategory.GENERAL_SUPPORT,
                 req.getPriority() != null ? req.getPriority() : SupportTicket.TicketPriority.MEDIUM
         );
@@ -190,7 +195,34 @@ public class CustomerService {
     }
 
     public Optional<SupportTicket> getTicketById(String ticketId) {
-        return ticketRepository.findById(ticketId);
+        if (ticketId == null || ticketId.trim().isEmpty()) return Optional.empty();
+        String tid = ticketId.trim();
+        Optional<SupportTicket> res = ticketRepository.findById(tid);
+        if (res.isPresent()) return res;
+
+        // Support case-insensitive and prefix variants (TCK vs TICK)
+        if (tid.toUpperCase().startsWith("TCK-")) {
+            res = ticketRepository.findById("TICK-" + tid.substring(4));
+            if (res.isPresent()) return res;
+        } else if (tid.toUpperCase().startsWith("TICK-")) {
+            res = ticketRepository.findById("TCK-" + tid.substring(5));
+            if (res.isPresent()) return res;
+        }
+
+        return ticketRepository.findAll().stream()
+                .filter(t -> t.getTicketId().equalsIgnoreCase(tid) ||
+                             t.getTicketId().toLowerCase().contains(tid.toLowerCase()) ||
+                             (t.getCustomerEmail() != null && t.getCustomerEmail().equalsIgnoreCase(tid)) ||
+                             (t.getSubject() != null && t.getSubject().toLowerCase().contains(tid.toLowerCase())))
+                .findFirst();
+    }
+
+    public List<SupportTicket> getTicketsByEmail(String email) {
+        return ticketRepository.findByCustomerEmailOrderByCreatedAtDesc(email);
+    }
+
+    public List<SupportTicket> getAllRecentTickets() {
+        return ticketRepository.findAllByOrderByCreatedAtDesc();
     }
 
     @Transactional

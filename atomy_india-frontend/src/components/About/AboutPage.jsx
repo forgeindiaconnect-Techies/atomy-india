@@ -18,6 +18,7 @@ import {
   Send
 } from 'lucide-react';
 import './AboutPage.css';
+import { submitSupportTicket } from '../../services/api';
 
 const TOP_5_FAQS = [
   {
@@ -113,6 +114,55 @@ export default function AboutPage({ onNavigateHome, onNavigateBack, onNavigateVi
 
   const handleInquirySubmit = (e) => {
     e.preventDefault();
+    if (!inquiryForm.name || !inquiryForm.email || !inquiryForm.message) return;
+
+    const ticketId = `TCK-${Date.now().toString().slice(-6)}`;
+    const newTicket = {
+      ticketId,
+      customerName: inquiryForm.name.trim(),
+      customerEmail: inquiryForm.email.trim(),
+      customerPhone: inquiryForm.phone.trim() || '+91 98000 00000',
+      category: 'GENERAL_SUPPORT',
+      priority: 'MEDIUM',
+      subject: `General Inquiry from ${inquiryForm.name.trim()}`,
+      message: inquiryForm.message.trim(),
+      status: 'OPEN',
+      createdAt: new Date().toISOString(),
+      messages: [
+        {
+          sender: 'CUSTOMER',
+          message: inquiryForm.message.trim(),
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+
+    try {
+      const existing = JSON.parse(localStorage.getItem('atomy_admin_tickets') || '[]');
+      localStorage.setItem('atomy_admin_tickets', JSON.stringify([newTicket, ...existing]));
+    } catch {}
+
+    try {
+      const syncChannel = new BroadcastChannel('atomy_sync_channel');
+      syncChannel.postMessage({ type: 'NEW_TICKET', ticket: newTicket });
+    } catch {}
+    try {
+      const supportChannel = new BroadcastChannel('atomy_support_channel');
+      supportChannel.postMessage({ type: 'NEW_SUPPORT_TICKET', ticket: newTicket });
+    } catch {}
+
+    try {
+      submitSupportTicket({
+        customerName: newTicket.customerName,
+        customerEmail: newTicket.customerEmail,
+        customerPhone: newTicket.customerPhone,
+        subject: newTicket.subject,
+        category: 'GENERAL_SUPPORT',
+        initialMessage: newTicket.message,
+        message: newTicket.message
+      }).catch(() => {});
+    } catch {}
+
     setInquirySuccess(true);
     setTimeout(() => {
       setInquirySuccess(false);

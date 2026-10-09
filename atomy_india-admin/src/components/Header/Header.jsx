@@ -477,7 +477,31 @@ export default function Header({
                           </span>
                         </div>
                         <div className="notif-dropdown-body">
-                          {(overviewStats?.placedCount || 0) > 0 && (
+                          {overviewStats?.recentNewOrders && overviewStats.recentNewOrders.length > 0 ? (
+                            overviewStats.recentNewOrders.map(ro => (
+                              <div
+                                key={ro.orderId}
+                                className="notif-item order-specific-item"
+                                onClick={() => {
+                                  onSelectNotificationTab && onSelectNotificationTab('orders', 'PLACED');
+                                  setIsAdminNotifOpen(false);
+                                }}
+                              >
+                                <div className="notif-icon-circle placed">
+                                  <Bell size={14} />
+                                </div>
+                                <div className="notif-text">
+                                  <strong>New Order: #{ro.orderId}</strong>
+                                  <span>{ro.customerName} • ₹{Number(ro.totalAmount || ro.grandTotal || 0).toLocaleString('en-IN')}</span>
+                                  {ro.estimatedDeliveryDate && (
+                                    <span className="notif-eta-badge" style={{ display: 'block', fontSize: '11px', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
+                                      Est. Delivery: {ro.estimatedDeliveryDate}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (overviewStats?.placedCount || 0) > 0 ? (
                             <div
                               className="notif-item"
                               onClick={() => {
@@ -493,7 +517,7 @@ export default function Header({
                                 <span>Awaiting warehouse packing & fulfillment</span>
                               </div>
                             </div>
-                          )}
+                          ) : null}
 
                           {(overviewStats?.openTicketsCount || 0) > 0 && (
                             <div

@@ -46,7 +46,9 @@ import {
 import { onCatalogUpdate, syncCatalogFromBackend } from './services/catalogSyncService';
 import MembershipModal from './components/Membership/MembershipModal';
 import MembershipPage from './components/Membership/MembershipPage';
-import { isUserMember, calculateProductPricing } from './services/membershipService';
+import MembershipPaymentPage from './components/Membership/MembershipPaymentPage';
+import { isUserMember, calculateProductPricing, verifyUserMembershipWithBackend } from './services/membershipService';
+import { recordProductAddedToCart, recordProductPurchased } from './services/productStatsService';
 import './App.css';
 
 // Parse current browser URL into route state
@@ -55,6 +57,10 @@ const parseRouteFromLocation = () => {
   const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
   const search = new URLSearchParams(window.location.search);
   
+  if (path === '/membership-payment' || path === '/membership-checkout') {
+    const plan = search.get('plan') || 'MONTHLY';
+    return { view: 'membership-payment', plan };
+  }
   if (path === '/membership' || path === '/distributor-membership' || path === '/join-membership') return { view: 'membership' };
   if (path === '/quick-order' || path === '/quickorder') return { view: 'quick-order' };
   if (path === '/order-sheet' || path === '/ordersheet' || path === '/checkout') return { view: 'order-sheet' };
@@ -97,6 +103,7 @@ const parseRouteFromLocation = () => {
 // Map view state to clean standard URL pathname
 const getUrlForView = (view, extra = {}) => {
   switch (view) {
+    case 'membership-payment': return extra.plan ? `/membership-payment?plan=${encodeURIComponent(extra.plan)}` : '/membership-payment';
     case 'membership': return '/membership';
     case 'quick-order': return '/quick-order';
     case 'order-sheet': return '/order-sheet';
@@ -125,6 +132,7 @@ const getUrlForView = (view, extra = {}) => {
 
 const getViewTitle = (view, catId, prod) => {
   switch (view) {
+    case 'membership-payment': return 'Distributor Membership Checkout';
     case 'membership': return 'Atomy Distributor Membership';
     case 'quick-order': return 'Quick Order';
     case 'order-sheet': return 'Order Sheet & Payment';
@@ -184,6 +192,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState(initialRoute.view);
   const [authMode, setAuthMode] = useState(initialRoute.authMode || 'signin');
   const [selectedCategory, setSelectedCategory] = useState(initialRoute.categoryId || 'health');
+  const [selectedMembershipPlan, setSelectedMembershipPlan] = useState(initialRoute.plan || 'MONTHLY');
   const [selectedProduct, setSelectedProduct] = useState(() => {
     if (initialRoute.productId && ALL_CATALOG_PRODUCTS) {
       return ALL_CATALOG_PRODUCTS.find(p => p.id === initialRoute.productId) || ALL_CATALOG_PRODUCTS[0];
@@ -245,6 +254,7 @@ export default function App() {
     }
 
     if (extra.categoryId) setSelectedCategory(extra.categoryId);
+    if (extra.plan) setSelectedMembershipPlan(extra.plan);
     if (extra.product) setSelectedProduct(extra.product);
     else if (extra.productId && ALL_CATALOG_PRODUCTS) {
       const found = ALL_CATALOG_PRODUCTS.find(p => p.id === extra.productId);
@@ -252,7 +262,7 @@ export default function App() {
     }
 
     setCurrentView(view);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }, [selectedCategory, selectedProduct]);
 
   // Centralized Back navigation: redirects to previous view without ever exiting the URL/app
@@ -271,7 +281,7 @@ export default function App() {
         if (prevTarget.categoryId) setSelectedCategory(prevTarget.categoryId);
         if (prevTarget.product) setSelectedProduct(prevTarget.product);
         setCurrentView(prevTarget.view);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo(0, 0);
         return newStack;
       }
 
@@ -301,6 +311,7 @@ export default function App() {
       setCurrentView(route.view);
       if (route.authMode) setAuthMode(route.authMode);
       if (route.categoryId) setSelectedCategory(route.categoryId);
+      if (route.plan) setSelectedMembershipPlan(route.plan);
       if (route.productId && ALL_CATALOG_PRODUCTS) {
         const prod = ALL_CATALOG_PRODUCTS.find(p => p.id === route.productId) || ALL_CATALOG_PRODUCTS[0];
         if (prod) setSelectedProduct(prod);
@@ -463,28 +474,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem('atomy_current_user');
       if (saved) {
-        const u = JSON.parse(saved);
-        if (u) {
-          // Remove this person's demo / test membership so they start as regular customer
-          u.isMember = false;
-          delete u.membership;
-          try {
-            localStorage.setItem('atomy_current_user', JSON.stringify(u));
-            const regStr = localStorage.getItem('atomy_members_registry');
-            if (regStr) {
-              const reg = JSON.parse(regStr);
-              if (Array.isArray(reg)) {
-                const cleanedReg = reg.filter(m => 
-                  !['Naveen', 'Test Shopper', 'Naveen Test Customer'].includes(m.customerName) &&
-                  !m.customerEmail?.toLowerCase().includes('naveen') &&
-                  m.id !== 'ATM-MEM-414'
-                );
-                localStorage.setItem('atomy_members_registry', JSON.stringify(cleanedReg));
-              }
-            }
-          } catch {}
-          return u;
-        }
+        return JSON.parse(saved);
       }
       return null;
     } catch {
@@ -495,36 +485,29 @@ export default function App() {
   const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
   const [membershipVersion, setMembershipVersion] = useState(0);
 
-  // Proactively cancel any demo membership on this person's account so they are a standard customer
+  // Synchronize active membership status with backend database when logged in
   useEffect(() => {
-    if (currentUser && (currentUser.isMember === true || currentUser.membership?.status === 'ACTIVE')) {
-      const cancelled = {
-        ...currentUser,
-        isMember: false,
-        membership: {
-          ...(currentUser.membership || {}),
-          status: 'CANCELLED',
-          cancelledAt: new Date().toISOString()
+    if (currentUser?.email) {
+      verifyUserMembershipWithBackend(currentUser.email).then((isActive) => {
+        if (isActive && !currentUser.isMember) {
+          const updated = {
+            ...currentUser,
+            isMember: true,
+            membership: {
+              ...(currentUser.membership || {}),
+              status: 'ACTIVE',
+              active: true
+            }
+          };
+          setCurrentUser(updated);
+          try {
+            localStorage.setItem('atomy_current_user', JSON.stringify(updated));
+          } catch {}
+          setMembershipVersion((v) => v + 1);
         }
-      };
-      setCurrentUser(cancelled);
-      try {
-        localStorage.setItem('atomy_current_user', JSON.stringify(cancelled));
-        const regStr = localStorage.getItem('atomy_members_registry');
-        if (regStr) {
-          const reg = JSON.parse(regStr);
-          if (Array.isArray(reg)) {
-            const cleaned = reg.filter(m => 
-              m.customerName !== currentUser.name &&
-              m.customerEmail !== currentUser.email
-            );
-            localStorage.setItem('atomy_members_registry', JSON.stringify(cleaned));
-          }
-        }
-      } catch {}
-      setMembershipVersion((v) => v + 1);
+      });
     }
-  }, [currentUser]);
+  }, [currentUser?.email]);
 
   useEffect(() => {
     const handleSync = () => setMembershipVersion((v) => v + 1);
@@ -635,9 +618,23 @@ export default function App() {
 
   const handleNavigateMembership = () => navigateTo('membership');
 
+  const handleNavigateMembershipPayment = (plan = 'MONTHLY') => {
+    setSelectedMembershipPlan(plan);
+    navigateTo('membership-payment', { plan });
+  };
+
   const handleNavigateContact = () => navigateTo('contact');
-  const handleNavigateOrderSheet = () => {
-    if (!currentUser) return requireAuth('sign in to proceed to checkout and payment');
+  const handleNavigateOrderSheet = (itemsToCheckout) => {
+    const activeAuthUser = currentUser || (() => {
+      try {
+        const s = localStorage.getItem('atomy_current_user');
+        return s ? JSON.parse(s) : null;
+      } catch { return null; }
+    })();
+    if (!activeAuthUser) return requireAuth('sign in to proceed to checkout and payment');
+    if (Array.isArray(itemsToCheckout) && itemsToCheckout.length > 0) {
+      setCart(itemsToCheckout);
+    }
     setIsCartOpen(false);
     navigateTo('order-sheet');
   };
@@ -726,6 +723,7 @@ export default function App() {
   const handleAddToCart = (product, quantity = 1) => {
     if (!currentUser) return requireAuth('sign in or sign up to add items to your cart');
     const addQty = typeof quantity === 'number' && quantity > 0 ? quantity : 1;
+    recordProductAddedToCart(product.id, addQty);
     const pricing = calculateProductPricing(product, isMember);
     const itemToCart = {
       ...product,
@@ -752,8 +750,15 @@ export default function App() {
   };
 
   const handleBuyNow = (product, quantity = 1) => {
-    if (!currentUser) return requireAuth('sign in or sign up to order products');
+    const activeAuthUser = currentUser || (() => {
+      try {
+        const s = localStorage.getItem('atomy_current_user');
+        return s ? JSON.parse(s) : null;
+      } catch { return null; }
+    })();
+    if (!activeAuthUser) return requireAuth('sign in or sign up to order products');
     const buyQty = typeof quantity === 'number' && quantity > 0 ? quantity : 1;
+    recordProductAddedToCart(product.id, buyQty);
     const pricing = calculateProductPricing(product, isMember);
     const itemToCart = {
       ...product,
@@ -791,6 +796,12 @@ export default function App() {
   const handleOrderSuccess = (placedOrder) => {
     setCart([]);
     setPlacedOrders((prev) => [placedOrder, ...prev]);
+    // Record purchased count for each item!
+    if (Array.isArray(placedOrder?.items)) {
+      placedOrder.items.forEach((item) => {
+        recordProductPurchased(item.id, item.qty || 1);
+      });
+    }
     setToast(`Order ${placedOrder.orderId} placed successfully!`);
     setTimeout(() => {
       setToast(null);
@@ -866,6 +877,8 @@ export default function App() {
                 onAddToCart={handleAddToCart}
                 onProductClick={handleSelectProduct}
                 isMember={isMember}
+                favorites={favorites}
+                onToggleFavorite={handleToggleFavorite}
               />
 
               {/* 5. Atomy India Hair & Body Essential */}
@@ -873,6 +886,8 @@ export default function App() {
                 onAddToCart={handleAddToCart}
                 onProductClick={handleSelectProduct}
                 isMember={isMember}
+                favorites={favorites}
+                onToggleFavorite={handleToggleFavorite}
               />
 
               {/* 6. Atomy Absolute Skincare set (Brand Showcase + 8 products) */}
@@ -925,6 +940,8 @@ export default function App() {
                 onAddToCart={handleAddToCart}
                 onProductClick={handleSelectProduct}
                 isMember={isMember}
+                favorites={favorites}
+                onToggleFavorite={handleToggleFavorite}
               />
 
               {/* 12. Notice Strip */}
@@ -971,6 +988,7 @@ export default function App() {
           <div className="shopping-body-wrapper cart-page-body-wrapper">
             <CartPage
               cartItems={cart}
+              currentUser={currentUser}
               onUpdateQty={handleUpdateQty}
               onRemoveItem={handleRemoveItem}
               onCheckout={handleNavigateOrderSheet}
@@ -1002,6 +1020,7 @@ export default function App() {
               onAddToCart={handleAddToCart}
               onProductClick={handleSelectProduct}
               isMember={isMember}
+              currentUser={currentUser}
             />
 
             {/* Notice Strip */}
@@ -1073,14 +1092,61 @@ export default function App() {
               onNavigateHome={handleNavigateHome}
               onNavigateBack={handleGoBack}
               onNavigateSignIn={handleNavigateSignIn}
+              onNavigatePaymentPage={handleNavigateMembershipPayment}
               onMembershipActivated={(newMember) => {
-                if (currentUser) {
-                  const updated = { ...currentUser, isMember: true, membership: newMember };
-                  setCurrentUser(updated);
-                  try {
-                    localStorage.setItem('atomy_current_user', JSON.stringify(updated));
-                  } catch {}
-                }
+                const baseUser = currentUser || {
+                  name: newMember?.customerName || newMember?.name || 'Member',
+                  email: newMember?.customerEmail || newMember?.email || '',
+                  role: 'customer'
+                };
+                const updated = {
+                  ...baseUser,
+                  isMember: true,
+                  membership: {
+                    ...(newMember || {}),
+                    status: 'ACTIVE',
+                    active: true
+                  }
+                };
+                setCurrentUser(updated);
+                try {
+                  localStorage.setItem('atomy_current_user', JSON.stringify(updated));
+                } catch {}
+                setMembershipVersion((v) => v + 1);
+                setToast('Congratulations! Atomy Distributor Membership activated. Wholesale DP prices unlocked!');
+                setTimeout(() => setToast(null), 3500);
+              }}
+            />
+            <NoticeTicker />
+          </div>
+        ) : currentView === 'membership-payment' ? (
+          /* Dedicated Atomy Distributor Membership Payment & Checkout Page */
+          <div className="shopping-body-wrapper membership-payment-body-wrapper">
+            <MembershipPaymentPage
+              key={selectedMembershipPlan}
+              currentUser={currentUser}
+              plan={selectedMembershipPlan}
+              onNavigateHome={handleNavigateHome}
+              onNavigateBack={() => navigateTo('membership')}
+              onMembershipActivated={(newMember) => {
+                const baseUser = currentUser || {
+                  name: newMember?.customerName || newMember?.name || 'Member',
+                  email: newMember?.customerEmail || newMember?.email || '',
+                  role: 'customer'
+                };
+                const updated = {
+                  ...baseUser,
+                  isMember: true,
+                  membership: {
+                    ...(newMember || {}),
+                    status: 'ACTIVE',
+                    active: true
+                  }
+                };
+                setCurrentUser(updated);
+                try {
+                  localStorage.setItem('atomy_current_user', JSON.stringify(updated));
+                } catch {}
                 setMembershipVersion((v) => v + 1);
                 setToast('Congratulations! Atomy Distributor Membership activated. Wholesale DP prices unlocked!');
                 setTimeout(() => setToast(null), 3500);
@@ -1092,6 +1158,7 @@ export default function App() {
           /* Contact Us / Centre Map Page View matching https://in.atomy.com/cst/contactUs */
           <div className="shopping-body-wrapper contact-page-body-wrapper">
             <ContactCentrePage
+              currentUser={currentUser}
               onNavigateHome={handleNavigateHome}
               onNavigateBack={handleGoBack}
             />
