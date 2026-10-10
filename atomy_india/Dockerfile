@@ -1,9 +1,11 @@
 # Build stage using Maven and Java 21
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
+COPY settings.xml /root/.m2/settings.xml
 COPY pom.xml .
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn clean package -s /root/.m2/settings.xml -DskipTests -Daether.connector.http.retryHandler.count=5
+
 
 # Run stage
 FROM eclipse-temurin:21-jre
