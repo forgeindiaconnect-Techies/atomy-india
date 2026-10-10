@@ -110,6 +110,27 @@ const INITIAL_SINGLE_PRODUCT = [
 
 // Local storage initialization key
 const STORAGE_CLEAN_KEY = 'atomy_admin_clean_v8';
+const SEEN_ALERTS_KEY = 'atomy_admin_seen_alerts_v1';
+
+const getSeenAlertIds = () => {
+  try {
+    const raw = localStorage.getItem(SEEN_ALERTS_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const markAlertIdAsSeen = (id) => {
+  if (!id) return;
+  try {
+    const set = getSeenAlertIds();
+    set.add(String(id));
+    localStorage.setItem(SEEN_ALERTS_KEY, JSON.stringify(Array.from(set)));
+  } catch {
+    // ignore
+  }
+};
 
 export default function AdminDashboard({ onBackToStore, onLogout, adminProfileProp }) {
   // Navigation tabs: 'overview' | 'inventory' | 'orders' | 'customers' | 'support' | 'settings' | 'floating-ad'
@@ -357,8 +378,29 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     } catch { }
   }, [storeSettings]);
 
-  // Initial Data Fetching from Spring Boot Backend
+  // Initial Data Fetching from Spring Boot Backend & Pre-seeding seen alerts
   useEffect(() => {
+    // 1. Pre-seed all existing orders & tickets as already seen so they NEVER alarm on page reload
+    try {
+      const seen = getSeenAlertIds();
+      const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
+      if (localOrdersRaw) {
+        const parsed = JSON.parse(localOrdersRaw);
+        if (Array.isArray(parsed)) parsed.forEach(o => o?.orderId && seen.add(String(o.orderId)));
+      }
+      const adminOrdersRaw = localStorage.getItem('atomy_admin_orders');
+      if (adminOrdersRaw) {
+        const parsed = JSON.parse(adminOrdersRaw);
+        if (Array.isArray(parsed)) parsed.forEach(o => o?.orderId && seen.add(String(o.orderId)));
+      }
+      const adminTicketsRaw = localStorage.getItem('atomy_admin_tickets');
+      if (adminTicketsRaw) {
+        const parsed = JSON.parse(adminTicketsRaw);
+        if (Array.isArray(parsed)) parsed.forEach(t => t?.ticketId && seen.add(String(t.ticketId)));
+      }
+      localStorage.setItem(SEEN_ALERTS_KEY, JSON.stringify(Array.from(seen)));
+    } catch { }
+
     // Ensure any stale hardcoded demo tickets are completely purged
     try {
       const saved = localStorage.getItem('atomy_admin_tickets');
@@ -427,6 +469,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         );
         setOrders(mappedOrders);
         localStorage.setItem('atomy_admin_orders', JSON.stringify(mappedOrders));
+        mappedOrders.forEach(o => o.orderId && markAlertIdAsSeen(o.orderId));
       }
       if (prodsRes.status === 'fulfilled' && Array.isArray(prodsRes.value) && prodsRes.value.length > 0) {
         setProducts(prodsRes.value);
@@ -445,6 +488,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           })) : [{ sender: 'CUSTOMER', message: t.subject || 'Customer Inquiry', createdAt: t.createdAt }]
         }));
         setTickets(cleanTickets);
+        cleanTickets.forEach(t => t.ticketId && markAlertIdAsSeen(t.ticketId));
         try {
           localStorage.setItem('atomy_admin_tickets', JSON.stringify(cleanTickets));
         } catch {}
@@ -461,22 +505,36 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
   // STRONG NOTIFICATION TRIGGERS
   const triggerOrderNotification = (order) => {
+    if (!order || !order.orderId) return;
+    const seen = getSeenAlertIds();
+    if (seen.has(String(order.orderId))) {
+      return; // Already alerted/seen, do not alarm again on reload
+    }
+    markAlertIdAsSeen(order.orderId);
+
     if (soundSettings.orderSoundEnabled) {
       playOrderAlertSound(soundSettings.volume);
     }
     setActiveAlert({
       type: 'order',
       title: 'NEW CUSTOMER ORDER RECEIVED!',
-      message: `Order #${order.orderId} placed by ${order.customerName} for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`,
+      message: `Order #${order.orderId} placed by ${order.customerName} for ₹ ${Number(order.totalAmount || order.grandTotal || 0).toLocaleString('en-IN')}`,
       time: 'Just now',
       targetId: order.orderId
     });
     sendDesktopNotification(`🚨 Atomy India: New Order #${order.orderId}`, {
-      body: `Customer ${order.customerName} placed an order for ₹ ${order.totalAmount?.toLocaleString('en-IN')}`
+      body: `Customer ${order.customerName} placed an order for ₹ ${Number(order.totalAmount || order.grandTotal || 0).toLocaleString('en-IN')}`
     });
   };
 
   const triggerSupportNotification = (ticket) => {
+    if (!ticket || !ticket.ticketId) return;
+    const seen = getSeenAlertIds();
+    if (seen.has(String(ticket.ticketId))) {
+      return; // Already alerted/seen, do not alarm again on reload
+    }
+    markAlertIdAsSeen(ticket.ticketId);
+
     if (soundSettings.supportSoundEnabled) {
       playSupportAlertSound(soundSettings.volume);
     }
@@ -1410,7 +1468,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 Respond in Support Desk →
               </button>
             )}
-            <button className="alert-btn-dismiss" onClick={() => setActiveAlert(null)}>
+            <button className="alert-btn-dismiss" onClick={() => {
+              if (activeAlert?.targetId) markAlertIdAsSeen(activeAlert.targetId);
+              setActiveAlert(null);
+            }}>
               <X size={18} />
             </button>
           </div>
