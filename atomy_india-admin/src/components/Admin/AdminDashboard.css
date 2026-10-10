@@ -7,14 +7,20 @@
   max-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   background-color: var(--atomy-gray-bg, #f7f9fa);
   font-family: var(--font-main, 'Noto Sans', 'Inter', sans-serif);
   color: #1e293b;
 }
 
 /* Pinned Fixed Top Navigation Elements (Header, Banner, Strip) */
-.admin-master-wrapper > .header-wrapper,
+.admin-master-wrapper > .header-wrapper {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 99999 !important;
+  overflow: visible !important;
+}
+
 .admin-high-alert-banner,
 .admin-quick-strip {
   flex-shrink: 0;
