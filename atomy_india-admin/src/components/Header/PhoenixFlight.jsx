@@ -3,27 +3,61 @@ import './PhoenixFlight.css';
 
 /**
  * PhoenixFlight Component
- * Renders the REAL magnificent Golden Eagle Phoenix with wings spread wide in mid-flight.
- * As it soars from left to right:
- * 1. The navbar background behind the bird transforms into the phoenix's fiery golden color.
- * 2. When the bird exits/hides, the fiery background smoothly fades out and the original
- *    Atomy blue navbar color returns seamlessly.
- * 3. The bird beats its wings, embers split into the wind, and a radiant heatwave illuminates the bar.
+ * 1. The background turns into the phoenix's fire color in real-time along with the bird.
+ * 2. It ONLY fades AFTER the bird completely hides offscreen, restoring the original blue color.
+ * 3. Includes realistic small small flickering fire flames dancing in the wind wake and on the tail.
  */
 export default function PhoenixFlight() {
   return (
     <div className="phoenix-flight-track" aria-hidden="true">
-      {/* Dynamic Navbar Fiery Background Trail that sweeps behind the bird */}
+      {/* 1. Dynamic Navbar Fire Background: Sweeps along with bird, fades ONLY after bird hides */}
       <div className="phoenix-navbar-fire-sweep"></div>
       <div className="phoenix-navbar-fire-shimmer"></div>
 
+      {/* 2. Soaring Phoenix Group */}
       <div className="phoenix-soarer-wrapper">
-        {/* Moving Radiant Heatwave / Wind Shockwave accompanying the bird */}
+        {/* Heat Shockwave & Turbulence Wave */}
         <div className="phoenix-navbar-heat-shockwave"></div>
         <div className="phoenix-wind-turbulence"></div>
 
-        {/* Flapping Phoenix Soarer with Realistic 3D Wing Motion */}
+        {/* 3. Flapping Phoenix with Small Realistic Flames */}
         <div className="phoenix-flapping-soarer">
+          {/* Realistic Small Small Flickering Fire Flames */}
+          <div className="phoenix-small-flames-cluster">
+            <div className="mini-flame flame-1">
+              <div className="flame-outer"></div>
+              <div className="flame-inner"></div>
+            </div>
+            <div className="mini-flame flame-2">
+              <div className="flame-outer"></div>
+              <div className="flame-inner"></div>
+            </div>
+            <div className="mini-flame flame-3">
+              <div className="flame-outer"></div>
+              <div className="flame-inner"></div>
+            </div>
+            <div className="mini-flame flame-4">
+              <div className="flame-outer"></div>
+              <div className="flame-inner"></div>
+            </div>
+            <div className="mini-flame flame-5">
+              <div className="flame-outer"></div>
+              <div className="flame-inner"></div>
+            </div>
+            <div className="mini-flame flame-6">
+              <div className="flame-outer"></div>
+              <div className="flame-inner"></div>
+            </div>
+            <div className="mini-flame flame-7">
+              <div className="flame-outer"></div>
+              <div className="flame-inner"></div>
+            </div>
+            <div className="mini-flame flame-8">
+              <div className="flame-outer"></div>
+              <div className="flame-inner"></div>
+            </div>
+          </div>
+
           {/* Trailing Flame Plume & Aerodynamic Wind Gust Lines */}
           <div className="phoenix-flame-tail-plume"></div>
           <div className="phoenix-wind-gust-lines">

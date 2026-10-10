@@ -1,5 +1,5 @@
 /* ==========================================================================
-   REAL MAJESTIC SPREAD-WING PHOENIX FLIGHT WITH DYNAMIC NAVBAR FIRE BACKGROUND
+   REAL MAJESTIC PHOENIX FLIGHT WITH SYNCHRONIZED NAVBAR FIRE & SMALL FLAMES
    ========================================================================== */
 
 /* Full navbar background track */
@@ -17,10 +17,13 @@
 }
 
 /* ==========================================================================
-   DYNAMIC NAVBAR BACKGROUND: FIRE COLOR WAKE & SMOOTH FADE TO ORIGINAL COLOR
+   1. SYNCHRONIZED FIRE BACKGROUND:
+      - Expands in real-time ALONG WITH THE BIRD from left to right.
+      - FADES ONLY AFTER THE BIRD COMPLETELY HIDES OFFSCREEN.
+      - Restores original navbar blue seamlessly.
    ========================================================================== */
 
-/* 1. Fiery color sweep that rolls across the navbar behind the bird */
+/* Primary molten fire gradient sweep */
 .phoenix-navbar-fire-sweep {
   position: absolute;
   top: 0;
@@ -31,20 +34,20 @@
   height: 100%;
   background: linear-gradient(
     90deg,
-    rgba(216, 67, 21, 0.65) 0%,
-    rgba(230, 81, 0, 0.8) 25%,
-    rgba(255, 143, 0, 0.9) 60%,
-    rgba(255, 193, 7, 0.96) 90%,
+    rgba(191, 54, 12, 0.72) 0%,
+    rgba(230, 81, 0, 0.82) 25%,
+    rgba(255, 143, 0, 0.92) 58%,
+    rgba(255, 193, 7, 0.98) 88%,
     rgba(255, 238, 88, 1) 100%
   );
-  filter: blur(1px);
+  filter: blur(1.5px);
   pointer-events: none;
   z-index: 0;
   will-change: clip-path, opacity;
-  animation: navbarFireTrailSweep 11s cubic-bezier(0.1, 0.1, 0.3, 1) infinite;
+  animation: navbarFireFollowBird 11s linear infinite;
 }
 
-/* 2. Secondary liquid golden fire shimmer */
+/* Secondary radiant fire glow shimmer */
 .phoenix-navbar-fire-shimmer {
   position: absolute;
   top: 0;
@@ -54,70 +57,59 @@
   width: 100%;
   height: 100%;
   background: radial-gradient(
-    ellipse 80% 100% at 50% 50%,
-    rgba(255, 224, 130, 0.5) 0%,
-    rgba(255, 112, 67, 0.3) 60%,
+    ellipse 85% 100% at 50% 50%,
+    rgba(255, 235, 150, 0.55) 0%,
+    rgba(255, 112, 67, 0.35) 55%,
     transparent 100%
   );
   pointer-events: none;
   z-index: 0;
-  will-change: opacity;
-  animation: navbarFireShimmer 11s linear infinite;
+  will-change: opacity, clip-path;
+  animation: navbarFireFollowBird 11s linear infinite;
 }
 
-/* Dynamic sweep matching the bird: trails backward, then fades to original navbar color */
-@keyframes navbarFireTrailSweep {
+/* Exact synchronization:
+   0% to 68%: Fire covers the navbar in real-time along with the bird. Opacity is 100%!
+   68%: Bird completely hides offscreen.
+   68% to 84%: AFTER the bird hides only, the fire background smoothly fades to 0!
+   84% to 100%: 100% original navbar blue color restored!
+*/
+@keyframes navbarFireFollowBird {
   0% {
     clip-path: inset(0 100% 0 0);
-    opacity: 0;
-  }
-  2% {
     opacity: 1;
   }
-  64% {
-    clip-path: inset(0 0% 0 0);
+  17% {
+    clip-path: inset(0 75% 0 0);
+    opacity: 1;
+  }
+  34% {
+    clip-path: inset(0 50% 0 0);
+    opacity: 1;
+  }
+  51% {
+    clip-path: inset(0 25% 0 0);
     opacity: 1;
   }
   68% {
-    /* Bird hides offscreen: fire color stays vibrant for a moment */
+    /* Bird reaches right edge and completely hides offscreen */
     clip-path: inset(0 0% 0 0);
     opacity: 1;
   }
-  78% {
-    /* Fire background smoothly fades out, returning to the original navbar blue */
+  84% {
+    /* ONLY AFTER BIRD HIDES: Smooth fade-out returning to original blue */
     clip-path: inset(0 0% 0 0);
     opacity: 0;
   }
   100% {
-    /* Remains in original navbar color while bird is hidden */
+    /* Remains in original navbar color until next bird flight begins */
     clip-path: inset(0 100% 0 0);
-    opacity: 0;
-  }
-}
-
-@keyframes navbarFireShimmer {
-  0%, 2% {
-    opacity: 0;
-  }
-  8% {
-    opacity: 0.9;
-  }
-  64% {
-    opacity: 0.9;
-  }
-  68% {
-    opacity: 0.9;
-  }
-  78% {
-    opacity: 0;
-  }
-  100% {
     opacity: 0;
   }
 }
 
 /* ==========================================================================
-   MASTER WRAPPER & FLIGHT TRAJECTORY (LEFT TO RIGHT)
+   2. MASTER WRAPPER & FLIGHT TRAJECTORY (LEFT TO RIGHT)
    ========================================================================== */
 
 .phoenix-soarer-wrapper {
@@ -140,13 +132,13 @@
   2% {
     opacity: 1;
   }
-  68% {
-    transform: translate3d(calc(100vw + 260px), -50%, 0);
+  67% {
     opacity: 1;
   }
-  69% {
-    opacity: 0;
+  68% {
+    /* Bird exits off the right edge and hides completely */
     transform: translate3d(calc(100vw + 260px), -50%, 0);
+    opacity: 0;
   }
   100% {
     transform: translate3d(calc(100vw + 260px), -50%, 0);
@@ -213,14 +205,108 @@
 }
 
 /* ==========================================================================
-   REAL BIRD: AERODYNAMIC 3D WING FLAPPING & SPREAD
+   3. REALISTIC SMALL SMALL FIRE FLAMES DANCING IN THE WIND WAKE
+   ========================================================================== */
+
+.phoenix-small-flames-cluster {
+  position: absolute;
+  right: 70%;
+  top: 50%;
+  width: 140px;
+  height: 70px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Mini flame container */
+.mini-flame {
+  position: absolute;
+  transform-origin: bottom center;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(255, 150, 0, 0.95));
+}
+
+/* Outer flame tongue */
+.flame-outer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 20% 20% / 65% 65% 35% 35%;
+  background: linear-gradient(
+    0deg,
+    #bf360c 0%,
+    #e65100 25%,
+    #ff6d00 50%,
+    #ffa000 75%,
+    #ffee58 100%
+  );
+  animation: flameLick 0.26s ease-in-out infinite alternate;
+  transform-origin: bottom center;
+}
+
+/* Inner white-hot core */
+.flame-inner {
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 10%;
+  height: 60%;
+  border-radius: 50% 50% 30% 30% / 65% 65% 35% 35%;
+  background: linear-gradient(
+    0deg,
+    #ff9800 0%,
+    #ffd54f 50%,
+    #ffffff 100%
+  );
+  animation: flameCoreFlutter 0.2s ease-in-out infinite alternate;
+  transform-origin: bottom center;
+}
+
+@keyframes flameLick {
+  0% {
+    transform: scaleY(0.85) scaleX(1.08) rotate(-7deg) skewX(-4deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scaleY(1.2) scaleX(0.9) rotate(5deg) skewX(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.95) scaleX(1.02) rotate(-3deg) skewX(-2deg);
+    opacity: 0.95;
+  }
+}
+
+@keyframes flameCoreFlutter {
+  0% {
+    transform: scale(0.9) translateY(2px);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.15) translateY(-2px);
+    opacity: 1;
+  }
+}
+
+/* Staggered positions & realistic sizes for all 8 small fire flames */
+.flame-1 { width: 14px; height: 22px; top: 12%; right: 10px; animation-delay: 0s; }
+.flame-2 { width: 18px; height: 26px; top: 32%; right: 30px; animation-delay: 0.08s; }
+.flame-3 { width: 13px; height: 19px; top: 54%; right: 15px; animation-delay: 0.14s; }
+.flame-4 { width: 16px; height: 24px; top: 22%; right: 60px; animation-delay: 0.22s; }
+.flame-5 { width: 20px; height: 28px; top: 42%; right: 75px; animation-delay: 0.05s; }
+.flame-6 { width: 12px; height: 18px; top: 68%; right: 48px; animation-delay: 0.18s; }
+.flame-7 { width: 15px; height: 23px; top: 35%; right: 105px; animation-delay: 0.26s; }
+.flame-8 { width: 11px; height: 17px; top: 58%; right: 118px; animation-delay: 0.12s; }
+
+/* ==========================================================================
+   4. REAL BIRD: AERODYNAMIC 3D WING FLAPPING & SPREAD
    ========================================================================== */
 
 .phoenix-flapping-soarer {
   position: relative;
   width: 175px;
   height: 94px;
-  z-index: 2;
+  z-index: 3;
   pointer-events: none;
   will-change: transform;
 }
@@ -238,7 +324,6 @@
   will-change: transform;
 }
 
-/* Real aerodynamic bird flight: Upstroke spreads wings wide, Downstroke drives body upward */
 @keyframes realWingFlap3D {
   0% {
     /* Upstroke: Wings spread high and open wide into the wind, body dips slightly */
@@ -266,7 +351,7 @@
 }
 
 /* ==========================================================================
-   WIND GUST STREAKS & SPLITTING FLAME EMBERS
+   5. WIND GUST STREAKS & SPLITTING FLAME EMBERS
    ========================================================================== */
 
 /* Trailing core flame plume */
@@ -317,24 +402,9 @@
   animation: gustWhoosh 0.6s linear infinite;
 }
 
-.gust-1 {
-  width: 80px;
-  top: 20%;
-  right: 10px;
-  animation-delay: 0s;
-}
-.gust-2 {
-  width: 110px;
-  top: 50%;
-  right: 0px;
-  animation-delay: 0.2s;
-}
-.gust-3 {
-  width: 70px;
-  top: 75%;
-  right: 25px;
-  animation-delay: 0.38s;
-}
+.gust-1 { width: 80px; top: 20%; right: 10px; animation-delay: 0s; }
+.gust-2 { width: 110px; top: 50%; right: 0px; animation-delay: 0.2s; }
+.gust-3 { width: 70px; top: 75%; right: 25px; animation-delay: 0.38s; }
 
 @keyframes gustWhoosh {
   0% { transform: translateX(40px); opacity: 0; }
@@ -349,7 +419,7 @@
   top: 50%;
   width: 1px;
   height: 1px;
-  z-index: 3;
+  z-index: 4;
   pointer-events: none;
 }
 
@@ -406,5 +476,9 @@
   .phoenix-navbar-heat-shockwave {
     width: 220px;
     height: 90px;
+  }
+  .phoenix-small-flames-cluster {
+    width: 100px;
+    height: 50px;
   }
 }
