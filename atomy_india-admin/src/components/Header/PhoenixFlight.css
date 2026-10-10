@@ -25,23 +25,28 @@
   height: 54px;
   pointer-events: none;
   will-change: transform;
-  animation: phoenixSoarAcross 14s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  animation: phoenixSoarAcross 10s linear infinite;
 }
 
-/* Flight trajectory keyframes: Left to Right */
+/* Flight trajectory: flies across in ~6.8s, pauses for ~3.2s, then loops forever */
 @keyframes phoenixSoarAcross {
   0% {
     transform: translate3d(-220px, -50%, 0);
     opacity: 0;
   }
-  3% {
+  2% {
     opacity: 1;
   }
-  92% {
+  65% {
+    transform: translate3d(calc(100vw + 220px), -50%, 0);
     opacity: 1;
+  }
+  66% {
+    opacity: 0;
+    transform: translate3d(calc(100vw + 220px), -50%, 0);
   }
   100% {
-    transform: translate3d(calc(100vw + 240px), -50%, 0);
+    transform: translate3d(calc(100vw + 220px), -50%, 0);
     opacity: 0;
   }
 }
