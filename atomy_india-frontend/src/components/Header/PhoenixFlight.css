@@ -31,24 +31,26 @@
   height: 94px;
   pointer-events: none;
   will-change: transform;
-  animation: phoenixFlightSequence 11.8s linear infinite;
+  animation: phoenixFlightSequence 10s linear infinite;
   z-index: 2;
 }
 
 /*
-  Trajectory timeline (11.8s total cycle):
-  - 0% to 51% (6.0s): Bird soars smoothly across navbar from left (-260px) to offscreen right (calc(100vw + 260px)).
-  - 51%: Bird completely hides offscreen!
-  - 51% to 100% (5.8s): Bird stays parked offscreen while color fast-fades (0.8s) and rests for 5.0s interval.
+  Trajectory timeline (10.0s total cycle):
+  - 0% to 50% (5.0s): Bird appearance across navbar (soars smoothly left-to-right for exactly 5.0s).
+  - 50%: Bird completely hides offscreen!
+  - 50% to 100% (5.0s): EXACT 5-SECOND APPEARANCE GAP until the next bird takes off!
 */
 @keyframes phoenixFlightSequence {
   0% {
     transform: translate3d(-260px, -50%, 0);
   }
-  51% {
+  50% {
+    /* 5.0s appearance flight across navbar */
     transform: translate3d(calc(100vw + 260px), -50%, 0);
   }
   100% {
+    /* Stays parked offscreen for exact 5.0s appearance gap */
     transform: translate3d(calc(100vw + 260px), -50%, 0);
   }
 }
@@ -58,8 +60,8 @@
       - Physically locked to the bird's body with ZERO gap!
       - Extends 4500px to the left, so it completely covers the navbar up to the bird.
       - FADES ONLY AFTER THE BIRD HIDES COMPLETELY.
-      - Increased fading speed: Fades out rapidly in ~0.8s (51% to 58%).
-      - EXACT 5 SECOND INTERVAL GAP (58% to 100% = 5.0s) in original blue navbar!
+      - Fast fading speed: Fades out rapidly in ~0.6s (50% to 56%).
+      - EXACT 5 SECOND APPEARANCE GAP (50% to 100% = 5.0s)!
    ========================================================================== */
 
 .phoenix-attached-fire-background {
@@ -95,7 +97,7 @@
   pointer-events: none;
   z-index: 0;
   will-change: opacity;
-  animation: fireBackgroundLifeCycle 11.8s linear infinite;
+  animation: fireBackgroundLifeCycle 10s linear infinite;
 }
 
 /* Soft golden bloom on the leading fire edge right around the bird */
@@ -116,30 +118,30 @@
   pointer-events: none;
   z-index: 1;
   will-change: opacity;
-  animation: fireBackgroundLifeCycle 11.8s linear infinite;
+  animation: fireBackgroundLifeCycle 10s linear infinite;
 }
 
 /*
   Fire Background Life Cycle:
-  - 0% to 51% (6.0s): Solid 100% opacity covering the navbar along with the bird.
-  - 51%: Bird reaches calc(100vw + 260px) and completely hides offscreen!
-  - 51% to 58% (0.8s): INCREASED FADING SPEED -> Rapid, crisp fade out to 0 opacity!
-  - 58% to 100% (5.0s): EXACT 5-SECOND INTERVAL GAP -> Pure original Atomy blue navbar!
+  - 0% to 50% (5.0s): Solid 100% opacity covering navbar along with the bird.
+  - 50%: Bird completely hides offscreen!
+  - 50% to 56% (0.6s): Rapid, crisp fade out to 0 opacity!
+  - 50% to 100% (5.0s): EXACT 5-SECOND APPEARANCE GAP until next bird flight!
 */
 @keyframes fireBackgroundLifeCycle {
   0% {
     opacity: 1;
   }
-  51% {
-    /* Bird hides completely offscreen at 51% (6.0s) */
+  50% {
+    /* Bird hides completely offscreen at 50% (5.0s) */
     opacity: 1;
   }
-  58% {
-    /* Rapid color fade-out in ~0.8s */
+  56% {
+    /* Fast fade-out in ~0.6s */
     opacity: 0;
   }
   100% {
-    /* Exactly 5 seconds interval gap before next bird flight begins */
+    /* Exactly 5.0 seconds appearance gap before next flight */
     opacity: 0;
   }
 }
