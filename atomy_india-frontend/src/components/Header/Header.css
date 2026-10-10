@@ -12,7 +12,10 @@
   background-color: var(--atomy-blue);
   padding: 12px 0 16px;
   color: #ffffff;
+  position: relative;
+  overflow: hidden;
 }
+
 
 .main-header-bar.admin-header-bar {
   padding: 14px 0;

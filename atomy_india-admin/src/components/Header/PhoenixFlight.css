@@ -1,0 +1,289 @@
+/* ==========================================================================
+   PHOENIX BIRD FLIGHT & SPLITTING WIND FLAMES ANIMATION
+   ========================================================================== */
+
+/* Full navbar background track */
+.phoenix-flight-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Master container that glides from left to right across the navbar */
+.phoenix-soarer {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 140px;
+  height: 54px;
+  pointer-events: none;
+  will-change: transform;
+  animation: phoenixSoarAcross 14s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+/* Flight trajectory keyframes: Left to Right */
+@keyframes phoenixSoarAcross {
+  0% {
+    transform: translate3d(-220px, -50%, 0);
+    opacity: 0;
+  }
+  3% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(calc(100vw + 240px), -50%, 0);
+    opacity: 0;
+  }
+}
+
+/* The Phoenix Bird Image with soaring wave & fiery aura */
+.phoenix-bird-img {
+  position: relative;
+  width: 135px;
+  height: auto;
+  display: block;
+  z-index: 3;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px rgba(255, 200, 50, 0.9))
+          drop-shadow(-8px 2px 14px rgba(255, 90, 0, 0.75))
+          drop-shadow(-16px 4px 22px rgba(255, 40, 0, 0.45));
+  animation: phoenixWingBob 2.4s ease-in-out infinite alternate;
+  transform-origin: center right;
+  will-change: transform;
+}
+
+/* Soaring undulation: gentle bird pitch & lift in the wind */
+@keyframes phoenixWingBob {
+  0% {
+    transform: translateY(-7px) rotate(-3deg) scaleY(0.96);
+  }
+  50% {
+    transform: translateY(1px) rotate(1deg) scaleY(1.02);
+  }
+  100% {
+    transform: translateY(7px) rotate(3deg) scaleY(0.98);
+  }
+}
+
+/* Trailing Flame Plume that sweeps back into the wind */
+.phoenix-flame-plume {
+  position: absolute;
+  right: 88%;
+  top: 42%;
+  width: 120px;
+  height: 18px;
+  transform: translateY(-50%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 40, 0, 0.15) 20%,
+    rgba(255, 80, 0, 0.5) 50%,
+    rgba(255, 170, 0, 0.8) 80%,
+    rgba(255, 235, 100, 0.95) 100%
+  );
+  border-radius: 50% 0 0 50%;
+  filter: blur(4px);
+  z-index: 1;
+  pointer-events: none;
+  animation: plumeFlicker 0.35s ease-in-out infinite alternate;
+  transform-origin: right center;
+}
+
+@keyframes plumeFlicker {
+  0% {
+    opacity: 0.8;
+    transform: translateY(-50%) scaleX(0.9) scaleY(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scaleX(1.15) scaleY(1.15);
+  }
+}
+
+/* Ambient fiery heat haze trailing the bird */
+.phoenix-heat-haze {
+  position: absolute;
+  right: 75%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 160px;
+  height: 40px;
+  background: radial-gradient(
+    ellipse at right center,
+    rgba(255, 140, 0, 0.35) 0%,
+    rgba(255, 60, 0, 0.15) 50%,
+    transparent 80%
+  );
+  filter: blur(8px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   FLAME PARTICLES & EMBERS SPLITTING IN THE WIND
+   ========================================================================== */
+
+.phoenix-wind-embers {
+  position: absolute;
+  right: 85%;
+  top: 50%;
+  width: 1px;
+  height: 1px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.ember {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(255, 220, 50, 0.9), 0 0 12px rgba(255, 90, 0, 0.8);
+}
+
+/* Keyframes for sparks splitting and tearing back against the wind */
+@keyframes emberDriftUpper {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+    background-color: #fffb96;
+  }
+  50% {
+    background-color: #ff9800;
+  }
+  100% {
+    transform: translate3d(-140px, -24px, 0) scale(0.2);
+    opacity: 0;
+    background-color: #ff3d00;
+  }
+}
+
+@keyframes emberDriftLower {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+    background-color: #fffb96;
+  }
+  50% {
+    background-color: #ff7043;
+  }
+  100% {
+    transform: translate3d(-150px, 22px, 0) scale(0.15);
+    opacity: 0;
+    background-color: #d84315;
+  }
+}
+
+@keyframes emberDriftStraight {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1.1);
+    opacity: 1;
+    background-color: #ffffff;
+  }
+  40% {
+    background-color: #ffd54f;
+  }
+  100% {
+    transform: translate3d(-180px, -4px, 0) scale(0.1);
+    opacity: 0;
+    background-color: #ff1744;
+  }
+}
+
+/* Individual ember timings and sizes */
+.ember-1 {
+  width: 5px; height: 5px;
+  animation: emberDriftUpper 0.85s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0s;
+}
+
+.ember-2 {
+  width: 6px; height: 6px;
+  animation: emberDriftLower 0.95s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0.12s;
+}
+
+.ember-3 {
+  width: 4px; height: 4px;
+  animation: emberDriftStraight 1.1s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0.25s;
+}
+
+.ember-4 {
+  width: 7px; height: 7px;
+  animation: emberDriftUpper 0.8s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0.38s;
+}
+
+.ember-5 {
+  width: 5px; height: 5px;
+  animation: emberDriftLower 1.05s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0.48s;
+}
+
+.ember-6 {
+  width: 4px; height: 4px;
+  animation: emberDriftStraight 0.9s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0.6s;
+}
+
+.ember-7 {
+  width: 6px; height: 6px;
+  animation: emberDriftUpper 1.15s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0.72s;
+}
+
+.ember-8 {
+  width: 5px; height: 5px;
+  animation: emberDriftLower 0.88s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0.85s;
+}
+
+.ember-9 {
+  width: 3.5px; height: 3.5px;
+  animation: emberDriftStraight 1.25s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 0.95s;
+}
+
+.ember-10 {
+  width: 6.5px; height: 6.5px;
+  animation: emberDriftUpper 0.92s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 1.05s;
+}
+
+.ember-11 {
+  width: 4.5px; height: 4.5px;
+  animation: emberDriftLower 1.12s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 1.18s;
+}
+
+.ember-12 {
+  width: 5.5px; height: 5.5px;
+  animation: emberDriftStraight 1.02s cubic-bezier(0.1, 0.6, 0.3, 1) infinite;
+  animation-delay: 1.3s;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .phoenix-soarer {
+    width: 100px;
+    height: 38px;
+    animation-duration: 11s;
+  }
+  .phoenix-bird-img {
+    width: 95px;
+  }
+  .phoenix-flame-plume {
+    width: 80px;
+    height: 12px;
+  }
+}

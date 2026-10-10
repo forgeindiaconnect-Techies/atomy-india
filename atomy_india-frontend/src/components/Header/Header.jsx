@@ -3,7 +3,9 @@ import { Search, User, ShoppingCart, ChevronDown, ChevronUp, Menu, Globe, X, Bel
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import atomyLogo from '../../assets/atomy-logo.png';
 import phoenixLogo from '../../assets/WhatsApp Image 2026-10-09 at 5.52.23 PM.jpeg';
+import PhoenixFlight from './PhoenixFlight';
 import './Header.css';
+
 
 const ATOMY_FAMILY_SITES = [
   {
@@ -235,7 +237,11 @@ export default function Header({
     <header className="header-wrapper">
       {/* Unified Main Brand Header Bar */}
       <div className={`main-header-bar ${currentView === 'admin' ? 'admin-header-bar' : ''}`}>
+        {/* Soaring Golden Phoenix Bird Background with Splitting Wind Flames */}
+        <PhoenixFlight />
+
         <div className="container main-header-container">
+
           
           {/* Top Utility Links Row - Hidden for Admin */}
           {currentView !== 'admin' && (

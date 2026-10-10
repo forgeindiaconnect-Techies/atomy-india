@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, User, ShoppingCart, ChevronDown, Menu, Globe, X, Bell, Sparkles, Clock, Heart } from 'lucide-react';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
+import PhoenixFlight from './PhoenixFlight';
 import './Header.css';
+
 
 export default function Header({
   cartCount = 0,
@@ -212,7 +214,11 @@ export default function Header({
     <header className="header-wrapper">
       {/* Unified Main Brand Header Bar */}
       <div className={`main-header-bar ${currentView === 'admin' ? 'admin-header-bar' : ''}`}>
+        {/* Soaring Golden Phoenix Bird Background with Splitting Wind Flames */}
+        <PhoenixFlight />
+
         <div className="container main-header-container">
+
           
           {/* Top Utility Links Row - Hidden for Admin */}
           {currentView !== 'admin' && (

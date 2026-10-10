@@ -12,6 +12,8 @@
   background-color: var(--atomy-blue);
   padding: 12px 0 16px;
   color: #ffffff;
+  position: relative;
+  overflow: hidden;
 }
 
 .main-header-bar.admin-header-bar {
@@ -26,6 +28,8 @@
   margin: 0 auto;
   padding-left: 36px;
   padding-right: 32px;
+  position: relative;
+  z-index: 2;
 }
 
 /* Top Utility Row (Join Us | Sign in | About Us | India) */
