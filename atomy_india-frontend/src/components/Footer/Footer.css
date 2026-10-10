@@ -187,3 +187,28 @@
     gap: 32px;
   }
 }
+
+@media (max-width: 640px) {
+  .footer-main-container {
+    padding: 24px 0 32px;
+  }
+  .footer-agreements-bar {
+    padding: 12px 0;
+  }
+  .footer-agreements-list {
+    gap: 8px 12px;
+    font-size: 11.5px;
+  }
+  .footer-contact-block {
+    font-size: 12px;
+  }
+  .footer-address-block {
+    font-size: 12px;
+  }
+  .footer-company-name {
+    font-size: 15px;
+  }
+  .footer-social-row {
+    gap: 10px;
+  }
+}

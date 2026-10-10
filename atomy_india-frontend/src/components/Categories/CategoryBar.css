@@ -69,3 +69,29 @@
     gap: 24px;
   }
 }
+
+@media (max-width: 640px) {
+  .category-bar-section {
+    padding: 18px 0 12px;
+  }
+  .category-items-grid {
+    gap: 16px;
+    padding-bottom: 6px;
+  }
+  .category-item-card {
+    min-width: 76px;
+  }
+  .category-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 6px;
+  }
+  .category-svg-icon {
+    width: 42px;
+    height: 42px;
+  }
+  .category-name-text {
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+}

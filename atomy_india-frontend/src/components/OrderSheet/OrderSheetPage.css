@@ -3401,4 +3401,65 @@
   color: #64748b;
 }
 
+/* ========================================================
+   Order Sheet Page - Mobile Responsive Styles
+   ======================================================== */
+@media (max-width: 992px) {
+  .order-sheet-content-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .order-sheet-main-container {
+    padding: 20px 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .order-sheet-page {
+    padding-bottom: 50px;
+  }
+  .order-sheet-main-container {
+    padding: 14px 10px;
+  }
+  .sheet-card {
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .sheet-card-header {
+    padding: 12px 14px;
+  }
+  .card-header-title {
+    font-size: 14.5px;
+  }
+  .sheet-card-body {
+    padding: 14px 12px;
+  }
+  .breadcrumb-container {
+    padding: 0 10px;
+    gap: 8px;
+  }
+  .breadcrumb-nav {
+    font-size: 12px;
+  }
+  .form-row, .order-form-grid, .two-col-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .delivery-confirmed-eta-box {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+    padding: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-header-title {
+    font-size: 13.5px;
+    gap: 6px;
+  }
+  .sheet-card-header {
+    padding: 10px 12px;
+  }
+}
+
 

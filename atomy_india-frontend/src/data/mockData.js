@@ -6017,31 +6017,6 @@ export const OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY = {
   ]
 };
 
-export const getRelatedProducts = (currentProduct) => {
-  if (!currentProduct) return OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY.beauty;
-  const name = (currentProduct.name || '').toLowerCase();
-  const cat = (currentProduct.category || '').toLowerCase();
-
-  // If viewing HemoHIM, official Atomy site features the Beauty recommendation set (User Screenshot 4!)
-  if (name.includes('hemohim') || currentProduct.id === 'D00101') {
-    return OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY.beauty;
-  }
-  if (cat.includes('food') || name.includes('cafe') || name.includes('ramen') || name.includes('tea')) {
-    return OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY.food.filter(p => p.id !== currentProduct.id);
-  }
-  if (cat.includes('personal') || cat.includes('hair') || cat.includes('body') || name.includes('toothpaste') || name.includes('toothbrush')) {
-    return OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY.personal_care.filter(p => p.id !== currentProduct.id);
-  }
-  if (cat.includes('home') || name.includes('detergent')) {
-    return OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY.home.filter(p => p.id !== currentProduct.id);
-  }
-  if (cat.includes('health') || name.includes('omega') || name.includes('spirulina') || name.includes('shilajit')) {
-    return OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY.health.filter(p => p.id !== currentProduct.id);
-  }
-  // Default to Beauty (Screen 4)
-  return OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY.beauty.filter(p => p.id !== currentProduct.id);
-};
-
 // Aggregated unique catalog products for instant search and global lookup
 export const ALL_CATALOG_PRODUCTS = (() => {
   const map = new Map();
@@ -6081,5 +6056,101 @@ export const ALL_CATALOG_PRODUCTS = (() => {
   }
   return Array.from(map.values());
 })();
+
+/**
+ * Dynamically find related products for a selected product based on category, tags, and catalog similarity.
+ */
+export const getRelatedProducts = (currentProduct, limit = 12) => {
+  const allProds = ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.length > 0
+    ? ALL_CATALOG_PRODUCTS
+    : (BEST_PRODUCTS || []);
+
+  if (!currentProduct) {
+    return allProds.slice(0, limit);
+  }
+
+  const currentId = currentProduct.id;
+  const currentName = (currentProduct.name || '').toLowerCase();
+  const currentCat = (currentProduct.category || '').toLowerCase();
+
+  // 1. Detect category of the current product
+  let primaryCategory = 'beauty';
+  if (currentCat.includes('health') || currentName.includes('hemohim') || currentName.includes('omega') || currentName.includes('spirulina') || currentName.includes('thistle') || currentName.includes('shilajit') || currentName.includes('vitamin') || currentName.includes('moringa') || currentName.includes('probiotics')) {
+    primaryCategory = 'health';
+  } else if (currentCat.includes('food') || currentName.includes('cafe') || currentName.includes('tea') || currentName.includes('jelly') || currentName.includes('ramen') || currentName.includes('coffee')) {
+    primaryCategory = 'food';
+  } else if (currentCat.includes('living') || currentCat.includes('home') || currentName.includes('detergent') || currentName.includes('scrubber') || currentName.includes('dish')) {
+    primaryCategory = 'living';
+  } else if (currentCat.includes('personal') || currentName.includes('tooth') || currentName.includes('shampoo') || currentName.includes('conditioner') || currentName.includes('body wash') || currentName.includes('body cleanser') || currentName.includes('lotion')) {
+    primaryCategory = 'personal';
+  } else {
+    primaryCategory = 'beauty';
+  }
+
+  // 2. Filter matching products from catalog, excluding current product
+  const directMatches = allProds.filter(p => {
+    if (!p || p.id === currentId) return false;
+    const pCat = (p.category || '').toLowerCase();
+    const pName = (p.name || '').toLowerCase();
+
+    if (primaryCategory === 'health') {
+      return pCat === 'health' || pName.includes('hemohim') || pName.includes('omega') || pName.includes('spirulina') || pName.includes('thistle') || pName.includes('shilajit') || pName.includes('moringa');
+    }
+    if (primaryCategory === 'food') {
+      return pCat === 'food' || pName.includes('cafe') || pName.includes('tea') || pName.includes('jelly') || pName.includes('ramen') || pName.includes('coffee');
+    }
+    if (primaryCategory === 'living') {
+      return pCat === 'living' || pCat === 'home' || pName.includes('detergent') || pName.includes('scrubber');
+    }
+    if (primaryCategory === 'personal') {
+      return pCat === 'personal' || pCat === 'personal_care' || pName.includes('tooth') || pName.includes('shampoo') || pName.includes('scalp') || pName.includes('body');
+    }
+    // Beauty / Skincare
+    return pCat === 'beauty' || pName.includes('skin') || pName.includes('fame') || pName.includes('cleanser') || pName.includes('sunscreen') || pName.includes('cream') || pName.includes('ampoule') || pName.includes('toner') || pName.includes('lotion') || pName.includes('care');
+  });
+
+  // Sort by popularity / likes
+  directMatches.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+
+  // If fewer than limit, backfill with top bestsellers
+  const existingIds = new Set(directMatches.map(p => p.id));
+  existingIds.add(currentId);
+
+  const backfill = (BEST_PRODUCTS || []).filter(p => p && !existingIds.has(p.id));
+  const combined = [...directMatches, ...backfill].slice(0, limit);
+
+  return combined.map(item => ({
+    ...item,
+    formattedPrice: item.formattedPrice || `₹ ${Number(item.price || 1000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+    pv: item.pv || Math.round((item.price || 1000) * 4.5),
+    likes: item.likes || Math.floor(Math.random() * 200 + 80)
+  }));
+};
+
+/**
+ * Dynamically return the most popular Atomy products across the catalog.
+ */
+export const getPopularProducts = (limit = 10, excludeIds = []) => {
+  const excludeSet = new Set(Array.isArray(excludeIds) ? excludeIds : [excludeIds]);
+  const allProds = ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.length > 0
+    ? ALL_CATALOG_PRODUCTS
+    : (BEST_PRODUCTS || []);
+
+  const list = allProds.filter(p => p && !excludeSet.has(p.id));
+  list.sort((a, b) => {
+    const rankA = a.rank || 999;
+    const rankB = b.rank || 999;
+    if (rankA !== rankB) return rankA - rankB;
+    return (b.likes || 0) - (a.likes || 0);
+  });
+
+  return list.slice(0, limit).map(item => ({
+    ...item,
+    formattedPrice: item.formattedPrice || `₹ ${Number(item.price || 1000).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+    pv: item.pv || Math.round((item.price || 1000) * 4.5),
+    likes: item.likes || Math.floor(Math.random() * 200 + 80)
+  }));
+};
+
 
 

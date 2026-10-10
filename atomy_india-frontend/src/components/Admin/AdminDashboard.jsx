@@ -218,7 +218,7 @@ export default function AdminDashboard({ onBackToStore }) {
     trackingNumber: '',
     currentStatus: 'SHIPPED',
     currentLocation: 'Gurugram Hub',
-    estimatedDelivery: '2-3 Business Days'
+    estimatedDelivery: 'Within 48 Hours (2 Days)'
   });
 
   // Support State (Clean state from MySQL database or actual customer interactions)
@@ -1054,7 +1054,7 @@ export default function AdminDashboard({ onBackToStore }) {
       trackingNumber: order.tracking?.trackingNumber || order.trackingNumber || `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
       currentStatus: order.orderStatus || 'PLACED',
       currentLocation: order.tracking?.currentLocation || 'Gurugram Hub',
-      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || '2-3 Business Days'
+      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || 'Within 48 Hours (2 Days)'
     });
   };
 

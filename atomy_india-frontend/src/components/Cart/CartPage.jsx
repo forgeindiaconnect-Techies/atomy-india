@@ -1,83 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ShoppingCart, ShoppingBag, Plus, Minus, X, ArrowLeft } from 'lucide-react';
 import './CartPage.css';
-import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS } from '../../data/mockData';
+import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS, getRelatedProducts, getPopularProducts } from '../../data/mockData';
 import { calculateCartTaxSummary } from '../../services/taxService';
-
-const CART_PAGE_BEST_PRODUCTS = [
-  {
-    id: "D90501",
-    name: "Atomy Toothpaste 200g x1N",
-    price: 359,
-    formattedPrice: "₹ 359.00",
-    image: "https://image.atomy.com/IN/goods/D90501/org/663/251130000048663.jpg?w=480&h=480",
-    gstReduced: true
-  },
-  {
-    id: "D00301",
-    name: "Evening Care Foam Cleanser",
-    price: 900,
-    formattedPrice: "₹ 900.00",
-    image: "https://image.atomy.com/IN/goods/D00301/D00301_00.jpg?w=480&h=480",
-    gstReduced: false
-  },
-  {
-    id: "D00521",
-    name: "Toothpaste 50g x 4 N",
-    price: 520,
-    formattedPrice: "₹ 520.00",
-    image: "https://image.atomy.com/IN/goods/D00521/D00521_00.jpg?w=480&h=480",
-    gstReduced: true
-  },
-  {
-    id: "D00271",
-    name: "Sunscreen SPF50+ PA+++(White )",
-    price: 900,
-    formattedPrice: "₹ 900.00",
-    image: "https://image.atomy.com/IN/goods/D00271/D00271_00.jpg?w=480&h=480",
-    gstReduced: false
-  },
-  {
-    id: "D00281",
-    name: "Sunscreen SPF50+ PA+++(Beige )",
-    price: 900,
-    formattedPrice: "₹ 900.00",
-    image: "https://image.atomy.com/IN/goods/D00281/D00281_00.jpg?w=480&h=480",
-    gstReduced: false
-  },
-  {
-    id: "D00501",
-    name: "Toothpaste 200g X 5 N",
-    price: 1795,
-    formattedPrice: "₹ 1,795.00",
-    image: "https://image.atomy.com/IN/goods/D00501/D00501_00.jpg?w=480&h=480",
-    gstReduced: true
-  },
-  {
-    id: "D00510",
-    name: "Toothbrush 8N",
-    price: 950,
-    formattedPrice: "₹ 950.00",
-    image: "https://image.atomy.com/IN/goods/D00510/D00510_00.jpg?w=480&h=480",
-    gstReduced: true
-  },
-  {
-    id: "D00601",
-    name: "Herbal Hair Shampoo",
-    price: 1050,
-    formattedPrice: "₹ 1,050.00",
-    image: "https://image.atomy.com/IN/goods/D00601/D00601_00.jpg?w=480&h=480",
-    gstReduced: true
-  },
-  {
-    id: "D04086",
-    name: "Atomy Moringa",
-    price: 799,
-    formattedPrice: "₹ 799.00",
-    image: "https://image.atomy.com/IN/goods/D04086/D04086_00.jpg?w=480&h=480",
-    gstReduced: true
-  }
-];
+import { calculateProductPricing } from '../../services/membershipService';
 
 export default function CartPage({
   cartItems = [],
@@ -89,7 +15,9 @@ export default function CartPage({
   onNavigateBack,
   onProductClick,
   onAddToCart,
-  onNavigateSignIn
+  onNavigateSignIn,
+  isMember = false,
+  onOpenMembershipModal
 }) {
   // Determine if active user is logged in (from prop or localStorage)
   const isLoggedIn = Boolean(
@@ -114,6 +42,17 @@ export default function CartPage({
       const currentIds = cartItems.map(item => item.id);
       return prev.filter(id => currentIds.includes(id));
     });
+  }, [cartItems]);
+
+  const popularBestsellers = useMemo(() => {
+    const cartIds = cartItems.map(item => item.id);
+    if (cartItems.length > 0) {
+      const firstItem = cartItems[0];
+      const related = getRelatedProducts(firstItem, 12);
+      const filtered = related.filter(p => !cartIds.includes(p.id));
+      if (filtered.length >= 4) return filtered;
+    }
+    return getPopularProducts(12, cartIds);
   }, [cartItems]);
 
   const handleToggleSelect = (id) => {
@@ -544,59 +483,66 @@ export default function CartPage({
           </button>
 
           <div className="swiper-gdsList-track" ref={bestSliderRef}>
-            {CART_PAGE_BEST_PRODUCTS.map((prod) => (
-              <div key={prod.id} className="swiper-slide-gds">
-                <div 
-                  className="gdImg" 
-                  onClick={() => onProductClick && onProductClick(prod)}
-                >
-                  {prod.gstReduced && (
-                    <span className="gdsFlag">
-                      <img
-                        src="https://image.atomy.com/IN/goods/flag/501/251120000048501.png"
-                        alt="GST Reduce"
-                      />
-                    </span>
-                  )}
-                  <span className="img">
-                    <img 
-                      src={prod.image} 
-                      alt={prod.name} 
-                      onError={handleImageError}
-                    />
-                  </span>
-                </div>
-
-                <div className="gdInfo">
-                  <button
-                    type="button"
-                    className="bt_cart"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddToCart && onAddToCart(prod);
-                    }}
-                    aria-label="Add to cart"
-                  >
-                    <ShoppingCart size={19} color="#00b6f0" strokeWidth={1.8} />
-                  </button>
-
+            {popularBestsellers.map((prod) => {
+              const pricing = calculateProductPricing(prod, isMember);
+              return (
+                <div key={prod.id} className="swiper-slide-gds">
                   <div 
-                    className="title" 
+                    className="gdImg" 
                     onClick={() => onProductClick && onProductClick(prod)}
                   >
-                    {prod.name}
-                  </div>
-
-                  <div className="gdsPrice">
-                    <span className="prc">
-                      <span className="prc_ori">
-                        <em>₹</em><b>{prod.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</b>
+                    {prod.gstReduced && (
+                      <span className="gdsFlag">
+                        <img
+                          src="https://image.atomy.com/IN/goods/flag/501/251120000048501.png"
+                          alt="GST Reduce"
+                        />
                       </span>
+                    )}
+                    <span className="img">
+                      <img 
+                        src={prod.image} 
+                        alt={prod.name} 
+                        onError={handleImageError}
+                      />
                     </span>
                   </div>
+
+                  <div className="gdInfo">
+                    <button
+                      type="button"
+                      className="bt_cart"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToCart && onAddToCart(prod);
+                      }}
+                      aria-label="Add to cart"
+                    >
+                      <ShoppingCart size={19} color="#00b6f0" strokeWidth={1.8} />
+                    </button>
+
+                    <div 
+                      className="title" 
+                      onClick={() => onProductClick && onProductClick(prod)}
+                    >
+                      {prod.name}
+                    </div>
+
+                    <div className="gdsPrice">
+                      <span className="prc">
+                        <span className="prc_ori">
+                          <em>₹</em><b>{pricing.activePrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</b>
+                        </span>
+                        {isMember && <span style={{ fontSize: '11px', color: '#059669', marginLeft: '5px', fontWeight: '700' }}>DP</span>}
+                      </span>
+                      <span className="pv" style={{ display: 'block', fontSize: '12px', color: '#00A3E0', fontWeight: '600', marginTop: '2px' }}>
+                        {(pricing.pv || prod.pv || 2000).toLocaleString('en-IN')} PV
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <button 

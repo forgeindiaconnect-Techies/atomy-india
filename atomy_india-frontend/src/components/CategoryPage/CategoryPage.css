@@ -847,11 +847,12 @@
 @media (max-width: 768px) {
   .cate-products-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px 12px;
   }
   .cate-hero-banner {
     flex-direction: column;
     text-align: center;
-    padding: 24px 20px;
+    padding: 24px 16px;
   }
   .cate-hero-text {
     max-width: 100%;
@@ -862,5 +863,24 @@
   }
   .cate-slider-arrow {
     display: none;
+  }
+  .cate-top-bar {
+    padding: 20px 0 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cate-top-toggle-btn h2 {
+    font-size: 20px;
+  }
+  .cate-products-grid {
+    gap: 12px 8px;
+  }
+  .cate-card-content {
+    padding: 10px 8px;
+  }
+  .cate-card-title {
+    font-size: 13px;
+    line-height: 1.35;
   }
 }

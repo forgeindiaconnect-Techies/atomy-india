@@ -205,7 +205,7 @@ export function calculateProductPricing(product, isMember) {
       activePrice: 0,
       pv: 0,
       isMember: false,
-      showPv: false,
+      showPv: true,
       hasOffer: false,
       discountPercent: 0
     };
@@ -220,7 +220,7 @@ export function calculateProductPricing(product, isMember) {
   const pv = Number(product.pv) || Math.round(rawPrice * 4.5);
 
   const activePrice = isMember ? dpPrice : offerPrice;
-  const showPv = Boolean(isMember);
+  const showPv = true;
 
   const hasOffer = mrp > activePrice;
   const discountPercent = hasOffer ? Math.round(((mrp - activePrice) / mrp) * 100) : 0;

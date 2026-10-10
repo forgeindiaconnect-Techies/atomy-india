@@ -31,67 +31,11 @@ import {
 } from 'lucide-react';
 import './OrderSheetPage.css';
 import { createCustomerOrder } from '../../services/api';
-import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS } from '../../data/mockData';
+import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS, getRelatedProducts, getPopularProducts } from '../../data/mockData';
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
+import { calculateProductPricing } from '../../services/membershipService';
 import customPaymentQr from '../../assets/WhatsApp Image 2026-10-06 at 12.14.42 PM.jpeg';
 
-// Curated list of Bestseller Products with verified working CDN images
-const QUICK_ORDER_BEST_PRODUCTS = [
-  {
-    id: 'D00101',
-    rank: 1,
-    name: 'Atomy HemoHIM (1 Set / 60pk)',
-    price: 13000.00,
-    pv: 60000,
-    image: 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480',
-    tag: '#1 Immune Power'
-  },
-  {
-    id: 'D90501',
-    rank: 2,
-    name: 'Atomy Toothpaste 200g x1N',
-    price: 315.00,
-    pv: 850,
-    image: 'https://image.atomy.com/IN/goods/D90501/org/663/251130000048663.jpg?w=480&h=480',
-    tag: 'Daily Dental Care'
-  },
-  {
-    id: 'D00301',
-    rank: 3,
-    name: 'Evening Care Foam Cleanser',
-    price: 755.20,
-    pv: 3500,
-    image: 'https://image.atomy.com/IN/goods/D00301/D00301_00.jpg?w=480&h=480',
-    tag: 'Pure Cleansing'
-  },
-  {
-    id: 'D00351',
-    rank: 4,
-    name: 'Evening Care 4 Set',
-    price: 2900.00,
-    pv: 13000,
-    image: 'https://image.atomy.com/IN/goods/D00351/D00351_00.jpg?w=480&h=480',
-    tag: 'Home Facial Spa'
-  },
-  {
-    id: 'D00207',
-    rank: 5,
-    name: 'Absolute CellActive Skincare Set',
-    price: 16500.00,
-    pv: 130000,
-    image: 'https://image.atomy.com/IN/goods/D00207/org/036/260803000054036.jpg?w=480&h=480',
-    tag: 'Anti-Aging Luxury'
-  },
-  {
-    id: 'D00510',
-    rank: 6,
-    name: 'Atomy Toothbrush Compact 8N',
-    price: 900.00,
-    pv: 5000,
-    image: 'https://image.atomy.com/IN/goods/D00510/D00510_00.jpg?w=480&h=480',
-    tag: '0.03mm Super Slim'
-  }
-];
 
 // Offline instant fallback PIN code dictionary for key Indian postal zones
 const PIN_CODE_MAP = {
@@ -159,22 +103,22 @@ export const getProductGstRate = (item) => {
   return isProductGstReduced(item) ? 5 : 18;
 };
 
-// Helper: Calculate standard Indian e-commerce delivery timeline (start date to 8 days, e.g. 10 Oct – 17 Oct 2026)
+// Helper: Calculate fast delivery timeline (within 48 hours / 2 days from current ordered date)
 export const getEstimatedDeliveryRange = (baseDate = new Date()) => {
-  const startD = new Date(baseDate);
-  startD.setDate(startD.getDate() + 1);
+  const currentOrderDate = new Date(baseDate);
 
-  const endD = new Date(baseDate);
-  endD.setDate(endD.getDate() + 8);
+  // Delivery within 48 hours (2 days) from current ordered date
+  const deliveryTargetDate = new Date(baseDate);
+  deliveryTargetDate.setDate(deliveryTargetDate.getDate() + 2);
 
-  const startStr = startD.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-  const endStr = endD.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const startStr = currentOrderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  const endStr = deliveryTargetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
   return {
     dateRange: `${startStr} – ${endStr}`,
     startDateFormatted: startStr,
     endDateFormatted: endStr,
-    timeFrame: '8 Days',
+    timeFrame: '48 Hours (2 Days)',
     carrier: 'Blue Dart Express',
     dispatchTime: 'Dispatched within 24 hours'
   };
@@ -195,10 +139,19 @@ export default function OrderSheetPage({
   isMember = false,
   currentUser = null
 }) {
-  // Steps: 'sheet' (02 Order & Delivery) | 'payment' (03 Payment Gateway) | 'completed' (04 Order Completed)
   const [step, setStep] = useState('sheet');
   const [isProductsExpanded, setIsProductsExpanded] = useState(true);
   const [isTaxBreakdownOpen, setIsTaxBreakdownOpen] = useState(false);
+
+  const popularBestsellers = useMemo(() => {
+    const orderedIds = (cartItems || []).map(i => i.id);
+    if (cartItems && cartItems.length > 0) {
+      const related = getRelatedProducts(cartItems[0], 12);
+      const filtered = related.filter(p => !orderedIds.includes(p.id));
+      if (filtered.length >= 4) return filtered;
+    }
+    return getPopularProducts(8, orderedIds);
+  }, [cartItems]);
 
   // Delivery Addresses List & Active Selection (Synced with localStorage)
   const [addresses, setAddresses] = useState(() => {
@@ -321,9 +274,8 @@ export default function OrderSheetPage({
   }, [cartItems]);
 
   const totalPV = useMemo(() => {
-    if (!isMember) return 0;
-    return cartItems.reduce((acc, item) => acc + ((item.pv || 0) * item.qty), 0);
-  }, [cartItems, isMember]);
+    return cartItems.reduce((acc, item) => acc + ((item.pv || Math.round((item.price || 1000) * 4.5)) * item.qty), 0);
+  }, [cartItems]);
 
   const totalQty = useMemo(() => {
     return cartItems.reduce((acc, item) => acc + item.qty, 0);
@@ -1094,7 +1046,7 @@ export default function OrderSheetPage({
                       </div>
                     )}
 
-                    {isMember && totalPV > 0 && (
+                    {totalPV > 0 && (
                       <div className="summary-line pv-line">
                         <span className="line-label">Accumulated PV Points</span>
                         <span className="line-value pv-text">+{totalPV.toLocaleString('en-IN')} PV</span>
@@ -1214,50 +1166,56 @@ export default function OrderSheetPage({
               </div>
 
               <div className="bestsellers-cards-grid">
-                {QUICK_ORDER_BEST_PRODUCTS.map((prod) => (
-                  <div key={prod.id} className="bestseller-item-card">
-                    <div className="bestseller-card-top-tag">
-                      <span className="rank-number">#{prod.rank}</span>
-                      <span className="tag-label">{prod.tag}</span>
-                    </div>
-
-                    <div 
-                      className="bestseller-img-wrap"
-                      onClick={() => onProductClick && onProductClick(prod)}
-                      title="Click to view product"
-                    >
-                      <img
-                        src={prod.image}
-                        alt={prod.name}
-                        className="bestseller-card-img"
-                        onError={(e) => { e.target.src = 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480'; }}
-                      />
-                    </div>
-
-                    <div className="bestseller-card-info">
-                      <h4 
-                        className="bestseller-card-name"
-                        onClick={() => onProductClick && onProductClick(prod)}
-                      >
-                        {prod.name}
-                      </h4>
-
-                      <div className="bestseller-pricing-row">
-                        <span className="bestseller-price">₹ {prod.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        <span className="bestseller-pv">{prod.pv.toLocaleString()} PV</span>
+                {popularBestsellers.map((prod, idx) => {
+                  const pricing = calculateProductPricing(prod, isMember);
+                  return (
+                    <div key={prod.id} className="bestseller-item-card">
+                      <div className="bestseller-card-top-tag">
+                        <span className="rank-number">#{prod.rank || idx + 1}</span>
+                        <span className="tag-label">{prod.tags?.[0] || prod.tag || 'Popular'}</span>
                       </div>
 
-                      <button
-                        type="button"
-                        className="btn-quick-add-bestseller"
-                        onClick={() => handleQuickAddBestseller(prod)}
+                      <div 
+                        className="bestseller-img-wrap"
+                        onClick={() => onProductClick && onProductClick(prod)}
+                        title="Click to view product"
                       >
-                        <Plus size={15} />
-                        <span>Quick Add</span>
-                      </button>
+                        <img
+                          src={prod.image}
+                          alt={prod.name}
+                          className="bestseller-card-img"
+                          onError={(e) => { e.target.src = 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480'; }}
+                        />
+                      </div>
+
+                      <div className="bestseller-card-info">
+                        <h4 
+                          className="bestseller-card-name"
+                          onClick={() => onProductClick && onProductClick(prod)}
+                        >
+                          {prod.name}
+                        </h4>
+
+                        <div className="bestseller-pricing-row">
+                          <span className="bestseller-price">
+                            ₹ {pricing.activePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {isMember && <span style={{ fontSize: '11px', color: '#059669', marginLeft: '5px', fontWeight: '700' }}>DP</span>}
+                          </span>
+                          <span className="bestseller-pv">{(pricing.pv || prod.pv || 2000).toLocaleString()} PV</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn-quick-add-bestseller"
+                          onClick={() => handleQuickAddBestseller(prod)}
+                        >
+                          <Plus size={15} />
+                          <span>Quick Add</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           </>

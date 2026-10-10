@@ -16,13 +16,24 @@ import {
   X,
   ZoomIn,
   ZoomOut,
-  ArrowLeft
+  ArrowLeft,
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  CreditCard,
+  PackageCheck,
+  AlertCircle,
+  Phone,
+  Mail,
+  Clock,
+  MapPin
 } from 'lucide-react';
 import {
   GST_BADGE_IMAGE,
   getRelatedProducts
 } from '../../data/mockData';
 import { getProductDetailConfig, getGenericName } from '../../data/productDetailsData';
+import { calculateProductPricing } from '../../services/membershipService';
 import { getProductStats, recordProductAddedToCart } from '../../services/productStatsService';
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
@@ -57,6 +68,8 @@ export default function ProductDetailPage({
   const [isExpandedDetails, setIsExpandedDetails] = useState(false);
   const [showFloatingCard, setShowFloatingCard] = useState(false);
   const [isPdpQuickMenuOpen, setIsPdpQuickMenuOpen] = useState(false);
+  const [isEducationCentreOpen, setIsEducationCentreOpen] = useState(false);
+  const [isSelfPickUpOpen, setIsSelfPickUpOpen] = useState(false);
 
   const relatedSliderRef = useRef(null);
   const tabsSectionRef = useRef(null);
@@ -194,11 +207,10 @@ export default function ProductDetailPage({
     }
   };
 
-  const unitPrice = isMember && (product.dpPrice || product.distributorPrice)
-    ? Number(product.dpPrice || product.distributorPrice)
-    : (Number(product.price) || 1350);
+  const pricing = calculateProductPricing(product, isMember);
+  const unitPrice = pricing.activePrice;
   const totalPrice = unitPrice * qty;
-  const itemPv = product.pv || officialData?.pv || 6700;
+  const itemPv = pricing.pv || product.pv || officialData?.pv || 6700;
   const totalPv = itemPv * qty;
 
   // Lock body scroll and listen for Escape / Arrow keys when modal is open
@@ -431,11 +443,9 @@ export default function ProductDetailPage({
 
             {/* Official Price & Tax Breakdown Block (Matches Atomy India Specifications) */}
             {(() => {
-              const origVal = Number(product.originalPrice) || 0;
-              const discVal = product.discountPercent
-                ? Number(String(product.discountPercent).replace(/[^0-9]/g, ''))
-                : (origVal > unitPrice ? Math.round(((origVal - unitPrice) / origVal) * 100) : 0);
-              const hasOffer = discVal > 0 && origVal > unitPrice;
+              const origVal = pricing.mrp;
+              const discVal = pricing.discountPercent;
+              const hasOffer = pricing.hasOffer;
               const { rate: gstRate, base: unitGstBase, gst: unitGst } = calculateProductTax(unitPrice, product);
 
               return (
@@ -446,13 +456,20 @@ export default function ProductDetailPage({
                       <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '14px', fontWeight: '500' }}>
                         ₹ {origVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
-                      <span style={{ background: '#fee2e2', color: '#dc2626', fontSize: '11.5px', fontWeight: '700', padding: '2px 8px', borderRadius: '4px' }}>
-                        {discVal}% OFF
+                      <span style={{
+                        background: isMember ? '#ecfdf5' : '#fee2e2',
+                        color: isMember ? '#059669' : '#dc2626',
+                        fontSize: '11.5px',
+                        fontWeight: '700',
+                        padding: '2px 8px',
+                        borderRadius: '4px'
+                      }}>
+                        {isMember ? 'DP Price' : `${discVal}% OFF`}
                       </span>
                     </div>
                   )}
 
-                  {/* Top Line: ₹ 2,855.60 (Including Tax) 13,500 PV ⓘ */}
+                  {/* Top Line: e.g. ₹ 13,940.00 (Including Tax) 1,28,000 PV ⓘ */}
                   <div className="pdp-tax-headline-row">
                     <span className="pdp-price-amount-hero">
                       ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -494,6 +511,44 @@ export default function ProductDetailPage({
                       </span>
                     </div>
                   </div>
+
+                  {/* Simple text hint like on the home page */}
+                  {!isMember ? (
+                    <p
+                      className="product-pv-note locked-pv-hint"
+                      style={{
+                        color: '#00A3E0',
+                        fontSize: '16.5px',
+                        fontWeight: '700',
+                        letterSpacing: '-0.2px',
+                        margin: '12px 0 4px',
+                        cursor: 'pointer',
+                        display: 'inline-block'
+                      }}
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('atomy:navigate-view', { detail: { view: 'membership' } }));
+                      }}
+                      title="Click to view Atomy Distributor Membership page"
+                    >
+                      Join Membership to get the Distributor Price
+                    </p>
+                  ) : (
+                    <div style={{ marginTop: '8px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        fontSize: '12.5px',
+                        fontWeight: '600',
+                        padding: '3px 8px',
+                        borderRadius: '4px'
+                      }}>
+                        ★ Active Member Price Applied
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -529,7 +584,7 @@ export default function ProductDetailPage({
             <div className="pdp-sticky-purchase-wrapper">
               <div className="pdp-qty-section-title">Qty</div>
 
-              {/* Light Gray Container Box */}
+              {/* Light Gray Container Box (Exact Match to User Reference Screenshot) */}
               <div className="pdp-qty-gray-box">
                 <div className="pdp-qty-item-name">{product.name}</div>
                 <div className="pdp-qty-stepper-price-row">
@@ -555,12 +610,13 @@ export default function ProductDetailPage({
                     </button>
                   </div>
 
-                  {/* Price & PV stack on right */}
+                  {/* Price & PV stack on right (scales with quantity) */}
                   <div className="pdp-qty-price-pv-stack">
                     <div className="pdp-qty-box-price">
-                      ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      <span className="pdp-rupee-sign">₹</span>
+                      {totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </div>
-                    {itemPv > 0 && (
+                    {totalPv > 0 && (
                       <div className="pdp-qty-box-pv">
                         {totalPv.toLocaleString('en-IN')} PV
                       </div>
@@ -571,16 +627,18 @@ export default function ProductDetailPage({
 
               {/* Total Product Price Summary Row */}
               <div className="pdp-total-price-summary-row">
-                <span className="total-label">Total Product Price</span>
-                <div className="total-amount-box">
-                  <span className="units-count">{qty} Unit(s)&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+                <div className="pdp-total-label-stacked">
+                  <span>Total Product</span>
+                  <span>Price</span>
+                </div>
+                <div className="pdp-total-amount-box">
+                  <span className="units-count">{qty} Unit(s)</span>
+                  <span className="pdp-units-divider">|</span>
                   <span className="bold-total-price">
-                    ₹ {totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <span className="pdp-rupee-sign-lg">₹</span>
+                    {totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
-              </div>
-              <div style={{ textAlign: 'right', fontSize: '11.5px', color: '#64748b', marginTop: '-4px', marginBottom: '10px' }}>
-                (Final amount inclusive of GST: ₹ {calculateProductTax(totalPrice, product).gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
               </div>
 
               {/* Total PV Summary Row */}
@@ -591,7 +649,7 @@ export default function ProductDetailPage({
                 </div>
               </div>
 
-              {/* Action Buttons: Easy Purchase | Cart, and Buy Now (matches Screenshot 1 & 2) */}
+              {/* Action Buttons: Easy Purchase | Cart, and Buy Now (matches Screenshot) */}
               <div className="pdp-floating-action-buttons">
                 <div className="pdp-action-buttons-subrow">
                   <button
@@ -1014,65 +1072,221 @@ export default function ProductDetailPage({
               </div>
             )}
 
-            {/* TAB 3: PAYMENT / DELIVERY */}
+            {/* TAB 3: PAYMENT / DELIVERY (Exact match to original site in.atomy.com) */}
             {activeTab === 'payment' && (
-              <div className="tab-pane animate-fade">
-                <h3 className="tab-section-heading">Payment Methods & Courier Delivery</h3>
-                <div className="policy-grid">
-                  <div className="policy-card">
-                    <Truck size={24} color="#00A3E0" />
-                    <h4>Courier Partners & Timelines</h4>
-                    <p>
-                      Orders dispatched within 24–48 hours via Blue Dart Express / Delhivery from Gurugram central warehouse.
-                      Standard transit time is 2–5 business days across all Indian postal PIN codes.
+              <div className="tab-pane animate-fade atomy-original-policy-pane">
+                <div className="atomy-original-block">
+                  <div className="atomy-original-header-row">
+                    <h4 className="atomy-original-title">Delivery Period</h4>
+                    <a
+                      href="https://in.atomy.com/support/faq"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="atomy-original-faq-link"
+                    >
+                      View FAQ
+                    </a>
+                  </div>
+                  <ul className="atomy-original-list">
+                    <li>- Depending on the destination, Delivery may take 0-2 working days* after receiving payment.</li>
+                    <li>- Delivery time may vary depending on the location and circumstance.</li>
+                    <li>- Weekends and public holidays are exempt from the Delivery period.</li>
+                  </ul>
+                  <p className="atomy-original-subnote">
+                    * Due to unexpected weather, incorrect Pincode, Force Mejeure etc. deliveries may get delayed.
+                  </p>
+                </div>
+
+                <div className="atomy-original-block">
+                  <h4 className="atomy-original-title">Delivery Coverage</h4>
+                  <ul className="atomy-original-list">
+                    <li>- To know available Pin Code for delivery, Please contact to Customer Care at 0124 695 9000 or write to atomy_in@atomypark.com</li>
+                    <li>- No PO box address allowed</li>
+                  </ul>
+                </div>
+
+                <div className="atomy-original-block">
+                  <h4 className="atomy-original-title">Delivery Fee</h4>
+                  <div className="atomy-original-table-container">
+                    <table className="atomy-original-charges-table">
+                      <thead>
+                        <tr>
+                          <th colSpan="4" className="charges-table-main-title">
+                            Delivery Charges (in INR) Within India
+                          </th>
+                        </tr>
+                        <tr className="charges-table-col-header">
+                          <th>Destination/Region</th>
+                          <th>Zone Code</th>
+                          <th>≤ 500 g</th>
+                          <th>Every Additional 500 g</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Intra-city</td>
+                          <td>A</td>
+                          <td>40</td>
+                          <td>28</td>
+                        </tr>
+                        <tr>
+                          <td>Intra-Region</td>
+                          <td>B</td>
+                          <td>46</td>
+                          <td>40</td>
+                        </tr>
+                        <tr>
+                          <td>Metro</td>
+                          <td>C</td>
+                          <td>48</td>
+                          <td>44</td>
+                        </tr>
+                        <tr>
+                          <td>Rest of India</td>
+                          <td>D</td>
+                          <td>69</td>
+                          <td>52</td>
+                        </tr>
+                        <tr>
+                          <td>J&amp;K</td>
+                          <td>E</td>
+                          <td>75</td>
+                          <td>58</td>
+                        </tr>
+                        <tr>
+                          <td>North East</td>
+                          <td>F</td>
+                          <td>75</td>
+                          <td>58</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="atomy-original-notes-block" style={{ marginTop: '12px' }}>
+                    <p className="atomy-original-subnote">* Free delivery for orders above ₹ 4,500</p>
+                    <p className="atomy-original-subnote">* Delivery charges mentioned above excludes GST, additional 18% GST applicable.</p>
+                  </div>
+                </div>
+
+                {/* Change Delivery Address */}
+                <div className="atomy-original-block">
+                  <h4 className="atomy-original-title">Change Delivery Address</h4>
+
+                  <div className="atomy-original-sub-section">
+                    <h5 className="atomy-original-subtitle">Express Delivery</h5>
+                    <p className="atomy-original-p">No changes in address allowed for Express Delivery</p>
+                  </div>
+
+                  <div className="atomy-original-sub-section" style={{ marginTop: '14px' }}>
+                    <h5 className="atomy-original-subtitle">Normal Delivery</h5>
+                    <p className="atomy-original-p">
+                      - Changes in Delivery address # shall only possible till cancellation period timelines, after that changes in Delivery address not possible.
+                    </p>
+                    <p className="atomy-original-p">
+                      # Changes in Delivery address possible if there is no Shipping State change
+                    </p>
+                    <p className="atomy-original-p">
+                      For Delivery address change contact to Customer Support Centre (Between 09:00 to 17:30 till the next working day)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Delivery Type */}
+                <div className="atomy-original-block">
+                  <h4 className="atomy-original-title">Delivery Type</h4>
+
+                  <div className="atomy-original-sub-section">
+                    <h5 className="atomy-original-subtitle">Express Delivery *</h5>
+                    <p className="atomy-original-p">
+                      a) Orders placed between 00:00 am till 15:00 pm shall be processed on the same day except Sunday and National Holidays
+                    </p>
+                    <p className="atomy-original-p">
+                      b) Orders placed between 15:01 pm till 23:59 pm shall be processed on the next working day.
+                    </p>
+                    <p className="atomy-original-p">
+                      - Timelines mentioned above are indicative and may change depending on number of orders, availability of products, Delivery partners Pin-code serviceability
                     </p>
                   </div>
 
-                  <div className="policy-card">
-                    <ShieldCheck size={24} color="#00A3E0" />
-                    <h4>Safe Payment Modes</h4>
-                    <p>
-                      We accept all major Credit/Debit Cards, UPI (Google Pay, PhonePe, Paytm), and Net Banking with 256-bit SSL encryption.
+                  <div className="atomy-original-sub-section" style={{ marginTop: '14px' }}>
+                    <h5 className="atomy-original-subtitle">Normal Delivery:-</h5>
+                    <p className="atomy-original-p">
+                      a) Shipment dispatch shall be done on next working day after Cancellation timelines defined under Order Cancellation section
                     </p>
                   </div>
+                </div>
 
-                  <div className="policy-card">
-                    <CheckCircle2 size={24} color="#00A3E0" />
-                    <h4>Free Delivery Policy</h4>
-                    <p>
-                      Public direct retail orders above ₹ 4,500 qualify for 100% Free Standard Courier Shipping nationwide.
-                    </p>
+                {/* Accordions: Education Centre Delivery & Self Pick Up */}
+                <div className="atomy-original-accordions-container">
+                  <div className="atomy-original-accordion-item">
+                    <button
+                      type="button"
+                      className="atomy-original-accordion-btn"
+                      onClick={() => setIsEducationCentreOpen(!isEducationCentreOpen)}
+                    >
+                      <span>Education Centre Delivery</span>
+                      {isEducationCentreOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
+                    {isEducationCentreOpen && (
+                      <div className="atomy-original-accordion-body animate-fade">
+                        <p className="atomy-original-p">
+                          - Free delivery for orders delivered to the designated affiliated Education Centre regardless of the purchase amount.
+                        </p>
+                        <p className="atomy-original-p">
+                          - Members can collect their orders from the Education Centre during its operational working hours.
+                        </p>
+                        <p className="atomy-original-p">
+                          - Please present your registered Member ID / Order Number and valid government-issued photo ID upon collection.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="atomy-original-accordion-item">
+                    <button
+                      type="button"
+                      className="atomy-original-accordion-btn"
+                      onClick={() => setIsSelfPickUpOpen(!isSelfPickUpOpen)}
+                    >
+                      <span>Self Pick Up</span>
+                      {isSelfPickUpOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </button>
+                    {isSelfPickUpOpen && (
+                      <div className="atomy-original-accordion-body animate-fade">
+                        <p className="atomy-original-p">
+                          - Self pick up option is available at designated Atomy India Main Hub / Distribution Centers.
+                        </p>
+                        <p className="atomy-original-p">
+                          - Operational hours: Monday to Friday (10:00 AM to 5:00 PM), excluding Sunday & National Holidays.
+                        </p>
+                        <p className="atomy-original-p">
+                          - Please bring your photo ID and order invoice / confirmation receipt for verification upon pickup.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* TAB 4: RETURN / EXCHANGE */}
+            {/* TAB 4: RETURN / EXCHANGE (Exact match to original site in.atomy.com) */}
             {activeTab === 'return' && (
-              <div className="tab-pane animate-fade">
-                <h3 className="tab-section-heading">Return & Exchange Guidelines</h3>
-                <div className="policy-grid">
-                  <div className="policy-card">
-                    <RotateCcw size={24} color="#00A3E0" />
-                    <h4>30-Day Customer Satisfaction</h4>
-                    <p>
-                      Unopened products in their original factory seal can be returned within 30 days of delivery for a replacement or full refund.
-                    </p>
-                  </div>
-                  <div className="policy-card">
-                    <ShieldCheck size={24} color="#00A3E0" />
-                    <h4>Damaged / Defective Items</h4>
-                    <p>
-                      In the rare event of transit damage or manufacturing defect, notify customer support within 48 hours for immediate doorstep replacement.
-                    </p>
-                  </div>
-                  <div className="policy-card">
-                    <FileText size={24} color="#00A3E0" />
-                    <h4>Customer Care Helpline</h4>
-                    <p>
-                      Reach out to our customer care team at <strong>+91-124-695-9000</strong> or email <strong>atomy_in@atomypark.com</strong>.
-                    </p>
-                  </div>
+              <div className="tab-pane animate-fade atomy-original-policy-pane">
+                <div className="atomy-original-block">
+                  <h4 className="atomy-original-title">Return / Exchange</h4>
+                  <ul className="atomy-original-list">
+                    <li>
+                      - For Return/Exchange, Please visit{' '}
+                      <a
+                        href="https://in.atomy.com/common/footerTermsInfo?isHtml=Y&tabIndex=2&subTabIndex=4"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#00A3E0', textDecoration: 'underline' }}
+                      >
+                        here
+                      </a>.
+                    </li>
+                  </ul>
                 </div>
               </div>
             )}
@@ -1085,7 +1299,7 @@ export default function ProductDetailPage({
               <div className="pdp-floating-purchase-card">
                 <div className="pdp-qty-section-title">Qty</div>
 
-                {/* Light Gray Container Box */}
+                {/* Light Gray Container Box (Exact Match to User Reference Screenshot) */}
                 <div className="pdp-qty-gray-box">
                   <div className="pdp-qty-item-name">{product.name}</div>
                   <div className="pdp-qty-stepper-price-row">
@@ -1111,12 +1325,13 @@ export default function ProductDetailPage({
                       </button>
                     </div>
 
-                    {/* Price & PV stack on right */}
+                    {/* Price & PV stack on right (scales with quantity) */}
                     <div className="pdp-qty-price-pv-stack">
                       <div className="pdp-qty-box-price">
-                        ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span className="pdp-rupee-sign">₹</span>
+                        {totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
-                      {itemPv > 0 && (
+                      {totalPv > 0 && (
                         <div className="pdp-qty-box-pv">
                           {totalPv.toLocaleString('en-IN')} PV
                         </div>
@@ -1127,16 +1342,18 @@ export default function ProductDetailPage({
 
                 {/* Total Product Price Summary Row */}
                 <div className="pdp-total-price-summary-row">
-                  <span className="total-label">Total Product Price</span>
-                  <div className="total-amount-box">
-                    <span className="units-count">{qty} Unit(s)&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+                  <div className="pdp-total-label-stacked">
+                    <span>Total Product</span>
+                    <span>Price</span>
+                  </div>
+                  <div className="pdp-total-amount-box">
+                    <span className="units-count">{qty} Unit(s)</span>
+                    <span className="pdp-units-divider">|</span>
                     <span className="bold-total-price">
-                      ₹ {totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      <span className="pdp-rupee-sign-lg">₹</span>
+                      {totalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
-                </div>
-                <div style={{ textAlign: 'right', fontSize: '11.5px', color: '#64748b', marginTop: '-4px', marginBottom: '10px' }}>
-                  (Final amount inclusive of GST: ₹ {calculateProductTax(totalPrice, product).gst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                 </div>
 
                 {/* Total PV Summary Row */}
@@ -1147,7 +1364,7 @@ export default function ProductDetailPage({
                   </div>
                 </div>
 
-                {/* Action Buttons: Easy Purchase | Cart, and Buy Now (matches Screenshots 1 & 2) */}
+                {/* Action Buttons: Easy Purchase | Cart, and Buy Now (matches Screenshot) */}
                 <div className="pdp-floating-action-buttons">
                   <div className="pdp-action-buttons-subrow">
                     <button
@@ -1208,54 +1425,58 @@ export default function ProductDetailPage({
               </button>
 
               <div className="related-cards-track" ref={relatedSliderRef}>
-                {relatedProducts.map((item) => (
-                  <div key={item.id} className="related-product-card">
-                    {/* Square Image Box with Quick Cart in bottom right */}
-                    <div className="related-img-box">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="related-card-img"
-                        onClick={() => onProductClick && onProductClick(item)}
-                      />
-                      <button
-                        type="button"
-                        className="related-quick-cart-btn"
-                        onClick={() => {
-                          onAddToCart && onAddToCart(item, 1);
-                          showToast(`Added ${item.name} to cart!`);
-                        }}
-                        title="Add to Cart"
-                        aria-label={`Add ${item.name} to cart`}
-                      >
-                        <ShoppingCart size={16} />
-                      </button>
-                    </div>
-
-                    {/* Product Name, Price, Distributor Note, and Likes */}
-                    <div className="related-info-box">
-                      <h4
-                        className="related-item-title"
-                        title={item.name}
-                        onClick={() => onProductClick && onProductClick(item)}
-                      >
-                        {item.name}
-                      </h4>
-
-                      <div className="related-item-price">
-                        {item.formattedPrice || `₹ ${item.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                {relatedProducts.map((item) => {
+                  const itemPricing = calculateProductPricing(item, isMember);
+                  return (
+                    <div key={item.id} className="related-product-card">
+                      {/* Square Image Box with Quick Cart in bottom right */}
+                      <div className="related-img-box">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="related-card-img"
+                          onClick={() => onProductClick && onProductClick(item)}
+                        />
+                        <button
+                          type="button"
+                          className="related-quick-cart-btn"
+                          onClick={() => {
+                            onAddToCart && onAddToCart(item, 1);
+                            showToast(`Added ${item.name} to cart!`);
+                          }}
+                          title="Add to Cart"
+                          aria-label={`Add ${item.name} to cart`}
+                        >
+                          <ShoppingCart size={16} />
+                        </button>
                       </div>
 
-                      <p className="product-pv-note">
-                        {(item.pv || 4000).toLocaleString('en-IN')} PV
-                      </p>
+                      {/* Product Name, Price, Distributor Note, and Likes */}
+                      <div className="related-info-box">
+                        <h4
+                          className="related-item-title"
+                          title={item.name}
+                          onClick={() => onProductClick && onProductClick(item)}
+                        >
+                          {item.name}
+                        </h4>
 
-                      <div className="related-likes-line">
-                        {item.likes || 246} Likes
+                        <div className="related-item-price">
+                          ₹ {itemPricing.activePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {isMember && <span style={{ fontSize: '11px', color: '#059669', marginLeft: '6px', fontWeight: '700' }}>DP</span>}
+                        </div>
+
+                        <p className="product-pv-note">
+                          {(itemPricing.pv || item.pv || 4000).toLocaleString('en-IN')} PV
+                        </p>
+
+                        <div className="related-likes-line">
+                          {item.likes || 246} Likes
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <button

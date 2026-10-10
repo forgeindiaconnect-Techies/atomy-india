@@ -54,6 +54,11 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                   <div className="cart-item-price">
                     ₹ {(item.price * item.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </div>
+                  {Boolean(item.pv || item.price) && (
+                    <div style={{ fontSize: '12px', color: '#00A3E0', fontWeight: '700', marginTop: '1px' }}>
+                      {((item.pv || Math.round((item.price || 1000) * 4.5)) * item.qty).toLocaleString('en-IN')} PV
+                    </div>
+                  )}
                   <div className="cart-item-qty-row">
                     <div className="qty-control">
                       <button

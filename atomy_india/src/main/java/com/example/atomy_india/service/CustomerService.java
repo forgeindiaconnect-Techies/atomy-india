@@ -132,7 +132,7 @@ public class CustomerService {
                 "Blue Dart Express (Standard)",
                 "PLACED",
                 "Order Processing Center, Gurugram",
-                "3-5 Business Days",
+                "Within 48 Hours (2 Days)",
                 initialCheckpoint
         );
         trackingRepository.save(tracking);

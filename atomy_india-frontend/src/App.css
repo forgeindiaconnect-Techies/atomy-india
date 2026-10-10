@@ -26,5 +26,11 @@
   overflow: visible !important;
 }
 
+@media (max-width: 640px) {
+  .sticky-toolbar-track {
+    display: none;
+  }
+}
+
 
 

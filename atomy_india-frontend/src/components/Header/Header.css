@@ -26,6 +26,8 @@
   margin: 0 auto;
   padding-left: 36px;
   padding-right: 32px;
+  position: relative;
+  z-index: 2;
 }
 
 /* Top Utility Row (Join Us | Sign in | About Us | India) */
@@ -178,12 +180,166 @@
   gap: 24px;
 }
 
+/* Atomy Corner Brand Wrapper & Sites Dropdown */
+.atomy-corner-brand-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Atomy Corporate Corner Logo (Left Edge) */
+.atomy-corner-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.atomy-corner-logo:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.atomy-corner-logo-img {
+  height: 42px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.brand-arrow-circle.open {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+}
+
+/* Atomy Family Sites Dropdown Card (Referenced exactly from https://in.atomy.com/main) */
+.atomy-sites-dropdown-card {
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 160px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 16px 10px 14px;
+  z-index: 2000;
+  box-sizing: border-box;
+  animation: atomySitesFadeDown 0.18s ease-out;
+}
+
+@keyframes atomySitesFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.atomy-sites-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.atomy-sites-header-logo-link {
+  display: block;
+  width: 68px;
+  line-height: 0;
+}
+
+.atomy-sites-header-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.atomy-sites-close-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.atomy-sites-close-btn:hover {
+  border-color: #00A3E0;
+  color: #00A3E0;
+  background-color: #f0f9ff;
+  transform: scale(1.05);
+}
+
+.atomy-sites-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.atomy-site-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #333333;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.25;
+  word-break: break-word;
+  transition: all 0.15s ease;
+}
+
+.atomy-site-item:hover {
+  color: #00A3E0;
+  background-color: #f8fafc;
+  transform: translateX(2px);
+}
+
+.atomy-site-icon-img {
+  display: block;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  object-fit: contain;
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.atomy-site-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: inherit;
+  white-space: nowrap;
+}
+
 /* Left Content + Search Bar positioned directly next to each other and perfectly parallel */
 .main-row-left-group {
   display: flex;
   align-items: center;
   gap: 20px;
   flex: 1;
+  margin-left: 0;
 }
 
 /* Left Brand Section: atom美 + ATOMY | Team Phoenix | Shopping Mall & My Office */
@@ -211,6 +367,22 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.brand-logo-img {
+  height: 50px;
+  width: auto;
+  max-height: 52px;
+  object-fit: contain;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.brand-col-logo:hover .brand-logo-img {
+  transform: scale(1.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
 }
 
 .brand-logo-svg {
@@ -247,24 +419,30 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .team-phoenix-title {
-  color: #ffffff;
+  display: inline-block;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
   line-height: 1.15;
   white-space: nowrap;
+  color: #F8CB54;
+  background: linear-gradient(180deg, #FFFAD6 0%, #F7CE63 32%, #E2A732 68%, #A35D04 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .team-phoenix-sub {
   font-size: 13.5px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+  color: #FFF2A8;
   letter-spacing: -0.1px;
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 .portal-col {
@@ -1049,7 +1227,7 @@
 /* Responsive */
 @media (max-width: 1200px) {
   .search-box {
-    width: 320px;
+    width: 300px;
   }
 }
 
@@ -1057,20 +1235,193 @@
   .head-top-row {
     display: none;
   }
-  .team-phoenix-col, .brand-col-divider {
+  .main-row-left-group {
+    margin-left: 0;
+    gap: 16px;
+  }
+  .brand-col-divider, .portal-col {
     display: none;
   }
+  .team-phoenix-col {
+    display: flex;
+    gap: 1px;
+  }
+  .team-phoenix-title {
+    font-size: 19px;
+  }
+  .team-phoenix-sub {
+    font-size: 11.5px;
+  }
+  .brand-logo-img {
+    height: 44px;
+  }
   .search-box {
-    width: 240px;
+    width: 250px;
   }
 }
 
 @media (max-width: 768px) {
+  .head-main-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 10px 12px;
+    padding: 8px 12px 10px;
+  }
+  .main-row-left-group {
+    display: contents;
+  }
+  .brand-section {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .brand-logo-img {
+    height: 38px;
+    max-height: 40px;
+  }
+  .team-phoenix-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    min-width: 0;
+  }
+  .team-phoenix-title {
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.2px;
+  }
+  .team-phoenix-sub {
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .header-actions {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-self: end;
+  }
+  .customer-header-greeting {
+    max-width: 95px;
+    padding: 2px;
+  }
+  .customer-greeting-text {
+    font-size: 12px;
+  }
+  .customer-greeting-name {
+    font-size: 12px;
+  }
+  .member-badge-chip {
+    display: none !important;
+  }
+  .profile-avatar-circle {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+  .action-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+  .search-container {
+    grid-column: 1 / 3;
+    grid-row: 2 / 3;
+    width: 100%;
+    min-width: 0;
+    position: relative;
+  }
+  .search-box {
+    width: 100%;
+    height: 38px;
+    border-radius: 9999px;
+  }
+  .search-input {
+    font-size: 13px;
+    padding-left: 14px;
+    padding-right: 68px;
+  }
+  .search-dropdown-menu {
+    min-width: 0;
+    width: 100%;
+    left: 0;
+    right: 0;
+    max-height: 55vh;
+  }
+  .sub-nav-container {
+    padding: 0 10px;
+  }
   .nav-links-list {
     overflow-x: auto;
-    gap: 24px;
+    gap: 18px;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
+    padding-left: 4px;
+    padding-right: 8px;
+  }
+  .nav-item a {
+    font-size: 13px;
+    padding: 10px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .head-main-row {
+    padding: 6px 10px 8px;
+    gap: 8px 10px;
+  }
+  .brand-section {
+    gap: 8px;
+  }
+  .brand-logo-img {
+    height: 32px;
+    max-height: 34px;
+  }
+  .team-phoenix-title {
+    font-size: 14.5px;
+  }
+  .team-phoenix-sub {
+    font-size: 9px;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .customer-header-greeting {
+    display: none;
+  }
+  .search-box {
+    height: 36px;
+  }
+  .search-input {
+    font-size: 12.5px;
+  }
+  .category-popup-dropdown {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    left: 0;
+  }
+  .category-popup-sidebar {
+    width: 135px;
+  }
+  .category-popup-subsidebar {
+    width: calc(100vw - 155px);
+    padding: 10px 8px;
+  }
+  .category-item-label {
+    font-size: 12px;
+  }
+  .category-popup-item {
+    height: 42px;
+    padding: 0 10px;
+    gap: 8px;
   }
 }
 

@@ -654,25 +654,27 @@
 }
 
 .pdp-qty-section-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 8px;
+  color: #111827;
+  margin-bottom: 10px;
 }
 
-/* Light Gray Container Box */
+/* Light Gray Container Box (Exact Match to User Reference Screenshot) */
 .pdp-qty-gray-box {
   background-color: #f7f7f8;
-  border-radius: 4px;
-  padding: 16px 18px;
-  margin-bottom: 14px;
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border: 1px solid #f0f0f2;
 }
 
 .pdp-qty-item-name {
   font-size: 14px;
-  color: #1e293b;
+  color: #222222;
   font-weight: 500;
   margin-bottom: 14px;
+  line-height: 1.4;
 }
 
 .pdp-qty-stepper-price-row {
@@ -681,30 +683,36 @@
   justify-content: space-between;
 }
 
-/* Stepper [ - ] [ 1 ] [ + ] */
+/* Stepper [ ―   1   + ] without internal vertical dividers */
 .pdp-official-stepper {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   background-color: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 2px;
-  overflow: hidden;
+  border: 1px solid #d5d8dc;
+  border-radius: 4px;
+  height: 38px;
+  width: 124px;
+  padding: 0 6px;
+  box-sizing: border-box;
 }
 
 .stepper-btn-minus,
 .stepper-btn-plus {
-  width: 32px;
-  height: 32px;
-  background-color: #ffffff;
+  width: 30px;
+  height: 30px;
+  background-color: transparent;
   border: none;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  color: #374151;
+  font-size: 18px;
+  font-weight: 500;
+  color: #222222;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.15s;
+  transition: opacity 0.15s;
+  padding: 0;
+  border-radius: 2px;
 }
 
 .stepper-btn-minus:hover:not(:disabled),
@@ -713,27 +721,52 @@
 }
 
 .stepper-btn-minus:disabled {
-  color: #9ca3af;
+  color: #cbd5e1;
   cursor: not-allowed;
 }
 
 .stepper-val-box {
-  width: 40px;
-  height: 32px;
-  border-left: 1px solid #e5e7eb;
-  border-right: 1px solid #e5e7eb;
+  min-width: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.pdp-qty-box-price {
   font-size: 16px;
   font-weight: 700;
   color: #111827;
+  border: none;
+}
+
+/* Price & PV stack on right inside gray box */
+.pdp-qty-price-pv-stack {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.pdp-qty-box-price {
+  font-size: 21px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.3px;
+  line-height: 1.1;
+  display: flex;
+  align-items: flex-start;
+}
+
+.pdp-rupee-sign {
+  font-size: 14px;
+  font-weight: 600;
+  margin-right: 1px;
+  line-height: 1.3;
+}
+
+.pdp-qty-box-pv {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #00A3E0;
+  margin-top: 3px;
+  line-height: 1.2;
 }
 
 /* Total Product Price Summary Row */
@@ -741,30 +774,72 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-top: 14px;
+  margin-bottom: 12px;
+}
+
+.pdp-total-label-stacked {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: #666666;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.pdp-total-amount-box {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.pdp-total-amount-box .units-count {
+  font-size: 15px;
+  color: #333333;
+  font-weight: 400;
+}
+
+.pdp-units-divider {
+  color: #cbd5e1;
+  font-weight: 300;
+  margin: 0 4px;
+}
+
+.pdp-total-amount-box .bold-total-price {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111111;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.pdp-rupee-sign-lg {
+  font-size: 17px;
+  font-weight: 700;
+  margin-right: 1px;
+  line-height: 1.3;
+}
+
+/* Total PV Summary Row */
+.pdp-total-pv-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 18px;
 }
 
-.pdp-total-price-summary-row .total-label {
-  font-size: 13px;
-  color: #64748b;
+.pdp-total-pv-summary-row .total-label {
+  font-size: 14px;
+  color: #666666;
   font-weight: 500;
 }
 
-.pdp-total-price-summary-row .total-amount-box {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.pdp-total-price-summary-row .units-count {
-  font-size: 13px;
-  color: #334155;
-}
-
-.pdp-total-price-summary-row .bold-total-price {
+.pdp-total-pv-summary-row .total-pv-box {
   font-size: 22px;
   font-weight: 700;
-  color: #111827;
+  color: #00A3E0;
+  letter-spacing: -0.3px;
 }
 
 /* Action Buttons: Easy Purchase | Cart (50/50), and Buy Now (100%) */
@@ -787,13 +862,13 @@
   flex: 1 1 0%;
   width: 50%;
   min-width: 0;
-  height: 44px;
+  height: 48px;
   background-color: #ffffff;
-  border: 1px solid #00A3E0;
+  border: 1.5px solid #00A3E0;
   color: #00A3E0;
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 600;
-  border-radius: 2px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
   display: flex;
@@ -812,13 +887,13 @@
   flex: 1 1 0%;
   width: 50%;
   min-width: 0;
-  height: 44px;
+  height: 48px;
   background-color: #2f3337;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 15.5px;
   font-weight: 600;
   border: none;
-  border-radius: 2px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
@@ -834,13 +909,13 @@
 
 .pdp-buy-now-btn {
   width: 100%;
-  height: 44px;
+  height: 50px;
   background-color: #00A3E0;
   color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   border: none;
-  border-radius: 2px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
@@ -850,7 +925,7 @@
 }
 
 .pdp-buy-now-btn:hover {
-  background-color: #008ec4;
+  background-color: #0092c8;
 }
 
 /* 4. Tabbed Information Section (Exact match to User Screenshot) */
@@ -1320,45 +1395,441 @@
   margin: 0;
 }
 
-/* Tab 3 & 4 Policies */
-.tab-section-heading {
-  font-size: 18px;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 24px;
+/* Tab 3 & 4 Policies (Original Atomy India Styling) */
+.atomy-policy-tab-pane {
+  padding: 10px 0 30px;
 }
 
-.policy-grid {
+.atomy-policy-header {
+  border-bottom: 2px solid #00A3E0;
+  padding-bottom: 14px;
+  margin-bottom: 24px;
+}
+
+.tab-section-heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 6px;
+}
+
+.tab-section-subheading {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+.atomy-notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: #f0f9fd;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.notice-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background-color: #e0f2fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notice-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notice-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0369a1;
+}
+
+.notice-desc {
+  font-size: 13px;
+  color: #0c4a6e;
+  line-height: 1.45;
+}
+
+.atomy-satisfaction-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: linear-gradient(135deg, #00A3E0 0%, #0284c7 100%);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 26px;
+}
+
+.satisfaction-badge {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.satisfaction-text h4 {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 4px;
+}
+
+.satisfaction-text p {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.atomy-policy-section {
+  margin-bottom: 30px;
+}
+
+.atomy-subheading {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.atomy-info-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  background-color: #ffffff;
+}
+
+.atomy-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.atomy-info-table tr {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.atomy-info-table tr:last-child {
+  border-bottom: none;
+}
+
+.atomy-info-table th {
+  width: 25%;
+  background-color: #f8fafc;
+  color: #334155;
+  font-weight: 600;
+  padding: 14px 18px;
+  text-align: left;
+  vertical-align: top;
+  border-right: 1px solid #e2e8f0;
+}
+
+.atomy-info-table td {
+  color: #475569;
+  padding: 14px 18px;
+  vertical-align: top;
+  line-height: 1.55;
+}
+
+.shipping-rate-highlight {
+  font-size: 14px;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.badge-free {
+  background-color: #00A3E0;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  margin-right: 6px;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.shipping-sub-rate {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.atomy-guideline-box {
+  background-color: #fbfcfe;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #00A3E0;
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin-top: 14px;
+}
+
+.atomy-guideline-box h5 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 10px;
+}
+
+.atomy-bullet-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.atomy-bullet-list li {
+  margin-bottom: 6px;
+}
+
+.atomy-payment-methods-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.payment-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 16px;
+  background-color: #ffffff;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.payment-card-icon {
+  width: 44px;
+  height: 44px;
+  background-color: #f0f9fd;
+  color: #00A3E0;
+  font-weight: 800;
+  font-size: 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+  border: 1px solid #bae6fd;
+}
+
+.payment-card-body h5 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px;
+}
+
+.payment-card-body p {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.payment-security-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #15803d;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 12px 18px;
+}
+
+.invoice-pv-details p {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 16px 20px;
+}
+
+.atomy-policy-intro-text {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+/* Official Buyback Table from in.atomy.com */
+.atomy-buyback-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.atomy-buyback-table th {
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-weight: 700;
+  padding: 12px 14px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.atomy-buyback-table td {
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.5;
+}
+
+.atomy-buyback-table td.category-cell {
+  text-align: left;
+  line-height: 1.6;
+}
+
+.atomy-buyback-table td small {
+  display: block;
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* PV Adjustment Box */
+.atomy-pv-adjustment-box {
+  display: flex;
+  gap: 14px;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
+}
+
+.pv-alert-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pv-alert-content h5 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0369a1;
+  margin: 0 0 4px;
+}
+
+.pv-alert-content p {
+  font-size: 12.5px;
+  color: #0c4a6e;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Steps Grid */
+.procedure-steps-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.step-card {
+  background-color: #fafbfc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 18px 16px;
+  position: relative;
+}
+
+.step-num {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: 800;
+  color: #00A3E0;
+  margin-bottom: 6px;
+}
+
+.step-card h6 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 6px;
+}
+
+.step-card p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Support Grid */
+.atomy-support-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.support-card {
+  display: flex;
+  gap: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 18px;
+  background-color: #ffffff;
+  align-items: flex-start;
+}
+
+.support-card strong {
+  display: block;
+  font-size: 13.5px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.support-card p {
+  font-size: 13px;
+  color: #00A3E0;
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.support-card small {
+  font-size: 11.5px;
+  color: #64748b;
 }
 
 @media (max-width: 860px) {
-  .policy-grid {
+  .atomy-payment-methods-grid,
+  .criteria-comparison-grid,
+  .procedure-steps-container,
+  .atomy-support-cards-grid {
     grid-template-columns: 1fr;
   }
-}
 
-.policy-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 22px;
-  background-color: #fafbfc;
-}
-
-.policy-card h4 {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 12px 0 8px;
-}
-
-.policy-card p {
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.5;
-  margin: 0;
+  .atomy-info-table th {
+    width: 35%;
+  }
 }
 
 /* 5. Related Products Section (Exact Match to User Screenshot 4) */
@@ -1948,5 +2419,322 @@
     height: 48px;
   }
 }
+
+/* ==========================================================================
+   ATOMY OFFICIAL POLICY TABS STYLES (Payment / Delivery & Return / Exchange)
+   Exact match to official in.atomy.com product detail policy pages
+   ========================================================================== */
+
+.atomy-original-policy-pane {
+  padding: 10px 0 36px 0;
+  background-color: transparent;
+  color: #333333;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+}
+
+.atomy-original-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.atomy-original-faq-link {
+  font-size: 13px;
+  color: #222222;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.atomy-original-faq-link:hover {
+  color: #00A3E0;
+}
+
+.atomy-original-block {
+  margin-bottom: 26px;
+}
+
+.atomy-original-block:last-child {
+  margin-bottom: 0;
+}
+
+.atomy-original-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
+}
+
+.atomy-original-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px 0;
+}
+
+.atomy-original-list li {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #333333;
+  margin-bottom: 4px;
+}
+
+.atomy-original-subnote {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #333333;
+  margin: 4px 0 0 0;
+}
+
+.atomy-original-p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #333333;
+  margin: 0 0 10px 0;
+}
+
+/* Tables matching Atomy Official site */
+.atomy-original-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.atomy-original-charges-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #333333;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.charges-table-main-title {
+  background-color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  color: #111827;
+  padding: 13px 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.charges-table-col-header th {
+  background-color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+}
+
+.atomy-original-charges-table tbody td {
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+  color: #333333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Buyback Table */
+.buyback-table th {
+  background-color: #ffffff;
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+  padding: 12px 14px;
+}
+
+.atomy-original-subtitle {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px 0;
+  line-height: 1.4;
+}
+
+.atomy-original-sub-section {
+  margin-top: 10px;
+}
+
+.atomy-original-sub-section .atomy-original-p {
+  margin-bottom: 4px;
+}
+
+/* Accordions for Education Centre Delivery & Self Pick Up */
+.atomy-original-accordions-container {
+  margin-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.atomy-original-accordion-item {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.atomy-original-accordion-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s ease;
+}
+
+.atomy-original-accordion-btn:hover {
+  color: #00A3E0;
+}
+
+.atomy-original-accordion-body {
+  padding: 4px 0 16px 0;
+}
+
+.atomy-original-accordion-body .atomy-original-p {
+  margin-bottom: 6px;
+  color: #4b5563;
+}
+
+/* ========================================================
+   Product Detail Page - Mobile Responsive Styles
+   ======================================================== */
+@media (max-width: 768px) {
+  .pdp-page-wrapper {
+    padding-bottom: 60px;
+  }
+  .pdp-main-section {
+    padding: 16px 0 24px;
+  }
+  .pdp-grid-container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .pdp-gallery-column {
+    gap: 10px;
+  }
+  .pdp-main-image-box {
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+  }
+  .pdp-thumbnails-list, .pdp-thumb-row {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pdp-official-title {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .pdp-price-amount-hero, .pdp-dp-active-price {
+    font-size: 26px !important;
+  }
+  .pdp-tax-line-title {
+    width: 130px;
+    min-width: 130px;
+    font-size: 13.5px;
+  }
+  .pdp-tax-line-amount {
+    font-size: 13.5px;
+  }
+  .pdp-qty-gray-box {
+    padding: 12px 14px;
+  }
+  .pdp-total-amount-box .bold-total-price {
+    font-size: 22px;
+  }
+  .pdp-total-pv-summary-row .total-pv-box {
+    font-size: 19px;
+  }
+  .pdp-tab-headers-bar {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0 4px;
+    gap: 4px;
+  }
+  .pdp-tab-headers-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .pdp-tab-nav-btn {
+    padding: 12px 14px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .pdp-tabs-quick-corner {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+  .atomy-original-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .atomy-original-charges-table {
+    min-width: 440px;
+    font-size: 12.5px;
+  }
+  .related-product-card {
+    flex: 0 0 175px !important;
+    min-width: 175px !important;
+  }
+  .related-products-slider {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pdp-official-title {
+    font-size: 18px;
+  }
+  .pdp-price-amount-hero, .pdp-dp-active-price {
+    font-size: 23px !important;
+  }
+  .pdp-pv-amount-hero {
+    font-size: 19px;
+  }
+  .pdp-tax-headline-row {
+    row-gap: 4px;
+  }
+  .pdp-tax-breakdown-line {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .pdp-tax-line-title {
+    width: auto;
+    min-width: auto;
+    font-weight: 600;
+  }
+  .pdp-easy-purchase-btn,
+  .pdp-action-buttons-subrow .pdp-easy-purchase-btn,
+  .pdp-cart-btn {
+    font-size: 14px;
+    height: 44px;
+  }
+  .pdp-buy-now-btn {
+    height: 46px;
+    font-size: 15px;
+  }
+  .related-product-card {
+    flex: 0 0 155px !important;
+    min-width: 155px !important;
+  }
+}
+
 
 

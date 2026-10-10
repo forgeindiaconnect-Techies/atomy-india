@@ -32,8 +32,8 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
     );
   }
 
-  // NON-MEMBER / GUEST (NOT SIGNED IN OR NO MEMBERSHIP):
-  // Shows MRP and regular offer price, NO DP price, NO PV value!
+  // NON-MEMBER / PUBLIC (NOT SIGNED IN OR NO MEMBERSHIP):
+  // Shows MRP / Retail price and PV value, HIDES DP value!
   return (
     <div className={`product-price-block is-retail ${size}`}>
       {pricing.hasOffer && (
@@ -51,6 +51,12 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
         ₹ {pricing.activePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
 
+      {/* PV is always visible even on public / non-member page */}
+      <p className="product-pv-note active-member-pv">
+        {pricing.pv.toLocaleString('en-IN')} PV
+      </p>
+
+      {/* Distributor Price membership unlock hint */}
       <p
         className="product-pv-note locked-pv-hint"
         onClick={(e) => {

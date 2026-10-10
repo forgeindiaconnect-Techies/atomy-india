@@ -545,7 +545,7 @@ export default function App() {
           ...item,
           price: pricing.activePrice,
           isMemberPrice: isMember,
-          pv: isMember ? pricing.pv : 0
+          pv: pricing.pv
         };
       })
     );
@@ -729,7 +729,7 @@ export default function App() {
       ...product,
       price: pricing.activePrice,
       isMemberPrice: isMember,
-      pv: isMember ? pricing.pv : 0
+      pv: pricing.pv
     };
 
     setCart((prev) => {
@@ -764,7 +764,7 @@ export default function App() {
       ...product,
       price: pricing.activePrice,
       isMemberPrice: isMember,
-      pv: isMember ? pricing.pv : 0
+      pv: pricing.pv
     };
 
     setCart((prev) => {

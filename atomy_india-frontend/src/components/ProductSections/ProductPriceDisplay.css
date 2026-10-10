@@ -86,16 +86,16 @@
   font-weight: 700;
   line-height: 1.25;
   margin-top: 3px;
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   letter-spacing: -0.2px;
 }
 
 .product-pv-note.locked-pv-hint {
   color: #00A3E0;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 14.5px;
+  font-weight: 700;
   line-height: 1.35;
-  margin-top: 5px;
+  margin-top: 3px;
   margin-bottom: 4px;
   cursor: pointer;
   transition: color 0.15s ease, opacity 0.15s ease;

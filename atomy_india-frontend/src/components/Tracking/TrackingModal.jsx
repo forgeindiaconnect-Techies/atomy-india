@@ -94,7 +94,7 @@ export default function TrackingModal({ isOpen, onClose, initialOrderId = '' }) 
                 </div>
                 <div className="track-summary-box">
                   <span className="summary-label">Estimated Delivery</span>
-                  <span className="summary-val highlight">{trackingData.estimatedDelivery || '2-4 Business Days'}</span>
+                  <span className="summary-val highlight">{trackingData.estimatedDelivery || 'Within 48 Hours (2 Days)'}</span>
                 </div>
               </div>
 

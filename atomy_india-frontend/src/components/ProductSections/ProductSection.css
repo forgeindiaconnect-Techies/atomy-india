@@ -676,17 +676,50 @@
 }
 
 @media (max-width: 768px) {
+  .product-showcase-section {
+    padding: 24px 0 16px;
+  }
+  .section-header-block {
+    margin-bottom: 16px;
+  }
+  .section-main-title {
+    font-size: 24px;
+    letter-spacing: -0.4px;
+    margin-bottom: 6px;
+  }
+  .section-sub-title {
+    font-size: 14px;
+  }
+  .filter-tabs-container {
+    gap: 8px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .filter-tabs-container::-webkit-scrollbar {
+    display: none;
+  }
+  .filter-tab-pill {
+    padding: 7px 18px;
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .product-nav-arrow {
+    display: none;
+  }
   .brand-products-grid {
     grid-template-columns: 1fr;
   }
-
   .food-essential-grid {
     flex-direction: column;
     align-items: center;
   }
-
   .gsgs-cards-slider .gsgs-product-card {
-    flex: 0 0 260px;
+    flex: 0 0 240px;
   }
 }
 
@@ -701,7 +734,23 @@
 
 @media (max-width: 640px) {
   .product-card, .hair-body-cards .product-card {
-    flex: 0 0 215px;
+    flex: 0 0 195px;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-main-title {
+    font-size: 21px;
+  }
+  .product-card, .hair-body-cards .product-card {
+    flex: 0 0 168px;
+  }
+  .product-info-details {
+    padding: 10px 8px 12px;
+  }
+  .product-name-heading {
+    font-size: 12.5px;
+    line-height: 1.35;
   }
 }
 
