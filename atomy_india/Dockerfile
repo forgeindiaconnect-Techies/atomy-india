@@ -8,7 +8,8 @@ RUN mvn clean package -DskipTests
 # Run stage
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY --from=build /app/target/atomy_india-*.jar app.jar
+COPY --from=build /app/target/app.jar app.jar
 ENV PORT=8085
 EXPOSE 8085
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8085} -jar app.jar"]
+
