@@ -587,38 +587,72 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
 
         {/* 3. Official Headquarters Info Strip */}
         <div className="contact-hq-card">
-          <div className="hq-card-col">
+          <a
+            href="tel:01246959000"
+            className="hq-card-col hq-card-link"
+            title="Call Customer Support Hotline: 0124-695-9000"
+          >
             <div className="hq-icon-box">
               <Phone size={22} />
             </div>
             <div className="hq-info-content">
               <span className="hq-label">Customer Support Hotline</span>
               <strong className="hq-val">0124-695-9000</strong>
-              <span className="hq-sub">Toll-Free: 1800-103-5555</span>
+              <span className="hq-sub">Toll-Free: 1800-103-5555 • Tap to Call</span>
             </div>
-          </div>
+          </a>
 
-          <div className="hq-card-col">
+          <a
+            href="https://mail.google.com/mail/?view=cm&fs=1&to=atomy_in@atomypark.com&su=Atomy%20India%20Support%20Inquiry"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hq-card-col hq-card-link"
+            title="Compose message to atomy_in@atomypark.com in Gmail"
+          >
             <div className="hq-icon-box">
               <Mail size={22} />
             </div>
             <div className="hq-info-content">
               <span className="hq-label">Direct Support Email</span>
-              <strong className="hq-val">atomy_in@atomypark.com</strong>
-              <span className="hq-sub">Mon-Fri 09:30 AM – 06:30 PM (IST)</span>
+              <strong className="hq-val">
+                <span>atomy_in@atomypark.com</span>
+                <ExternalLink size={14} className="hq-ext-icon" />
+              </strong>
+              <span className="hq-sub">Mon-Fri 09:30 AM – 06:30 PM (IST) • Tap to Open Gmail</span>
             </div>
-          </div>
+          </a>
 
-          <div className="hq-card-col">
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=Atomy+Enterprise+India+Pvt+Ltd,+801,+8th+Floor,+Tower+B,+Unitech+Cyber+Park,+Sector+39,+Gurugram,+Haryana+122003"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hq-card-col hq-card-link"
+            title="View Corporate Office Sector 39, Gurugram in Google Maps"
+            onClick={(e) => {
+              // Also highlight and navigate to this centre on the interactive map below
+              const gurugramCentre = ATOMY_CENTRES.find(c => c.id === 'centre-15');
+              if (gurugramCentre) {
+                setSelectedCentre(gurugramCentre);
+                setActiveTab('centres');
+                const mapEl = document.querySelector('.real-leaflet-map-wrapper');
+                if (mapEl) {
+                  mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }
+            }}
+          >
             <div className="hq-icon-box">
               <MapPin size={22} />
             </div>
             <div className="hq-info-content">
               <span className="hq-label">Corporate Office</span>
-              <strong className="hq-val">Sector 39, Gurugram</strong>
-              <span className="hq-sub">801, 8th Floor, Tower B, Unitech Cyber Park</span>
+              <strong className="hq-val">
+                <span>Sector 39, Gurugram</span>
+                <ExternalLink size={14} className="hq-ext-icon" />
+              </strong>
+              <span className="hq-sub">801, 8th Floor, Tower B, Unitech Cyber Park • Tap to View Map</span>
             </div>
-          </div>
+          </a>
         </div>
 
         {/* 4. Navigation Tabs */}
