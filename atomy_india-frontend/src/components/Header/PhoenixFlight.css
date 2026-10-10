@@ -1,5 +1,5 @@
 /* ==========================================================================
-   REAL MAJESTIC SPREAD-WING PHOENIX FLIGHT WITH DYNAMIC NAVBAR IMPACT
+   REAL MAJESTIC SPREAD-WING PHOENIX FLIGHT WITH DYNAMIC NAVBAR FIRE BACKGROUND
    ========================================================================== */
 
 /* Full navbar background track */
@@ -16,7 +16,110 @@
   z-index: 1;
 }
 
-/* Master wrapper that glides across the navbar */
+/* ==========================================================================
+   DYNAMIC NAVBAR BACKGROUND: FIRE COLOR WAKE & SMOOTH FADE TO ORIGINAL COLOR
+   ========================================================================== */
+
+/* 1. Fiery color sweep that rolls across the navbar behind the bird */
+.phoenix-navbar-fire-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(216, 67, 21, 0.65) 0%,
+    rgba(230, 81, 0, 0.8) 25%,
+    rgba(255, 143, 0, 0.9) 60%,
+    rgba(255, 193, 7, 0.96) 90%,
+    rgba(255, 238, 88, 1) 100%
+  );
+  filter: blur(1px);
+  pointer-events: none;
+  z-index: 0;
+  will-change: clip-path, opacity;
+  animation: navbarFireTrailSweep 11s cubic-bezier(0.1, 0.1, 0.3, 1) infinite;
+}
+
+/* 2. Secondary liquid golden fire shimmer */
+.phoenix-navbar-fire-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse 80% 100% at 50% 50%,
+    rgba(255, 224, 130, 0.5) 0%,
+    rgba(255, 112, 67, 0.3) 60%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+  will-change: opacity;
+  animation: navbarFireShimmer 11s linear infinite;
+}
+
+/* Dynamic sweep matching the bird: trails backward, then fades to original navbar color */
+@keyframes navbarFireTrailSweep {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+  2% {
+    opacity: 1;
+  }
+  64% {
+    clip-path: inset(0 0% 0 0);
+    opacity: 1;
+  }
+  68% {
+    /* Bird hides offscreen: fire color stays vibrant for a moment */
+    clip-path: inset(0 0% 0 0);
+    opacity: 1;
+  }
+  78% {
+    /* Fire background smoothly fades out, returning to the original navbar blue */
+    clip-path: inset(0 0% 0 0);
+    opacity: 0;
+  }
+  100% {
+    /* Remains in original navbar color while bird is hidden */
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+}
+
+@keyframes navbarFireShimmer {
+  0%, 2% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.9;
+  }
+  64% {
+    opacity: 0.9;
+  }
+  68% {
+    opacity: 0.9;
+  }
+  78% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   MASTER WRAPPER & FLIGHT TRAJECTORY (LEFT TO RIGHT)
+   ========================================================================== */
+
 .phoenix-soarer-wrapper {
   position: absolute;
   top: 50%;
@@ -26,9 +129,9 @@
   pointer-events: none;
   will-change: transform;
   animation: phoenixSoarFlight 11s linear infinite;
+  z-index: 2;
 }
 
-/* 1. Left-to-Right Flight Path across the screen */
 @keyframes phoenixSoarFlight {
   0% {
     transform: translate3d(-260px, -50%, 0);
@@ -51,11 +154,7 @@
   }
 }
 
-/* ==========================================================================
-   NAVBAR IMPACT: RADIANT HEATWAVE & WIND SHOCKWAVE ACROSS NAVBAR BACKGROUND
-   ========================================================================== */
-
-/* Luminous golden-amber energy flare washing over the blue navbar background */
+/* Radiant golden heat shockwave traveling with the bird */
 .phoenix-navbar-heat-shockwave {
   position: absolute;
   top: 50%;
@@ -65,9 +164,9 @@
   height: 130px;
   background: radial-gradient(
     ellipse 60% 50% at 55% 50%,
-    rgba(255, 200, 30, 0.42) 0%,
-    rgba(255, 110, 0, 0.28) 40%,
-    rgba(255, 40, 0, 0.12) 65%,
+    rgba(255, 200, 30, 0.45) 0%,
+    rgba(255, 110, 0, 0.3) 40%,
+    rgba(255, 40, 0, 0.15) 65%,
     transparent 85%
   );
   filter: blur(14px);
@@ -98,9 +197,9 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 70, 0, 0.08) 30%,
-    rgba(255, 170, 0, 0.22) 70%,
-    rgba(255, 235, 120, 0.38) 100%
+    rgba(255, 70, 0, 0.1) 30%,
+    rgba(255, 170, 0, 0.25) 70%,
+    rgba(255, 235, 120, 0.45) 100%
   );
   filter: blur(10px);
   pointer-events: none;

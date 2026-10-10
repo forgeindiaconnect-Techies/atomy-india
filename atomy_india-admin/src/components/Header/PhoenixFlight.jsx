@@ -4,20 +4,27 @@ import './PhoenixFlight.css';
 /**
  * PhoenixFlight Component
  * Renders the REAL magnificent Golden Eagle Phoenix with wings spread wide in mid-flight.
- * As it soars from left to right, its wings beat the air, fire embers split through
- * the wind, and a radiant heatwave/wind shockwave impacts the master navbar background.
+ * As it soars from left to right:
+ * 1. The navbar background behind the bird transforms into the phoenix's fiery golden color.
+ * 2. When the bird exits/hides, the fiery background smoothly fades out and the original
+ *    Atomy blue navbar color returns seamlessly.
+ * 3. The bird beats its wings, embers split into the wind, and a radiant heatwave illuminates the bar.
  */
 export default function PhoenixFlight() {
   return (
     <div className="phoenix-flight-track" aria-hidden="true">
+      {/* Dynamic Navbar Fiery Background Trail that sweeps behind the bird */}
+      <div className="phoenix-navbar-fire-sweep"></div>
+      <div className="phoenix-navbar-fire-shimmer"></div>
+
       <div className="phoenix-soarer-wrapper">
-        {/* 1. Navbar Environmental Impact Shockwave (moving heat & light wave) */}
+        {/* Moving Radiant Heatwave / Wind Shockwave accompanying the bird */}
         <div className="phoenix-navbar-heat-shockwave"></div>
         <div className="phoenix-wind-turbulence"></div>
 
-        {/* 2. Flapping Phoenix Soarer with Realistic Wing Motion */}
+        {/* Flapping Phoenix Soarer with Realistic 3D Wing Motion */}
         <div className="phoenix-flapping-soarer">
-          {/* Trailing Flame Plume & Wind Gusts */}
+          {/* Trailing Flame Plume & Aerodynamic Wind Gust Lines */}
           <div className="phoenix-flame-tail-plume"></div>
           <div className="phoenix-wind-gust-lines">
             <span className="gust gust-1"></span>
