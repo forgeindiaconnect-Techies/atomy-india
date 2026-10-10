@@ -429,7 +429,8 @@ export default function App() {
     // Polling Spring Boot backend every 3.5 seconds for live order status changes
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch('http://localhost:8085/api/admin/orders');
+        const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').replace(/\/+$/, '');
+        const res = await fetch(`${apiBase}/admin/orders`);
         if (!res.ok) return;
         const backendOrders = await res.json();
         if (Array.isArray(backendOrders) && backendOrders.length > 0) {

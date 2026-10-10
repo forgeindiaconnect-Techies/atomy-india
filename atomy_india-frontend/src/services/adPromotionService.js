@@ -7,7 +7,7 @@
  * - Daily 'Do not show again today' suppression handling
  */
 
-const API_BASE = 'http://localhost:8085/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').replace(/\/+$/, '');
 
 export const DEFAULT_AD_CONFIG = {
   id: 'D00620',

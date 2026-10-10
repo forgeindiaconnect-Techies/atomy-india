@@ -1,6 +1,6 @@
 import { HERO_SLIDES, CATEGORY_CONFIGS } from '../data/mockData';
 
-const API_BASE = 'http://localhost:8085/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').replace(/\/+$/, '');
 const STORAGE_KEY_HERO_SLIDES = 'atomy_hero_slides';
 const STORAGE_PREFIX_CAT_BANNERS = 'atomy_cat_banners_';
 

@@ -2,8 +2,9 @@
 // Manages single-class Atomy Distributor Membership, Monthly & Annual plans, DP / PV pricing logic
 // Synced with Spring Boot MySQL backend on port 8085
 
-const API_BASE = 'http://localhost:8085/api/membership';
-const ADMIN_API_BASE = 'http://localhost:8085/api/admin/membership';
+const BACKEND_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').replace(/\/+$/, '');
+const API_BASE = `${BACKEND_URL}/membership`;
+const ADMIN_API_BASE = `${BACKEND_URL}/admin/membership`;
 
 const SETTINGS_KEY = 'atomy_membership_settings';
 const MEMBERS_KEY = 'atomy_members_registry';
