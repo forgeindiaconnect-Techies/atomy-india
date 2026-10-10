@@ -1,11 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { HERO_SLIDES } from '../../data/mockData';
+import {
+  HERO_SLIDES,
+  ALL_CATALOG_PRODUCTS,
+  BEST_PRODUCTS,
+  ABSOLUTE_SKINCARE_PRODUCTS
+} from '../../data/mockData';
 import { getHeroSlides } from '../../services/bannerService';
 import { CarouselPauseIcon, CarouselPlayIcon, CarouselLayersIcon } from '../common/CarouselControlsIcons';
 import './HeroSlider.css';
 
-export default function HeroSlider() {
+// Helper to look up product associated with any slide banner
+export const findProductForSlide = (slide) => {
+  if (!slide) return null;
+  const pool = [
+    ...(Array.isArray(ALL_CATALOG_PRODUCTS) ? ALL_CATALOG_PRODUCTS : []),
+    ...(Array.isArray(BEST_PRODUCTS) ? BEST_PRODUCTS : []),
+    ...(Array.isArray(ABSOLUTE_SKINCARE_PRODUCTS) ? ABSOLUTE_SKINCARE_PRODUCTS : [])
+  ];
+
+  // 1. Direct match by productId
+  if (slide.productId) {
+    const found = pool.find(p => p && String(p.id).trim().toUpperCase() === String(slide.productId).trim().toUpperCase());
+    if (found) return found;
+  }
+
+  const str = `${slide.title || ''} ${slide.subtitle || ''} ${slide.desc || ''}`.toLowerCase();
+
+  // 2. Absolute Skincare Set (Slide 6 in screenshot)
+  if (str.includes('absolute')) {
+    return pool.find(p => p && p.id === 'D00207') || pool.find(p => p && p.name && p.name.toLowerCase().includes('absolute'));
+  }
+
+  // 3. HemoHIM (Slides 4 & 5)
+  if (str.includes('hemohim')) {
+    return pool.find(p => p && p.id === 'D00101') || pool.find(p => p && p.name && p.name.toLowerCase().includes('hemohim'));
+  }
+
+  // 4. Evening Care (Slide 7)
+  if (str.includes('evening care')) {
+    return pool.find(p => p && p.id === 'D00351') || pool.find(p => p && p.name && p.name.toLowerCase().includes('evening care'));
+  }
+
+  // 5. Shilajit (Slide 8)
+  if (str.includes('shilajit')) {
+    return pool.find(p => p && p.id === 'D94085') || pool.find(p => p && p.name && p.name.toLowerCase().includes('shilajit'));
+  }
+
+  // 6. Spirulina (Slide 9)
+  if (str.includes('spirulina')) {
+    return pool.find(p => p && p.id === 'D90178') || pool.find(p => p && p.name && p.name.toLowerCase().includes('spirulina'));
+  }
+
+  return null;
+};
+
+export default function HeroSlider({
+  onProductClick,
+  onNavigateMembership,
+  onNavigateView,
+  onSelectCategory
+}) {
   const [slides, setSlides] = useState(() => getHeroSlides());
 
   useEffect(() => {
@@ -115,6 +170,81 @@ export default function HeroSlider() {
     setIsViewAllOpen(false);
   };
 
+  // Handle clicking on a slide to navigate to product details or respective destination
+  const handleSlideClick = (slide, e) => {
+    if (e && (e.target.closest('button') || e.target.closest('.slider-controls-badge') || e.target.closest('.slider-arrow'))) {
+      return;
+    }
+
+    const matchedProd = findProductForSlide(slide);
+    if (matchedProd && onProductClick) {
+      onProductClick(matchedProd);
+      return;
+    }
+
+    const titleLower = (slide.title || '').toLowerCase();
+    const subLower = (slide.subtitle || '').toLowerCase();
+
+    if (slide.viewTarget === 'membership' || titleLower.includes('member') || subLower.includes('member')) {
+      if (onNavigateMembership) onNavigateMembership();
+      return;
+    }
+    if (slide.viewTarget === 'seminars' || titleLower.includes('seminar') || titleLower.includes('talk show')) {
+      if (onNavigateView) onNavigateView('seminars');
+      return;
+    }
+    if (slide.viewTarget === 'about' || titleLower.includes('paralympic') || titleLower.includes('partner')) {
+      if (onNavigateView) onNavigateView('about');
+      return;
+    }
+    if (slide.link) {
+      if (slide.link.startsWith('http')) {
+        window.open(slide.link, '_blank', 'noopener,noreferrer');
+      } else if (onNavigateView) {
+        onNavigateView(slide.link);
+      }
+    }
+  };
+
+  const handleViewAllItemClick = (slide, idx) => {
+    const matchedProd = findProductForSlide(slide);
+    if (matchedProd && onProductClick) {
+      setIsViewAllOpen(false);
+      onProductClick(matchedProd);
+      return;
+    }
+
+    const titleLower = (slide.title || '').toLowerCase();
+    const subLower = (slide.subtitle || '').toLowerCase();
+
+    if (slide.viewTarget === 'membership' || titleLower.includes('member') || subLower.includes('member')) {
+      setIsViewAllOpen(false);
+      if (onNavigateMembership) onNavigateMembership();
+      return;
+    }
+    if (slide.viewTarget === 'seminars' || titleLower.includes('seminar') || titleLower.includes('talk show')) {
+      setIsViewAllOpen(false);
+      if (onNavigateView) onNavigateView('seminars');
+      return;
+    }
+    if (slide.viewTarget === 'about' || titleLower.includes('paralympic') || titleLower.includes('partner')) {
+      setIsViewAllOpen(false);
+      if (onNavigateView) onNavigateView('about');
+      return;
+    }
+    if (slide.link) {
+      setIsViewAllOpen(false);
+      if (slide.link.startsWith('http')) {
+        window.open(slide.link, '_blank', 'noopener,noreferrer');
+      } else if (onNavigateView) {
+        onNavigateView(slide.link);
+      }
+      return;
+    }
+
+    handleSelectSlide(idx);
+  };
+
   return (
     <div className="hero-slider-section">
       <div
@@ -132,11 +262,21 @@ export default function HeroSlider() {
             ? activeSlides.length - 1
             : (index === activeSlides.length + 1 ? 0 : index - 1);
           const isActive = itemRealIdx === currentSlide;
+          const matchedProd = findProductForSlide(slide);
+          const tooltipText = matchedProd
+            ? `Click to view ${matchedProd.name} details`
+            : (slide.title || 'Explore');
+
           return (
             <div
               key={`${slide.id}-${index}`}
-              className={`hero-slide ${isActive ? 'active' : ''}`}
+              className={`hero-slide ${isActive ? 'active' : ''} ${matchedProd ? 'has-product-link' : ''}`}
               style={{ backgroundColor: slide.bg }}
+              onClick={(e) => handleSlideClick(slide, e)}
+              role="button"
+              tabIndex={isActive ? 0 : -1}
+              aria-label={tooltipText}
+              title={tooltipText}
             >
               {/* Full-bleed background image covering 100% of the container */}
               <div
@@ -152,7 +292,7 @@ export default function HeroSlider() {
                     <h2 className="hero-title">{slide.title}</h2>
                     <div
                       className="hero-arrow-indicator"
-                      title={slide.title}
+                      title={tooltipText}
                       style={{ color: slide.textColor }}
                     >
                       <div className="arrow-draw-wrapper">
@@ -243,29 +383,42 @@ export default function HeroSlider() {
 
             <div className="view-all-modal-body">
               <div className="view-all-banners-list">
-                {activeSlides.map((slide, idx) => (
-                  <div
-                    key={slide.id}
-                    className={`view-all-banner-item ${idx === currentSlide ? 'active' : ''}`}
-                    onClick={() => handleSelectSlide(idx)}
-                    title={slide.title}
-                  >
-                    <img
-                      src={slide.img}
-                      alt={slide.title}
-                      className="view-all-banner-img"
-                      loading="lazy"
-                    />
+                {activeSlides.map((slide, idx) => {
+                  const matchedProd = findProductForSlide(slide);
+                  const isProd = !!matchedProd;
+                  return (
+                    <div
+                      key={slide.id}
+                      className={`view-all-banner-item ${idx === currentSlide ? 'active' : ''} ${isProd ? 'has-product' : ''}`}
+                      onClick={() => handleViewAllItemClick(slide, idx)}
+                      title={matchedProd ? `Open ${matchedProd.name} details` : slide.title}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <img
+                        src={slide.img}
+                        alt={slide.title}
+                        className="view-all-banner-img"
+                        loading="lazy"
+                      />
 
-                    {/* Left text overlay on banners that have text content */}
-                    {slide.hasTextOverlay && (
-                      <div className="view-all-banner-txt">
-                        <span className="view-all-banner-sub">{slide.subtitle}</span>
-                        <span className="view-all-banner-tit">{slide.title}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      {/* Left text overlay on banners that have text content */}
+                      {slide.hasTextOverlay && (
+                        <div className="view-all-banner-txt">
+                          <span className="view-all-banner-sub">{slide.subtitle}</span>
+                          <span className="view-all-banner-tit">{slide.title}</span>
+                        </div>
+                      )}
+
+                      {/* Action Pill Badge for direct product navigation */}
+                      {matchedProd && (
+                        <span className="view-all-banner-badge">
+                          View Product Details →
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

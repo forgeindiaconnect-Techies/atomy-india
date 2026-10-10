@@ -12,7 +12,15 @@ export function getHeroSlides() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return parsed.map((s, idx) => {
+          const defaultSlide = HERO_SLIDES[idx] || HERO_SLIDES.find(h => h.id === s.id);
+          return {
+            ...defaultSlide,
+            ...s,
+            productId: s.productId || defaultSlide?.productId,
+            viewTarget: s.viewTarget || defaultSlide?.viewTarget
+          };
+        });
       }
     }
   } catch (err) {

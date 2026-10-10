@@ -867,7 +867,12 @@ export default function App() {
         {currentView === 'home' ? (
           <>
             {/* 2. Hero Visual Slider (9-slide authentic carousel) */}
-            <HeroSlider />
+            <HeroSlider
+              onProductClick={handleSelectProduct}
+              onNavigateMembership={handleNavigateMembership}
+              onNavigateView={handleNavigateView}
+              onSelectCategory={handleSelectCategory}
+            />
 
             {/* Shopping Body Section with bounded sticky Floating Toolbar */}
             <div className="shopping-body-wrapper">

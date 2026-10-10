@@ -6,7 +6,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/50/201/26090000002720117430.png",
     bg: "#072044",
     textColor: "#ffffff",
-    hasTextOverlay: false
+    hasTextOverlay: false,
+    viewTarget: "seminars"
   },
   {
     id: 2,
@@ -15,7 +16,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/90/746/26090000002674618481.png",
     bg: "#ced3d6",
     textColor: "#222222",
-    hasTextOverlay: false
+    hasTextOverlay: false,
+    viewTarget: "about"
   },
   {
     id: 3,
@@ -25,7 +27,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/90/210/26060000002521018925.png",
     bg: "#f3f5f8",
     textColor: "#222222",
-    hasTextOverlay: false
+    hasTextOverlay: false,
+    viewTarget: "membership"
   },
   {
     id: 4,
@@ -35,7 +38,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/90/414/251100000021414132556.jpg",
     bg: "#e7ebeb",
     textColor: "#222222",
-    hasTextOverlay: true
+    hasTextOverlay: true,
+    productId: "D00101"
   },
   {
     id: 5,
@@ -45,7 +49,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/50/533/260500000024533213212.jpeg",
     bg: "#e5ecec",
     textColor: "#222222",
-    hasTextOverlay: true
+    hasTextOverlay: true,
+    productId: "D00101"
   },
   {
     id: 6,
@@ -55,7 +60,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/90/477/25110000002147714178.png",
     bg: "#f4f0ec",
     textColor: "#222222",
-    hasTextOverlay: true
+    hasTextOverlay: true,
+    productId: "D00207"
   },
   {
     id: 7,
@@ -65,7 +71,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/90/479/25110000002147914258.jpg",
     bg: "#f7fafc",
     textColor: "#222222",
-    hasTextOverlay: true
+    hasTextOverlay: true,
+    productId: "D00351"
   },
   {
     id: 8,
@@ -75,7 +82,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/90/495/251100000021495144311.jpg",
     bg: "#f0f4f8",
     textColor: "#222222",
-    hasTextOverlay: true
+    hasTextOverlay: true,
+    productId: "D94085"
   },
   {
     id: 9,
@@ -85,7 +93,8 @@ export const HERO_SLIDES = [
     img: "https://image.atomy.com/IN/banner/90/501/25110000002150115422.jpg",
     bg: "#eaf3ea",
     textColor: "#222222",
-    hasTextOverlay: true
+    hasTextOverlay: true,
+    productId: "D90178"
   }
 ];
 
