@@ -11,24 +11,36 @@
 	<groupId>com.example</groupId>
 	<artifactId>atomy_india</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+
 	<properties>
 		<java.version>21</java.version>
 	</properties>
+
+	<repositories>
+		<repository>
+			<id>google-maven-central</id>
+			<name>Google Maven Central Mirror</name>
+			<url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+		</repository>
+		<repository>
+			<id>aliyun-public</id>
+			<name>Aliyun Public Mirror</name>
+			<url>https://maven.aliyun.com/repository/public</url>
+		</repository>
+	</repositories>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>google-maven-central-plugins</id>
+			<name>Google Maven Central Mirror Plugins</name>
+			<url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+		</pluginRepository>
+		<pluginRepository>
+			<id>aliyun-public-plugins</id>
+			<name>Aliyun Public Mirror Plugins</name>
+			<url>https://maven.aliyun.com/repository/public</url>
+		</pluginRepository>
+	</pluginRepositories>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -74,6 +86,11 @@
 	<build>
 		<finalName>app</finalName>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.4.2</version>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
