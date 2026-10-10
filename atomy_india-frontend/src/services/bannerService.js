@@ -1,6 +1,7 @@
 import { HERO_SLIDES, CATEGORY_CONFIGS } from '../data/mockData';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').replace(/\/+$/, '');
+const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').trim().replace(/\/+$/, '').replace(/atomy_india\.onrender\.com/i, 'atomy-india.onrender.com');
+const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
 const STORAGE_KEY_HERO_SLIDES = 'atomy_hero_slides';
 const STORAGE_PREFIX_CAT_BANNERS = 'atomy_cat_banners_';
 

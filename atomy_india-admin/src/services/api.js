@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api';
+const rawBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').trim().replace(/\/+$/, '').replace(/atomy_india\.onrender\.com/i, 'atomy-india.onrender.com');
+const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 // Customer APIs
 export async function createCustomerOrder(orderData) {

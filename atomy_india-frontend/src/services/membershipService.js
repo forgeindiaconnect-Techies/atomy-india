@@ -2,7 +2,8 @@
 // Manages single-class Atomy Distributor Membership, Monthly & Annual plans, DP / PV pricing logic
 // Synced with Spring Boot MySQL backend on port 8085
 
-const BACKEND_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').replace(/\/+$/, '');
+const rawBackendUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').trim().replace(/\/+$/, '').replace(/atomy_india\.onrender\.com/i, 'atomy-india.onrender.com');
+const BACKEND_URL = rawBackendUrl.endsWith('/api') ? rawBackendUrl : `${rawBackendUrl}/api`;
 const API_BASE = `${BACKEND_URL}/membership`;
 const ADMIN_API_BASE = `${BACKEND_URL}/admin/membership`;
 
