@@ -31,26 +31,26 @@
   height: 94px;
   pointer-events: none;
   will-change: transform;
-  animation: phoenixFlightSequence 15s linear infinite;
+  animation: phoenixFlightSequence 27s linear infinite;
   z-index: 2;
 }
 
 /*
-  Trajectory timeline (15.0s total cycle):
-  - 0% to 33.3% (5.0s): Bird appearance across navbar (soars smoothly left-to-right for 5.0s).
-  - 33.3%: Bird completely hides offscreen!
-  - 33.3% to 100% (10.0s): EXACT 10-SECOND GAP before next bird appearance!
+  Trajectory timeline (27.0s total cycle):
+  - 0% to 26% (7.0s): Graceful, slightly slower flight appearance across navbar.
+  - 26%: Bird completely hides offscreen!
+  - 26% to 100% (20.0s): EXACT 20-SECOND APPEARANCE GAP before next bird flight!
 */
 @keyframes phoenixFlightSequence {
   0% {
     transform: translate3d(-260px, -50%, 0);
   }
-  33.3% {
-    /* 5.0s appearance flight across navbar */
+  26% {
+    /* 7.0s graceful, slightly slower flight across navbar */
     transform: translate3d(calc(100vw + 260px), -50%, 0);
   }
   100% {
-    /* Stays parked offscreen for exact 10.0s gap before reappearing */
+    /* Stays parked offscreen for exact 20.0s gap before reappearing */
     transform: translate3d(calc(100vw + 260px), -50%, 0);
   }
 }
@@ -60,8 +60,8 @@
       - Physically locked to the bird's body with ZERO gap!
       - Extends 4500px to the left, so it completely covers the navbar up to the bird.
       - FADES ONLY AFTER THE BIRD HIDES COMPLETELY.
-      - Fast fading speed: Fades out rapidly in ~0.6s (33.3% to 37.3%).
-      - EXACT 10 SECOND GAP (33.3% to 100% = 10.0s) before next appearance!
+      - Fast fading speed: Fades out rapidly in ~0.8s (26% to 29%).
+      - EXACT 20 SECOND GAP (26% to 100% = 20.0s) before next appearance!
    ========================================================================== */
 
 .phoenix-attached-fire-background {
@@ -97,7 +97,7 @@
   pointer-events: none;
   z-index: 0;
   will-change: opacity;
-  animation: fireBackgroundLifeCycle 15s linear infinite;
+  animation: fireBackgroundLifeCycle 27s linear infinite;
 }
 
 /* Soft golden bloom on the leading fire edge right around the bird */
@@ -118,30 +118,30 @@
   pointer-events: none;
   z-index: 1;
   will-change: opacity;
-  animation: fireBackgroundLifeCycle 15s linear infinite;
+  animation: fireBackgroundLifeCycle 27s linear infinite;
 }
 
 /*
   Fire Background Life Cycle:
-  - 0% to 33.3% (5.0s): Solid 100% opacity covering navbar along with the bird.
-  - 33.3%: Bird completely hides offscreen!
-  - 33.3% to 37.3% (0.6s): Rapid, crisp fade out to 0 opacity!
-  - 33.3% to 100% (10.0s): EXACT 10-SECOND GAP until next bird flight!
+  - 0% to 26% (7.0s): Solid 100% opacity covering navbar along with the bird.
+  - 26%: Bird completely hides offscreen!
+  - 26% to 29% (0.8s): Rapid, crisp fade out to 0 opacity!
+  - 26% to 100% (20.0s): EXACT 20-SECOND GAP until next bird flight!
 */
 @keyframes fireBackgroundLifeCycle {
   0% {
     opacity: 1;
   }
-  33.3% {
-    /* Bird hides completely offscreen at 33.3% (5.0s) */
+  26% {
+    /* Bird hides completely offscreen at 26% (7.0s) */
     opacity: 1;
   }
-  37.3% {
-    /* Fast fade-out in ~0.6s */
+  29% {
+    /* Fast fade-out in ~0.8s */
     opacity: 0;
   }
   100% {
-    /* Exactly 10.0 seconds gap before next flight */
+    /* Exactly 20.0 seconds gap before next flight */
     opacity: 0;
   }
 }
