@@ -1426,9 +1426,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         </div>
 
         <div className="quick-strip-right">
-          <span style={{ fontSize: '11px', color: '#0369a1', background: '#e0f2fe', padding: '4px 10px', borderRadius: '12px', fontWeight: '600' }}>
-            MySQL Connected • {products.length} Products Live
-          </span>
           <a
             href="http://localhost:5173"
             target="_blank"
@@ -1440,44 +1437,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             <ExternalLink size={13} />
             <span>Customer Store (5173)</span>
           </a>
-
-          <button
-            className="quick-refresh-btn"
-            onClick={() => {
-              syncWithBackend();
-              showToast('Synced with live Atomy MySQL & cache');
-            }}
-            title="Refresh All Datasets"
-          >
-            <RefreshCw size={13} />
-            <span>Sync</span>
-          </button>
-
-          {onLogout && (
-            <button
-              type="button"
-              id="btn-admin-header-logout"
-              onClick={onLogout}
-              title="Sign Out from Administrator Session"
-              style={{
-                background: 'rgba(239, 68, 68, 0.12)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.28)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '4px 11px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <LogOut size={13} />
-              <span>Sign Out</span>
-            </button>
-          )}
         </div>
       </div>
 

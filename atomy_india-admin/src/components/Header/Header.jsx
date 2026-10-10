@@ -466,7 +466,7 @@ export default function Header({
                       title="System Alerts & Notifications"
                       aria-label="Notifications"
                     >
-                      <Bell size={18} />
+                      <Bell size={20} strokeWidth={2.2} />
                       {notificationCount > 0 && (
                         <span className="admin-master-bell-badge">
                           {notificationCount}
