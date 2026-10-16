@@ -154,11 +154,12 @@ export const BEST_PRODUCTS = [
     id: "D00101",
     rank: 1,
     name: "HemoHIM *1set",
-    originalPrice: 15000.0,
-    formattedOriginalPrice: "₹ 15,000.00",
-    price: 13650.0,
-    formattedPrice: "₹ 13,650.00",
-    discountPercent: "9%",
+    originalPrice: 13000.0,
+    formattedOriginalPrice: "₹ 13,000.00",
+    price: 13000.0,
+    dpPrice: 9450.0,
+    formattedPrice: "₹ 13,000.00",
+    discountPercent: "27%",
     pv: 80000,
     
     image: "https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480",
@@ -166,12 +167,14 @@ export const BEST_PRODUCTS = [
     likes: 224,
     purchased: "1,219",
     addedToCart: "2,333",
-    reviewsCount: 13,
-    rating: 5.0,
+    reviewsCount: 0,
+    rating: 0,
     category: "health",
     tags: ["#GST REDUCED", "#Immunity"],
     freeDelivery: true,
-    categoryTab: ["ALL", "BEST"]
+    categoryTab: ["ALL", "BEST"],
+    dpPrice: 9450.0,
+    formattedDpPrice: "₹ 9,450.00"
   },
   {
     id: "D00207",
@@ -189,7 +192,9 @@ export const BEST_PRODUCTS = [
     likes: 103,
     tags: [],
     freeDelivery: true,
-    categoryTab: ["ALL", "BEST"]
+    categoryTab: ["ALL", "BEST"],
+    dpPrice: 17228.0,
+    formattedDpPrice: "₹ 17,228.00"
   },
   {
     id: "D00003",
@@ -207,7 +212,9 @@ export const BEST_PRODUCTS = [
     likes: 51,
     tags: [],
     freeDelivery: true,
-    categoryTab: ["ALL", "BEST"]
+    categoryTab: ["ALL", "BEST"],
+    dpPrice: 7906.0,
+    formattedDpPrice: "₹ 7,906.00"
   },
   {
     id: "D00351",
@@ -225,7 +232,9 @@ export const BEST_PRODUCTS = [
     likes: 245,
     tags: [],
     freeDelivery: false,
-    categoryTab: ["ALL", "BEST"]
+    categoryTab: ["ALL", "BEST"],
+    dpPrice: 2855.6,
+    formattedDpPrice: "₹ 2,855.60"
   },
   {
     id: "D00757",
@@ -243,7 +252,9 @@ export const BEST_PRODUCTS = [
     likes: 222,
     tags: [],
     freeDelivery: false,
-    categoryTab: ["ALL", "BEST"]
+    categoryTab: ["ALL", "BEST"],
+    dpPrice: 2596.0,
+    formattedDpPrice: "₹ 2,596.00"
   },
   // NEW TAB ITEMS
   {
@@ -262,7 +273,9 @@ export const BEST_PRODUCTS = [
     likes: 42,
     tags: ["#NewArrival"],
     freeDelivery: false,
-    categoryTab: ["NEW"]
+    categoryTab: ["NEW"],
+    dpPrice: 767.0,
+    formattedDpPrice: "₹ 767.00"
   },
   {
     id: "D04704",
@@ -280,7 +293,9 @@ export const BEST_PRODUCTS = [
     likes: 38,
     tags: ["#MakeupEssential"],
     freeDelivery: false,
-    categoryTab: ["NEW"]
+    categoryTab: ["NEW"],
+    dpPrice: 767.0,
+    formattedDpPrice: "₹ 767.00"
   },
   {
     id: "D01526",
@@ -298,7 +313,9 @@ export const BEST_PRODUCTS = [
     likes: 89,
     tags: ["#Brightening"],
     freeDelivery: false,
-    categoryTab: ["NEW"]
+    categoryTab: ["NEW"],
+    dpPrice: 1062.0,
+    formattedDpPrice: "₹ 1,062.00"
   },
   {
     id: "D00396",
@@ -316,7 +333,9 @@ export const BEST_PRODUCTS = [
     likes: 67,
     tags: ["#GST REDUCED"],
     freeDelivery: false,
-    categoryTab: ["NEW"]
+    categoryTab: ["NEW"],
+    dpPrice: 1575.0,
+    formattedDpPrice: "₹ 1,575.00"
   },
   // RECOMMENDATION TAB ITEMS
   {
@@ -335,7 +354,9 @@ export const BEST_PRODUCTS = [
     likes: 184,
     tags: ["#GST REDUCED", "#Immunity"],
     freeDelivery: true,
-    categoryTab: ["RECOMMENDATION"]
+    categoryTab: ["RECOMMENDATION"],
+    dpPrice: 4830.0,
+    formattedDpPrice: "₹ 4,830.00"
   },
   {
     id: "D00281",
@@ -353,7 +374,9 @@ export const BEST_PRODUCTS = [
     likes: 198,
     tags: ["#SunProtection"],
     freeDelivery: false,
-    categoryTab: ["RECOMMENDATION"]
+    categoryTab: ["RECOMMENDATION"],
+    dpPrice: 755.2,
+    formattedDpPrice: "₹ 755.20"
   },
   {
     id: "D00261",
@@ -371,7 +394,9 @@ export const BEST_PRODUCTS = [
     likes: 112,
     tags: ["#DailyCare"],
     freeDelivery: false,
-    categoryTab: ["RECOMMENDATION"]
+    categoryTab: ["RECOMMENDATION"],
+    dpPrice: 708.0,
+    formattedDpPrice: "₹ 708.00"
   },
   {
     id: "D00510",
@@ -389,7 +414,9 @@ export const BEST_PRODUCTS = [
     likes: 276,
     tags: ["#GST REDUCED", "#OralCare"],
     freeDelivery: false,
-    categoryTab: ["RECOMMENDATION"]
+    categoryTab: ["RECOMMENDATION"],
+    dpPrice: 800.85,
+    formattedDpPrice: "₹ 800.85"
   }
 ];
 
@@ -407,7 +434,9 @@ export const HAIR_BODY_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00693/D00693_00.jpg?w=610&h=610",
     gstReduced: false,
     likes: 76,
-    tags: []
+    tags: [],
+    dpPrice: 2371.8,
+    formattedDpPrice: "₹ 2,371.80"
   },
   {
     id: "D00691",
@@ -422,7 +451,9 @@ export const HAIR_BODY_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00691/D00691_00.jpg?w=610&h=610",
     gstReduced: true,
     likes: 139,
-    tags: ["#GST REDUCED"]
+    tags: ["#GST REDUCED"],
+    dpPrice: 1123.5,
+    formattedDpPrice: "₹ 1,123.50"
   },
   {
     id: "D00681",
@@ -437,7 +468,9 @@ export const HAIR_BODY_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00681/D00681_00.jpg?w=610&h=610",
     gstReduced: true,
     likes: 124,
-    tags: ["#GST REDUCED"]
+    tags: ["#GST REDUCED"],
+    dpPrice: 934.5,
+    formattedDpPrice: "₹ 934.50"
   },
   {
     id: "D00661",
@@ -452,7 +485,9 @@ export const HAIR_BODY_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00661/D00661_00.jpg?w=610&h=610",
     gstReduced: false,
     likes: 63,
-    tags: []
+    tags: [],
+    dpPrice: 1156.4,
+    formattedDpPrice: "₹ 1,156.40"
   },
   {
     id: "D00631",
@@ -467,7 +502,9 @@ export const HAIR_BODY_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00631/D00631_00.jpg?w=610&h=610",
     gstReduced: false,
     likes: 88,
-    tags: []
+    tags: [],
+    dpPrice: 873.2,
+    formattedDpPrice: "₹ 873.20"
   },
   {
     id: "D00620",
@@ -482,7 +519,9 @@ export const HAIR_BODY_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00620/D00620_00.jpg?w=610&h=610",
     gstReduced: false,
     likes: 95,
-    tags: []
+    tags: [],
+    dpPrice: 1062.0,
+    formattedDpPrice: "₹ 1,062.00"
   },
   {
     id: "D00611",
@@ -497,7 +536,9 @@ export const HAIR_BODY_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00611/D00611_00.jpg?w=610&h=610",
     gstReduced: false,
     likes: 54,
-    tags: []
+    tags: [],
+    dpPrice: 672.6,
+    formattedDpPrice: "₹ 672.60"
   },
   {
     id: "D00601",
@@ -512,7 +553,9 @@ export const HAIR_BODY_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00601/D00601_00.jpg?w=610&h=610",
     gstReduced: true,
     likes: 110,
-    tags: ["#GST REDUCED"]
+    tags: ["#GST REDUCED"],
+    dpPrice: 892.5,
+    formattedDpPrice: "₹ 892.50"
   }
 ];
 
@@ -530,7 +573,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     discountPercent: "15%",pv: 128000,
     
     image: "https://image.atomy.com/IN/goods/D00207/org/036/260803000054036.jpg?w=260&h=260",
-    category: "BEAUTY > Absolute Series"
+    category: "BEAUTY > Absolute Series",
+    dpPrice: 17228.0,
+    formattedDpPrice: "₹ 17,228.00"
   },
   {
     id: "D00217",
@@ -543,7 +588,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     discountPercent: "15%",pv: 20400,
     
     image: "https://image.atomy.com/IN/goods/D00217/D00217_00.jpg?w=260&h=260",
-    category: "BEAUTY > Absolute Series"
+    category: "BEAUTY > Absolute Series",
+    dpPrice: 2891.0,
+    formattedDpPrice: "₹ 2,891.00"
   },
   {
     id: "D00227",
@@ -556,7 +603,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     discountPercent: "15%",pv: 28600,
     
     image: "https://image.atomy.com/IN/goods/D00227/D00227_00.jpg?w=260&h=260",
-    category: "BEAUTY > Absolute Series"
+    category: "BEAUTY > Absolute Series",
+    dpPrice: 3894.0,
+    formattedDpPrice: "₹ 3,894.00"
   },
   {
     id: "D00237",
@@ -569,7 +618,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     discountPercent: "15%",pv: 23100,
     
     image: "https://image.atomy.com/IN/goods/D00237/D00237_00.jpg?w=260&h=260",
-    category: "BEAUTY > Absolute Series"
+    category: "BEAUTY > Absolute Series",
+    dpPrice: 3186.0,
+    formattedDpPrice: "₹ 3,186.00"
   },
   {
     id: "D00247",
@@ -582,7 +633,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     discountPercent: "15%",pv: 20500,
     
     image: "https://image.atomy.com/IN/goods/D00247/D00247_00.jpg?w=260&h=260",
-    category: "BEAUTY > Absolute Series"
+    category: "BEAUTY > Absolute Series",
+    dpPrice: 2891.0,
+    formattedDpPrice: "₹ 2,891.00"
   },
   {
     id: "D00257",
@@ -595,7 +648,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     discountPercent: "15%",pv: 23200,
     
     image: "https://image.atomy.com/IN/goods/D00257/D00257_00.jpg?w=260&h=260",
-    category: "BEAUTY > Absolute Series"
+    category: "BEAUTY > Absolute Series",
+    dpPrice: 3186.0,
+    formattedDpPrice: "₹ 3,186.00"
   },
   {
     id: "D00267",
@@ -608,7 +663,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     discountPercent: "15%",pv: 20300,
     
     image: "https://image.atomy.com/IN/goods/D00267/D00267_00.jpg?w=260&h=260",
-    category: "BEAUTY > Absolute Series"
+    category: "BEAUTY > Absolute Series",
+    dpPrice: 2861.5,
+    formattedDpPrice: "₹ 2,861.50"
   },
   {
     id: "D01513",
@@ -621,7 +678,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     discountPercent: "15%",pv: 18000,
     
     image: "https://image.atomy.com/IN/goods/D01513/D01513_00.jpg?w=260&h=260",
-    category: "BEAUTY > Absolute Series"
+    category: "BEAUTY > Absolute Series",
+    dpPrice: 2714.0,
+    formattedDpPrice: "₹ 2,714.00"
   }
 ];
 
@@ -642,7 +701,9 @@ export const FOOD_ESSENTIAL_PRODUCTS = [
     discountPercent: "15%",pv: 3000,
     
     image: "https://image.atomy.com/IN/banner/50/451/251100000021451212853.jpg",
-    category: "FOOD"
+    category: "FOOD",
+    dpPrice: 1470.0,
+    formattedDpPrice: "₹ 1,470.00"
   },
   {
     id: "D00183",
@@ -657,7 +718,9 @@ export const FOOD_ESSENTIAL_PRODUCTS = [
     discountPercent: "15%",pv: 35000,
     
     image: "https://image.atomy.com/IN/banner/50/443/25110000002144321296.jpg",
-    category: "FOOD"
+    category: "FOOD",
+    dpPrice: 5696.25,
+    formattedDpPrice: "₹ 5,696.25"
   },
   {
     id: "D00180",
@@ -672,7 +735,9 @@ export const FOOD_ESSENTIAL_PRODUCTS = [
     discountPercent: "15%",pv: 17000,
     
     image: "https://image.atomy.com/IN/banner/50/440/251100000021440212834.jpg",
-    category: "FOOD"
+    category: "FOOD",
+    dpPrice: 2835.0,
+    formattedDpPrice: "₹ 2,835.00"
   }
 ];
 
@@ -690,7 +755,9 @@ export const HEALTH_ESSENTIAL_PRODUCTS = [
     discountPercent: "15%",pv: 15000,
     
     image: "https://image.atomy.com/IN/goods/D00111/D00111_00.jpg?w=260&h=260",
-    category: "HEALTH"
+    category: "HEALTH",
+    dpPrice: 3045.0,
+    formattedDpPrice: "₹ 3,045.00"
   },
   {
     id: "D00160",
@@ -703,7 +770,9 @@ export const HEALTH_ESSENTIAL_PRODUCTS = [
     discountPercent: "15%",pv: 22000,
     
     image: "https://image.atomy.com/IN/goods/D00160/D00160_00.jpg?w=260&h=260",
-    category: "HEALTH"
+    category: "HEALTH",
+    dpPrice: 3465.0,
+    formattedDpPrice: "₹ 3,465.00"
   },
   {
     id: "D00170",
@@ -716,7 +785,9 @@ export const HEALTH_ESSENTIAL_PRODUCTS = [
     discountPercent: "15%",pv: 36000,
     
     image: "https://image.atomy.com/IN/goods/D00170/org/350/260401000051350.jpg?w=260&h=260",
-    category: "HEALTH"
+    category: "HEALTH",
+    dpPrice: 4830.0,
+    formattedDpPrice: "₹ 4,830.00"
   },
   {
     id: "D00174",
@@ -729,7 +800,9 @@ export const HEALTH_ESSENTIAL_PRODUCTS = [
     discountPercent: "15%",pv: 16000,
     
     image: "https://image.atomy.com/IN/goods/D00174/org/909/260422000051909.jpeg?w=260&h=260",
-    category: "HEALTH"
+    category: "HEALTH",
+    dpPrice: 2835.0,
+    formattedDpPrice: "₹ 2,835.00"
   }
 ];
 
@@ -747,7 +820,9 @@ export const GSGS_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D94085/org/907/260422000051907.jpeg?w=828&h=828",
     gstReduced: true,
     likes: 225,
-    tags: []
+    tags: [],
+    dpPrice: 735.0,
+    formattedDpPrice: "₹ 735.00"
   },
   {
     id: "D90178",
@@ -762,7 +837,9 @@ export const GSGS_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D90178/org/880/260422000051880.jpeg?w=828&h=828",
     gstReduced: true,
     likes: 232,
-    tags: ["#GST REDUCED"]
+    tags: ["#GST REDUCED"],
+    dpPrice: 498.75,
+    formattedDpPrice: "₹ 498.75"
   },
   {
     id: "D04086",
@@ -777,7 +854,9 @@ export const GSGS_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D04086/D04086_00.jpg?w=828&h=828",
     gstReduced: true,
     likes: 188,
-    tags: ["#GST REDUCED"]
+    tags: ["#GST REDUCED"],
+    dpPrice: 670.95,
+    formattedDpPrice: "₹ 670.95"
   },
   {
     id: "D94084",
@@ -792,7 +871,9 @@ export const GSGS_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D94084/org/083/260501000052083.png?w=828&h=828",
     gstReduced: true,
     likes: 48,
-    tags: ["#GST REDUCED"]
+    tags: ["#GST REDUCED"],
+    dpPrice: 1470.0,
+    formattedDpPrice: "₹ 1,470.00"
   }
 ];
 

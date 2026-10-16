@@ -9,6 +9,77 @@
 
 const API_BASE = 'http://localhost:8085/api';
 
+export const DEFAULT_POPUP_ADS = [
+  {
+    id: 'ad-kolkata-festive',
+    name: 'Delivery Delayed in Kolkata – Festive Season',
+    title: 'Delivery Delayed in Kolkata – Festive Season',
+    brand: 'ATOMY NOTICE',
+    collection: 'FESTIVE SEASON ADVISORY',
+    tagline: 'Due to festive goods vehicle restrictions from 10–20 October 2026, deliveries may be affected in Kolkata, Howrah, Hooghly.',
+    subtitle: 'Due to festive goods vehicle restrictions from 10–20 October 2026, deliveries may be affected in Kolkata, Howrah, Hooghly.',
+    badge: 'NOTICE',
+    badgeColor: '#EF4444',
+    image: '/images/promotions/promo_kolkata_notice.jpg',
+    link: '/notice',
+    actionText: 'View Delivery Notice',
+    price: 0,
+    pv: 0,
+    isActive: true,
+  },
+  {
+    id: 'ad-welcome-coupon',
+    name: 'Last Month For This Promo! ₹250 Coupon',
+    title: 'Last Month For This Promo! ₹250 Coupon',
+    brand: 'ATOMY SHOPPING MALL',
+    collection: 'WELCOME EXCLUSIVE OFFER',
+    tagline: 'Exclusive welcome offer for newly registered members. ₹250 coupon valid on purchases of ₹500 or more till 31st October 2026.',
+    subtitle: 'Exclusive welcome offer for newly registered members on purchases of ₹500 or more.',
+    badge: 'SPECIAL OFFER',
+    badgeColor: '#F59E0B',
+    image: '/images/promotions/promo_welcome_coupon.jpg',
+    link: '/coupons',
+    actionText: 'Claim ₹250 Coupon',
+    price: 0,
+    pv: 0,
+    isActive: true,
+  },
+  {
+    id: 'ad-500-joining',
+    name: '500 New Joining Atomy Distributor Opportunity',
+    title: '500 New Joining Atomy Distributor Opportunity',
+    brand: 'ATOMY REWARDS',
+    collection: 'FINAL MONTH BIG OPPORTUNITY',
+    tagline: 'Complete 500 New Member Registrations between 1st - 31st October 2026 to unlock HemoHIM, Absolute & Evening Care sets!',
+    subtitle: 'Complete 500 New Member Registrations to unlock HemoHIM & Absolute Skincare rewards!',
+    badge: 'REWARDS',
+    badgeColor: '#10B981',
+    image: '/images/promotions/promo_500_joining.jpg',
+    link: '/membership',
+    actionText: 'Join Distributor Rewards',
+    price: 0,
+    pv: 0,
+    isActive: true,
+  },
+  {
+    id: 'D00620',
+    name: 'Adelica Soft Brow Pencil - Gray',
+    title: 'Adelica Soft Brow Pencil - Gray',
+    brand: 'ATOMY adelica',
+    collection: 'NEW ARRIVAL BEAUTY COLLECTION',
+    tagline: 'Diamond pentagonal cut, to express easy and delicate eyebrows, with a soft touch',
+    subtitle: 'Diamond pentagonal cut, to express easy and delicate eyebrows, with a soft touch',
+    price: 700,
+    pv: 4000,
+    image: '/images/promotions/new_arrival_adelica.png',
+    badge: 'NEW LAUNCH',
+    badgeColor: '#00A3E0',
+    link: '/product/D00620',
+    actionText: 'Order Now (₹700)',
+    isActive: true,
+  }
+];
+
 export const DEFAULT_AD_CONFIG = {
   id: 'D00620',
   name: 'Adelica Soft Brow Pencil - Gray',
@@ -20,6 +91,7 @@ export const DEFAULT_AD_CONFIG = {
   image: '/images/promotions/new_arrival_adelica.png',
   badge: 'NEW LAUNCH',
   isActive: true,
+  ads: DEFAULT_POPUP_ADS,
   updatedAt: new Date().toISOString()
 };
 
@@ -32,12 +104,16 @@ export function getAdConfig() {
     const raw = localStorage.getItem(STORAGE_KEY_AD_CONFIG);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULT_AD_CONFIG, ...parsed };
+      const combined = { ...DEFAULT_AD_CONFIG, ...parsed };
+      if (!combined.ads || !Array.isArray(combined.ads) || combined.ads.length === 0) {
+        combined.ads = DEFAULT_POPUP_ADS;
+      }
+      return combined;
     }
   } catch (err) {
     console.error('Error reading ad config:', err);
   }
-  return { ...DEFAULT_AD_CONFIG };
+  return { ...DEFAULT_AD_CONFIG, ads: DEFAULT_POPUP_ADS };
 }
 
 // Save ad config locally and push to MySQL backend
@@ -107,8 +183,9 @@ if (typeof window !== 'undefined') {
 export function isAdSuppressedForToday() {
   try {
     const savedDate = localStorage.getItem(STORAGE_KEY_SUPPRESSED_DATE);
+    if (!savedDate) return false;
     const today = new Date().toDateString();
-    return savedDate === today;
+    return savedDate === today || savedDate === 'true' || savedDate === '1';
   } catch {
     return false;
   }

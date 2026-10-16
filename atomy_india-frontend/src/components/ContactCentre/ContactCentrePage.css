@@ -1493,3 +1493,228 @@
     grid-column: span 1;
   }
 }
+
+/* ==========================================================================
+   MOBILE RESPONSIVE ENHANCEMENTS (Max Width: 768px & 480px)
+   Strictly mobile-only: Desktop layout remains completely untouched.
+   ========================================================================== */
+@media (max-width: 768px) {
+  .contact-main-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 14px 12px 60px !important;
+    box-sizing: border-box !important;
+  }
+
+  .contact-breadcrumbs {
+    padding: 10px 12px !important;
+    font-size: 12px !important;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .contact-page-header {
+    margin-bottom: 16px !important;
+    gap: 12px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .contact-page-title {
+    font-size: 20px !important;
+    letter-spacing: -0.3px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .contact-page-subtitle {
+    font-size: 12.5px !important;
+    line-height: 1.5 !important;
+  }
+
+  .contact-hq-badge {
+    font-size: 11.5px !important;
+    padding: 6px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    justify-content: center !important;
+  }
+
+  /* HQ cards column on mobile */
+  .contact-hq-card {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .hq-card-col {
+    padding: 14px 16px !important;
+    gap: 12px !important;
+  }
+
+  .hq-icon-box {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .hq-val {
+    font-size: 14px !important;
+  }
+
+  /* Tabs Bar: horizontal scrollable on mobile */
+  .contact-tabs-bar {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    gap: 8px !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .contact-tabs-bar::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .contact-tab-btn {
+    padding: 10px 16px !important;
+    font-size: 13.5px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Centres View layout */
+  .centres-view-layout {
+    gap: 16px !important;
+  }
+
+  .centres-filter-bar {
+    padding: 12px !important;
+    gap: 10px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .filter-state-select-wrap {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-state-select-wrap .state-dropdown {
+    width: 100% !important;
+  }
+
+  .filter-search-wrap {
+    width: 100% !important;
+    min-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .centres-count-indicator {
+    margin-left: 0 !important;
+    text-align: right !important;
+    font-size: 12px !important;
+  }
+
+  .real-leaflet-map-wrapper {
+    border-radius: 10px !important;
+  }
+
+  .leaflet-interactive-map-canvas {
+    height: 300px !important;
+  }
+
+  .centres-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .centre-preview-panel {
+    position: static !important;
+    padding: 16px 14px !important;
+  }
+
+  .centre-preview-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .centre-directions-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .centres-list-scroll {
+    max-height: 400px !important;
+  }
+
+  .centre-card {
+    padding: 14px 12px !important;
+  }
+
+  /* 1:1 Inquiry Form & Tracker */
+  .inquiry-form-card {
+    padding: 16px 12px !important;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .form-field.full-width {
+    grid-column: span 1 !important;
+  }
+
+  .form-submit-row {
+    justify-content: stretch !important;
+  }
+
+  .submit-inquiry-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 12px 20px !important;
+  }
+
+  .tracker-search-box {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .tracker-search-btn {
+    width: 100% !important;
+    height: 42px !important;
+    justify-content: center !important;
+  }
+
+  .tracker-chat-container {
+    padding: 12px !important;
+  }
+
+  .tracker-reply-box {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .tracker-reply-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .contact-main-container {
+    padding: 10px 8px 60px !important;
+  }
+
+  .contact-page-title {
+    font-size: 18px !important;
+  }
+
+  .leaflet-interactive-map-canvas {
+    height: 250px !important;
+  }
+}
+

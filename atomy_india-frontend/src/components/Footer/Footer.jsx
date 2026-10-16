@@ -10,7 +10,7 @@ export default function Footer() {
     <footer className="footer-wrapper">
       {/* 1. Agreement & Policy Links Bar */}
       <div className="footer-agreements-bar">
-        <div className="container">
+        <div className="footer-container">
           <div className="footer-agreements-list">
             {agreementLinks.map((linkText, idx) => (
               <React.Fragment key={idx}>
@@ -18,7 +18,7 @@ export default function Footer() {
                   {linkText}
                 </a>
                 {idx < agreementLinks.length - 1 && (
-                  <span className="footer-link-divider"></span>
+                  <span className="footer-link-divider">|</span>
                 )}
               </React.Fragment>
             ))}
@@ -27,67 +27,111 @@ export default function Footer() {
       </div>
 
       {/* 2. Main Footer Content */}
-      <div className="container footer-main-container">
+      <div className="footer-container footer-main-container">
         <div className="footer-columns-grid">
-          {/* Left Column: Grievance Officer, Address, Tax Details */}
+          {/* Left Column: Grievance Officer, Corporate Address, Tax Details */}
           <div className="footer-left-col">
             <div className="footer-contact-block">
               For Queries and Grievance, please contact {grievance.contactPerson}<br />
-              Email ID - <strong>{grievance.email}</strong> Mobile No.: <strong>{grievance.mobile}</strong><br />
+              Email ID - {grievance.email}&nbsp;Mobile No.: {grievance.mobile}<br />
               Nodal Officer Name - {grievance.nodalOfficer}<br />
-              Telephone No.: <strong>{grievance.nodalTel}</strong>
+              Telephone No.:{grievance.nodalTel}
             </div>
 
             <div className="footer-company-name">{company.name}</div>
 
             <div className="footer-address-block">
-              <strong>Corporate Address :</strong> {company.corpAddress}<br />
-              <strong>Registered Address :</strong> {company.regAddress}<br />
-              <strong>CEO :</strong> {company.ceo}
-            </div>
-
-            <div className="footer-tax-info">
-              CIN : {company.cin} &nbsp;|&nbsp; GSTIN : {company.gstin} &nbsp;|&nbsp; PAN : {company.pan}
+              Corporate Address : {company.corpAddress}<br />
+              Registered Address : {company.regAddress}<br />
+              CEO : {company.ceo}<br />
+              CIN : {company.cin}<br />
+              GSTIN : {company.gstin} PAN : {company.pan}
             </div>
 
             <div className="footer-copyright">{company.copyright}</div>
           </div>
 
-          {/* Right Column: Customer Support, Hours & Socials */}
+          {/* Right Column: Customer Support, Socials & Inquiry */}
           <div className="footer-right-col">
-            <span className="cs-header-title">Customer Support</span>
-            <div className="cs-phone-number">{support.phone}</div>
+            <div className="cs-top-row">
+              <div className="cs-phone-cluster">
+                <span className="cs-header-title">Customer Support </span>
+                <span className="cs-phone-number">{support.phone}</span>
+              </div>
+
+              {/* Colorful Social Icons matching screenshot */}
+              <div className="footer-social-row">
+                <a
+                  href="https://www.facebook.com/atomyindiapark"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="social-icon-btn fb"
+                  title="Facebook"
+                  aria-label="Facebook"
+                >
+                  f
+                </a>
+                <a
+                  href="https://www.youtube.com/channel/UC-rPEnjVmDAmLpUJukl6jMw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="social-icon-btn yt"
+                  title="YouTube"
+                  aria-label="YouTube"
+                >
+                  ▶
+                </a>
+                <a
+                  href="https://www.instagram.com/atomyindia_official"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="social-icon-btn ig"
+                  title="Instagram"
+                  aria-label="Instagram"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                  </svg>
+                </a>
+                <a
+                  href="https://www.linkedin.com/company/atomy-enterprise-india-pvt-ltd"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="social-icon-btn li"
+                  title="LinkedIn"
+                  aria-label="LinkedIn"
+                >
+                  in
+                </a>
+                <a
+                  href="https://t.me/atomy_india_official"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="social-icon-btn tg"
+                  title="Telegram"
+                  aria-label="Telegram"
+                >
+                  <Send size={12} />
+                </a>
+              </div>
+            </div>
 
             <div className="cs-details">
               Fax Number : {support.fax}<br />
               {support.hours}<br />
-              {support.holidays}<br />
-              <strong>E-mail :</strong> {support.email}
+              <span className="cs-holidays">{support.holidays}</span>
+            </div>
+
+            <div className="cs-email-row">
+              E-mail : <a href={`mailto:${support.email}`}>{support.email}</a>
             </div>
 
             <a href={`mailto:${support.email}`} className="cs-inquiry-btn">
-              <Mail size={15} />
+              <Mail size={14} />
               <span>Inquiry</span>
             </a>
-
-            {/* Social Icons */}
-            <div className="footer-social-row">
-              <a href="#facebook" className="social-icon-btn fb" title="Facebook" aria-label="Facebook">
-                f
-              </a>
-              <a href="#youtube" className="social-icon-btn yt" title="YouTube" aria-label="YouTube">
-                ▶
-              </a>
-              <a href="#instagram" className="social-icon-btn ig" title="Instagram" aria-label="Instagram">
-                ig
-              </a>
-              <a href="#linkedin" className="social-icon-btn li" title="LinkedIn" aria-label="LinkedIn">
-                in
-              </a>
-              <a href="#telegram" className="social-icon-btn tg" title="Telegram" aria-label="Telegram">
-                <Send size={14} />
-              </a>
-            </div>
           </div>
         </div>
       </div>

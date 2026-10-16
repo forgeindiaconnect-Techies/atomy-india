@@ -208,55 +208,101 @@ export default function MembershipManagementPage() {
         </div>
       )}
 
-      {/* 2. Top Summary KPI Cards */}
+      {/* 2. Top Summary KPI Cards - Design 3 (Image 3: Dim Light Gradient Wave Cards) */}
       <div className="membership-kpi-grid">
-        <div className="membership-kpi-card highlight-blue">
-          <div className="kpi-card-top">
-            <span className="kpi-pill">TOTAL MEMBERS</span>
-            <Users size={20} className="kpi-icon blue" />
+        <div
+          className="kpi-gradient-wave-card"
+          style={{
+            '--card-grad': 'linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)',
+            '--card-border': '#bae6fd',
+            '--card-title-color': '#0369a1'
+          }}
+        >
+          <div className="kpi-grad-top">
+            <div className="kpi-grad-title">Active Distributor Members</div>
+            <div className="kpi-grad-icon-wrap">
+              <Users size={19} color="#0284c7" />
+            </div>
           </div>
-          <div className="kpi-card-value">{activeMembers.length}</div>
-          <div className="kpi-card-label">Active Distributor Members</div>
-          <div className="kpi-card-trend positive">
-            <TrendingUp size={13} />
-            <span>All unlock wholesale DP & PV</span>
-          </div>
-        </div>
-
-        <div className="membership-kpi-card">
-          <div className="kpi-card-top">
-            <span className="kpi-pill">ANNUAL PLANS</span>
-            <Crown size={20} className="kpi-icon gold" />
-          </div>
-          <div className="kpi-card-value">{annualSubscribers}</div>
-          <div className="kpi-card-label">Annual Membership (₹{settings.annualFee}/yr)</div>
-          <div className="kpi-card-trend positive">
-            <span>{Math.round((annualSubscribers / (activeMembers.length || 1)) * 100)}% of total members</span>
-          </div>
-        </div>
-
-        <div className="membership-kpi-card">
-          <div className="kpi-card-top">
-            <span className="kpi-pill">MONTHLY PLANS</span>
-            <Calendar size={20} className="kpi-icon purple" />
-          </div>
-          <div className="kpi-card-value">{monthlySubscribers}</div>
-          <div className="kpi-card-label">Monthly Membership (₹{settings.monthlyFee}/mo)</div>
-          <div className="kpi-card-trend neutral">
-            <span>Auto-renewing active cycles</span>
+          <div className="kpi-grad-val">{activeMembers.length} <span className="kpi-grad-unit">members</span></div>
+          <div className="kpi-grad-bottom">
+            <div className="kpi-grad-trend">▲ Wholesale DP & PV unlocked</div>
+            <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#0284c7" strokeWidth="2.2" strokeOpacity="0.6" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(2, 132, 199, 0.08)" />
+            </svg>
           </div>
         </div>
 
-        <div className="membership-kpi-card">
-          <div className="kpi-card-top">
-            <span className="kpi-pill">TOTAL PV CREDITED</span>
-            <Zap size={20} className="kpi-icon emerald" />
+        <div
+          className="kpi-gradient-wave-card"
+          style={{
+            '--card-grad': 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
+            '--card-border': '#fde68a',
+            '--card-title-color': '#b45309'
+          }}
+        >
+          <div className="kpi-grad-top">
+            <div className="kpi-grad-title">Annual Membership (₹{settings.annualFee}/yr)</div>
+            <div className="kpi-grad-icon-wrap">
+              <Crown size={19} color="#d97706" />
+            </div>
           </div>
-          <div className="kpi-card-value">{totalPvAccumulated > 0 ? `${(totalPvAccumulated / 1000000).toFixed(1)}M PV` : '0 PV'}</div>
-          <div className="kpi-card-label">Personal PV Accumulated</div>
-          <div className="kpi-card-trend positive">
-            <Sparkles size={13} />
-            <span>1.0x Base PV on all orders</span>
+          <div className="kpi-grad-val">{annualSubscribers} <span className="kpi-grad-unit">plans</span></div>
+          <div className="kpi-grad-bottom">
+            <div className="kpi-grad-trend">▲ {Math.round((annualSubscribers / (activeMembers.length || 1)) * 100)}% of total members</div>
+            <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#d97706" strokeWidth="2.2" strokeOpacity="0.6" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(217, 119, 6, 0.08)" />
+            </svg>
+          </div>
+        </div>
+
+        <div
+          className="kpi-gradient-wave-card"
+          style={{
+            '--card-grad': 'linear-gradient(145deg, #f5f3ff 0%, #ede9fe 100%)',
+            '--card-border': '#ddd6fe',
+            '--card-title-color': '#6d28d9'
+          }}
+        >
+          <div className="kpi-grad-top">
+            <div className="kpi-grad-title">Monthly Membership (₹{settings.monthlyFee}/mo)</div>
+            <div className="kpi-grad-icon-wrap">
+              <Calendar size={19} color="#7c3aed" />
+            </div>
+          </div>
+          <div className="kpi-grad-val">{monthlySubscribers} <span className="kpi-grad-unit">plans</span></div>
+          <div className="kpi-grad-bottom">
+            <div className="kpi-grad-trend">▲ Auto-renewing cycles</div>
+            <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeOpacity="0.6" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(124, 58, 237, 0.08)" />
+            </svg>
+          </div>
+        </div>
+
+        <div
+          className="kpi-gradient-wave-card"
+          style={{
+            '--card-grad': 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
+            '--card-border': '#bbf7d0',
+            '--card-title-color': '#15803d'
+          }}
+        >
+          <div className="kpi-grad-top">
+            <div className="kpi-grad-title">Personal PV Accumulated</div>
+            <div className="kpi-grad-icon-wrap">
+              <Zap size={19} color="#16a34a" />
+            </div>
+          </div>
+          <div className="kpi-grad-val">{totalPvAccumulated > 0 ? `${(totalPvAccumulated / 1000000).toFixed(1)}M PV` : '0 PV'}</div>
+          <div className="kpi-grad-bottom">
+            <div className="kpi-grad-trend">▲ 1.0x Base PV credited</div>
+            <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeOpacity="0.6" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(22, 163, 74, 0.08)" />
+            </svg>
           </div>
         </div>
       </div>

@@ -14,7 +14,7 @@
 }
 
 /* Pinned Fixed Top Navigation Elements (Header, Banner, Strip) */
-.admin-master-wrapper > .header-wrapper {
+.admin-master-wrapper>.header-wrapper {
   flex-shrink: 0;
   position: relative;
   z-index: 99999 !important;
@@ -58,6 +58,7 @@
     transform: translateY(-100%);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -91,10 +92,12 @@
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(0, 163, 224, 0.7);
   }
+
   50% {
     transform: scale(1.08) rotate(6deg);
     box-shadow: 0 0 0 10px rgba(0, 163, 224, 0);
   }
+
   100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 rgba(0, 163, 224, 0);
@@ -193,8 +196,17 @@
 }
 
 @keyframes pulseGreen {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.2); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
 }
 
 .live-status-title {
@@ -474,9 +486,20 @@
   flex-shrink: 0;
 }
 
-.notif-icon-circle.order { background: #e0f2fe; color: #0284c7; }
-.notif-icon-circle.support { background: #fef3c7; color: #d97706; }
-.notif-icon-circle.alert { background: #fee2e2; color: #dc2626; }
+.notif-icon-circle.order {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.notif-icon-circle.support {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.notif-icon-circle.alert {
+  background: #fee2e2;
+  color: #dc2626;
+}
 
 .notif-text {
   flex: 1;
@@ -908,147 +931,339 @@
 }
 
 /* --------------------------------------------------------------------------
-   5. OVERVIEW SALES KPI GRID (TODAY SALE, TODAY ORDERS, OVERALL SALE)
+   5. DESIGN 1 (IMAGE 1): CURVED WAVE CARD WITH OVERLAPPING CIRCULAR ICON BADGE
    -------------------------------------------------------------------------- */
-.atomy-sales-kpi-grid {
+.kpi-curve-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
   margin-bottom: 24px;
 }
 
-.sales-kpi-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 22px 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+.kpi-curve-grid.four-cols {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.kpi-curve-card {
   position: relative;
-  transition: all 0.2s ease;
-}
-
-.sales-kpi-card.highlight-glow {
-  border-color: #bae6fd;
-  box-shadow: 0 4px 18px rgba(0, 163, 224, 0.08);
-}
-
-.sales-kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
-}
-
-.kpi-card-header {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.kpi-card-badge {
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  text-transform: uppercase;
-}
-
-.kpi-card-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 6px;
-}
-
-.kpi-card-val {
-  font-size: 28px;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.02em;
-  margin-bottom: 6px;
-}
-
-.kpi-card-val.highlight-blue {
-  color: #0284c7;
-}
-
-.kpi-card-val.highlight-navy {
-  color: #002c6c;
-}
-
-.kpi-unit {
-  font-size: 16px;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.kpi-card-subtext {
-  font-size: 12px;
-  color: #94a3b8;
-  line-height: 1.4;
-}
-
-.kpi-icon-blue { color: #00A3E0; }
-.kpi-icon-green { color: #16a34a; }
-.kpi-icon-navy { color: #002c6c; }
-
-/* --------------------------------------------------------------------------
-   6. PIPELINE KPI STRIP
-   -------------------------------------------------------------------------- */
-.pipeline-kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 24px;
-}
-
-.pipeline-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 16px 18px;
-  cursor: pointer;
-  transition: all 0.16s ease;
-  position: relative;
+  min-height: 135px;
+  padding: 18px 0 18px 24px;
   overflow: hidden;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
 
-.pipeline-card:hover {
-  transform: translateY(-2px);
+.kpi-curve-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.14), 0 8px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
   border-color: #cbd5e1;
 }
 
-.pipeline-card::before {
-  content: '';
+.kpi-curve-corner-accent {
   position: absolute;
-  left: 0;
   top: 0;
-  bottom: 0;
-  width: 4px;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  border-top: 3.5px solid var(--accent-color, #0284c7);
+  border-left: 3.5px solid var(--accent-color, #0284c7);
+  border-top-left-radius: 18px;
+  pointer-events: none;
 }
 
-.pipeline-card.placed::before { background-color: #0284c7; }
-.pipeline-card.processing::before { background-color: #d97706; }
-.pipeline-card.shipped::before { background-color: #7c3aed; }
-.pipeline-card.delivered::before { background-color: #16a34a; }
+.kpi-curve-content {
+  flex: 1;
+  z-index: 2;
+  padding-right: 8px;
+}
 
-.pipeline-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #475569;
+.kpi-curve-tag {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--accent-color, #0284c7);
   text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.kpi-curve-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.kpi-curve-sub {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.kpi-curve-right-wing {
+  position: relative;
+  width: 95px;
+  height: 100%;
+  align-self: stretch;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi-curve-wing-svg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.kpi-curve-icon-badge {
+  position: relative;
+  z-index: 3;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(241, 245, 249, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -24px;
+}
+
+/* --------------------------------------------------------------------------
+   6. DESIGN 2 (IMAGE 2): VERTICAL STEP CARD WITH WAVY HEADER, NUMBER & ICON
+   -------------------------------------------------------------------------- */
+.kpi-step-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-step-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  user-select: none;
+}
+
+.kpi-step-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.14), 0 8px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.kpi-step-top-header {
+  position: relative;
+  height: 76px;
+  background: var(--step-bg, #f0f9ff);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 6px;
+}
+
+.kpi-step-icon-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(241, 245, 249, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+}
+
+.kpi-step-number {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--step-color, #0369a1);
   letter-spacing: 0.04em;
+  position: relative;
+  z-index: 2;
+  margin-top: 16px;
+}
+
+.kpi-step-wave-svg {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.kpi-step-body {
+  padding: 16px 14px 18px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.kpi-step-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--step-color, #0284c7);
+  text-transform: uppercase;
   margin-bottom: 4px;
 }
 
-.pipeline-val {
-  font-size: 24px;
+.kpi-step-val {
+  font-size: 26px;
   font-weight: 800;
   color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 4px;
 }
 
-.pipeline-sub {
+.kpi-step-sub {
   font-size: 11px;
-  color: #94a3b8;
+  color: #64748b;
+}
+
+/* --------------------------------------------------------------------------
+   7. DESIGN 3 (IMAGE 3): ELEGANT LIGHT GRADIENT CARD WITH BOTTOM WAVE & SHADOW
+   -------------------------------------------------------------------------- */
+.kpi-gradient-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.kpi-gradient-grid.four-cols {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.kpi-gradient-wave-card {
+  position: relative;
+  background: var(--card-grad, linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%));
+  border: 1px solid var(--card-border, #bae6fd);
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 18px 20px 14px;
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 135px;
+  overflow: hidden;
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.kpi-gradient-wave-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.14), 0 8px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.kpi-grad-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.kpi-grad-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--card-title-color, #0369a1);
+  letter-spacing: 0.02em;
+}
+
+.kpi-grad-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi-grad-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.kpi-grad-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.kpi-grad-bottom {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 28px;
+}
+
+.kpi-grad-trend {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--card-title-color, #0369a1);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kpi-grad-wave-svg {
+  position: absolute;
+  bottom: -6px;
+  right: -8px;
+  width: 65%;
+  height: 36px;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* --------------------------------------------------------------------------
@@ -1065,7 +1280,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 22px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .card-box-header {
@@ -1184,9 +1399,17 @@
   color: #334155;
 }
 
-.text-green { color: #16a34a; }
-.text-yellow { color: #d97706; }
-.text-red { color: #dc2626; }
+.text-green {
+  color: #16a34a;
+}
+
+.text-yellow {
+  color: #d97706;
+}
+
+.text-red {
+  color: #dc2626;
+}
 
 .quick-actions-box {
   border-top: 1px solid #f1f5f9;
@@ -1486,32 +1709,39 @@
   letter-spacing: 0.04em;
 }
 
-.status-badge.in_stock, .status-badge.delivered {
+.status-badge.in_stock,
+.status-badge.delivered {
   background-color: #dcfce7;
   color: #15803d;
 }
 
-.status-badge.low_stock, .status-badge.processing, .status-badge.in_progress {
+.status-badge.low_stock,
+.status-badge.processing,
+.status-badge.in_progress {
   background-color: #fef3c7;
   color: #b45309;
 }
 
-.status-badge.out_of_stock, .status-badge.cancelled {
+.status-badge.out_of_stock,
+.status-badge.cancelled {
   background-color: #fee2e2;
   color: #b91c1c;
 }
 
-.status-badge.placed, .status-badge.open {
+.status-badge.placed,
+.status-badge.open {
   background-color: #e0f2fe;
   color: #0369a1;
 }
 
-.status-badge.shipped, .status-badge.out_for_delivery {
+.status-badge.shipped,
+.status-badge.out_for_delivery {
   background-color: #f3e8ff;
   color: #7e22ce;
 }
 
-.status-badge.resolved, .status-badge.closed {
+.status-badge.resolved,
+.status-badge.closed {
   background-color: #f1f5f9;
   color: #475569;
 }
@@ -1833,12 +2063,41 @@
   text-align: center;
 }
 
-.status-select.placed { background-color: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
-.status-select.processing { background-color: #fef3c7; color: #b45309; border-color: #fde68a; }
-.status-select.shipped { background-color: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
-.status-select.out_for_delivery { background-color: #fae8ff; color: #a21caf; border-color: #f5d0fe; }
-.status-select.delivered { background-color: #dcfce7; color: #15803d; border-color: #bbf7d0; }
-.status-select.cancelled { background-color: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+.status-select.placed {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.status-select.processing {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.status-select.shipped {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+  border-color: #e9d5ff;
+}
+
+.status-select.out_for_delivery {
+  background-color: #fae8ff;
+  color: #a21caf;
+  border-color: #f5d0fe;
+}
+
+.status-select.delivered {
+  background-color: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.status-select.cancelled {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
 
 .action-pill-btn {
   display: inline-flex;
@@ -1904,9 +2163,22 @@
   font-weight: 700;
 }
 
-.tier-badge.vip-member { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-.tier-badge.gold-customer { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
-.tier-badge.standard-member { background-color: #f1f5f9; color: #475569; }
+.tier-badge.vip-member {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.tier-badge.gold-customer {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.tier-badge.standard-member {
+  background-color: #f1f5f9;
+  color: #475569;
+}
 
 .support-kpi-grid {
   display: grid;
@@ -2163,7 +2435,8 @@ select.atomy-dropdown:focus,
   text-transform: uppercase;
 }
 
-.priority-tag.urgent, .priority-tag.high {
+.priority-tag.urgent,
+.priority-tag.high {
   background-color: #fee2e2;
   color: #dc2626;
 }
@@ -2488,11 +2761,11 @@ select.atomy-dropdown:focus,
   transition: .3s;
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background-color: #00A3E0;
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
   transform: translateX(20px);
 }
 
@@ -2505,12 +2778,13 @@ input:checked + .slider:before {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(4px);
+  background-color: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 999999 !important;
   padding: 24px;
 }
 
@@ -2540,6 +2814,7 @@ input:checked + .slider:before {
     transform: scale(0.95);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -3096,24 +3371,52 @@ input:checked + .slider:before {
 }
 
 @keyframes toastFade {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* --------------------------------------------------------------------------
    15. RESPONSIVE BREAKPOINTS
    -------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
-  .atomy-sales-kpi-grid {
+
+  .atomy-sales-kpi-grid,
+  .kpi-curve-grid,
+  .kpi-gradient-grid {
     grid-template-columns: 1fr;
   }
+
+  .kpi-curve-grid.four-cols,
+  .kpi-step-grid,
+  .kpi-gradient-grid.four-cols {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .atomy-overview-split {
     grid-template-columns: 1fr;
   }
+
   .settings-cards-grid {
     grid-template-columns: 1fr;
   }
+
   .pipeline-kpi-strip {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+
+  .kpi-curve-grid.four-cols,
+  .kpi-step-grid,
+  .kpi-gradient-grid.four-cols {
+    grid-template-columns: 1fr;
   }
 }

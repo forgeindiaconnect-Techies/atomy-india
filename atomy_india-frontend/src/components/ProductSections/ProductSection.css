@@ -314,12 +314,9 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
   font-weight: 500;
-}
-
-.likes-counter:hover {
-  color: #e53935;
+  cursor: default;
+  user-select: none;
 }
 
 .product-tags-row {
@@ -740,7 +737,9 @@
 
 @media (max-width: 480px) {
   .section-main-title {
-    font-size: 21px;
+    font-size: 18.5px;
+    letter-spacing: -0.3px;
+    line-height: 1.25;
   }
   .product-card, .hair-body-cards .product-card {
     flex: 0 0 168px;

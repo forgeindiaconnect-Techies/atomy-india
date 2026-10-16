@@ -764,11 +764,62 @@
 @media (max-width: 860px) {
   .membership-checkout-layout {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
   .payment-right-sidebar {
     position: static;
   }
   .method-cards-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .membership-payment-page {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    padding-bottom: 50px !important;
+  }
+  .payment-page-main-container {
+    padding: 12px 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .payment-page-topbar {
+    padding: 10px 0 !important;
+    margin-bottom: 16px !important;
+  }
+  .payment-topbar-container {
+    padding: 0 10px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .plan-summary-card {
+    padding: 18px 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .btn-complete-membership-pay {
+    width: 100% !important;
+    height: 48px !important;
+    font-size: 15px !important;
+  }
+  .qr-code-box {
+    max-width: 210px !important;
+    margin: 0 auto !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .payment-page-main-container {
+    padding: 8px 6px !important;
+  }
+  .plan-summary-card {
+    padding: 14px 12px !important;
+  }
+  .success-heading {
+    font-size: 22px !important;
   }
 }

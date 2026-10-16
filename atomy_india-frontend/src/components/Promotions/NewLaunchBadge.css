@@ -219,10 +219,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  z-index: 10000;
+  background-color: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999999 !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -335,6 +335,193 @@
   transform: translateY(-1px);
 }
 
+/* Multi-Banner Pop-up Modal matching user's Image 2 */
+.new-launch-multi-modal {
+  position: relative;
+  width: auto;
+  max-width: min(990px, 96vw);
+  max-height: 94vh;
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45), 0 10px 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.launch-multi-carousel-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+/* Side navigation buttons (< and >) matching Image 2 */
+.launch-multi-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 56px;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  border-radius: 4px;
+}
+
+.launch-multi-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: translateY(-50%) scale(1.06);
+}
+
+.launch-multi-nav-prev {
+  left: 6px;
+}
+
+.launch-multi-nav-next {
+  right: 6px;
+}
+
+/* Banners Grid Track: Exact aspect ratio matching reference posters */
+.launch-multi-banners-grid {
+  display: grid;
+  width: 100%;
+  gap: 2px;
+  background: #e2e8f0;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.launch-multi-banner-column {
+  position: relative;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.25s ease;
+}
+
+.launch-banner-img-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.launch-multi-banner-img {
+  width: 100%;
+  height: auto;
+  max-height: 74vh;
+  object-fit: contain;
+  display: block;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.launch-multi-banner-column:hover .launch-multi-banner-img {
+  transform: scale(1.015);
+}
+
+/* Banner Tag Badge overlay */
+.launch-banner-tag-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+/* Mini action bar on banner column */
+.launch-banner-action-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.launch-multi-banner-column:hover .launch-banner-action-bar {
+  opacity: 1;
+}
+
+.launch-banner-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #00a3e0;
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 163, 224, 0.4);
+  transition: all 0.2s ease;
+}
+
+.launch-banner-action-btn:hover {
+  background: #008cc0;
+  transform: scale(1.04);
+}
+
+/* Dot pagination bar matching Image 2 ● ○ ○ ○ */
+.launch-multi-dots-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0 6px 0;
+  background: #ffffff;
+}
+
+.launch-multi-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.launch-multi-dot.active {
+  width: 9px;
+  height: 9px;
+  background: #1e293b;
+  transform: scale(1.15);
+}
+
+.launch-multi-dot:hover:not(.active) {
+  background: #94a3b8;
+}
+
 /* Bottom Bar matching user's exact image: Left checkbox, Right close button */
 .launch-modal-bottom-bar {
   padding: 12px 20px;
@@ -421,13 +608,33 @@
   }
 }
 
+@media (max-width: 960px) {
+  .new-launch-multi-modal {
+    max-width: 720px;
+  }
+  .launch-multi-banner-img {
+    max-height: 60vh;
+  }
+}
+
 @media (max-width: 640px) {
   .new-launch-floating-card {
     left: 14px;
     bottom: 16px;
     max-width: calc(100vw - 90px);
   }
-  .new-launch-modal-card {
+  .new-launch-multi-modal {
     max-width: 95vw;
+    border-radius: 10px;
+  }
+  .launch-multi-banner-img {
+    max-height: 56vh;
+  }
+  .launch-multi-nav-btn {
+    width: 36px;
+    height: 48px;
+  }
+  .launch-do-not-show-text {
+    font-size: 12.5px;
   }
 }

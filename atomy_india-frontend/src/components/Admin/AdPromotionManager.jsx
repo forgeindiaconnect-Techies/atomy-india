@@ -15,7 +15,9 @@ import {
   Folder,
   Sliders,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import {
   getAdConfig,
@@ -72,11 +74,32 @@ export default function AdPromotionManager({ showToast }) {
 
   // 3. Floating Ad State
   const [adConfig, setAdConfig] = useState(() => getAdConfig());
+  const [isFloatingBannerModalOpen, setIsFloatingBannerModalOpen] = useState(false);
+  const [editingFloatingIndex, setEditingFloatingIndex] = useState(null);
+  const [previewCarouselIndex, setPreviewCarouselIndex] = useState(0);
+  const [floatingBannerFormData, setFloatingBannerFormData] = useState({
+    id: '',
+    name: '',
+    title: '',
+    brand: 'ATOMY INDIA',
+    collection: 'SPECIAL PROMOTION',
+    tagline: '',
+    subtitle: '',
+    price: 0,
+    pv: 0,
+    image: '',
+    badge: 'SPECIAL OFFER',
+    badgeColor: '#F59E0B',
+    link: '',
+    actionText: 'View Details',
+    isActive: true
+  });
 
   // Image file input refs for Photo Upload
   const heroFileInputRef = useRef(null);
   const catFileInputRef = useRef(null);
   const floatingFileInputRef = useRef(null);
+  const floatingBannerFileInputRef = useRef(null);
 
   // Sync category banners when selectedCatId changes
   useEffect(() => {
@@ -264,7 +287,134 @@ export default function AdPromotionManager({ showToast }) {
     }
   };
 
-  // --- Handlers: Floating Ad ---
+  // --- Handlers: Floating Ad & Multi-Banners ---
+  const handleOpenAddFloatingBanner = () => {
+    setEditingFloatingIndex(null);
+    setFloatingBannerFormData({
+      id: `ad-${Date.now()}`,
+      name: '',
+      title: '',
+      brand: 'ATOMY INDIA',
+      collection: 'SPECIAL PROMOTION',
+      tagline: '',
+      subtitle: '',
+      price: 0,
+      pv: 0,
+      image: '',
+      badge: 'SPECIAL OFFER',
+      badgeColor: '#F59E0B',
+      link: '',
+      actionText: 'View Details',
+      isActive: true
+    });
+    setIsFloatingBannerModalOpen(true);
+  };
+
+  const handleOpenEditFloatingBanner = (banner, index) => {
+    setEditingFloatingIndex(index);
+    setFloatingBannerFormData({
+      id: banner.id || `ad-${Date.now()}`,
+      name: banner.name || banner.title || '',
+      title: banner.title || banner.name || '',
+      brand: banner.brand || 'ATOMY INDIA',
+      collection: banner.collection || '',
+      tagline: banner.tagline || banner.subtitle || '',
+      subtitle: banner.subtitle || banner.tagline || '',
+      price: Number(banner.price) || 0,
+      pv: Number(banner.pv) || 0,
+      image: banner.image || '',
+      badge: banner.badge || 'PROMOTION',
+      badgeColor: banner.badgeColor || '#00a3e0',
+      link: banner.link || '',
+      actionText: banner.actionText || '',
+      isActive: banner.isActive !== false
+    });
+    setIsFloatingBannerModalOpen(true);
+  };
+
+  const handleSaveFloatingBanner = async (e) => {
+    e.preventDefault();
+    if (!floatingBannerFormData.image) {
+      showToast && showToast('Please select or enter an image URL for the pop-up ad banner.');
+      return;
+    }
+
+    const currentAds = Array.isArray(adConfig.ads) && adConfig.ads.length > 0
+      ? [...adConfig.ads]
+      : [];
+
+    const bannerObj = {
+      ...floatingBannerFormData,
+      name: floatingBannerFormData.name || floatingBannerFormData.title || 'Atomy Promotion',
+      title: floatingBannerFormData.title || floatingBannerFormData.name || 'Atomy Promotion',
+    };
+
+    let updatedAds;
+    if (editingFloatingIndex !== null && editingFloatingIndex !== undefined) {
+      updatedAds = [...currentAds];
+      updatedAds[editingFloatingIndex] = {
+        ...updatedAds[editingFloatingIndex],
+        ...bannerObj
+      };
+      showToast && showToast('Pop-up ad banner updated successfully!');
+    } else {
+      updatedAds = [...currentAds, bannerObj];
+      showToast && showToast('New pop-up ad banner added successfully!');
+    }
+
+    const updatedConfig = {
+      ...adConfig,
+      ads: updatedAds,
+      image: updatedAds[0]?.image || adConfig.image,
+      name: updatedAds[0]?.name || adConfig.name,
+      price: updatedAds[0]?.price ?? adConfig.price,
+      pv: updatedAds[0]?.pv ?? adConfig.pv,
+      badge: updatedAds[0]?.badge || adConfig.badge,
+    };
+
+    setAdConfig(updatedConfig);
+    await saveAdConfig(updatedConfig);
+    clearAdSuppressionForLogin();
+    setIsFloatingBannerModalOpen(false);
+  };
+
+  const handleDeleteFloatingBanner = async (index) => {
+    const currentAds = Array.isArray(adConfig.ads) ? adConfig.ads : [];
+    if (currentAds.length <= 1) {
+      showToast && showToast('At least one pop-up ad banner must remain.');
+      return;
+    }
+    if (window.confirm('Are you sure you want to delete this pop-up ad banner?')) {
+      const updatedAds = currentAds.filter((_, i) => i !== index);
+      const updatedConfig = {
+        ...adConfig,
+        ads: updatedAds,
+        image: updatedAds[0]?.image || adConfig.image,
+      };
+      setAdConfig(updatedConfig);
+      await saveAdConfig(updatedConfig);
+      showToast && showToast('Pop-up ad banner deleted.');
+    }
+  };
+
+  const handleToggleFloatingBannerActive = async (index) => {
+    const currentAds = Array.isArray(adConfig.ads) ? [...adConfig.ads] : [];
+    if (currentAds[index]) {
+      currentAds[index] = {
+        ...currentAds[index],
+        isActive: currentAds[index].isActive === false ? true : false
+      };
+      const updatedConfig = { ...adConfig, ads: currentAds };
+      setAdConfig(updatedConfig);
+      await saveAdConfig(updatedConfig);
+      showToast && showToast(
+        currentAds[index].isActive
+          ? `"${currentAds[index].name || 'Banner'}" is now ACTIVE`
+          : `"${currentAds[index].name || 'Banner'}" is now PAUSED`
+      );
+    }
+  };
+
   const handleSaveFloatingAd = async () => {
     try {
       await saveAdConfig(adConfig);
@@ -345,26 +495,35 @@ export default function AdPromotionManager({ showToast }) {
           </div>
 
           <div className="ad-cards-grid">
-            {heroSlides.map((slide, idx) => (
-              <div key={slide.id || idx} className="ad-banner-card">
-                <div
-                  className="ad-banner-preview-box"
-                  style={{ backgroundColor: slide.bg || '#072044' }}
-                >
-                  <img
-                    src={slide.img}
-                    alt={slide.title || 'Slide'}
-                    className="ad-banner-img"
-                    onError={(e) => { e.target.src = 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg'; }}
-                  />
-                  {slide.hasTextOverlay && (
-                    <div className="ad-banner-overlay-preview" style={{ color: slide.textColor || '#fff' }}>
-                      <span className="ad-overlay-sub">{slide.subtitle}</span>
-                      <strong className="ad-overlay-tit">{slide.title}</strong>
-                    </div>
-                  )}
-                  <span className="ad-banner-order-badge">#{idx + 1}</span>
-                </div>
+            {heroSlides.map((slide, idx) => {
+              const isFitAd = idx < 3 || !slide.hasTextOverlay;
+              return (
+                <div key={slide.id || idx} className={`ad-banner-card ${isFitAd ? 'ad-card-fit' : ''}`}>
+                  <div
+                    className={`ad-banner-preview-box ${isFitAd ? 'ad-preview-fit' : ''}`}
+                    style={{ backgroundColor: slide.bg || '#072044' }}
+                  >
+                    {isFitAd && (
+                      <div
+                        className="ad-banner-ambient-bg"
+                        style={{ backgroundImage: `url(${slide.img})` }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <img
+                      src={slide.img}
+                      alt={slide.title || 'Slide'}
+                      className={`ad-banner-img ${isFitAd ? 'ad-banner-img-fit' : ''}`}
+                      onError={(e) => { e.target.src = 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg'; }}
+                    />
+                    {slide.hasTextOverlay && (
+                      <div className="ad-banner-overlay-preview" style={{ color: slide.textColor || '#fff' }}>
+                        <span className="ad-overlay-sub">{slide.subtitle}</span>
+                        <strong className="ad-overlay-tit">{slide.title}</strong>
+                      </div>
+                    )}
+                    <span className="ad-banner-order-badge">#{idx + 1}</span>
+                  </div>
 
                 <div className="ad-card-details">
                   <div className="ad-card-title-row">
@@ -398,7 +557,8 @@ export default function AdPromotionManager({ showToast }) {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         </div>
       )}
@@ -574,205 +734,239 @@ export default function AdPromotionManager({ showToast }) {
             </div>
           </div>
 
-          {/* Form & Live Preview Grid */}
-          <div className="floating-ad-grid">
-            {/* Form */}
-            <div className="settings-section-card">
-              <div className="settings-card-header">
-                <h3>Ad Details & Poster Configuration</h3>
-                <p>Upload a promotional photo or customize the headline copy, prices, and tags.</p>
-              </div>
+          {/* Toolbar for Multiple Pop-up Ad Banners */}
+          <div className="ad-section-toolbar">
+            <div>
+              <h3 className="ad-section-heading">
+                Pop-up Promotional Ad Banners ({adConfig.ads?.length || 0})
+              </h3>
+              <p className="ad-section-subheading">
+                Manage multiple promotional banners shown in the pop-up modal when customers open the store.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="atomy-btn-primary"
+              onClick={handleOpenAddFloatingBanner}
+            >
+              <Plus size={16} />
+              <span>Add New Pop-up Ad Banner</span>
+            </button>
+          </div>
 
-              <div className="settings-body-form" style={{ padding: '20px' }}>
-                {/* Photo Upload Function */}
-                <div className="atomy-form-group photo-upload-group">
-                  <label>Promotion Poster Photo</label>
-                  <div className="photo-upload-container">
-                    <input
-                      type="file"
-                      ref={floatingFileInputRef}
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handlePhotoUpload(e, (dataUrl) => setAdConfig({ ...adConfig, image: dataUrl }))}
-                    />
+          {/* Cards Grid: All Pop-up Banners */}
+          <div className="ad-cards-grid">
+            {(adConfig.ads || []).map((banner, idx) => (
+              <div key={banner.id || idx} className="ad-banner-card">
+                <div
+                  className="ad-banner-preview-box"
+                  style={{ backgroundColor: '#f8fafc', height: '180px' }}
+                >
+                  <img
+                    src={banner.image || '/images/promotions/new_arrival_adelica.png'}
+                    alt={banner.name || 'Ad Banner'}
+                    className="ad-banner-slide-img"
+                    style={{ objectFit: 'contain' }}
+                  />
+                  {banner.badge && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '10px',
+                        left: '10px',
+                        background: banner.badgeColor || '#00a3e0',
+                        color: '#fff',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      {banner.badge}
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      color: '#fff',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      padding: '2px 7px',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    #{idx + 1}
+                  </span>
+                </div>
 
-                    <div className="photo-preview-box">
-                      {adConfig.image ? (
-                        <img src={adConfig.image} alt="Poster" className="uploaded-poster-preview" />
-                      ) : (
-                        <div className="photo-placeholder">
-                          <ImageIcon size={32} />
-                          <span>No photo selected</span>
-                        </div>
-                      )}
-                    </div>
+                <div className="ad-card-details">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>
+                      {banner.brand || 'ATOMY'}
+                    </span>
+                    <button
+                      type="button"
+                      className={`badge-status-pill ${banner.isActive !== false ? 'active' : 'paused'}`}
+                      onClick={() => handleToggleFloatingBannerActive(idx)}
+                      title="Click to toggle banner active / paused status"
+                    >
+                      {banner.isActive !== false ? 'ACTIVE' : 'PAUSED'}
+                    </button>
+                  </div>
 
-                    <div className="photo-upload-actions">
+                  <h4 className="ad-card-title" title={banner.name || banner.title}>
+                    {banner.name || banner.title || 'Untitled Promotional Banner'}
+                  </h4>
+                  <p className="ad-card-subtitle" title={banner.tagline || banner.subtitle}>
+                    {banner.tagline || banner.subtitle || 'No description entered'}
+                  </p>
+
+                  <div className="ad-card-footer">
+                    <span className="ad-card-meta">
+                      {Number(banner.price) > 0 ? `₹${banner.price} (${banner.pv || 0} PV)` : (banner.actionText || 'Informational')}
+                    </span>
+                    <div className="ad-card-actions">
                       <button
                         type="button"
-                        className="atomy-btn-secondary"
-                        onClick={() => floatingFileInputRef.current?.click()}
+                        className="ad-btn-icon edit"
+                        onClick={() => handleOpenEditFloatingBanner(banner, idx)}
+                        title="Edit Pop-up Banner"
                       >
-                        <Upload size={16} />
-                        <span>Upload Photo from Device</span>
+                        <Edit2 size={16} />
                       </button>
-                      <div className="photo-url-input-wrap">
-                        <span style={{ fontSize: '12px', color: '#64748b' }}>Or enter Image URL:</span>
-                        <input
-                          type="text"
-                          value={adConfig.image}
-                          onChange={(e) => setAdConfig({ ...adConfig, image: e.target.value })}
-                          className="atomy-form-input"
-                          placeholder="/images/promotions/new_arrival_adelica.png"
-                        />
-                      </div>
+                      <button
+                        type="button"
+                        className="ad-btn-icon delete"
+                        onClick={() => handleDeleteFloatingBanner(idx)}
+                        title="Delete Pop-up Banner"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                <div className="atomy-form-group">
-                  <label>Product Headline / Name</label>
-                  <input
-                    type="text"
-                    value={adConfig.name}
-                    onChange={(e) => setAdConfig({ ...adConfig, name: e.target.value })}
-                    className="atomy-form-input"
-                    placeholder="e.g. Adelica Soft Brow Pencil - Gray"
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                  <div className="atomy-form-group">
-                    <label>Brand Name</label>
-                    <input
-                      type="text"
-                      value={adConfig.brand}
-                      onChange={(e) => setAdConfig({ ...adConfig, brand: e.target.value })}
-                      className="atomy-form-input"
-                      placeholder="e.g. ATOMY adelica"
-                    />
-                  </div>
-                  <div className="atomy-form-group">
-                    <label>Badge Tag</label>
-                    <input
-                      type="text"
-                      value={adConfig.badge}
-                      onChange={(e) => setAdConfig({ ...adConfig, badge: e.target.value })}
-                      className="atomy-form-input"
-                      placeholder="e.g. NEW LAUNCH"
-                    />
-                  </div>
-                </div>
-
-                <div className="atomy-form-group">
-                  <label>Collection / Header Banner Title</label>
-                  <input
-                    type="text"
-                    value={adConfig.collection || ''}
-                    onChange={(e) => setAdConfig({ ...adConfig, collection: e.target.value })}
-                    className="atomy-form-input"
-                    placeholder="e.g. NEW ARRIVAL BEAUTY COLLECTION"
-                  />
-                </div>
-
-                <div className="atomy-form-group">
-                  <label>Tagline / Description</label>
-                  <textarea
-                    rows={3}
-                    value={adConfig.tagline}
-                    onChange={(e) => setAdConfig({ ...adConfig, tagline: e.target.value })}
-                    className="atomy-form-input"
-                    placeholder="Diamond pentagonal cut, to express easy and delicate eyebrows..."
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-                  <div className="atomy-form-group">
-                    <label>MRP Price (₹)</label>
-                    <input
-                      type="number"
-                      value={adConfig.price}
-                      onChange={(e) => setAdConfig({ ...adConfig, price: parseFloat(e.target.value) || 0 })}
-                      className="atomy-form-input"
-                    />
-                  </div>
-                  <div className="atomy-form-group">
-                    <label>Points Value (PV)</label>
-                    <input
-                      type="number"
-                      value={adConfig.pv}
-                      onChange={(e) => setAdConfig({ ...adConfig, pv: parseInt(e.target.value) || 0 })}
-                      className="atomy-form-input"
-                    />
-                  </div>
-                  <div className="atomy-form-group">
-                    <label>Product ID</label>
-                    <input
-                      type="text"
-                      value={adConfig.id}
-                      onChange={(e) => setAdConfig({ ...adConfig, id: e.target.value })}
-                      className="atomy-form-input"
-                      placeholder="D00620"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="atomy-btn-primary"
-                  onClick={handleSaveFloatingAd}
-                  style={{ width: '100%', marginTop: '18px', padding: '12px' }}
-                >
-                  <Check size={18} />
-                  <span>Save & Publish Floating Ad</span>
-                </button>
               </div>
+            ))}
+          </div>
+
+          {/* Customer Live Preview Section matching User Reference Image 2 */}
+          <div className="settings-section-card" style={{ marginTop: '24px' }}>
+            <div className="settings-card-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Eye size={18} color="#00a3e0" />
+                <h3 style={{ margin: 0 }}>Live Customer Preview: Multi-Banner Pop-up Modal</h3>
+              </div>
+              <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '13px' }}>
+                Exact visual replica of the customer pop-up modal with side-by-side banners, navigation arrows, and dot indicators (Image 2):
+              </p>
             </div>
 
-            {/* Live Customer Preview */}
-            <div className="preview-container">
-              <div className="settings-section-card">
-                <div className="settings-card-header">
-                  <h3>Customer Preview: Floating Badge</h3>
-                  <p>How it floats on the bottom-left of the customer landing page:</p>
-                </div>
-                <div style={{ padding: '24px', background: '#f8fafc', display: 'flex', justifyContent: 'center' }}>
-                  <div className="floating-badge-preview-card">
-                    <div className="badge-thumb-box">
-                      <img src={adConfig.image} alt="" className="badge-thumb-img" onError={(e) => { e.target.style.display = 'none'; }} />
-                    </div>
-                    <div className="badge-info-box">
-                      <div className="badge-tag-row">
-                        <span className="badge-blue-pill">{adConfig.badge || 'NEW LAUNCH'}</span>
-                        <span className="badge-brand-text">{adConfig.brand}</span>
-                      </div>
-                      <div className="badge-name-text">{adConfig.name}</div>
-                      <div className="badge-price-row">
-                        <strong>₹{adConfig.price}</strong>
-                        <span className="badge-pv-pill">{adConfig.pv?.toLocaleString()} PV</span>
-                      </div>
-                    </div>
+            <div style={{ padding: '24px', background: '#e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+              {/* Image 2 Replica Container */}
+              <div className="admin-multi-popup-card">
+                {/* 3 Banners Carousel Track */}
+                <div className="admin-multi-popup-stage">
+                  {/* Left Arrow Button */}
+                  <button
+                    type="button"
+                    className="admin-multi-arrow-btn prev"
+                    onClick={() => {
+                      const total = adConfig.ads?.length || 1;
+                      setPreviewCarouselIndex((prev) => (prev > 0 ? prev - 1 : Math.max(0, total - 3)));
+                    }}
+                    title="Previous Banners"
+                  >
+                    <ChevronLeft size={20} strokeWidth={2.5} />
+                  </button>
+
+                  {/* 3 Columns Display */}
+                  <div className="admin-multi-popup-track">
+                    {(adConfig.ads || [])
+                      .slice(previewCarouselIndex, previewCarouselIndex + 3)
+                      .map((ad, colIdx) => (
+                        <div key={ad.id || colIdx} className="admin-multi-popup-col">
+                          <img
+                            src={ad.image || '/images/promotions/new_arrival_adelica.png'}
+                            alt={ad.name || 'Ad'}
+                            className="admin-multi-popup-img"
+                          />
+                          {ad.badge && (
+                            <span
+                              className="admin-multi-popup-badge"
+                              style={{ backgroundColor: ad.badgeColor || '#00a3e0' }}
+                            >
+                              {ad.badge}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                   </div>
+
+                  {/* Right Arrow Button */}
+                  <button
+                    type="button"
+                    className="admin-multi-arrow-btn next"
+                    onClick={() => {
+                      const total = adConfig.ads?.length || 1;
+                      const max = Math.max(0, total - 3);
+                      setPreviewCarouselIndex((prev) => (prev < max ? prev + 1 : 0));
+                    }}
+                    title="Next Banners"
+                  >
+                    <ChevronRight size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+
+                {/* Dot Indicators ● ○ ○ ○ matching Image 2 */}
+                <div className="admin-multi-dots">
+                  {(adConfig.ads || []).map((_, dotIdx) => (
+                    <div
+                      key={dotIdx}
+                      className={`admin-multi-dot ${dotIdx === previewCarouselIndex ? 'active' : ''}`}
+                    />
+                  ))}
+                </div>
+
+                {/* Bottom Bar: Do not show again today & Close icon */}
+                <div className="admin-multi-bottom-bar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input type="checkbox" readOnly checked={false} style={{ width: '15px', height: '15px' }} />
+                    <span>Do not show again today</span>
+                  </div>
+                  <X size={18} style={{ cursor: 'pointer', color: '#64748b' }} />
                 </div>
               </div>
 
-              <div className="settings-section-card" style={{ marginTop: '20px' }}>
-                <div className="settings-card-header">
-                  <h3>Customer Preview: Pop-up Modal Ad</h3>
-                  <p>How it appears as a clean popup with photo poster:</p>
-                </div>
-                <div style={{ padding: '20px', background: '#f1f5f9', display: 'flex', justifyContent: 'center' }}>
-                  <div className="modal-preview-box">
-                    <div className="modal-preview-header">
-                      <span>{adConfig.collection || 'PROMOTION'}</span>
-                      <X size={16} />
+              {/* Floating Badge Preview on Bottom-Left */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>
+                  Bottom-Left Floating Badge Trigger:
+                </span>
+                <div className="floating-badge-preview-card">
+                  <div className="badge-thumb-box">
+                    <img
+                      src={adConfig.ads?.[0]?.image || adConfig.image || '/images/promotions/new_arrival_adelica.png'}
+                      alt=""
+                      className="badge-thumb-img"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                  <div className="badge-info-box">
+                    <div className="badge-tag-row">
+                      <span className="badge-blue-pill">
+                        {adConfig.ads?.length > 1 ? `${adConfig.ads.length} ADS` : (adConfig.badge || 'PROMO')}
+                      </span>
+                      <span className="badge-brand-text">{adConfig.ads?.[0]?.brand || adConfig.brand}</span>
                     </div>
-                    <div className="modal-preview-poster">
-                      <img src={adConfig.image} alt="" className="modal-poster-img" />
+                    <div className="badge-name-text">
+                      {adConfig.ads?.[0]?.name || adConfig.name || 'Atomy Promotions'}
                     </div>
-                    <div className="modal-preview-footer">
-                      <span>Do not show again today</span>
-                      <span style={{ fontWeight: '600', color: '#00a3e0' }}>Close</span>
+                    <div className="badge-price-row">
+                      <strong>Tap to open {adConfig.ads?.length || 0} active banners</strong>
                     </div>
                   </div>
                 </div>
@@ -1071,6 +1265,201 @@ export default function AdPromotionManager({ showToast }) {
                 >
                   <Check size={16} />
                   <span>{editingCatBanner ? 'Save Changes' : 'Add Category Banner'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ============================================================== */}
+      {/* MODAL: ADD / EDIT POP-UP AD BANNER */}
+      {/* ============================================================== */}
+      {isFloatingBannerModalOpen && (
+        <div className="ad-modal-backdrop" onClick={() => setIsFloatingBannerModalOpen(false)}>
+          <div className="ad-modal-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="ad-modal-header">
+              <h3>{editingFloatingIndex !== null ? 'Edit Pop-up Ad Banner' : 'Add New Pop-up Ad Banner'}</h3>
+              <button
+                type="button"
+                className="ad-modal-close"
+                onClick={() => setIsFloatingBannerModalOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveFloatingBanner} className="ad-modal-body">
+              {/* Photo Upload Section */}
+              <div className="atomy-form-group photo-upload-group">
+                <label>Pop-up Banner Photo / Poster *</label>
+                <div className="modal-photo-dropzone">
+                  <input
+                    type="file"
+                    ref={floatingBannerFileInputRef}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handlePhotoUpload(e, (dataUrl) => setFloatingBannerFormData({ ...floatingBannerFormData, image: dataUrl }))}
+                  />
+
+                  {floatingBannerFormData.image ? (
+                    <div className="modal-photo-preview-wrap">
+                      <img src={floatingBannerFormData.image} alt="Banner Preview" className="modal-photo-preview" />
+                      <button
+                        type="button"
+                        className="change-photo-btn"
+                        onClick={() => floatingBannerFileInputRef.current?.click()}
+                      >
+                        <Upload size={14} />
+                        <span>Change Photo</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      className="modal-photo-drop-prompt"
+                      onClick={() => floatingBannerFileInputRef.current?.click()}
+                    >
+                      <Upload size={28} className="drop-icon" />
+                      <strong>Click to upload promotional poster photo</strong>
+                      <span>Supports PNG, JPG, JPEG, WEBP (Max 10MB)</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="photo-url-input-wrap" style={{ marginTop: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>Or enter Image URL:</span>
+                  <input
+                    type="text"
+                    value={floatingBannerFormData.image}
+                    onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, image: e.target.value })}
+                    className="atomy-form-input"
+                    placeholder="/images/promotions/promo_kolkata_notice.jpg"
+                  />
+                </div>
+              </div>
+
+              {/* Title & Brand */}
+              <div className="atomy-form-group">
+                <label>Banner Title / Headline *</label>
+                <input
+                  type="text"
+                  required
+                  value={floatingBannerFormData.name}
+                  onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, name: e.target.value, title: e.target.value })}
+                  className="atomy-form-input"
+                  placeholder="e.g. Delivery Delayed in Kolkata – Festive Season"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div className="atomy-form-group">
+                  <label>Badge Tag</label>
+                  <input
+                    type="text"
+                    value={floatingBannerFormData.badge}
+                    onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, badge: e.target.value })}
+                    className="atomy-form-input"
+                    placeholder="e.g. NOTICE, SPECIAL OFFER, REWARDS"
+                  />
+                </div>
+                <div className="atomy-form-group">
+                  <label>Badge Color</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={floatingBannerFormData.badgeColor || '#00a3e0'}
+                      onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, badgeColor: e.target.value })}
+                      style={{ width: '40px', height: '38px', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                    />
+                    <input
+                      type="text"
+                      value={floatingBannerFormData.badgeColor || '#00a3e0'}
+                      onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, badgeColor: e.target.value })}
+                      className="atomy-form-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="atomy-form-group">
+                <label>Advisory / Collection Headline</label>
+                <input
+                  type="text"
+                  value={floatingBannerFormData.collection}
+                  onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, collection: e.target.value })}
+                  className="atomy-form-input"
+                  placeholder="e.g. FESTIVE SEASON ADVISORY or WELCOME EXCLUSIVE OFFER"
+                />
+              </div>
+
+              <div className="atomy-form-group">
+                <label>Tagline / Description</label>
+                <textarea
+                  rows={2}
+                  value={floatingBannerFormData.tagline}
+                  onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, tagline: e.target.value, subtitle: e.target.value })}
+                  className="atomy-form-input"
+                  placeholder="Brief details about this notice or promotion..."
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div className="atomy-form-group">
+                  <label>Action Button Text</label>
+                  <input
+                    type="text"
+                    value={floatingBannerFormData.actionText}
+                    onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, actionText: e.target.value })}
+                    className="atomy-form-input"
+                    placeholder="e.g. View Notice, Claim Coupon, Order Now"
+                  />
+                </div>
+                <div className="atomy-form-group">
+                  <label>Link / Route (Optional)</label>
+                  <input
+                    type="text"
+                    value={floatingBannerFormData.link}
+                    onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, link: e.target.value })}
+                    className="atomy-form-input"
+                    placeholder="e.g. /coupons, /notice, /membership"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div className="atomy-form-group">
+                  <label>Price in ₹ (0 if notice/coupon)</label>
+                  <input
+                    type="number"
+                    value={floatingBannerFormData.price}
+                    onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, price: parseFloat(e.target.value) || 0 })}
+                    className="atomy-form-input"
+                  />
+                </div>
+                <div className="atomy-form-group">
+                  <label>PV Points (0 if not applicable)</label>
+                  <input
+                    type="number"
+                    value={floatingBannerFormData.pv}
+                    onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, pv: parseInt(e.target.value) || 0 })}
+                    className="atomy-form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="ad-modal-footer">
+                <button
+                  type="button"
+                  className="atomy-btn-secondary"
+                  onClick={() => setIsFloatingBannerModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="atomy-btn-primary"
+                >
+                  <Check size={16} />
+                  <span>{editingFloatingIndex !== null ? 'Save Changes' : 'Add Pop-up Banner'}</span>
                 </button>
               </div>
             </form>

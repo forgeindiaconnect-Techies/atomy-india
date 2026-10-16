@@ -8,6 +8,7 @@ import {
   ABSOLUTE_SKINCARE_PRODUCTS,
   CATEGORY_CONFIGS
 } from '../data/mockData';
+import { OFFICIAL_DISTRIBUTOR_PRICES } from '../data/officialDistributorPrices';
 
 const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').trim().replace(/\/+$/, '').replace(/atomy_india\.onrender\.com/i, 'atomy-india.onrender.com');
 const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
@@ -60,9 +61,12 @@ export function mergeProductIntoCatalog(product) {
     }
   }
 
+  const official = product.id ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
   const dpPrice = product.dpPrice !== undefined && product.dpPrice !== null && product.dpPrice !== ''
     ? Number(product.dpPrice)
-    : (product.distributorPrice !== undefined && product.distributorPrice !== null ? Number(product.distributorPrice) : null);
+    : (product.distributorPrice !== undefined && product.distributorPrice !== null
+      ? Number(product.distributorPrice)
+      : (official?.dpPrice ?? null));
 
   const normalizedTags = Array.isArray(product.tags)
     ? product.tags

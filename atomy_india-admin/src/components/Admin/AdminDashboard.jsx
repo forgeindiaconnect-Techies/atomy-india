@@ -76,6 +76,7 @@ import {
   clearAdSuppressionForLogin,
   DEFAULT_AD_CONFIG
 } from '../../services/adPromotionService';
+import { INITIAL_ADMIN_PRODUCTS } from '../../data/defaultAdminProducts';
 import './AdminDashboard.css';
 
 // Exactly 1 Clean Data Item for Catalog / Inventory
@@ -111,6 +112,7 @@ const INITIAL_SINGLE_PRODUCT = [
 // Local storage initialization key
 const STORAGE_CLEAN_KEY = 'atomy_admin_clean_v8';
 const SEEN_ALERTS_KEY = 'atomy_admin_seen_alerts_v1';
+const READ_NOTIFS_KEY = 'atomy_admin_read_notifs_v1';
 
 const getSeenAlertIds = () => {
   try {
@@ -127,6 +129,26 @@ const markAlertIdAsSeen = (id) => {
     const set = getSeenAlertIds();
     set.add(String(id));
     localStorage.setItem(SEEN_ALERTS_KEY, JSON.stringify(Array.from(set)));
+  } catch {
+    // ignore
+  }
+};
+
+const getReadNotifIds = () => {
+  try {
+    const raw = localStorage.getItem(READ_NOTIFS_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const markNotifAsRead = (id) => {
+  if (!id) return;
+  try {
+    const set = getReadNotifIds();
+    set.add(String(id));
+    localStorage.setItem(READ_NOTIFS_KEY, JSON.stringify(Array.from(set)));
   } catch {
     // ignore
   }
@@ -230,8 +252,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           ).map(o => ({
             ...o,
             orderStatus: o.orderStatus || (String(o.status || '').toUpperCase().includes('PAYMENT COMPLETED') ? 'PLACED' : (o.status || 'PLACED')),
-            estimatedDeliveryDate: o.estimatedDeliveryDate || '5 - 8 Business Days',
-            estimatedDelivery: o.estimatedDelivery || '5 - 8 Business Days'
+            estimatedDeliveryDate: o.estimatedDeliveryDate && !o.estimatedDeliveryDate.includes('5 - 8') && !o.estimatedDeliveryDate.includes('5-8') ? o.estimatedDeliveryDate : 'Within 48 Hours (2 - 4 Business Days)',
+            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : '2 - 4 Business Days'
           }));
         }
       }
@@ -288,6 +310,34 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [backendCustomers, setBackendCustomers] = useState([]);
+
+  // Session start timestamp & persistent read notification state
+  const sessionStartTimeRef = useRef(Date.now());
+  const [readNotifIds, setReadNotifIds] = useState(() => getReadNotifIds());
+
+  const handleMarkAllNotifsAsRead = () => {
+    const newSet = new Set(readNotifIds);
+    orders.forEach(o => {
+      if (o && o.orderId) {
+        newSet.add(String(o.orderId));
+        markNotifAsRead(o.orderId);
+      }
+    });
+    tickets.forEach(t => {
+      if (t && t.ticketId) {
+        newSet.add(String(t.ticketId));
+        markNotifAsRead(t.ticketId);
+      }
+    });
+    setReadNotifIds(newSet);
+    showToast('All notifications marked as read');
+  };
+
+  const handleDismissNotif = (id) => {
+    if (!id) return;
+    markNotifAsRead(id);
+    setReadNotifIds(prev => new Set([...prev, String(id)]));
+  };
 
   // Admin Profile & Top Nav Notification Dropdown State
   const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
@@ -347,6 +397,83 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const prevTicketCountRef = useRef(tickets.length);
   const prevFirstOrderIdRef = useRef(orders[0]?.orderId);
 
+  // Master product catalog lookup combining default catalog and live products
+  const allKnownCatalogProducts = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(INITIAL_ADMIN_PRODUCTS)) {
+      INITIAL_ADMIN_PRODUCTS.forEach(p => {
+        if (p && p.id) map.set(String(p.id).toLowerCase(), p);
+      });
+    }
+    if (Array.isArray(products)) {
+      products.forEach(p => {
+        if (p && p.id) map.set(String(p.id).toLowerCase(), p);
+      });
+    }
+    return Array.from(map.values());
+  }, [products]);
+
+  // Reliable estimated delivery timeline (2 - 4 business days / 48 hours for Blue Dart Express)
+  const getFormattedEstimatedDelivery = (order) => {
+    if (!order) return '2 - 4 Business Days (Within 48 Hours)';
+    const est = order.estimatedDeliveryDate || order.estimatedDelivery;
+    if (est && typeof est === 'string' && !est.includes('5 - 8') && !est.includes('5-8') && !est.toLowerCase().includes('undefined') && est.trim().length > 0) {
+      return est;
+    }
+    try {
+      const rawDate = order.createdAt || order.date || order.orderDate;
+      const base = rawDate ? new Date(rawDate) : new Date();
+      if (!isNaN(base.getTime())) {
+        const dStart = new Date(base);
+        dStart.setDate(dStart.getDate() + 2);
+        const dEnd = new Date(base);
+        dEnd.setDate(dEnd.getDate() + 4);
+        const startStr = dStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        const endStr = dEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        return `${startStr} – ${endStr} (2 - 4 Business Days)`;
+      }
+    } catch {}
+    return '2 - 4 Business Days (Within 48 Hours)';
+  };
+
+  // Robust order items resolver to guarantee product name, code, quantity, PV, unit price, and image
+  const resolveOrderItems = (order) => {
+    if (!order) return [];
+    const rawItems = (Array.isArray(order.items) && order.items.length > 0)
+      ? order.items
+      : (Number(order.totalAmount) > 0 ? [{ price: order.totalAmount, qty: 1 }] : []);
+
+    return rawItems.map(it => {
+      const rawCode = String(it.productId || it.id || it.code || it.productCode || '').trim();
+      const rawName = String(it.productName || it.name || it.title || '').trim();
+      const rawPrice = Number(it.unitPrice ?? it.price ?? 0);
+
+      const matched = 
+        (rawCode ? allKnownCatalogProducts.find(p => p && String(p.id).toLowerCase() === rawCode.toLowerCase()) : null) ||
+        (rawName ? allKnownCatalogProducts.find(p => p && p.name && p.name.toLowerCase() === rawName.toLowerCase()) : null) ||
+        (rawPrice > 0 ? allKnownCatalogProducts.find(p => Number(p.price) === rawPrice) : null);
+
+      const resolvedName = rawName || matched?.name || (rawCode ? `Atomy Product (${rawCode})` : 'Atomy Authentic Product');
+      const resolvedCode = rawCode || matched?.id || '-';
+      const resolvedQty = Number(it.quantity ?? it.qty ?? it.count ?? 1) || 1;
+      const resolvedUnitPrice = rawPrice > 0 ? rawPrice : Number(matched?.price || 0);
+      const rawPv = Number(it.pv ?? it.pointValue ?? 0);
+      const resolvedPv = rawPv > 0 ? rawPv : Number(matched?.pv || 0);
+      const resolvedImage = it.productImage || it.image || it.img || matched?.image || matched?.baseImage || "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
+      const resolvedSubtotal = resolvedUnitPrice * resolvedQty;
+
+      return {
+        name: resolvedName,
+        code: resolvedCode,
+        quantity: resolvedQty,
+        unitPrice: resolvedUnitPrice,
+        pv: resolvedPv,
+        image: resolvedImage,
+        subtotal: resolvedSubtotal
+      };
+    });
+  };
+
   // Sync to localStorage
   useEffect(() => {
     try {
@@ -380,25 +507,35 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
   // Initial Data Fetching from Spring Boot Backend & Pre-seeding seen alerts
   useEffect(() => {
-    // 1. Pre-seed all existing orders & tickets as already seen so they NEVER alarm on page reload
+    // 1. Pre-seed all existing orders & tickets as already seen and read so they NEVER alarm or duplicate on page reload / login
     try {
       const seen = getSeenAlertIds();
+      const readSet = getReadNotifIds();
+
+      const seedItem = (id) => {
+        if (!id) return;
+        seen.add(String(id));
+        readSet.add(String(id));
+      };
+
       const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
       if (localOrdersRaw) {
         const parsed = JSON.parse(localOrdersRaw);
-        if (Array.isArray(parsed)) parsed.forEach(o => o?.orderId && seen.add(String(o.orderId)));
+        if (Array.isArray(parsed)) parsed.forEach(o => o?.orderId && seedItem(o.orderId));
       }
       const adminOrdersRaw = localStorage.getItem('atomy_admin_orders');
       if (adminOrdersRaw) {
         const parsed = JSON.parse(adminOrdersRaw);
-        if (Array.isArray(parsed)) parsed.forEach(o => o?.orderId && seen.add(String(o.orderId)));
+        if (Array.isArray(parsed)) parsed.forEach(o => o?.orderId && seedItem(o.orderId));
       }
       const adminTicketsRaw = localStorage.getItem('atomy_admin_tickets');
       if (adminTicketsRaw) {
         const parsed = JSON.parse(adminTicketsRaw);
-        if (Array.isArray(parsed)) parsed.forEach(t => t?.ticketId && seen.add(String(t.ticketId)));
+        if (Array.isArray(parsed)) parsed.forEach(t => t?.ticketId && seedItem(t.ticketId));
       }
       localStorage.setItem(SEEN_ALERTS_KEY, JSON.stringify(Array.from(seen)));
+      localStorage.setItem(READ_NOTIFS_KEY, JSON.stringify(Array.from(readSet)));
+      setReadNotifIds(new Set(readSet));
     } catch { }
 
     // Ensure any stale hardcoded demo tickets are completely purged
@@ -469,7 +606,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         );
         setOrders(mappedOrders);
         localStorage.setItem('atomy_admin_orders', JSON.stringify(mappedOrders));
-        mappedOrders.forEach(o => o.orderId && markAlertIdAsSeen(o.orderId));
+        mappedOrders.forEach(o => {
+          if (o.orderId) {
+            markAlertIdAsSeen(o.orderId);
+            markNotifAsRead(o.orderId);
+          }
+        });
       }
       if (prodsRes.status === 'fulfilled' && Array.isArray(prodsRes.value) && prodsRes.value.length > 0) {
         setProducts(prodsRes.value);
@@ -488,7 +630,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           })) : [{ sender: 'CUSTOMER', message: t.subject || 'Customer Inquiry', createdAt: t.createdAt }]
         }));
         setTickets(cleanTickets);
-        cleanTickets.forEach(t => t.ticketId && markAlertIdAsSeen(t.ticketId));
+        cleanTickets.forEach(t => {
+          if (t.ticketId) {
+            markAlertIdAsSeen(t.ticketId);
+            markNotifAsRead(t.ticketId);
+          }
+        });
         try {
           localStorage.setItem('atomy_admin_tickets', JSON.stringify(cleanTickets));
         } catch {}
@@ -504,13 +651,24 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   };
 
   // STRONG NOTIFICATION TRIGGERS
-  const triggerOrderNotification = (order) => {
+  const triggerOrderNotification = (order, isLiveRealtime = false) => {
     if (!order || !order.orderId) return;
+    const orderIdStr = String(order.orderId);
     const seen = getSeenAlertIds();
-    if (seen.has(String(order.orderId))) {
+    if (seen.has(orderIdStr)) {
       return; // Already alerted/seen, do not alarm again on reload
     }
-    markAlertIdAsSeen(order.orderId);
+
+    // Orders placed prior to current session load are historical - mark as seen/read silently without audio or banner
+    const orderTime = new Date(order.createdAt || order.date || 0).getTime();
+    if (!isLiveRealtime && orderTime > 0 && orderTime < sessionStartTimeRef.current - 2000) {
+      markAlertIdAsSeen(orderIdStr);
+      markNotifAsRead(orderIdStr);
+      setReadNotifIds(prev => new Set([...prev, orderIdStr]));
+      return;
+    }
+
+    markAlertIdAsSeen(orderIdStr);
 
     if (soundSettings.orderSoundEnabled) {
       playOrderAlertSound(soundSettings.volume);
@@ -527,13 +685,24 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     });
   };
 
-  const triggerSupportNotification = (ticket) => {
+  const triggerSupportNotification = (ticket, isLiveRealtime = false) => {
     if (!ticket || !ticket.ticketId) return;
+    const ticketIdStr = String(ticket.ticketId);
     const seen = getSeenAlertIds();
-    if (seen.has(String(ticket.ticketId))) {
+    if (seen.has(ticketIdStr)) {
       return; // Already alerted/seen, do not alarm again on reload
     }
-    markAlertIdAsSeen(ticket.ticketId);
+
+    // Tickets submitted prior to current session load are historical - mark as seen/read silently
+    const ticketTime = new Date(ticket.createdAt || 0).getTime();
+    if (!isLiveRealtime && ticketTime > 0 && ticketTime < sessionStartTimeRef.current - 2000) {
+      markAlertIdAsSeen(ticketIdStr);
+      markNotifAsRead(ticketIdStr);
+      setReadNotifIds(prev => new Set([...prev, ticketIdStr]));
+      return;
+    }
+
+    markAlertIdAsSeen(ticketIdStr);
 
     if (soundSettings.supportSoundEnabled) {
       playSupportAlertSound(soundSettings.volume);
@@ -550,6 +719,59 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     });
   };
 
+  // Deduct stock for purchased order items from inventory state and localStorage
+  const deductStockForItems = (items) => {
+    if (!Array.isArray(items) || items.length === 0) return;
+    setProducts(prevProducts => {
+      let hasChanges = false;
+      const updated = prevProducts.map(prod => {
+        const matched = items.find(it => {
+          const itId = String(it.productId || it.id || '').trim().toLowerCase();
+          const prodId = String(prod.id || '').trim().toLowerCase();
+          if (itId && prodId && itId === prodId) return true;
+          const itName = String(it.productName || it.name || '').trim().toLowerCase();
+          const prodName = String(prod.name || '').trim().toLowerCase();
+          return itName && prodName && itName === prodName;
+        });
+
+        if (matched) {
+          const qty = Number(matched.quantity || matched.qty || 1) || 1;
+          const currentStock = Number(prod.stockQuantity ?? 100);
+          const newStock = Math.max(0, currentStock - qty);
+          hasChanges = true;
+          return {
+            ...prod,
+            stockQuantity: newStock,
+            status: newStock === 0 ? 'OUT_OF_STOCK' : (newStock <= (prod.lowStockThreshold || 10) ? 'LOW_STOCK' : 'IN_STOCK')
+          };
+        }
+        return prod;
+      });
+
+      if (hasChanges) {
+        try {
+          localStorage.setItem('atomy_admin_products', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      }
+      return prevProducts;
+    });
+  };
+
+  // Re-sync live products & inventory from backend whenever user opens Inventory tab
+  useEffect(() => {
+    if (activeTab === 'inventory') {
+      fetchAdminProducts().then(freshProds => {
+        if (Array.isArray(freshProds) && freshProds.length > 0) {
+          setProducts(freshProds);
+          try {
+            localStorage.setItem('atomy_admin_products', JSON.stringify(freshProds));
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+  }, [activeTab]);
+
   // Background Live-Polling Listener & Cross-Channel Listener for live customer orders & support tickets
   useEffect(() => {
     // 1. Setup real-time BroadcastChannel listeners
@@ -558,16 +780,31 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       const handleIncomingOrder = (newOrderObj) => {
         setOrders(prev => {
           if (prev.some(o => o.orderId === newOrderObj.orderId)) return prev;
-          triggerOrderNotification(newOrderObj);
+          triggerOrderNotification(newOrderObj, true);
           return [newOrderObj, ...prev];
         });
+
+        // Immediately decrease product stock count in inventory
+        if (Array.isArray(newOrderObj.items) && newOrderObj.items.length > 0) {
+          deductStockForItems(newOrderObj.items);
+        }
+
+        // Also refresh latest accurate inventory counts directly from backend database
+        fetchAdminProducts().then(freshProds => {
+          if (Array.isArray(freshProds) && freshProds.length > 0) {
+            setProducts(freshProds);
+            try {
+              localStorage.setItem('atomy_admin_products', JSON.stringify(freshProds));
+            } catch {}
+          }
+        }).catch(() => {});
       };
 
       const handleIncomingTicket = (newTicketObj) => {
         if (!newTicketObj || !newTicketObj.ticketId) return;
         setTickets(prev => {
           if (prev.some(t => t.ticketId === newTicketObj.ticketId)) return prev;
-          triggerSupportNotification(newTicketObj);
+          triggerSupportNotification(newTicketObj, true);
           return [newTicketObj, ...prev];
         });
       };
@@ -613,11 +850,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             paymentStatus: "PAID",
             totalAmount: o.grandTotal || o.totalAmount || 0,
             shippingFee: o.shippingFee || 0,
-            items: o.items || [],
+            items: o.items || data.items || [],
             tracking: null,
-            estimatedDelivery: o.estimatedDelivery || "5 - 8 Business Days",
-            estimatedDeliveryDate: o.estimatedDeliveryDate || ""
+            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : "2 - 4 Business Days",
+            estimatedDeliveryDate: o.estimatedDeliveryDate && !o.estimatedDeliveryDate.includes('5 - 8') && !o.estimatedDeliveryDate.includes('5-8') ? o.estimatedDeliveryDate : ""
           });
+        }
+        if (data && data.type === 'STOCK_UPDATED' && Array.isArray(data.items)) {
+          deductStockForItems(data.items);
         }
         if (data && (data.type === 'NEW_TICKET' || data.type === 'SUPPORT_INQUIRY' || data.type === 'NEW_SUPPORT_TICKET') && data.ticket) {
           handleIncomingTicket(data.ticket);
@@ -647,10 +887,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             paymentStatus: "PAID",
             totalAmount: o.grandTotal || o.totalAmount || 0,
             shippingFee: o.shippingFee || 0,
-            items: o.items || [],
+            items: o.items || data.items || [],
             tracking: null,
-            estimatedDelivery: o.estimatedDelivery || "5 - 8 Business Days",
-            estimatedDeliveryDate: o.estimatedDeliveryDate || ""
+            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : "2 - 4 Business Days",
+            estimatedDeliveryDate: o.estimatedDeliveryDate && !o.estimatedDeliveryDate.includes('5 - 8') && !o.estimatedDeliveryDate.includes('5-8') ? o.estimatedDeliveryDate : ""
           });
         }
       };
@@ -669,6 +909,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
     // 2. Cross-tab storage synchronization listener
     const handleStorageUpdate = (e) => {
+      if (e.key === 'atomy_admin_products' && e.newValue) {
+        try {
+          const freshProds = JSON.parse(e.newValue);
+          if (Array.isArray(freshProds) && freshProds.length > 0) {
+            setProducts(freshProds);
+          }
+        } catch (err) {}
+      }
       if (e.key === 'atomy_admin_tickets' && e.newValue) {
         try {
           const freshList = JSON.parse(e.newValue);
@@ -709,11 +957,17 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             totalAmount: Number(bo.totalAmount) || 0,
             shippingFee: Number(bo.shippingFee) || 0,
             items: Array.isArray(bo.items) ? bo.items.map(it => ({
-              id: it.productId,
-              name: it.productName,
-              image: it.productImage,
-              price: Number(it.price) || 0,
-              qty: it.quantity || 1
+              id: it.productId || it.id,
+              productId: it.productId || it.id,
+              name: it.productName || it.name,
+              productName: it.productName || it.name,
+              image: it.productImage || it.image,
+              productImage: it.productImage || it.image,
+              price: Number(it.price || it.unitPrice) || 0,
+              unitPrice: Number(it.price || it.unitPrice) || 0,
+              qty: it.quantity || it.qty || 1,
+              quantity: it.quantity || it.qty || 1,
+              pv: it.pv || 0
             })) : [],
             tracking: bo.tracking || null
           })).filter(o => !o.orderId?.startsWith('ORD-20261005'));
@@ -722,10 +976,35 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             const prevIds = new Set(prev.map(o => o.orderId));
             mappedOrders.forEach(mo => {
               if (!prevIds.has(mo.orderId) && prev.length > 0) {
-                triggerOrderNotification(mo);
+                triggerOrderNotification(mo, false);
+                // Also deduct stock for newly detected backend order
+                if (Array.isArray(mo.items) && mo.items.length > 0) {
+                  deductStockForItems(mo.items);
+                }
               }
             });
             return mappedOrders;
+          });
+        }
+      } catch (e) { }
+
+      // Periodically sync inventory stock from backend database to ensure live accuracy
+      try {
+        const freshProds = await fetchAdminProducts();
+        if (Array.isArray(freshProds) && freshProds.length > 0) {
+          setProducts(prev => {
+            const freshMap = new Map(freshProds.map(p => [p.id, p]));
+            let hasDiff = false;
+            const updated = prev.map(p => {
+              const fresh = freshMap.get(p.id);
+              if (fresh && (fresh.stockQuantity !== p.stockQuantity || fresh.status !== p.status)) {
+                hasDiff = true;
+                return { ...p, stockQuantity: fresh.stockQuantity, status: fresh.status };
+              }
+              return p;
+            });
+            if (prev.length !== freshProds.length) return freshProds;
+            return hasDiff ? updated : prev;
           });
         }
       } catch (e) { }
@@ -757,10 +1036,13 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   shippingFee: latest.shippingFee || 0,
                   items: latest.items || [],
                   tracking: null,
-                  estimatedDelivery: latest.estimatedDelivery || "5 - 8 Business Days",
-                  estimatedDeliveryDate: latest.estimatedDeliveryDate || ""
+                  estimatedDelivery: latest.estimatedDelivery && !latest.estimatedDelivery.includes('5 - 8') && !latest.estimatedDelivery.includes('5-8') ? latest.estimatedDelivery : "2 - 4 Business Days",
+                  estimatedDeliveryDate: latest.estimatedDeliveryDate && !latest.estimatedDeliveryDate.includes('5 - 8') && !latest.estimatedDeliveryDate.includes('5-8') ? latest.estimatedDeliveryDate : ""
                 };
-                triggerOrderNotification(newOrderObj);
+                triggerOrderNotification(newOrderObj, false);
+                if (Array.isArray(newOrderObj.items) && newOrderObj.items.length > 0) {
+                  deductStockForItems(newOrderObj.items);
+                }
                 return [newOrderObj, ...prev];
               });
             });
@@ -785,7 +1067,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             const prevIds = new Set(prev.map(t => t.ticketId));
             cleanTickets.forEach(bt => {
               if (!prevIds.has(bt.ticketId) && prev.length > 0) {
-                triggerSupportNotification(bt);
+                triggerSupportNotification(bt, false);
               }
             });
             const merged = [...cleanTickets];
@@ -811,7 +1093,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             freshTickets.forEach(lt => {
               setTickets(prev => {
                 if (prev.some(t => t.ticketId === lt.ticketId)) return prev;
-                triggerSupportNotification(lt);
+                triggerSupportNotification(lt, false);
                 return [lt, ...prev];
               });
             });
@@ -880,8 +1162,16 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     const openTicketsCount = tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
     const recentNewOrders = orders.filter(o => {
       const st = String(o.orderStatus || o.status || 'PLACED').toUpperCase();
-      return st === 'PLACED' || st.includes('PAYMENT COMPLETED') || st === 'NEW' || st === 'PAID';
+      const isNew = st === 'PLACED' || st.includes('PAYMENT COMPLETED') || st === 'NEW' || st === 'PAID';
+      const isUnread = !readNotifIds.has(String(o.orderId));
+      return isNew && isUnread;
     }).slice(0, 5);
+
+    const unreadTickets = tickets.filter(t => {
+      const isOpen = t.status === 'OPEN' || t.status === 'IN_PROGRESS';
+      const isUnread = !readNotifIds.has(String(t.ticketId));
+      return isOpen && isUnread;
+    });
 
     return {
       todaySale,
@@ -895,9 +1185,11 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       lowStockCount,
       outOfStockCount,
       openTicketsCount,
-      recentNewOrders
+      recentNewOrders,
+      unreadOrdersCount: recentNewOrders.length,
+      unreadTicketsCount: unreadTickets.length
     };
-  }, [orders, products, tickets]);
+  }, [orders, products, tickets, readNotifIds]);
 
   // 2. PRODUCT MANAGEMENT HANDLERS (ADD, EDIT, REMOVE)
   const handleOpenAddProduct = () => {
@@ -1240,7 +1532,31 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
   // 4. CUSTOMER AGGREGATION DIRECTORY
   const customersList = useMemo(() => {
-    if (backendCustomers.length > 0) return backendCustomers;
+    if (backendCustomers.length > 0) {
+      return backendCustomers.map(bc => {
+        const email = (bc.email || '').toLowerCase().trim();
+        const phone = (bc.phone || '').replace(/\D/g, '');
+        const custOrders = orders.filter(o => {
+          const oEmail = (o.customerEmail || '').toLowerCase().trim();
+          const oPhone = (o.customerPhone || '').replace(/\D/g, '');
+          return (email && oEmail && email === oEmail) || (phone && oPhone && phone === oPhone);
+        });
+        const totalSpent = custOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0) || Number(bc.totalSpent) || 0;
+        const totalOrders = custOrders.length || Number(bc.totalOrders) || 0;
+        return {
+          ...bc,
+          name: bc.name || bc.fullName || 'Customer',
+          email: bc.email || 'N/A',
+          phone: bc.phone || 'N/A',
+          tier: bc.tier || (totalSpent >= 25000 ? 'VIP Member' : totalSpent >= 10000 ? 'Gold Customer' : bc.isMember ? 'Distributor Member' : 'Standard Customer'),
+          totalOrders,
+          totalSpent,
+          orders: custOrders,
+          lastOrderDate: custOrders.length > 0 ? custOrders[0].createdAt : (bc.lastOrderDate || bc.createdAt)
+        };
+      });
+    }
+
     const custMap = new Map();
     orders.forEach(o => {
       const email = (o.customerEmail || o.customerPhone || 'unknown').toLowerCase();
@@ -1273,7 +1589,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       const tier = c.totalSpent >= 25000 ? 'VIP Member' : c.totalSpent >= 10000 ? 'Gold Customer' : 'Standard Member';
       return { ...c, tier };
     });
-  }, [orders]);
+  }, [orders, backendCustomers]);
 
   const filteredCustomers = useMemo(() => {
     const q = customerSearchQuery.toLowerCase().trim();
@@ -1416,8 +1732,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           setIsEditingProductView(false);
         }}
         notificationCount={
-          (overviewStats.placedCount || 0) +
-          (overviewStats.openTicketsCount || 0) +
+          (overviewStats.unreadOrdersCount || 0) +
+          (overviewStats.unreadTicketsCount || 0) +
           (overviewStats.lowStockCount || 0)
         }
         overviewStats={overviewStats}
@@ -1426,6 +1742,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           if (filter) setOrderStatusFilter(filter);
           setIsEditingProductView(false);
         }}
+        onMarkAllNotifsAsRead={handleMarkAllNotifsAsRead}
+        onDismissNotif={handleDismissNotif}
       />
 
       {/* 2. Top Emergency / High-Priority Alert Banner (Hits hard with audio chime) */}
@@ -1445,6 +1763,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <button
                 className="alert-btn-action"
                 onClick={() => {
+                  if (activeAlert?.targetId) handleDismissNotif(activeAlert.targetId);
                   setActiveTab('orders');
                   setOrderStatusFilter('ALL');
                   setOrderSearchQuery(activeAlert.targetId);
@@ -1459,6 +1778,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <button
                 className="alert-btn-action"
                 onClick={() => {
+                  if (activeAlert?.targetId) handleDismissNotif(activeAlert.targetId);
                   setActiveTab('support');
                   const matched = tickets.find(t => t.ticketId === activeAlert.targetId);
                   if (matched) setSelectedTicket(matched);
@@ -1469,7 +1789,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               </button>
             )}
             <button className="alert-btn-dismiss" onClick={() => {
-              if (activeAlert?.targetId) markAlertIdAsSeen(activeAlert.targetId);
+              if (activeAlert?.targetId) {
+                markAlertIdAsSeen(activeAlert.targetId);
+                handleDismissNotif(activeAlert.targetId);
+              }
               setActiveAlert(null);
             }}>
               <X size={18} />
@@ -1648,72 +1971,163 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
                   </div>
 
-                  {/* 3 Prominent Requested Sales KPI Cards: Today Sale, Today's Order, Overall Sale */}
-                  <div className="atomy-sales-kpi-grid">
-                    <div className="sales-kpi-card highlight-glow">
-                      <div className="kpi-card-header">
-                        <span className="kpi-card-badge">TODAY'S METRICS</span>
-                        <TrendingUp size={22} className="kpi-icon-blue" />
+                  {/* Top Sales KPI Cards - Design 1 (Image 1: Curved Wave with Circular Icon Badge) */}
+                  <div className="kpi-curve-grid">
+                    {/* Card 1: Today's Total Sale (Dim Soft Cyan Blue Tint) */}
+                    <div className="kpi-curve-card" style={{ '--accent-color': '#0284c7' }}>
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">TODAY'S TOTAL SALE</div>
+                        <div className="kpi-curve-val">
+                          ₹ {overviewStats.todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="kpi-curve-sub">
+                          From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today
+                        </div>
                       </div>
-                      <div className="kpi-card-title">Today's Total Sale</div>
-                      <div className="kpi-card-val highlight-blue">
-                        ₹ {overviewStats.todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </div>
-                      <div className="kpi-card-subtext">
-                        From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today
-                      </div>
-                    </div>
-
-                    <div className="sales-kpi-card">
-                      <div className="kpi-card-header">
-                        <span className="kpi-card-badge">TODAY'S VOLUME</span>
-                        <ShoppingBag size={22} className="kpi-icon-green" />
-                      </div>
-                      <div className="kpi-card-title">Today's Orders</div>
-                      <div className="kpi-card-val">
-                        {overviewStats.todayOrdersCount} <span className="kpi-unit">orders</span>
-                      </div>
-                      <div className="kpi-card-subtext">
-                        Direct public consumer orders received
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0f2fe" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <TrendingUp size={22} color="#0284c7" />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="sales-kpi-card highlight-glow">
-                      <div className="kpi-card-header">
-                        <span className="kpi-card-badge">CUMULATIVE PERFORMANCE</span>
-                        <IndianRupee size={22} className="kpi-icon-navy" />
+                    {/* Card 2: Today's Orders (Dim Soft Mint Green Tint) */}
+                    <div className="kpi-curve-card" style={{ '--accent-color': '#15803d' }}>
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">TODAY'S ORDERS</div>
+                        <div className="kpi-curve-val">
+                          {overviewStats.todayOrdersCount} <span style={{ fontSize: '16px', fontWeight: 600, color: '#64748b' }}>orders</span>
+                        </div>
+                        <div className="kpi-curve-sub">
+                          Direct public consumer orders received
+                        </div>
                       </div>
-                      <div className="kpi-card-title">Overall Total Sale</div>
-                      <div className="kpi-card-val highlight-navy">
-                        ₹ {overviewStats.overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#dcfce7" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <ShoppingBag size={22} color="#15803d" />
+                        </div>
                       </div>
-                      <div className="kpi-card-subtext">
-                        Total lifetime gross revenue across all non-cancelled orders
+                    </div>
+
+                    {/* Card 3: Overall Total Sale (Dim Soft Mist Slate Tint) */}
+                    <div className="kpi-curve-card" style={{ '--accent-color': '#334155' }}>
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">OVERALL TOTAL SALE</div>
+                        <div className="kpi-curve-val">
+                          ₹ {overviewStats.overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="kpi-curve-sub">
+                          Total lifetime gross revenue across all orders
+                        </div>
+                      </div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#f1f5f9" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <IndianRupee size={22} color="#334155" />
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Order Status Pipeline Grid */}
-                  <div className="pipeline-kpi-strip">
-                    <div className="pipeline-card placed" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PLACED'); }}>
-                      <div className="pipeline-label">New Orders (Placed)</div>
-                      <div className="pipeline-val">{overviewStats.placedCount}</div>
-                      <span className="pipeline-sub">Awaiting fulfillment</span>
+                  {/* Order Status Pipeline Grid - Design 2 (Image 2: Vertical Step Card with Wavy Header, Number & Icon) */}
+                  <div className="kpi-step-grid">
+                    <div
+                      className="kpi-step-card"
+                      style={{ '--step-bg': '#f0f9ff', '--step-color': '#0284c7' }}
+                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PLACED'); }}
+                      title="Filter New Placed Orders"
+                    >
+                      <div className="kpi-step-top-header">
+                        <div className="kpi-step-icon-badge">
+                          <Package size={20} color="#0284c7" />
+                        </div>
+                        <div className="kpi-step-number">01</div>
+                        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
+                          <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
+                        </svg>
+                      </div>
+                      <div className="kpi-step-body">
+                        <div className="kpi-step-title">NEW ORDERS (PLACED)</div>
+                        <div className="kpi-step-val">{overviewStats.placedCount}</div>
+                        <div className="kpi-step-sub">Awaiting fulfillment</div>
+                      </div>
                     </div>
-                    <div className="pipeline-card processing" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}>
-                      <div className="pipeline-label">Pending (Processing)</div>
-                      <div className="pipeline-val">{overviewStats.processingCount}</div>
-                      <span className="pipeline-sub">Packaging at Hub</span>
+
+                    <div
+                      className="kpi-step-card"
+                      style={{ '--step-bg': '#fffbeb', '--step-color': '#b45309' }}
+                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}
+                      title="Filter Processing Orders"
+                    >
+                      <div className="kpi-step-top-header">
+                        <div className="kpi-step-icon-badge">
+                          <Clock size={20} color="#b45309" />
+                        </div>
+                        <div className="kpi-step-number">02</div>
+                        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
+                          <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
+                        </svg>
+                      </div>
+                      <div className="kpi-step-body">
+                        <div className="kpi-step-title">PENDING (PROCESSING)</div>
+                        <div className="kpi-step-val">{overviewStats.processingCount}</div>
+                        <div className="kpi-step-sub">Packaging at Hub</div>
+                      </div>
                     </div>
-                    <div className="pipeline-card shipped" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('SHIPPED'); }}>
-                      <div className="pipeline-label">Shipped & In Transit</div>
-                      <div className="pipeline-val">{overviewStats.shippedCount}</div>
-                      <span className="pipeline-sub">Out via Blue Dart</span>
+
+                    <div
+                      className="kpi-step-card"
+                      style={{ '--step-bg': '#f5f3ff', '--step-color': '#6d28d9' }}
+                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('SHIPPED'); }}
+                      title="Filter Shipped Orders"
+                    >
+                      <div className="kpi-step-top-header">
+                        <div className="kpi-step-icon-badge">
+                          <Truck size={20} color="#6d28d9" />
+                        </div>
+                        <div className="kpi-step-number">03</div>
+                        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
+                          <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
+                        </svg>
+                      </div>
+                      <div className="kpi-step-body">
+                        <div className="kpi-step-title">SHIPPED & IN TRANSIT</div>
+                        <div className="kpi-step-val">{overviewStats.shippedCount}</div>
+                        <div className="kpi-step-sub">Out via Blue Dart</div>
+                      </div>
                     </div>
-                    <div className="pipeline-card delivered" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('DELIVERED'); }}>
-                      <div className="pipeline-label">Delivered Orders</div>
-                      <div className="pipeline-val">{overviewStats.deliveredCount}</div>
-                      <span className="pipeline-sub">Successfully fulfilled</span>
+
+                    <div
+                      className="kpi-step-card"
+                      style={{ '--step-bg': '#f0fdf4', '--step-color': '#15803d' }}
+                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('DELIVERED'); }}
+                      title="Filter Delivered Orders"
+                    >
+                      <div className="kpi-step-top-header">
+                        <div className="kpi-step-icon-badge">
+                          <CheckCircle2 size={20} color="#15803d" />
+                        </div>
+                        <div className="kpi-step-number">04</div>
+                        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
+                          <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
+                        </svg>
+                      </div>
+                      <div className="kpi-step-body">
+                        <div className="kpi-step-title">DELIVERED ORDERS</div>
+                        <div className="kpi-step-val">{overviewStats.deliveredCount}</div>
+                        <div className="kpi-step-sub">Successfully fulfilled</div>
+                      </div>
                     </div>
                   </div>
 
@@ -1739,7 +2153,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                             <div
                               key={o.orderId}
                               className="recent-order-row clickable"
-                              onClick={() => { setSelectedOrderDetail(o); }}
+                              onClick={() => {
+                                if (o.orderId) handleDismissNotif(o.orderId);
+                                setSelectedOrderDetail(o);
+                              }}
                             >
                               <div className="recent-order-left">
                                 <span className="order-id-badge">{o.orderId}</span>
@@ -1747,7 +2164,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   <strong>{o.customerName}</strong> • {o.city} ({new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
                                 </div>
                                 <div className="order-items-snippet">
-                                  {o.items?.map(it => `${it.productName || it.name || 'Product'} (x${it.quantity || it.qty || 1})`).join(', ') || '1 item'}
+                                  {resolveOrderItems(o).map(it => `${it.name} (x${it.quantity})`).join(', ') || '1 item'}
                                 </div>
                               </div>
                               <div className="order-row-right">
@@ -2134,12 +2551,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 <div className="address-line-sub">
                                   {o.city}, {o.state} <span className="pincode-pill">{o.pincode}</span>
                                 </div>
-                                {o.estimatedDeliveryDate && (
                                   <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <Truck size={12} />
-                                    <span>Est: {o.estimatedDeliveryDate}</span>
+                                    <span>Est: {getFormattedEstimatedDelivery(o)}</span>
                                   </div>
-                                )}
                               </td>
                               <td style={{ textAlign: 'center' }}>
                                 <span className="items-count-badge">
@@ -2175,7 +2590,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 <div className="row-actions-group">
                                   <button
                                     className="action-pill-btn detail"
-                                    onClick={() => setSelectedOrderDetail(o)}
+                                    onClick={() => {
+                                      if (o.orderId) handleDismissNotif(o.orderId);
+                                      setSelectedOrderDetail(o);
+                                    }}
                                     title="Inspect Full Order Line Items & Invoice"
                                   >
                                     <Eye size={13} />
@@ -2214,42 +2632,84 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
                   </div>
 
-                  {/* Customer Stats Strip */}
-                  <div className="customer-kpi-grid">
-                    <div className="sales-kpi-card">
-                      <div className="kpi-card-header">
-                        <span className="kpi-card-badge">TOTAL CONSUMERS</span>
-                        <Users size={20} className="kpi-icon-blue" />
+                  {/* Customer Stats Strip - Design 3 (Image 3: Dim Light Gradient Wave Cards) */}
+                  <div className="kpi-gradient-grid">
+                    <div
+                      className="kpi-gradient-wave-card"
+                      style={{
+                        '--card-grad': 'linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)',
+                        '--card-border': '#bae6fd',
+                        '--card-title-color': '#0369a1'
+                      }}
+                    >
+                      <div className="kpi-grad-top">
+                        <div className="kpi-grad-title">Registered Accounts</div>
+                        <div className="kpi-grad-icon-wrap">
+                          <Users size={19} color="#0284c7" />
+                        </div>
                       </div>
-                      <div className="kpi-card-title">Registered Accounts</div>
-                      <div className="kpi-card-val highlight-blue">
-                        {customersList.length} <span className="kpi-unit">users</span>
+                      <div className="kpi-grad-val">
+                        {customersList.length} <span className="kpi-grad-unit">users</span>
                       </div>
-                      <div className="kpi-card-subtext">Active registered shoppers</div>
+                      <div className="kpi-grad-bottom">
+                        <div className="kpi-grad-trend">▲ Active registered shoppers</div>
+                        <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+                          <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#0284c7" strokeWidth="2.2" strokeOpacity="0.6" />
+                          <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(2, 132, 199, 0.08)" />
+                        </svg>
+                      </div>
                     </div>
 
-                    <div className="sales-kpi-card">
-                      <div className="kpi-card-header">
-                        <span className="kpi-card-badge">REPEAT CUSTOMERS</span>
-                        <ShieldCheck size={20} className="kpi-icon-green" />
+                    <div
+                      className="kpi-gradient-wave-card"
+                      style={{
+                        '--card-grad': 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
+                        '--card-border': '#bbf7d0',
+                        '--card-title-color': '#15803d'
+                      }}
+                    >
+                      <div className="kpi-grad-top">
+                        <div className="kpi-grad-title">Repeat Buyers</div>
+                        <div className="kpi-grad-icon-wrap">
+                          <ShieldCheck size={19} color="#16a34a" />
+                        </div>
                       </div>
-                      <div className="kpi-card-title">Repeat Buyers</div>
-                      <div className="kpi-card-val" style={{ color: '#16a34a' }}>
-                        {customersList.filter(c => c.totalOrders > 1).length} <span className="kpi-unit">customers</span>
+                      <div className="kpi-grad-val">
+                        {customersList.filter(c => c.totalOrders > 1).length} <span className="kpi-grad-unit">customers</span>
                       </div>
-                      <div className="kpi-card-subtext">More than 1 purchase</div>
+                      <div className="kpi-grad-bottom">
+                        <div className="kpi-grad-trend">▲ More than 1 purchase</div>
+                        <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+                          <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeOpacity="0.6" />
+                          <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(22, 163, 74, 0.08)" />
+                        </svg>
+                      </div>
                     </div>
 
-                    <div className="sales-kpi-card highlight-glow">
-                      <div className="kpi-card-header">
-                        <span className="kpi-card-badge">AVERAGE SPEND</span>
-                        <IndianRupee size={20} className="kpi-icon-navy" />
+                    <div
+                      className="kpi-gradient-wave-card"
+                      style={{
+                        '--card-grad': 'linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%)',
+                        '--card-border': '#cbd5e1',
+                        '--card-title-color': '#334155'
+                      }}
+                    >
+                      <div className="kpi-grad-top">
+                        <div className="kpi-grad-title">Average Lifetime Value</div>
+                        <div className="kpi-grad-icon-wrap">
+                          <IndianRupee size={19} color="#475569" />
+                        </div>
                       </div>
-                      <div className="kpi-card-title">Average Lifetime Value</div>
-                      <div className="kpi-card-val highlight-navy">
+                      <div className="kpi-grad-val">
                         ₹ {customersList.length > 0 ? Math.round(overviewStats.overallSale / customersList.length).toLocaleString('en-IN') : 0}
                       </div>
-                      <div className="kpi-card-subtext">Per consumer lifetime value</div>
+                      <div className="kpi-grad-bottom">
+                        <div className="kpi-grad-trend">▲ Per consumer lifetime value</div>
+                        <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+                          <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#475569" strokeWidth="2.2" strokeOpacity="0.6" />
+                          <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(71, 85, 105, 0.08)" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
 
@@ -2338,7 +2798,26 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                               <td style={{ textAlign: 'right' }}>
                                 <button
                                   className="action-pill-btn detail"
-                                  onClick={() => setSelectedCustomerDetail(c)}
+                                  onClick={() => {
+                                    const custOrders = (Array.isArray(c.orders) && c.orders.length > 0)
+                                      ? c.orders
+                                      : orders.filter(o => {
+                                          const cEmail = (c.email || '').toLowerCase().trim();
+                                          const oEmail = (o.customerEmail || '').toLowerCase().trim();
+                                          const cPhone = (c.phone || '').replace(/\D/g, '');
+                                          const oPhone = (o.customerPhone || '').replace(/\D/g, '');
+                                          return (cEmail && oEmail && cEmail === oEmail) || (cPhone && oPhone && cPhone === oPhone);
+                                        });
+                                    setSelectedCustomerDetail({
+                                      ...c,
+                                      name: c.name || c.fullName || 'Customer',
+                                      email: c.email || 'N/A',
+                                      phone: c.phone || 'N/A',
+                                      tier: c.tier || 'Standard Customer',
+                                      totalSpent: Number(c.totalSpent) || 0,
+                                      orders: custOrders
+                                    });
+                                  }}
                                 >
                                   <Clock size={13} />
                                   <span>View History</span>
@@ -2385,27 +2864,74 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
                   </div>
 
-                  {/* Support KPI Metrics Cards */}
-                  <div className="support-kpi-grid">
-                    <div className="support-kpi-card">
-                      <div className="support-kpi-badge">TOTAL INQUIRIES</div>
-                      <div className="support-kpi-val">{tickets.length}</div>
-                      <div className="support-kpi-sub">Lifetime customer tickets logged</div>
+                  {/* Support KPI Metrics Cards - Design 1 (Image 1: Curved Wave with Circular Icon Badge) */}
+                  <div className="kpi-curve-grid four-cols">
+                    <div className="kpi-curve-card" style={{ '--accent-color': '#0284c7' }}>
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">TOTAL INQUIRIES</div>
+                        <div className="kpi-curve-val">{tickets.length}</div>
+                        <div className="kpi-curve-sub">Lifetime customer tickets logged</div>
+                      </div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0f2fe" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <Headphones size={22} color="#0284c7" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="support-kpi-card highlight-amber">
-                      <div className="support-kpi-badge">OPEN & AWAITING REPLY</div>
-                      <div className="support-kpi-val">{tickets.filter(t => t.status === 'OPEN').length}</div>
-                      <div className="support-kpi-sub">Immediate response needed</div>
+
+                    <div className="kpi-curve-card" style={{ '--accent-color': '#b45309' }}>
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">OPEN & AWAITING</div>
+                        <div className="kpi-curve-val">{tickets.filter(t => t.status === 'OPEN').length}</div>
+                        <div className="kpi-curve-sub">Immediate response needed</div>
+                      </div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#fef3c7" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <AlertTriangle size={22} color="#b45309" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="support-kpi-card highlight-blue">
-                      <div className="support-kpi-badge">IN PROGRESS</div>
-                      <div className="support-kpi-val">{tickets.filter(t => t.status === 'IN_PROGRESS').length}</div>
-                      <div className="support-kpi-sub">Investigation / logistics sync</div>
+
+                    <div className="kpi-curve-card" style={{ '--accent-color': '#6d28d9' }}>
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">IN PROGRESS</div>
+                        <div className="kpi-curve-val">{tickets.filter(t => t.status === 'IN_PROGRESS').length}</div>
+                        <div className="kpi-curve-sub">Investigation / logistics sync</div>
+                      </div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#ede9fe" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <RefreshCw size={22} color="#6d28d9" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="support-kpi-card highlight-green">
-                      <div className="support-kpi-badge">SATISFACTION RATE</div>
-                      <div className="support-kpi-val">98.4%</div>
-                      <div className="support-kpi-sub">Avg resolution: 18 minutes</div>
+
+                    <div className="kpi-curve-card" style={{ '--accent-color': '#15803d' }}>
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">SATISFACTION RATE</div>
+                        <div className="kpi-curve-val">98.4%</div>
+                        <div className="kpi-curve-sub">Avg resolution: 18 minutes</div>
+                      </div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#dcfce7" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <CheckCircle2 size={22} color="#15803d" />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -2506,7 +3032,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           <div
                             key={t.ticketId}
                             className={`ticket-summary-item ${selectedTicket?.ticketId === t.ticketId ? 'selected' : ''}`}
-                            onClick={() => setSelectedTicket(t)}
+                            onClick={() => {
+                              if (t.ticketId) handleDismissNotif(t.ticketId);
+                              setSelectedTicket(t);
+                            }}
                           >
                             <div className="ticket-item-top">
                               <span className="mono-ticket">{t.ticketId}</span>
@@ -3158,10 +3687,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 <div className="meta-info-card">
                   <div className="meta-card-label">ESTIMATED DELIVERY</div>
                   <div className="meta-card-main" style={{ color: '#00A3E0', fontWeight: 700 }}>
-                    {selectedOrderDetail.estimatedDeliveryDate || '5 - 8 Business Days'}
+                    {getFormattedEstimatedDelivery(selectedOrderDetail)}
                   </div>
                   <div className="meta-card-sub">
-                    Carrier: {selectedOrderDetail.courier || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
+                    Carrier: {selectedOrderDetail.courier || selectedOrderDetail.tracking?.courierPartner || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
                   </div>
                 </div>
               </div>
@@ -3182,12 +3711,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedOrderDetail.items?.map((it, idx) => (
+                    {resolveOrderItems(selectedOrderDetail).map((it, idx) => (
                       <tr key={idx}>
                         <td>
                           <img
-                            src={it.productImage || "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg"}
-                            alt={it.productName}
+                            src={it.image}
+                            alt={it.name}
                             className="table-product-thumb"
                             onError={(e) => {
                               e.currentTarget.src = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
@@ -3195,14 +3724,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           />
                         </td>
                         <td>
-                          <strong>{it.productName}</strong>
+                          <strong>{it.name}</strong>
                         </td>
-                        <td className="mono-col">{it.productId || '-'}</td>
+                        <td className="mono-col">{it.code}</td>
                         <td>{it.quantity}</td>
-                        <td>₹ {Number(it.unitPrice || it.price).toLocaleString('en-IN')}</td>
-                        <td>{(Number(it.pv) || 0).toLocaleString('en-IN')} PV</td>
+                        <td>₹ {Number(it.unitPrice).toLocaleString('en-IN')}</td>
+                        <td>{Number(it.pv).toLocaleString('en-IN')} PV</td>
                         <td style={{ textAlign: 'right' }} className="cell-price">
-                          ₹ {((Number(it.unitPrice || it.price) || 0) * (it.quantity || 1)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹ {Number(it.subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
                     ))}
@@ -3373,103 +3902,133 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       {/* ========================================================
           MODAL: CUSTOMER PROFILE & ORDER HISTORY
           ======================================================== */}
-      {selectedCustomerDetail && (
-        <div className="modal-backdrop-overlay" onClick={() => setSelectedCustomerDetail(null)}>
-          <div className="atomy-modal-box wide" onClick={(e) => e.stopPropagation()}>
-            <div className="atomy-modal-header">
-              <div className="modal-title-cluster">
-                <Users size={20} color="#00A3E0" />
-                <h3>Customer Profile: {selectedCustomerDetail.name}</h3>
-              </div>
-              <button className="atomy-modal-close" onClick={() => setSelectedCustomerDetail(null)}>
-                &times;
-              </button>
-            </div>
+      {/* ========================================================
+          MODAL: CUSTOMER PROFILE & ORDER HISTORY
+          ======================================================== */}
+      {selectedCustomerDetail && (() => {
+        const custOrders = Array.isArray(selectedCustomerDetail.orders) && selectedCustomerDetail.orders.length > 0
+          ? selectedCustomerDetail.orders
+          : orders.filter(o => {
+              const cEmail = (selectedCustomerDetail.email || '').toLowerCase().trim();
+              const oEmail = (o.customerEmail || '').toLowerCase().trim();
+              const cPhone = (selectedCustomerDetail.phone || '').replace(/\D/g, '');
+              const oPhone = (o.customerPhone || '').replace(/\D/g, '');
+              return (cEmail && oEmail && cEmail === oEmail) || (cPhone && oPhone && cPhone === oPhone);
+            });
+        const custName = selectedCustomerDetail.name || selectedCustomerDetail.fullName || 'Customer';
+        const custTier = selectedCustomerDetail.tier || 'Standard Customer';
+        const custTotalSpent = Number(selectedCustomerDetail.totalSpent) || custOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
 
-            <div className="atomy-modal-body">
-              <div className="customer-profile-banner">
-                <div className="profile-banner-left">
-                  <div className="avatar-big">{selectedCustomerDetail.name.slice(0, 1).toUpperCase()}</div>
-                  <div>
-                    <h3>{selectedCustomerDetail.name}</h3>
-                    <div className="profile-contact-line">
-                      <span>{selectedCustomerDetail.email}</span> • <span>{selectedCustomerDetail.phone}</span>
-                    </div>
-                    <div className="profile-address-line">
-                      <MapPin size={13} />
-                      <span>{selectedCustomerDetail.address || `${selectedCustomerDetail.city}, ${selectedCustomerDetail.state}`}</span>
-                    </div>
-                  </div>
+        return (
+          <div className="modal-backdrop-overlay" onClick={() => setSelectedCustomerDetail(null)}>
+            <div className="atomy-modal-box wide" onClick={(e) => e.stopPropagation()}>
+              <div className="atomy-modal-header">
+                <div className="modal-title-cluster">
+                  <Users size={20} color="#00A3E0" />
+                  <h3>Customer Profile: {custName}</h3>
                 </div>
-                <div className="profile-banner-right">
-                  <span className={`tier-badge ${selectedCustomerDetail.tier.toLowerCase().replace(/\s+/g, '-')}`}>
-                    {selectedCustomerDetail.tier}
-                  </span>
-                  <div className="profile-spend-stat">
-                    <span>Lifetime Spend</span>
-                    <strong>₹ {selectedCustomerDetail.totalSpent.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div className="order-items-detail-title" style={{ marginTop: '20px' }}>
-                Order Purchase History ({selectedCustomerDetail.orders.length} orders)
-              </div>
-
-              <div className="atomy-table-responsive" style={{ maxHeight: '280px' }}>
-                <table className="atomy-data-table">
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Date</th>
-                      <th>Items</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: 'right' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedCustomerDetail.orders.map((o) => (
-                      <tr key={o.orderId}>
-                        <td className="mono-col"><strong>{o.orderId}</strong></td>
-                        <td className="cell-secondary-text">
-                          {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td>
-                          {o.items?.map(i => `${i.productName} (x${i.quantity})`).join(', ') || '1 item'}
-                        </td>
-                        <td className="cell-price">
-                          ₹ {Number(o.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td>
-                          <span className={`status-badge ${o.orderStatus.toLowerCase()}`}>{o.orderStatus}</span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            className="action-pill-btn detail"
-                            onClick={() => {
-                              setSelectedCustomerDetail(null);
-                              setSelectedOrderDetail(o);
-                            }}
-                          >
-                            Inspect
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="modal-actions-right" style={{ marginTop: '20px' }}>
-                <button className="atomy-btn-primary" onClick={() => setSelectedCustomerDetail(null)}>
-                  Close
+                <button className="atomy-modal-close" onClick={() => setSelectedCustomerDetail(null)}>
+                  &times;
                 </button>
+              </div>
+
+              <div className="atomy-modal-body">
+                <div className="customer-profile-banner">
+                  <div className="profile-banner-left">
+                    <div className="avatar-big">{custName.slice(0, 1).toUpperCase()}</div>
+                    <div>
+                      <h3>{custName}</h3>
+                      <div className="profile-contact-line">
+                        <span>{selectedCustomerDetail.email || 'N/A'}</span> • <span>{selectedCustomerDetail.phone || 'N/A'}</span>
+                      </div>
+                      <div className="profile-address-line">
+                        <MapPin size={13} />
+                        <span>{selectedCustomerDetail.address || `${selectedCustomerDetail.city || 'New Delhi'}, ${selectedCustomerDetail.state || 'Delhi'}`}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="profile-banner-right">
+                    <span className={`tier-badge ${custTier.toLowerCase().replace(/\s+/g, '-')}`}>
+                      {custTier}
+                    </span>
+                    <div className="profile-spend-stat">
+                      <span>Lifetime Spend</span>
+                      <strong>₹ {Number(custTotalSpent).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="order-items-detail-title" style={{ marginTop: '20px' }}>
+                  Order Purchase History ({custOrders.length} {custOrders.length === 1 ? 'order' : 'orders'})
+                </div>
+
+                <div className="atomy-table-responsive" style={{ maxHeight: '280px' }}>
+                  <table className="atomy-data-table">
+                    <thead>
+                      <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {custOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: '36px 20px', color: '#64748b' }}>
+                            <ShoppingBag size={28} color="#94a3b8" style={{ display: 'block', margin: '0 auto 8px' }} />
+                            <div style={{ fontWeight: 600, color: '#334155' }}>No orders placed yet</div>
+                            <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                              This customer has registered on Atomy India, but has not completed any orders yet.
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        custOrders.map((o) => (
+                          <tr key={o.orderId}>
+                            <td className="mono-col"><strong>{o.orderId}</strong></td>
+                            <td className="cell-secondary-text">
+                              {o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}
+                            </td>
+                            <td>
+                              {resolveOrderItems(o).map(i => `${i.name} (x${i.quantity})`).join(', ') || '1 item'}
+                            </td>
+                            <td className="cell-price">
+                              ₹ {Number(o.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td>
+                              <span className={`status-badge ${(o.orderStatus || 'PLACED').toLowerCase()}`}>{o.orderStatus || 'PLACED'}</span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <button
+                                className="action-pill-btn detail"
+                                onClick={() => {
+                                  setSelectedCustomerDetail(null);
+                                  setSelectedOrderDetail(o);
+                                }}
+                              >
+                                Inspect
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="modal-actions-right" style={{ marginTop: '20px' }}>
+                  <button className="atomy-btn-primary" onClick={() => setSelectedCustomerDetail(null)}>
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================
           MODAL: LOG NEW CUSTOMER SUPPORT TICKET

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "505342330268",
+    "project_id": "atomy-india-3b38f",
+    "storage_bucket": "atomy-india-3b38f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:505342330268:android:713ee03279f007e91cb459",
+        "android_client_info": {
+          "package_name": "com.atomyindia.phoenix"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-kLflMVcYgpAFCpxWfIy2gdkhe0dAjLM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

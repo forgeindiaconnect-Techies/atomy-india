@@ -7,6 +7,8 @@ const BACKEND_URL = rawBackendUrl.endsWith('/api') ? rawBackendUrl : `${rawBacke
 const API_BASE = `${BACKEND_URL}/membership`;
 const ADMIN_API_BASE = `${BACKEND_URL}/admin/membership`;
 
+import { OFFICIAL_DISTRIBUTOR_PRICES } from '../data/officialDistributorPrices';
+
 const SETTINGS_KEY = 'atomy_membership_settings';
 const MEMBERS_KEY = 'atomy_members_registry';
 
@@ -214,12 +216,13 @@ export function calculateProductPricing(product, isMember) {
   }
 
   const rawPrice = Number(product.price) || 0;
-  const mrp = Number(product.originalPrice) || Math.round(rawPrice * 1.15);
+  const official = product.id ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
+  const mrp = Number(product.originalPrice) || (official?.mrp ? official.mrp : Math.round(rawPrice * 1.15));
   const offerPrice = rawPrice;
 
-  // Explicit DP price or calculated ~18% lower wholesale distributor price
-  const dpPrice = Number(product.dpPrice || product.distributorPrice) || Math.round(rawPrice * 0.82);
-  const pv = Number(product.pv) || Math.round(rawPrice * 4.5);
+  // Use explicit DP price or official distributor price from live logged-in session, fallback ~18%
+  const dpPrice = Number(product.dpPrice || product.distributorPrice || official?.dpPrice) || Math.round(rawPrice * 0.82);
+  const pv = Number(product.pv || official?.pv) || Math.round(rawPrice * 4.5);
 
   const activePrice = isMember ? dpPrice : offerPrice;
   const showPv = true;

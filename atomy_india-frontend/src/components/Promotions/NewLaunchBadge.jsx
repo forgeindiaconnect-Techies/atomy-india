@@ -16,10 +16,7 @@ export default function NewLaunchBadge({
   const [adConfig, setAdConfig] = useState(getAdConfig);
   const [isOpen, setIsOpen] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
-  const [isCancelledByUser, setIsCancelledByUser] = useState(false);
-
-  const prevViewRef = useRef(currentView);
-  const hasMountedRef = useRef(false);
+  const [isCancelledInSession, setIsCancelledInSession] = useState(false);
 
   // Sync with live admin updates via custom event
   useEffect(() => {
@@ -38,8 +35,8 @@ export default function NewLaunchBadge({
   // Whenever login or signup happens, immediately show the ad
   useEffect(() => {
     const handleLoginTrigger = () => {
-      setIsCancelledByUser(false);
       setIsDismissed(false);
+      setIsCancelledInSession(false);
       setIsOpen(true);
     };
 
@@ -47,42 +44,26 @@ export default function NewLaunchBadge({
     return () => window.removeEventListener('atomy:ad-trigger-login', handleLoginTrigger);
   }, []);
 
-  // 1. Appear whenever the webpage is opening in the browser (initial load on home)
+  // 1. Automatically pop up when opening/refreshing the webpage on home,
+  // or opening the website URL afresh after closing the browser.
+  // Suppressed ONLY while the user continues browsing around inside the site after cancelling.
   useEffect(() => {
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true;
-      if (currentView === 'home' && adConfig.isActive && !isAdSuppressedForToday()) {
-        // Small delay to allow initial DOM layout to settle smoothly
-        const timer = setTimeout(() => {
-          setIsOpen(true);
-        }, 350);
-        return () => clearTimeout(timer);
-      }
+    if (currentView !== 'home' || !adConfig.isActive || isCancelledInSession) {
+      return;
     }
-  }, [currentView, adConfig.isActive]);
 
-  // 2. Appear whenever the customer comes to the home page from another page until cancelled
-  useEffect(() => {
-    const prev = prevViewRef.current;
-    prevViewRef.current = currentView;
+    const timer = setTimeout(() => {
+      setIsOpen(true);
+    }, 350);
 
-    if (prev !== 'home' && currentView === 'home') {
-      if (adConfig.isActive && !isCancelledByUser && !isAdSuppressedForToday()) {
-        const timer = setTimeout(() => {
-          setIsOpen(true);
-        }, 400);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [currentView, isCancelledByUser, adConfig.isActive]);
+    return () => clearTimeout(timer);
+  }, [currentView, adConfig.isActive, isCancelledInSession]);
 
-  // Handle user closing/cancelling the modal
-  const handleModalClose = (doNotShowToday) => {
+  // Handle user closing/dismissing the modal
+  const handleModalClose = () => {
     setIsOpen(false);
-    setIsCancelledByUser(true); // User explicitly cancelled it
-    if (doNotShowToday) {
-      setAdSuppressedForToday(true);
-    }
+    // User cancelled: do not show again while they continue browsing in this site session
+    setIsCancelledInSession(true);
   };
 
   if (!adConfig.isActive) return null;

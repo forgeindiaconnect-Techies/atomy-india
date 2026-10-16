@@ -26,7 +26,8 @@ import {
   Phone,
   Mail,
   Clock,
-  MapPin
+  MapPin,
+  MessageSquare
 } from 'lucide-react';
 import {
   GST_BADGE_IMAGE,
@@ -56,6 +57,10 @@ export default function ProductDetailPage({
   onToggleFavorite,
   isMember = false
 }) {
+  const productReviews = Array.isArray(product?.reviews) ? product.reviews : [];
+  const reviewsCount = productReviews.length || (Number(product?.reviewsCount) > 0 ? Number(product.reviewsCount) : 0);
+  const ratingValue = reviewsCount > 0 ? (product?.rating || '5.0') : '0.0';
+
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   const [isImgModalOpen, setIsImgModalOpen] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
@@ -90,8 +95,9 @@ export default function ProductDetailPage({
     const handleScroll = () => {
       if (!tabsSectionRef.current) return;
       const rect = tabsSectionRef.current.getBoundingClientRect();
-      // Appears when entering into the product information / details section
-      setShowFloatingCard(rect.top <= 140);
+      // On mobile screens (<= 768px), activate floating card earlier as user scrolls past hero section
+      const threshold = typeof window !== 'undefined' && window.innerWidth <= 768 ? 320 : 140;
+      setShowFloatingCard(rect.top <= threshold);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -383,10 +389,10 @@ export default function ProductDetailPage({
             {/* Top Review Rating & Action Icons (Print, Heart, Share) (matches Screenshot 1) */}
             <div className="pdp-top-meta-row">
               <div className="pdp-review-summary-left">
-                <Star size={16} fill="#111" color="#111" />
-                <span className="pdp-rating-num">{product.rating || '5.0'}</span>
+                <Star size={16} fill={reviewsCount > 0 ? "#111" : "#94A3B8"} color={reviewsCount > 0 ? "#111" : "#94A3B8"} />
+                <span className="pdp-rating-num">{ratingValue}</span>
                 <span className="pdp-reviews-count-text">
-                  {product.reviewsCount || 13} no(s){' '}
+                  {reviewsCount} no(s){' '}
                   <button
                     type="button"
                     className="pdp-review-link-btn"
@@ -649,29 +655,19 @@ export default function ProductDetailPage({
                 </div>
               </div>
 
-              {/* Action Buttons: Easy Purchase | Cart, and Buy Now (matches Screenshot) */}
+              {/* Action Buttons: Add to Cart and Buy Now in the same row */}
               <div className="pdp-floating-action-buttons">
-                <div className="pdp-action-buttons-subrow">
-                  <button
-                    type="button"
-                    className="pdp-easy-purchase-btn"
-                    onClick={() => {
-                      onBuyNow && onBuyNow(product, qty);
-                    }}
-                  >
-                    Easy Purchase
-                  </button>
-                  <button
-                    type="button"
-                    className="pdp-cart-btn"
-                    onClick={() => {
-                      onAddToCart && onAddToCart(product, qty);
-                      showToast(`Added ${qty} × ${product.name} to cart!`);
-                    }}
-                  >
-                    Cart
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="pdp-cart-btn"
+                  onClick={() => {
+                    onAddToCart && onAddToCart(product, qty);
+                    showToast(`Added ${qty} × ${product.name} to cart!`);
+                  }}
+                >
+                  <ShoppingCart size={18} />
+                  <span>Add to Cart</span>
+                </button>
 
                 <button
                   type="button"
@@ -707,7 +703,7 @@ export default function ProductDetailPage({
                 className={`pdp-tab-nav-btn ${activeTab === 'review' ? 'active' : ''}`}
                 onClick={() => handleTabClick('review')}
               >
-                Review({product.reviewsCount || 13})
+                Review({reviewsCount})
               </button>
               <button
                 type="button"
@@ -869,23 +865,23 @@ export default function ProductDetailPage({
                         {config.specs?.brandExportedBy && (
                           <tr>
                             <th>Brand Exported By</th>
-                            <td>{config.specs.brandExportedBy}</td>
+                            <td style={{ whiteSpace: 'pre-line' }}>{config.specs.brandExportedBy}</td>
                           </tr>
                         )}
                         {config.specs?.manufacturer && (
                           <tr>
-                            <th>Manufacturer name and address</th>
-                            <td>{config.specs.manufacturer}</td>
+                            <th>Manufacturer Name and address</th>
+                            <td style={{ whiteSpace: 'pre-line' }}>{config.specs.manufacturer}</td>
                           </tr>
                         )}
                         {config.specs?.importedMarketedBy && (
                           <tr>
                             <th>Imported and Marketed by</th>
-                            <td>{config.specs.importedMarketedBy}</td>
+                            <td style={{ whiteSpace: 'pre-line' }}>{config.specs.importedMarketedBy}</td>
                           </tr>
                         )}
                         <tr>
-                          <th>Country of Origin</th>
+                          <th>Country of origin</th>
                           <td>{config.specs?.countryOfOrigin || "Republic of Korea"}</td>
                         </tr>
                         {!isGenericNameFirst && (
@@ -920,7 +916,7 @@ export default function ProductDetailPage({
                         )}
                         {config.specs?.cautions && (
                           <tr>
-                            <th>Cautions</th>
+                            <th>Caution</th>
                             <td>
                               <div className="specs-caution-list">
                                 {Array.isArray(config.specs.cautions) ? (
@@ -944,7 +940,7 @@ export default function ProductDetailPage({
                         )}
                         {config.specs?.licenseNumber && (
                           <tr>
-                            <th>License / Reg. No.</th>
+                            <th>{config.specs?.licenseLabel || (config.specs?.licenseNumber?.startsWith('FSSAI') ? 'FSSAI Lic. No.' : 'License / Reg. No.')}</th>
                             <td>{config.specs.licenseNumber}</td>
                           </tr>
                         )}
@@ -966,7 +962,8 @@ export default function ProductDetailPage({
                           <div className="pdp-brochure-images-stack">
                             {officialData.brochureImages
                               .filter((imgUrl) => {
-                                const lower = imgUrl.toLowerCase();
+                                const lower = (imgUrl || '').toLowerCase();
+                                if (lower.endsWith('.mp4') || lower.endsWith('.webm')) return false;
                                 if (/_000[123]\.gif/i.test(lower)) return false;
                                 if (lower.includes('detail_d00217_0001.png')) return false;
                                 if (lower.includes('detail_d01513_0001.jpg')) return false;
@@ -980,6 +977,9 @@ export default function ProductDetailPage({
                                   alt={`${product.name} official detail page ${idx + 1}`}
                                   className="pdp-official-brochure-img"
                                   loading="lazy"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
                                 />
                               ))}
                           </div>
@@ -1006,69 +1006,67 @@ export default function ProductDetailPage({
             {/* TAB 2: REVIEW */}
             {activeTab === 'review' && (
               <div className="tab-pane animate-fade">
-                <div className="reviews-summary-header">
-                  <div className="rating-overview">
-                    <div className="overall-score">5.0</div>
-                    <div className="stars-row">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={18} fill="#f59e0b" color="#f59e0b" />
+                {productReviews.length > 0 ? (
+                  <>
+                    <div className="reviews-summary-header">
+                      <div className="rating-overview">
+                        <div className="overall-score">{ratingValue}</div>
+                        <div className="stars-row">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} size={18} fill="#f59e0b" color="#f59e0b" />
+                          ))}
+                        </div>
+                        <div className="total-ratings-text">Based on {productReviews.length} Verified Customer Reviews</div>
+                      </div>
+
+                      <div className="ratings-bars-list">
+                        <div className="bar-row">
+                          <span>5 Star</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: '100%' }}></div></div>
+                          <span>100%</span>
+                        </div>
+                        <div className="bar-row">
+                          <span>4 Star</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: '0%' }}></div></div>
+                          <span>0%</span>
+                        </div>
+                        <div className="bar-row">
+                          <span>3 Star</span>
+                          <div className="bar-track"><div className="bar-fill" style={{ width: '0%' }}></div></div>
+                          <span>0%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="customer-reviews-stream">
+                      {productReviews.map((rev, idx) => (
+                        <div key={rev.id || idx} className="single-review-card">
+                          <div className="review-top-row">
+                            <span className="reviewer-name">{rev.author || rev.reviewerName || rev.customerName || 'Verified Customer'}</span>
+                            <span className="verified-badge"><CheckCircle2 size={13} /> Verified Customer</span>
+                            <span className="review-date">{rev.date || 'Recent'}</span>
+                          </div>
+                          <div className="review-stars">
+                            {[...Array(Number(rev.rating) || 5)].map((_, i) => (
+                              <Star key={i} size={14} fill="#f59e0b" color="#f59e0b" />
+                            ))}
+                          </div>
+                          <p className="review-body">{rev.comment || rev.reviewBody || rev.text}</p>
+                        </div>
                       ))}
                     </div>
-                    <div className="total-ratings-text">Based on {product.reviewsCount || 13} Verified Customer Reviews</div>
-                  </div>
-
-                  <div className="ratings-bars-list">
-                    <div className="bar-row">
-                      <span>5 Star</span>
-                      <div className="bar-track"><div className="bar-fill" style={{ width: '95%' }}></div></div>
-                      <span>95%</span>
+                  </>
+                ) : (
+                  <div className="empty-reviews-state">
+                    <div className="empty-reviews-icon-circle">
+                      <MessageSquare size={34} color="#94A3B8" />
                     </div>
-                    <div className="bar-row">
-                      <span>4 Star</span>
-                      <div className="bar-track"><div className="bar-fill" style={{ width: '5%' }}></div></div>
-                      <span>5%</span>
-                    </div>
-                    <div className="bar-row">
-                      <span>3 Star</span>
-                      <div className="bar-track"><div className="bar-fill" style={{ width: '0%' }}></div></div>
-                      <span>0%</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="customer-reviews-stream">
-                  <div className="single-review-card">
-                    <div className="review-top-row">
-                      <span className="reviewer-name">Priya Sharma</span>
-                      <span className="verified-badge"><CheckCircle2 size={13} /> Verified Customer</span>
-                      <span className="review-date">3 days ago</span>
-                    </div>
-                    <div className="review-stars">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={14} fill="#f59e0b" color="#f59e0b" />
-                      ))}
-                    </div>
-                    <p className="review-body">
-                      Authentic Atomy product in original factory sealed pack. Immediate energy and stamina recovery. Truly exceptional!
+                    <h3 className="empty-reviews-title">No Reviews Yet</h3>
+                    <p className="empty-reviews-desc">
+                      There are currently no reviews for this product. Be the first verified customer to share your experience!
                     </p>
                   </div>
-
-                  <div className="single-review-card">
-                    <div className="review-top-row">
-                      <span className="reviewer-name">Rajesh Kumar</span>
-                      <span className="verified-badge"><CheckCircle2 size={13} /> Verified Customer</span>
-                      <span className="review-date">1 week ago</span>
-                    </div>
-                    <div className="review-stars">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={14} fill="#f59e0b" color="#f59e0b" />
-                      ))}
-                    </div>
-                    <p className="review-body">
-                      Prompt delivery via Blue Dart with live tracking. Quality is 100% genuine as expected from Atomy India.
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -1364,29 +1362,19 @@ export default function ProductDetailPage({
                   </div>
                 </div>
 
-                {/* Action Buttons: Easy Purchase | Cart, and Buy Now (matches Screenshot) */}
+                {/* Action Buttons: Add to Cart and Buy Now in the same row */}
                 <div className="pdp-floating-action-buttons">
-                  <div className="pdp-action-buttons-subrow">
-                    <button
-                      type="button"
-                      className="pdp-easy-purchase-btn"
-                      onClick={() => {
-                        onBuyNow && onBuyNow(product, qty);
-                      }}
-                    >
-                      Easy Purchase
-                    </button>
-                    <button
-                      type="button"
-                      className="pdp-cart-btn"
-                      onClick={() => {
-                        onAddToCart && onAddToCart(product, qty);
-                        showToast(`Added ${qty} × ${product.name} to cart!`);
-                      }}
-                    >
-                      Cart
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="pdp-cart-btn"
+                    onClick={() => {
+                      onAddToCart && onAddToCart(product, qty);
+                      showToast(`Added ${qty} × ${product.name} to cart!`);
+                    }}
+                  >
+                    <ShoppingCart size={18} />
+                    <span>Add to Cart</span>
+                  </button>
 
                   <button
                     type="button"

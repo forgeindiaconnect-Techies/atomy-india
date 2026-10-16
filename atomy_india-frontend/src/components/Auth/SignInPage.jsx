@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, User, Mail } from 'lucide-react';
+import { Check, X, User, Mail, Eye, EyeOff } from 'lucide-react';
 import { clearAdSuppressionForLogin } from '../../services/adPromotionService';
 import { registerCustomer, loginCustomer, googleAuthCustomer } from '../../services/api';
 import './SignInPage.css';
@@ -13,8 +13,11 @@ export default function SignInPage({
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [saveId, setSaveId] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -37,13 +40,30 @@ export default function SignInPage({
     }
   }, [isSignUp]);
 
+  const handlePhoneChange = (e) => {
+    // Only allow numeric digits (0-9)
+    const digitsOnly = e.target.value.replace(/\D/g, '');
+    // Strictly restrict to exactly max 10 digits
+    if (digitsOnly.length <= 10) {
+      setPhoneNumber(digitsOnly);
+      if (errorMessage && digitsOnly.length === 10) {
+        setErrorMessage('');
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
     if (isSignUp) {
-      if (!fullName.trim() || !email.trim() || !username.trim() || !password) {
+      if (!fullName.trim() || !email.trim() || !phoneNumber.trim() || !password) {
         setErrorMessage('Please fill in all required fields.');
+        return;
+      }
+      // Fixed to exactly 10 digits (don't allow above or below 10)
+      if (phoneNumber.trim().length !== 10) {
+        setErrorMessage('Please enter a valid 10-digit phone number (+91 India).');
         return;
       }
       if (password !== confirmPassword) {
@@ -52,7 +72,7 @@ export default function SignInPage({
       }
     } else {
       if (!username.trim() || !password) {
-        setErrorMessage('Please enter your email and password.');
+        setErrorMessage('Please enter your email or phone number and password.');
         return;
       }
     }
@@ -61,10 +81,12 @@ export default function SignInPage({
 
     try {
       if (isSignUp) {
+        const fullPhone = `+91${phoneNumber.trim()}`;
         const regRes = await registerCustomer({
           fullName: fullName.trim(),
           email: email.trim(),
-          username: username.trim(),
+          username: phoneNumber.trim(),
+          phone: fullPhone,
           password: password,
           source: 'EMAIL_SIGNUP'
         });
@@ -74,7 +96,7 @@ export default function SignInPage({
         }
 
         if (saveId) {
-          localStorage.setItem('atomy_saved_id', username.trim());
+          localStorage.setItem('atomy_saved_id', email.trim());
         } else {
           localStorage.removeItem('atomy_saved_id');
         }
@@ -86,8 +108,8 @@ export default function SignInPage({
           customerId: regRes.customer.customerId,
           name: regRes.customer.fullName || fullName.trim(),
           email: regRes.customer.email || email.trim(),
-          username: regRes.customer.username || username.trim(),
-          phone: regRes.customer.phone || '',
+          username: regRes.customer.username || phoneNumber.trim(),
+          phone: fullPhone,
           isMember: Boolean(regRes.customer.isMember),
           role: 'customer'
         };
@@ -250,47 +272,94 @@ export default function SignInPage({
                 </div>
               )}
 
-              <div className="form-input-group">
-                <input
-                  type={isSignUp ? "text" : "email"}
-                  placeholder={isSignUp ? "Choose Username" : "Email Address"}
-                  className="signin-input"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete={isSignUp ? "username" : "email"}
-                  required
-                />
-              </div>
-
-              <div className="form-input-group">
-                <input
-                  type="password"
-                  placeholder="Password"
-                  className="signin-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                  required
-                />
-              </div>
-
               {isSignUp && (
-                <div className="form-input-group">
+                <div className="form-input-group phone-input-group">
+                  <div className="phone-prefix-badge">
+                    <span className="phone-flag">🇮🇳</span>
+                    <span className="phone-code">+91</span>
+                  </div>
                   <input
-                    type="password"
-                    placeholder="Confirm Password"
-                    className="signin-input"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="Phone Number"
+                    className="signin-input signin-phone-input"
+                    value={phoneNumber}
+                    onChange={handlePhoneChange}
+                    maxLength={10}
                     required
                   />
                 </div>
               )}
 
+              {!isSignUp && (
+                <div className="form-input-group">
+                  <input
+                    type="text"
+                    placeholder="Email Address or Phone Number"
+                    className="signin-input"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="form-input-group password-input-group">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  className="signin-input password-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              {isSignUp && (
+                <div className="form-input-group password-input-group">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm Password"
+                    className="signin-input password-input"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    title={showConfirmPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              )}
+
               <button
                 type="submit"
-                className={`signin-submit-btn ${username.trim() && password ? 'active' : ''}`}
+                className={`signin-submit-btn ${
+                  isSignUp
+                    ? (fullName.trim() && email.trim() && phoneNumber.length === 10 && password)
+                    : (username.trim() && password)
+                    ? 'active'
+                    : ''
+                }`}
                 disabled={submitted}
               >
                 {submitted

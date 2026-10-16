@@ -115,7 +115,7 @@ export default function MembershipPage({
           {hasActiveMembership && (
             <div className="membership-status-active-box">
               <div className="active-badge-icon">
-                <ShieldCheck size={28} color="#059669" />
+                <ShieldCheck size={26} color="#34d399" />
               </div>
               <div className="active-badge-details">
                 <h3>Active Distributor Member</h3>
@@ -123,7 +123,7 @@ export default function MembershipPage({
                   Welcome, <strong>{currentUser?.name || 'Member'}</strong>! Wholesale Distributor Pricing (DP) is active on your account.
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div className="active-status-actions">
                 <button
                   type="button"
                   className="btn-continue-mall"
@@ -133,6 +133,7 @@ export default function MembershipPage({
                 </button>
                 <button
                   type="button"
+                  className="btn-cancel-membership"
                   onClick={() => {
                     if (window.confirm('Are you sure you want to cancel your distributor membership?')) {
                       cancelMembership(currentUser);
@@ -140,16 +141,6 @@ export default function MembershipPage({
                         onMembershipActivated(null);
                       }
                     }
-                  }}
-                  style={{
-                    background: '#fef2f2',
-                    border: '1px solid #fca5a5',
-                    color: '#b91c1c',
-                    padding: '10px 18px',
-                    borderRadius: '6px',
-                    fontWeight: '700',
-                    fontSize: '13px',
-                    cursor: 'pointer'
                   }}
                 >
                   Cancel Membership
@@ -332,24 +323,31 @@ export default function MembershipPage({
               <tbody>
                 <tr>
                   <td><strong>Atomy Toothpaste (200g x 5)</strong></td>
-                  <td className="strike">₹ 1,100.00</td>
-                  <td className="dp-col">₹ 900.00</td>
-                  <td className="save-col"><span className="save-pill">₹ 200 (18%)</span></td>
-                  <td className="pv-col">3,250 PV</td>
+                  <td className="strike">₹ 1,795.00</td>
+                  <td className="dp-col">₹ 1,522.50</td>
+                  <td className="save-col"><span className="save-pill">₹ 272.50 (15%)</span></td>
+                  <td className="pv-col">4,300 PV</td>
                 </tr>
                 <tr>
                   <td><strong>Atomy Absolute Skincare 6 Set</strong></td>
-                  <td className="strike">₹ 19,000.00</td>
-                  <td className="dp-col">₹ 15,500.00</td>
-                  <td className="save-col"><span className="save-pill">₹ 3,500 (18%)</span></td>
-                  <td className="pv-col">130,000 PV</td>
+                  <td className="strike">₹ 20,000.00</td>
+                  <td className="dp-col">₹ 17,228.00</td>
+                  <td className="save-col"><span className="save-pill">₹ 2,772.00 (14%)</span></td>
+                  <td className="pv-col">128,000 PV</td>
                 </tr>
                 <tr>
                   <td><strong>Atomy Hair & Body Herbal Shampoo</strong></td>
-                  <td className="strike">₹ 1,350.00</td>
-                  <td className="dp-col">₹ 1,100.00</td>
-                  <td className="save-col"><span className="save-pill">₹ 250 (19%)</span></td>
-                  <td className="pv-col">5,200 PV</td>
+                  <td className="strike">₹ 1,050.00</td>
+                  <td className="dp-col">₹ 892.50</td>
+                  <td className="save-col"><span className="save-pill">₹ 157.50 (15%)</span></td>
+                  <td className="pv-col">6,000 PV</td>
+                </tr>
+                <tr>
+                  <td><strong>Atomy HemoHIM (1 Set)</strong></td>
+                  <td className="strike">₹ 13,000.00</td>
+                  <td className="dp-col">₹ 9,450.00</td>
+                  <td className="save-col"><span className="save-pill">₹ 3,550.00 (27%)</span></td>
+                  <td className="pv-col">80,000 PV</td>
                 </tr>
               </tbody>
             </table>

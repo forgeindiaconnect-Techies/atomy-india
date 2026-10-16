@@ -481,6 +481,59 @@ export default function AdminDashboard({ onBackToStore }) {
     });
   };
 
+  // Deduct stock for purchased order items from inventory state and localStorage
+  const deductStockForItems = (items) => {
+    if (!Array.isArray(items) || items.length === 0) return;
+    setProducts(prevProducts => {
+      let hasChanges = false;
+      const updated = prevProducts.map(prod => {
+        const matched = items.find(it => {
+          const itId = String(it.productId || it.id || '').trim().toLowerCase();
+          const prodId = String(prod.id || '').trim().toLowerCase();
+          if (itId && prodId && itId === prodId) return true;
+          const itName = String(it.productName || it.name || '').trim().toLowerCase();
+          const prodName = String(prod.name || '').trim().toLowerCase();
+          return itName && prodName && itName === prodName;
+        });
+
+        if (matched) {
+          const qty = Number(matched.quantity || matched.qty || 1) || 1;
+          const currentStock = Number(prod.stockQuantity ?? 100);
+          const newStock = Math.max(0, currentStock - qty);
+          hasChanges = true;
+          return {
+            ...prod,
+            stockQuantity: newStock,
+            status: newStock === 0 ? 'OUT_OF_STOCK' : (newStock <= (prod.lowStockThreshold || 10) ? 'LOW_STOCK' : 'IN_STOCK')
+          };
+        }
+        return prod;
+      });
+
+      if (hasChanges) {
+        try {
+          localStorage.setItem('atomy_admin_products', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      }
+      return prevProducts;
+    });
+  };
+
+  // Re-sync live products & inventory from backend whenever user opens Inventory tab
+  useEffect(() => {
+    if (activeTab === 'inventory') {
+      fetchAdminProducts().then(freshProds => {
+        if (Array.isArray(freshProds) && freshProds.length > 0) {
+          setProducts(freshProds);
+          try {
+            localStorage.setItem('atomy_admin_products', JSON.stringify(freshProds));
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+  }, [activeTab]);
+
   // Background Live-Polling Listener & Cross-Channel Listener for live customer orders & support tickets
   useEffect(() => {
     // 1. Setup real-time BroadcastChannel listeners
@@ -492,6 +545,21 @@ export default function AdminDashboard({ onBackToStore }) {
           triggerOrderNotification(newOrderObj);
           return [newOrderObj, ...prev];
         });
+
+        // Immediately decrease product stock count in inventory
+        if (Array.isArray(newOrderObj.items) && newOrderObj.items.length > 0) {
+          deductStockForItems(newOrderObj.items);
+        }
+
+        // Also refresh latest accurate inventory counts directly from backend database
+        fetchAdminProducts().then(freshProds => {
+          if (Array.isArray(freshProds) && freshProds.length > 0) {
+            setProducts(freshProds);
+            try {
+              localStorage.setItem('atomy_admin_products', JSON.stringify(freshProds));
+            } catch {}
+          }
+        }).catch(() => {});
       };
 
       const handleIncomingTicket = (newTicketObj) => {
@@ -544,9 +612,12 @@ export default function AdminDashboard({ onBackToStore }) {
             paymentStatus: "PAID",
             totalAmount: o.grandTotal || o.totalAmount || 0,
             shippingFee: o.shippingFee || 0,
-            items: o.items || [],
+            items: o.items || data.items || [],
             tracking: null
           });
+        }
+        if (data && data.type === 'STOCK_UPDATED' && Array.isArray(data.items)) {
+          deductStockForItems(data.items);
         }
         if (data && (data.type === 'NEW_TICKET' || data.type === 'SUPPORT_INQUIRY' || data.type === 'NEW_SUPPORT_TICKET') && data.ticket) {
           handleIncomingTicket(data.ticket);
@@ -576,7 +647,7 @@ export default function AdminDashboard({ onBackToStore }) {
             paymentStatus: "PAID",
             totalAmount: o.grandTotal || o.totalAmount || 0,
             shippingFee: o.shippingFee || 0,
-            items: o.items || [],
+            items: o.items || data.items || [],
             tracking: null
           });
         }
@@ -596,6 +667,14 @@ export default function AdminDashboard({ onBackToStore }) {
 
     // 2. Cross-tab storage synchronization listener
     const handleStorageUpdate = (e) => {
+      if (e.key === 'atomy_admin_products' && e.newValue) {
+        try {
+          const freshProds = JSON.parse(e.newValue);
+          if (Array.isArray(freshProds) && freshProds.length > 0) {
+            setProducts(freshProds);
+          }
+        } catch (err) {}
+      }
       if (e.key === 'atomy_admin_tickets' && e.newValue) {
         try {
           const freshList = JSON.parse(e.newValue);
@@ -650,9 +729,33 @@ export default function AdminDashboard({ onBackToStore }) {
             mappedOrders.forEach(mo => {
               if (!prevIds.has(mo.orderId) && prev.length > 0) {
                 triggerOrderNotification(mo);
+                if (Array.isArray(mo.items) && mo.items.length > 0) {
+                  deductStockForItems(mo.items);
+                }
               }
             });
             return mappedOrders;
+          });
+        }
+      } catch (e) {}
+
+      // Periodically sync inventory stock from backend database to ensure live accuracy
+      try {
+        const freshProds = await fetchAdminProducts();
+        if (Array.isArray(freshProds) && freshProds.length > 0) {
+          setProducts(prev => {
+            const freshMap = new Map(freshProds.map(p => [p.id, p]));
+            let hasDiff = false;
+            const updated = prev.map(p => {
+              const fresh = freshMap.get(p.id);
+              if (fresh && (fresh.stockQuantity !== p.stockQuantity || fresh.status !== p.status)) {
+                hasDiff = true;
+                return { ...p, stockQuantity: fresh.stockQuantity, status: fresh.status };
+              }
+              return p;
+            });
+            if (prev.length !== freshProds.length) return freshProds;
+            return hasDiff ? updated : prev;
           });
         }
       } catch (e) {}
@@ -686,6 +789,9 @@ export default function AdminDashboard({ onBackToStore }) {
                   tracking: null
                 };
                 triggerOrderNotification(newOrderObj);
+                if (Array.isArray(newOrderObj.items) && newOrderObj.items.length > 0) {
+                  deductStockForItems(newOrderObj.items);
+                }
                 return [newOrderObj, ...prev];
               });
             });

@@ -1,93 +1,91 @@
-/* Footer Wrapper in Light Cement Color */
+/* ==========================================================================
+   ATOMY INDIA FOOTER - EXACT REPLICA OF OFFICIAL DESIGN
+   ========================================================================== */
+
 .footer-wrapper {
-  background-color: #e8ecef;
-  border-top: 1px solid #ced4da;
-  color: #374151;
-  font-size: 13px;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  color: #4b5563;
+  font-family: var(--font-main, 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 12.5px;
   line-height: 1.6;
 }
 
-/* Agreement Links Header Bar (Subtle Cement Tone) */
+.footer-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* 1. Agreement & Policy Links Bar */
 .footer-agreements-bar {
-  border-bottom: 1px solid #ced4da;
+  border-bottom: 1px solid #f1f5f9;
   padding: 16px 0;
-  background-color: #dee2e6;
+  background-color: #ffffff;
 }
 
 .footer-agreements-list {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 18px;
-  font-size: 12.5px;
+  gap: 6px 8px;
+  font-size: 13px;
 }
 
 .footer-agreements-list a {
   color: #374151;
-  font-weight: 500;
-  transition: color 0.2s ease;
+  text-decoration: none;
+  font-weight: 400;
+  transition: color 0.15s ease;
 }
 
 .footer-agreements-list a:hover {
-  color: var(--atomy-blue);
+  color: #0082cd;
   text-decoration: underline;
 }
 
 .footer-link-divider {
-  width: 1px;
-  height: 11px;
-  background-color: #adb5bd;
+  color: #cbd5e1;
+  font-size: 11px;
+  margin: 0 4px;
+  user-select: none;
 }
 
-/* Main Footer Columns */
+/* 2. Main Footer Columns */
 .footer-main-container {
-  padding: 38px 0 48px;
+  padding: 32px 24px 44px;
 }
 
 .footer-columns-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 48px;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 56px;
 }
 
 /* Left Column */
 .footer-left-col {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .footer-contact-block {
   font-size: 12.5px;
   color: #4b5563;
-  line-height: 1.55;
-}
-
-.footer-contact-block strong {
-  color: #111827;
+  line-height: 1.65;
 }
 
 .footer-company-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #111827;
   margin-top: 4px;
 }
 
 .footer-address-block {
-  font-size: 12.5px;
-  color: #374151;
-  line-height: 1.6;
-}
-
-.footer-address-block strong {
-  color: #1f2937;
-}
-
-.footer-tax-info {
   font-size: 12px;
   color: #4b5563;
-  font-weight: 500;
+  line-height: 1.65;
 }
 
 .footer-copyright {
@@ -100,74 +98,55 @@
 .footer-right-col {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.cs-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
+.cs-phone-cluster {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
 .cs-header-title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: #1f2937;
 }
 
 .cs-phone-number {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 800;
   color: #111827;
-  letter-spacing: -0.5px;
-  margin: 2px 0 6px;
+  letter-spacing: -0.3px;
 }
 
-.cs-details {
-  font-size: 12.5px;
-  color: #4b5563;
-  line-height: 1.65;
-}
-
-.cs-details strong {
-  color: #111827;
-}
-
-.cs-inquiry-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #ffffff;
-  border: 1px solid #ced4da;
-  padding: 9px 18px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #1f2937;
-  border-radius: 4px;
-  width: fit-content;
-  margin-top: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-}
-
-.cs-inquiry-btn:hover {
-  border-color: var(--atomy-blue);
-  color: var(--atomy-blue);
-  background-color: #f8fafc;
-  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.15);
-}
-
-/* Social Media Channels */
+/* Social Media Circular Buttons */
 .footer-social-row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 14px;
+  gap: 8px;
 }
 
 .social-icon-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none !important;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .social-icon-btn:hover {
@@ -175,40 +154,78 @@
   opacity: 0.9;
 }
 
-.social-icon-btn.fb { background-color: #1877F2; }
-.social-icon-btn.yt { background-color: #FF0000; }
-.social-icon-btn.ig { background-color: #E4405F; }
-.social-icon-btn.li { background-color: #0A66C2; }
-.social-icon-btn.tg { background-color: #26A5E4; }
+.social-icon-btn.fb {
+  background-color: #1877f2;
+}
 
+.social-icon-btn.yt {
+  background-color: #ff0000;
+  font-size: 11px;
+}
+
+.social-icon-btn.ig {
+  background-color: #e4405f;
+}
+
+.social-icon-btn.li {
+  background-color: #0a66c2;
+  font-size: 12px;
+}
+
+.social-icon-btn.tg {
+  background-color: #229ed9;
+}
+
+/* Customer Support Details */
+.cs-details {
+  font-size: 12.5px;
+  color: #4b5563;
+  line-height: 1.65;
+}
+
+.cs-holidays {
+  color: #6b7280;
+}
+
+.cs-email-row {
+  font-size: 12.5px;
+  color: #4b5563;
+}
+
+.cs-email-row a {
+  color: #111827;
+  text-decoration: underline;
+}
+
+/* Inquiry Button */
+.cs-inquiry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #ffffff;
+  border: 1px solid #d1d5db;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  border-radius: 4px;
+  width: fit-content;
+  margin-top: 6px;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.cs-inquiry-btn:hover {
+  border-color: #0082cd;
+  color: #0082cd;
+  background-color: #f8fafc;
+}
+
+/* Responsive */
 @media (max-width: 900px) {
   .footer-columns-grid {
     grid-template-columns: 1fr;
     gap: 32px;
-  }
-}
-
-@media (max-width: 640px) {
-  .footer-main-container {
-    padding: 24px 0 32px;
-  }
-  .footer-agreements-bar {
-    padding: 12px 0;
-  }
-  .footer-agreements-list {
-    gap: 8px 12px;
-    font-size: 11.5px;
-  }
-  .footer-contact-block {
-    font-size: 12px;
-  }
-  .footer-address-block {
-    font-size: 12px;
-  }
-  .footer-company-name {
-    font-size: 15px;
-  }
-  .footer-social-row {
-    gap: 10px;
   }
 }

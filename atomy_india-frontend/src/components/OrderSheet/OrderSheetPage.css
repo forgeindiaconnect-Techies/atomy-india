@@ -1580,6 +1580,7 @@
   min-height: 36px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0 0 10px 0;
@@ -3415,50 +3416,539 @@
 }
 
 @media (max-width: 768px) {
+  /* Full-width container & page filling */
   .order-sheet-page {
-    padding-bottom: 50px;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    padding-bottom: 70px !important;
   }
+
   .order-sheet-main-container {
-    padding: 14px 10px;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px 10px 40px !important;
+    box-sizing: border-box !important;
   }
-  .sheet-card {
-    border-radius: 10px;
-    margin-bottom: 16px;
+
+  /* Compact Filled Breadcrumbs & Stepper */
+  .order-sheet-breadcrumbs {
+    padding: 10px 0 !important;
+    width: 100% !important;
   }
-  .sheet-card-header {
-    padding: 12px 14px;
-  }
-  .card-header-title {
-    font-size: 14.5px;
-  }
-  .sheet-card-body {
-    padding: 14px 12px;
-  }
+
   .breadcrumb-container {
-    padding: 0 10px;
-    gap: 8px;
+    padding: 0 10px !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
   }
+
   .breadcrumb-nav {
-    font-size: 12px;
+    font-size: 12px !important;
+    gap: 6px !important;
   }
-  .form-row, .order-form-grid, .two-col-grid {
+
+  .order-steps-stepper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    padding-bottom: 2px !important;
+  }
+
+  .order-steps-stepper::-webkit-scrollbar {
+    display: none;
+  }
+
+  .step-item {
+    font-size: 11.5px !important;
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .step-num {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 11px !important;
+  }
+
+  /* Step 01: Order Sheet 1-Column Filled Layout */
+  .order-sheet-content-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 16px !important;
+  }
+
+  .sheet-main-column,
+  .sheet-sidebar-column {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .sheet-sidebar-column {
+    position: static !important;
+  }
+
+  .sheet-card {
+    border-radius: 10px !important;
+    margin-bottom: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .sheet-card-header {
+    padding: 12px 14px !important;
+  }
+
+  .card-header-title {
+    font-size: 14px !important;
+    gap: 8px !important;
+  }
+
+  .sheet-card-body {
+    padding: 14px 12px !important;
+  }
+
+  /* Top delivery estimate strip filled */
+  .sheet-delivery-estimate-strip {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Product items list filled */
+  .sheet-product-row {
+    padding: 12px 10px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    flex-wrap: wrap !important;
+  }
+
+  .sheet-product-img {
+    width: 54px !important;
+    height: 54px !important;
+  }
+
+  .sheet-product-info {
+    flex: 1 1 180px !important;
+    min-width: 0 !important;
+  }
+
+  .sheet-product-title {
+    font-size: 13px !important;
+  }
+
+  .sheet-product-stepper-cell {
+    margin: 4px 0 !important;
+  }
+
+  .sheet-product-pricing {
+    margin-left: auto !important;
+    text-align: right !important;
+  }
+
+  .sheet-item-price {
+    font-size: 14.5px !important;
+  }
+
+  /* Address selector cards filled */
+  .address-cards-selection-grid {
     grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
   }
+
+  .address-card-item {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px !important;
+  }
+
+  .destination-radio-card {
+    padding: 12px !important;
+  }
+
+  .delivery-destination-options {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Payment Summary Card Filled */
+  .payment-summary-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 18px 14px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .summary-title {
+    font-size: 17px !important;
+    margin: 0 0 16px 0 !important;
+  }
+
+  .summary-breakdown {
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+  }
+
+  .summary-line {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 13.5px !important;
+    width: 100% !important;
+  }
+
+  .summary-line .line-value {
+    font-size: 14px !important;
+  }
+
+  .summary-tax-breakdown-panel {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 8px 10px !important;
+  }
+
+  .summary-grand-total {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding: 12px 0 0 !important;
+  }
+
+  .grand-label span {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+  }
+
+  .grand-amount {
+    font-size: 21px !important;
+  }
+
+  .consent-agreements {
+    margin: 14px 0 !important;
+    width: 100% !important;
+  }
+
+  .consent-checkbox-row {
+    font-size: 12.5px !important;
+    gap: 8px !important;
+  }
+
+  .place-order-submit-btn {
+    width: 100% !important;
+    height: 50px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    margin-top: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Form Grids in Sheet */
+  .form-row,
+  .form-two-col,
+  .form-three-col,
+  .order-form-grid,
+  .two-col-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  /* Step 02: Dedicated Payment Gateway Page Filled */
+  .payment-gateway-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 8px 6px 50px !important;
+    box-sizing: border-box !important;
+  }
+
+  .pg-top-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .pg-header-title {
+    font-size: 16px !important;
+  }
+
+  .pg-three-column-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 16px !important;
+  }
+
+  .pg-methods-column,
+  .pg-center-column,
+  .pg-right-summary-column {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Payment method selection cards filled */
+  .pg-methods-list {
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .pg-method-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px 14px !important;
+    border-radius: 8px !important;
+  }
+
+  .pg-delivery-destination-mini {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 10px 12px !important;
+  }
+
+  /* Interactive Center Payment Cards Filled */
+  .pg-upi-center-wrapper {
+    width: 100% !important;
+  }
+
+  .pg-qr-frame-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 16px 12px !important;
+    border-radius: 10px !important;
+  }
+
+  .pg-qr-amount-val {
+    font-size: 24px !important;
+  }
+
+  .pg-custom-qr-image {
+    max-width: 210px !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 auto !important;
+  }
+
+  .pg-upi-apps-logo-row {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    margin: 10px 0 !important;
+  }
+
+  .pg-btn-verify-pay {
+    width: 100% !important;
+    height: 48px !important;
+    font-size: 14px !important;
+    border-radius: 6px !important;
+    padding: 10px !important;
+    word-break: break-word !important;
+  }
+
+  .pg-btn-toggle-vpa {
+    width: 100% !important;
+    font-size: 12.5px !important;
+    padding: 8px !important;
+  }
+
+  .pg-custom-vpa-box {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .pg-vpa-input-row {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Subforms: Card, Netbanking, COD filled */
+  .pg-subform-center-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 16px 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .pg-card-form-body,
+  .pg-netbanking-body,
+  .pg-cod-body {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .pg-form-row-two {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .pg-banks-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Right Summary Column Filled */
+  .pg-right-summary-column {
+    position: static !important;
+    width: 100% !important;
+  }
+
+  .pg-price-summary-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 16px 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .pg-summary-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    font-size: 13.5px !important;
+  }
+
+  .pg-total-amount-box {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px 14px !important;
+    border-radius: 8px !important;
+  }
+
+  .pg-total-label {
+    font-size: 14px !important;
+  }
+
+  .pg-total-val {
+    font-size: 19px !important;
+  }
+
+  .pg-cashback-banner-card {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px 14px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Customer Favorites Bestseller Row filled & swipeable */
+  .quick-order-best-section {
+    padding: 24px 0 10px !important;
+    width: 100% !important;
+  }
+
+  .bestsellers-cards-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    gap: 12px !important;
+    padding-bottom: 6px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    width: 100% !important;
+  }
+
+  .bestsellers-cards-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bestseller-item-card {
+    flex: 0 0 160px !important;
+    min-width: 160px !important;
+  }
+
+  /* Step 04: Order Confirmation ETA Box filled */
   .delivery-confirmed-eta-box {
-    flex-direction: column;
-    text-align: center;
-    gap: 10px;
-    padding: 14px;
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 10px !important;
+    padding: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
 @media (max-width: 480px) {
-  .card-header-title {
-    font-size: 13.5px;
-    gap: 6px;
+  .order-sheet-main-container {
+    padding: 10px 8px 30px !important;
   }
+
   .sheet-card-header {
-    padding: 10px 12px;
+    padding: 10px 12px !important;
+  }
+
+  .card-header-title {
+    font-size: 13px !important;
+    gap: 6px !important;
+  }
+
+  .payment-summary-card {
+    padding: 14px 12px !important;
+  }
+
+  .summary-title {
+    font-size: 15.5px !important;
+  }
+
+  .grand-amount {
+    font-size: 19px !important;
+  }
+
+  .place-order-submit-btn {
+    height: 48px !important;
+    font-size: 14.5px !important;
+  }
+
+  .pg-header-title {
+    font-size: 15px !important;
+  }
+
+  .pg-method-name {
+    font-size: 13.5px !important;
+  }
+
+  .pg-qr-amount-val {
+    font-size: 22px !important;
+  }
+
+  .pg-custom-qr-image {
+    max-width: 190px !important;
+  }
+
+  .pg-btn-verify-pay {
+    font-size: 13.5px !important;
+  }
+
+  .pg-total-val {
+    font-size: 17.5px !important;
+  }
+
+  .bestseller-item-card {
+    flex: 0 0 145px !important;
+    min-width: 145px !important;
   }
 }
 

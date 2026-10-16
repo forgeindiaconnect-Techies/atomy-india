@@ -26,7 +26,9 @@ import {
   Sparkles,
   AlertCircle,
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  Navigation,
+  Loader2
 } from 'lucide-react';
 import './CustomerProfilePage.css';
 
@@ -101,6 +103,132 @@ export default function CustomerProfilePage({
     pincode: ''
   });
 
+  // Geolocation & PIN Code Live Detection States
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [isLocationDetected, setIsLocationDetected] = useState(false);
+  const [detectedLocationName, setDetectedLocationName] = useState('');
+  const [locationFeedback, setLocationFeedback] = useState(null);
+  const [isLookingUpPincode, setIsLookingUpPincode] = useState(false);
+  const [availableAreas, setAvailableAreas] = useState([]);
+
+  // Trigger Live GPS Current Location Detection inside Address Form
+  const handleDetectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationFeedback('Geolocation is not supported by your browser.');
+      setTimeout(() => setLocationFeedback(null), 3000);
+      return;
+    }
+
+    setIsDetectingLocation(true);
+    setLocationFeedback('Detecting GPS location...');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+          const data = await res.json();
+
+          const detectedPin = data.postcode || '';
+          const detectedCity = data.city || data.locality || data.principalSubdivision || '';
+          const detectedState = data.principalSubdivision || '';
+          const detectedArea = [data.locality, data.neighbourhood].filter(Boolean).join(', ');
+
+          setNewAddressForm((prev) => ({
+            ...prev,
+            pincode: detectedPin || prev.pincode,
+            city: detectedCity || prev.city,
+            state: detectedState || prev.state,
+            street: prev.street ? prev.street : (detectedArea || '')
+          }));
+
+          setIsLocationDetected(true);
+          const locName = [detectedCity, detectedState].filter(Boolean).join(', ');
+          setDetectedLocationName(locName);
+
+          if (detectedPin && detectedPin.length === 6) {
+            handleLookupPincodeDetails(detectedPin);
+          }
+
+          setLocationFeedback(`Live location detected: ${locName}`);
+          setTimeout(() => setLocationFeedback(null), 3500);
+        } catch (err) {
+          setLocationFeedback('Could not fetch address details for this location.');
+          setTimeout(() => setLocationFeedback(null), 3500);
+        } finally {
+          setIsDetectingLocation(false);
+        }
+      },
+      (error) => {
+        setIsDetectingLocation(false);
+        setIsLocationDetected(false);
+        setLocationFeedback('Location permission denied. Please enter manually.');
+        setTimeout(() => setLocationFeedback(null), 3500);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  // Live lookup for Indian PIN code
+  const handleLookupPincodeDetails = async (pin) => {
+    const cleanPin = String(pin || '').replace(/\D/g, '').slice(0, 6);
+    if (cleanPin.length !== 6) return;
+
+    setIsLookingUpPincode(true);
+    try {
+      const response = await fetch(`https://api.postalpincode.in/pincode/${cleanPin}`);
+      const data = await response.json();
+      if (data && data[0] && data[0].Status === 'Success' && Array.isArray(data[0].PostOffice)) {
+        const postOffices = data[0].PostOffice;
+        const district = postOffices[0].District;
+        const st = postOffices[0].State;
+        const areaNames = postOffices.map((po) => po.Name).filter(Boolean);
+
+        setNewAddressForm((prev) => ({
+          ...prev,
+          city: district || prev.city,
+          state: st || prev.state
+        }));
+
+        setAvailableAreas(areaNames);
+      } else {
+        setAvailableAreas([]);
+      }
+    } catch (e) {
+      // Graceful fallback
+    } finally {
+      setIsLookingUpPincode(false);
+    }
+  };
+
+  const handleFormPincodeChange = (e) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setNewAddressForm((prev) => ({ ...prev, pincode: val }));
+    if (val.length === 6) {
+      handleLookupPincodeDetails(val);
+    } else {
+      setAvailableAreas([]);
+    }
+  };
+
+  const handleSelectAreaChip = (areaName) => {
+    setNewAddressForm((prev) => {
+      const current = (prev.street || '').trim();
+      let updated = current;
+      if (!current) {
+        updated = areaName;
+      } else if (!current.toLowerCase().includes(areaName.toLowerCase())) {
+        updated = `${current}, ${areaName}`;
+      }
+      return {
+        ...prev,
+        street: updated
+      };
+    });
+  };
+
   // Coupons state
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [couponMessage, setCouponMessage] = useState('');
@@ -167,27 +295,15 @@ export default function CustomerProfilePage({
   const [redeemCardCode, setRedeemCardCode] = useState('');
   const [redeemMessage, setRedeemMessage] = useState('');
 
-  // Customer Reviews state
-  const [reviews, setReviews] = useState([
-    {
-      id: 'rev-1',
-      productName: 'Atomy HemoHIM (60 Packets)',
-      rating: 5,
-      date: '02 Oct 2026',
-      reviewTitle: 'Exceptional immunity booster, worth every rupee!',
-      comment: 'I have been taking HemoHIM for 3 weeks and my daily energy levels have noticeably improved. Clean herbal taste and great quality packaging.',
-      verified: true
-    },
-    {
-      id: 'rev-2',
-      productName: 'Atomy Absolute Skincare Set (6 Pieces)',
-      rating: 5,
-      date: '28 Sep 2026',
-      reviewTitle: 'My skin texture feels supple and radiant',
-      comment: 'Top Korean skincare science. The ampoule and eye cream are truly luxury grade. Highly recommended for daily skincare routine.',
-      verified: true
+  // Customer Reviews state (Real reviews from user, no hardcoded demo data)
+  const [reviews, setReviews] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_customer_reviews');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-  ]);
+  });
 
   const [newReviewForm, setNewReviewForm] = useState({
     productName: 'Atomy Toothpaste (200g)',
@@ -241,6 +357,8 @@ export default function CustomerProfilePage({
     };
     setAddresses([...addresses, newAddr]);
     setIsAddingAddress(false);
+    setIsLocationDetected(false);
+    setAvailableAreas([]);
     setNewAddressForm({
       type: 'Home',
       fullName: currentUser?.name || '',
@@ -1077,6 +1195,40 @@ export default function CustomerProfilePage({
               {isAddingAddress && (
                 <form onSubmit={handleAddAddress} className="add-address-form-card">
                   <h3 className="add-address-title">Add Delivery Address</h3>
+
+                  {/* Top Location Bar: Use Current Location Button & Feedback */}
+                  <div className="modal-current-location-banner" style={{ marginBottom: '16px' }}>
+                    <button
+                      type="button"
+                      className={`btn-modal-gps-location ${isLocationDetected ? 'location-detected-success' : ''}`}
+                      onClick={handleDetectCurrentLocation}
+                      disabled={isDetectingLocation}
+                    >
+                      {isDetectingLocation ? (
+                        <>
+                          <Loader2 size={16} className="spin-icon animate-spin" />
+                          <span>Detecting Live Location...</span>
+                        </>
+                      ) : isLocationDetected ? (
+                        <>
+                          <Check size={16} />
+                          <span>Live Location Detected & Applied {detectedLocationName ? `(${detectedLocationName})` : ''}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Navigation size={16} />
+                          <span>Use Current Location</span>
+                        </>
+                      )}
+                    </button>
+
+                    {locationFeedback && !isLocationDetected && (
+                      <span className="location-feedback-pill">
+                        {locationFeedback}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="form-grid-2">
                     <div className="form-field-group">
                       <label className="field-label">Address Tag / Type</label>
@@ -1110,22 +1262,63 @@ export default function CustomerProfilePage({
                         placeholder="10-digit mobile number"
                         className="profile-field-input"
                         value={newAddressForm.phone}
-                        onChange={(e) => setNewAddressForm({ ...newAddressForm, phone: e.target.value })}
+                        onChange={(e) => setNewAddressForm({ ...newAddressForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                         required
                       />
                     </div>
 
                     <div className="form-field-group">
-                      <label className="field-label">PIN Code</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="field-label">PIN Code</label>
+                        {isLookingUpPincode && (
+                          <span style={{ fontSize: '11px', color: '#00A3E0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Loader2 size={11} className="animate-spin" /> Finding...
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="text"
                         placeholder="e.g. 560001"
                         className="profile-field-input"
                         value={newAddressForm.pincode}
-                        onChange={(e) => setNewAddressForm({ ...newAddressForm, pincode: e.target.value })}
+                        onChange={handleFormPincodeChange}
+                        maxLength={6}
                         required
                       />
                     </div>
+
+                    {/* Specific Areas Auto-Detected for this PIN */}
+                    {availableAreas.length > 0 && (
+                      <div className="form-field-group full-width" style={{ background: '#f8fafc', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                          Specific Areas / Post Offices in PIN {newAddressForm.pincode} (Click to add):
+                        </span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {availableAreas.slice(0, 8).map(area => (
+                            <button
+                              key={area}
+                              type="button"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: (newAddressForm.street || '').toLowerCase().includes(area.toLowerCase()) ? '#e0f2fe' : '#ffffff',
+                                border: (newAddressForm.street || '').toLowerCase().includes(area.toLowerCase()) ? '1px solid #0284c7' : '1px solid #cbd5e1',
+                                color: (newAddressForm.street || '').toLowerCase().includes(area.toLowerCase()) ? '#0284c7' : '#475569',
+                                padding: '4px 8px',
+                                borderRadius: '12px',
+                                fontSize: '11.5px',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => handleSelectAreaChip(area)}
+                            >
+                              <MapPin size={11} />
+                              <span>{area}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div className="form-field-group full-width">
                       <label className="field-label">Street Address & Landmark</label>

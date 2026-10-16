@@ -38,6 +38,36 @@
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
 }
 
+/* Ambient backdrop for ad slides so they blend seamlessly without empty borders */
+.hero-slide-ambient-bg {
+  position: absolute;
+  top: -24px;
+  left: -24px;
+  right: -24px;
+  bottom: -24px;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  filter: blur(28px) brightness(0.82);
+  opacity: 0.7;
+  transform: scale(1.08);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Make ad slides fit completely within the container without cutting off any text/logos */
+.hero-slide-bg.hero-slide-fit-contain {
+  z-index: 2;
+  background-size: contain !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}
+
+.view-all-banner-img.fit-contain {
+  object-fit: contain !important;
+  background-color: inherit;
+}
+
 .hero-slide:hover .hero-slide-bg {
   transform: scale(1.012);
 }
@@ -465,27 +495,150 @@
 
 @media (max-width: 768px) {
   .hero-slider-section {
-    height: 300px;
+    width: 100% !important;
+    height: 235px !important;
+    min-height: 220px !important;
+    max-height: 250px !important;
+    overflow: hidden !important;
   }
+
+  .hero-slide-bg {
+    width: 100% !important;
+    height: 100% !important;
+    background-size: cover !important;
+    background-position: var(--mobile-bg-pos, center center) !important;
+  }
+
+  .hero-slide-bg.hero-slide-fit-contain {
+    background-size: contain !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+  }
+
+  .hero-slide-ambient-bg {
+    filter: blur(20px) brightness(0.85) !important;
+    opacity: 0.75 !important;
+  }
+
   .hero-text-overlay-wrap {
-    padding: 0 20px;
+    padding: 0 18px !important;
+    max-width: 58% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
   }
+
   .hero-title {
-    font-size: 26px;
+    font-size: 20px !important;
+    margin-bottom: 6px !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.4px !important;
   }
+
   .hero-subtitle {
-    font-size: 14px;
+    font-size: 12.5px !important;
+    margin-bottom: 4px !important;
+    line-height: 1.2 !important;
   }
+
+  .hero-arrow-indicator {
+    display: none !important;
+  }
+
   .slider-arrow {
-    display: none;
+    display: none !important;
   }
+
+  .slider-controls-badge {
+    bottom: 12px !important;
+    right: 12px !important;
+    gap: 4px !important;
+    transform: none !important;
+  }
+
+  .slider-counter {
+    height: 24px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    line-height: 24px !important;
+  }
+
+  .slider-btn-icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .slider-btn-icon svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
   .view-all-modal-dialog {
     width: 92vw;
   }
+
   .view-all-modal-header {
     padding: 16px 20px;
   }
+
   .view-all-modal-body {
     padding: 16px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-slider-section {
+    width: 100% !important;
+    height: 220px !important;
+    min-height: 210px !important;
+    max-height: 235px !important;
+  }
+
+  .hero-slide-bg {
+    background-position: var(--mobile-bg-pos, center center) !important;
+  }
+
+  .hero-slide-bg.hero-slide-fit-contain {
+    background-size: contain !important;
+    background-position: center center !important;
+    background-repeat: no-repeat !important;
+  }
+
+  .hero-text-overlay-wrap {
+    padding: 0 16px !important;
+    max-width: 56% !important;
+  }
+
+  .hero-title {
+    font-size: 18.5px !important;
+    margin-bottom: 4px !important;
+    line-height: 1.2 !important;
+  }
+
+  .hero-subtitle {
+    font-size: 11.5px !important;
+    line-height: 1.2 !important;
+  }
+
+  .slider-controls-badge {
+    bottom: 10px !important;
+    right: 10px !important;
+  }
+
+  .slider-counter {
+    height: 22px !important;
+    padding: 0 8px !important;
+    font-size: 10.5px !important;
+    line-height: 22px !important;
+  }
+
+  .slider-btn-icon {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .slider-btn-icon svg {
+    width: 11px !important;
+    height: 11px !important;
   }
 }

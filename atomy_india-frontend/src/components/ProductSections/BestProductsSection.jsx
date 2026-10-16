@@ -127,12 +127,7 @@ export default function BestProductsSection({
                     <ProductPriceDisplay product={product} isMember={isMember} />
 
                     <div className="product-meta-row">
-                      <div
-                        className="likes-counter"
-                        onClick={() => onToggleFavorite && onToggleFavorite(product)}
-                        title={isLiked ? "Remove from Favorites" : "Add to Favorites"}
-                        style={{ cursor: 'pointer' }}
-                      >
+                      <div className="likes-counter">
                         <Heart
                           size={14}
                           fill={isLiked ? "#e53935" : "none"}

@@ -651,14 +651,42 @@ export default function OrderSheetPage({
       localStorage.setItem('atomy_admin_orders', JSON.stringify([newOrder, ...existing]));
     } catch {}
 
+    // Deduct stock in localStorage atomy_admin_products so Admin reflects immediately
+    try {
+      const savedProds = localStorage.getItem('atomy_admin_products');
+      if (savedProds) {
+        const prodsList = JSON.parse(savedProds);
+        if (Array.isArray(prodsList)) {
+          const updated = prodsList.map(p => {
+            const bought = cartItems.find(it => 
+              String(it.id || it.productId || '').trim().toLowerCase() === String(p.id || '').trim().toLowerCase() ||
+              (it.name && p.name && it.name.trim().toLowerCase() === p.name.trim().toLowerCase())
+            );
+            if (bought) {
+              const qty = Number(bought.qty || bought.quantity || 1) || 1;
+              const cur = Number(p.stockQuantity) || 0;
+              const newQty = Math.max(0, cur - qty);
+              return {
+                ...p,
+                stockQuantity: newQty,
+                status: newQty === 0 ? 'OUT_OF_STOCK' : (newQty <= (p.lowStockThreshold || 10) ? 'LOW_STOCK' : 'IN_STOCK')
+              };
+            }
+            return p;
+          });
+          localStorage.setItem('atomy_admin_products', JSON.stringify(updated));
+        }
+      }
+    } catch (err) {}
+
     // Broadcast in real-time across tabs/ports (to Admin on port 5174!)
     try {
       const channel = new BroadcastChannel('atomy_sync_channel');
-      channel.postMessage({ type: 'ORDER_PLACED', order: newOrder });
+      channel.postMessage({ type: 'ORDER_PLACED', order: newOrder, items: cartItems });
     } catch {}
     try {
       const orderChannel = new BroadcastChannel('atomy_order_channel');
-      orderChannel.postMessage({ type: 'NEW_ORDER', order: newOrder });
+      orderChannel.postMessage({ type: 'NEW_ORDER', order: newOrder, items: cartItems });
     } catch {}
 
     setPlacedOrderDetails(newOrder);

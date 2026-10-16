@@ -130,12 +130,22 @@
 
 @media (max-width: 640px) {
   .floatingBx.clean-divider-style.fixed-corner-arrows {
-    right: 14px !important;
-    bottom: 16px !important;
-    width: 38px;
+    right: 8px !important;
+    bottom: 12px !important;
+    width: 32px !important;
+    border-radius: 7px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14) !important;
   }
   .floating-btn {
-    width: 38px;
-    height: 38px;
+    width: 32px !important;
+    height: 32px !important;
+  }
+  .floating-btn svg,
+  .floating-btn .arrow-icon {
+    width: 15px !important;
+    height: 15px !important;
+  }
+  .tooltip-label {
+    display: none !important;
   }
 }

@@ -225,7 +225,7 @@ export default function App() {
 
   // Centralized navigate function that synchronizes React state, URL, and session history
   const navigateTo = useCallback((view, extra = {}) => {
-    if (view === 'about-atomy') {
+    if (view === 'about-atomy' || view === 'about') {
       window.open('https://global.atomy.com/menu.es?mid=a20101000000', '_blank', 'noopener,noreferrer');
       return;
     }
@@ -352,6 +352,12 @@ export default function App() {
 
   const [recentlyViewed, setRecentlyViewed] = useState(() => {
     try {
+      const demoCleared = localStorage.getItem('atomy_rv_demo_cleared');
+      if (!demoCleared) {
+        localStorage.setItem('atomy_rv_demo_cleared', 'true');
+        localStorage.removeItem('atomy_recently_viewed');
+        return [];
+      }
       const saved = localStorage.getItem('atomy_recently_viewed');
       return saved ? JSON.parse(saved) : [];
     } catch {

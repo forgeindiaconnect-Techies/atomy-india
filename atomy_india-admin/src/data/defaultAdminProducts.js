@@ -24,7 +24,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 9450.0
   },
   {
     "id": "D00207",
@@ -50,7 +51,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 17228.0
   },
   {
     "id": "D00003",
@@ -76,7 +78,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 7906.0
   },
   {
     "id": "D00351",
@@ -102,7 +105,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2855.6
   },
   {
     "id": "D00757",
@@ -128,7 +132,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2596.0
   },
   {
     "id": "D01440",
@@ -154,7 +159,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 767.0
   },
   {
     "id": "D04704",
@@ -180,7 +186,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 767.0
   },
   {
     "id": "D01526",
@@ -206,7 +213,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 1062.0
   },
   {
     "id": "D00396",
@@ -232,7 +240,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 1575.0
   },
   {
     "id": "D00170",
@@ -258,7 +267,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 4830.0
   },
   {
     "id": "D00281",
@@ -284,7 +294,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 755.2
   },
   {
     "id": "D00261",
@@ -310,7 +321,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 708.0
   },
   {
     "id": "D00510",
@@ -336,7 +348,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 800.85
   },
   {
     "id": "D00693",
@@ -362,7 +375,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2371.8
   },
   {
     "id": "D00691",
@@ -388,7 +402,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 1123.5
   },
   {
     "id": "D00681",
@@ -414,7 +429,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 934.5
   },
   {
     "id": "D00661",
@@ -440,7 +456,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 1156.4
   },
   {
     "id": "D00631",
@@ -466,7 +483,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 873.2
   },
   {
     "id": "D00620",
@@ -492,7 +510,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 1062.0
   },
   {
     "id": "D00611",
@@ -518,7 +537,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 672.6
   },
   {
     "id": "D00601",
@@ -544,7 +564,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 892.5
   },
   {
     "id": "D00217",
@@ -570,7 +591,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2891.0
   },
   {
     "id": "D00227",
@@ -596,7 +618,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 3894.0
   },
   {
     "id": "D00237",
@@ -622,7 +645,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 3186.0
   },
   {
     "id": "D00247",
@@ -648,7 +672,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2891.0
   },
   {
     "id": "D00257",
@@ -674,7 +699,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 3186.0
   },
   {
     "id": "D00267",
@@ -700,7 +726,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2861.5
   },
   {
     "id": "D01513",
@@ -726,7 +753,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2714.0
   },
   {
     "id": "D00975",
@@ -752,7 +780,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 1470.0
   },
   {
     "id": "D00183",
@@ -778,7 +807,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 5696.25
   },
   {
     "id": "D00180",
@@ -804,7 +834,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2835.0
   },
   {
     "id": "D00111",
@@ -830,7 +861,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": true,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 3045.0
   },
   {
     "id": "D00160",
@@ -856,7 +888,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 3465.0
   },
   {
     "id": "D00174",
@@ -882,7 +915,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 2835.0
   },
   {
     "id": "D94085",
@@ -908,7 +942,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 735.0
   },
   {
     "id": "D90178",
@@ -934,7 +969,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 498.75
   },
   {
     "id": "D04086",
@@ -960,7 +996,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 670.95
   },
   {
     "id": "D94084",
@@ -986,7 +1023,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 1470.0
   },
   {
     "id": "D04006",
@@ -1012,7 +1050,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": true,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 4410.0
   },
   {
     "id": "D07116",
@@ -1038,7 +1077,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 8897.42
   },
   {
     "id": "D00104",
@@ -1048,7 +1088,7 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "subcategory": "Immune & Nutrition",
     "price": 52000,
     "originalPrice": 59800,
-    "pv": 320000,
+    "pv": 290000,
     "stockQuantity": 65,
     "lowStockThreshold": 10,
     "status": "IN_STOCK",
@@ -1064,7 +1104,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 35700.0
   },
   {
     "id": "D00102",
@@ -1074,7 +1115,7 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "subcategory": "Immune & Nutrition",
     "price": 26000,
     "originalPrice": 29900,
-    "pv": 160000,
+    "pv": 150000,
     "stockQuantity": 72,
     "lowStockThreshold": 10,
     "status": "IN_STOCK",
@@ -1090,7 +1131,8 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": true,
-    "active": true
+    "active": true,
+    "dpPrice": 18375.0
   },
   {
     "id": "D00501",
@@ -1116,6 +1158,7 @@ export const INITIAL_ADMIN_PRODUCTS = [
     "isNonVeg": false,
     "gstReduced": true,
     "freeDelivery": false,
-    "active": true
+    "active": true,
+    "dpPrice": 1522.5
   }
 ];

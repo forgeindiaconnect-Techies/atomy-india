@@ -1,374 +1,1122 @@
 /* ==========================================================================
-   SEMINARS & SUCCESS ACADEMY PAGE STYLES
+   ATOMY INDIA - CST SEMINAR & EDUCATION PAGE
+   Replicating https://in.atomy.com/cst/seminarEducation
    ========================================================================== */
 
-.seminars-page {
+.atomy-cst-seminar-page {
   width: 100%;
   min-height: 80vh;
   background-color: #f8fafc;
-  font-family: var(--font-main, 'Noto Sans', 'Inter', sans-serif);
-  color: #1e293b;
-  padding-bottom: 80px;
+  font-family: var(--font-main, 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  color: #222222;
+  padding-bottom: 90px;
 }
 
-.seminars-container {
-  max-width: 1240px;
+.cst-wrap.inner-center {
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 24px 20px 0;
 }
 
-/* Breadcrumbs */
-.seminars-breadcrumb-bar {
-  background-color: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  padding: 12px 0;
-  font-size: 12.5px;
-}
-
-.seminars-breadcrumb-bar .seminars-container {
+/* 1. Page Title & Breadcrumb */
+.cst-title-area {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 2px solid #1e293b;
+  margin-bottom: 24px;
 }
 
-/* Header Banner */
-.seminars-header-banner {
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0284c7 100%);
-  color: #ffffff;
-  padding: 56px 0;
-}
-
-.seminars-eyebrow {
-  display: inline-block;
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: #38bdf8;
-  margin-bottom: 10px;
-}
-
-.seminars-title {
-  font-size: 32px;
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0 0 12px;
-  letter-spacing: -0.01em;
-}
-
-.seminars-subtitle {
-  font-size: 15px;
-  color: #e0f2fe;
-  max-width: 720px;
+.cst-main-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
   margin: 0;
-  line-height: 1.6;
+  letter-spacing: -0.02em;
 }
 
-/* System Highlights */
-.seminars-system-section {
-  padding: 40px 0 20px;
+.cst-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
 }
 
-.system-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+.loc-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.15s ease;
 }
 
-.system-card {
+.loc-link:hover {
+  color: #0082cd;
+  text-decoration: underline;
+}
+
+.loc-sep {
+  color: #94a3b8;
+}
+
+.loc-current {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* 2. Official Tabs (gtTabs) */
+.cst-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 32px;
+}
+
+.cst-tab-btn {
+  flex: 1;
+  max-width: 240px;
+  padding: 14px 20px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 30px 26px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  display: flex;
-  flex-direction: column;
+  border-bottom: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  position: relative;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  margin-right: -1px;
 }
 
-.system-icon-wrap {
-  width: 52px;
-  height: 52px;
+.cst-tab-btn.active {
+  background: #0082cd;
+  color: #ffffff;
+  border-color: #0082cd;
+  box-shadow: 0 2px 4px rgba(0, 130, 205, 0.15);
+}
+
+.cst-tab-btn:hover:not(.active) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* 3. Seminar Schedule Section */
+.cst-plan-part {
+  background: #ffffff;
   border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 36px;
+}
+
+.cst-plan-desc .section-heading {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 24px;
+}
+
+/* comp-diary */
+.comp-diary-box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Date Navigator */
+.my-date-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 18px;
+  gap: 32px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
-.system-icon-wrap.academy {
+.m-date-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-arrow:hover {
+  background: #0082cd;
+  color: #ffffff;
+  border-color: #0082cd;
+}
+
+.date-val {
+  font-size: 17px;
+  color: #0f172a;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Filter Checkboxes Row */
+.my-chk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.filter-chips-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-chip .chk-box {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid #94a3b8;
+  display: inline-block;
+  transition: all 0.15s ease;
+}
+
+.filter-chip.chip-all.selected {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+}
+.filter-chip.chip-all.selected .chk-box {
+  background: #ffffff;
+  border-color: #ffffff;
+}
+
+.filter-chip.chip-yw.selected {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+.filter-chip.chip-yw.selected .chk-box {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.filter-chip.chip-gr.selected {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #10b981;
+}
+.filter-chip.chip-gr.selected .chk-box {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.filter-chip.chip-or.selected {
+  background: #ffedd5;
+  color: #9a3412;
+  border-color: #f97316;
+}
+.filter-chip.chip-or.selected .chk-box {
+  background: #f97316;
+  border-color: #f97316;
+}
+
+.filter-chip.chip-gy.selected {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #94a3b8;
+}
+.filter-chip.chip-gy.selected .chk-box {
+  background: #94a3b8;
+  border-color: #94a3b8;
+}
+
+.chip-myschedule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0082cd;
+  padding: 6px 12px;
+  background: #e0f2fe;
+  border-radius: 20px;
+}
+
+/* View Mode Switcher */
+.view-mode-toggle {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.view-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-btn.on {
+  background: #0082cd;
+  color: #ffffff;
+}
+
+.view-btn:not(.on):hover {
+  background: #f1f5f9;
+}
+
+/* 4. Calendar Grid */
+.grid-cal-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.grid-cal-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.cal-header-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #f1f5f9;
+  border-bottom: 1px solid #cbd5e1;
+  text-align: center;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #334155;
+}
+
+.cal-th {
+  padding: 12px 6px;
+}
+
+.cal-th.sun {
+  color: #ef4444;
+}
+
+.cal-grid-body {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-cell {
+  min-height: 110px;
+  border-right: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cal-cell:nth-child(7n) {
+  border-right: none;
+}
+
+.cal-cell:hover:not(.cell-empty) {
+  background: #f8fafc;
+}
+
+.cal-cell.cell-selected {
+  background: #eff6ff;
+  outline: 2px solid #0082cd;
+  outline-offset: -2px;
+}
+
+.cal-cell.cell-empty {
+  background: #fafafa;
+  cursor: default;
+}
+
+.cell-num-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cell-num {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-num.selected {
+  background: #0082cd;
+  color: #ffffff;
+}
+
+.event-count-badge {
+  background: #0082cd;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.cell-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.cell-event-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cell-event-chip.dot-yw {
+  background: #fef3c7;
+  color: #92400e;
+}
+.cell-event-chip.dot-yw .chip-bullet {
+  background: #f59e0b;
+}
+
+.cell-event-chip.dot-gr {
+  background: #dcfce7;
+  color: #166534;
+}
+.cell-event-chip.dot-gr .chip-bullet {
+  background: #10b981;
+}
+
+.cell-event-chip.dot-or {
+  background: #ffedd5;
+  color: #9a3412;
+}
+.cell-event-chip.dot-or .chip-bullet {
+  background: #f97316;
+}
+
+.cell-event-chip.dot-gy {
+  background: #f1f5f9;
+  color: #475569;
+}
+.cell-event-chip.dot-gy .chip-bullet {
+  background: #94a3b8;
+}
+
+/* Selected Day Agenda Box */
+.selected-day-agenda-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 22px;
+}
+
+.agenda-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.agenda-header h4 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.agenda-count {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.no-events-day {
+  padding: 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.agenda-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.agenda-seminar-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.card-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.type-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.type-tag.dot-yw {
   background: #fef3c7;
   color: #b45309;
 }
-
-.system-icon-wrap.oneday {
-  background: #e0f2fe;
-  color: #0284c7;
+.type-tag.dot-gr {
+  background: #dcfce7;
+  color: #15803d;
+}
+.type-tag.dot-or {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.type-tag.dot-gy {
+  background: #f1f5f9;
+  color: #475569;
 }
 
-.system-icon-wrap.broadcast {
-  background: #f3e8ff;
-  color: #7e22ce;
+.time-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
 }
 
-.system-card h3 {
-  font-size: 19px;
-  font-weight: 800;
+.agenda-sem-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.agenda-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.agenda-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+
+.agenda-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.seats-info {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.btn-book-seat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0082cd;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-book-seat:hover {
+  background: #026ca8;
+}
+
+/* 5. List View Mode */
+.seminar-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.list-items-table {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list-seminar-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 18px;
+  transition: all 0.2s ease;
+}
+
+.list-seminar-row:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.list-col-type {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 110px;
+}
+
+.list-date-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 14px;
+}
+
+.list-date-pill strong {
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.list-date-pill span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.list-col-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.list-sem-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.list-meta-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.list-meta-group span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.list-desc-text {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.list-col-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.seats-counter {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* 6. Atomy Ticket Callout */
+.cst-edu__diary_btm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-top: 24px;
+  font-size: 14px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.btn-ticket-sd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0082cd;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-ticket-sd:hover {
+  background: #026ca8;
+}
+
+.btn-ticket-sd em {
+  font-style: normal;
+}
+
+/* 7. Supervision Section */
+.cst-edu__seminar-supervision {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 28px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.supervision-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 20px;
+}
+
+.supervision-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.supervision-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  background: #ffffff;
+}
+
+.card-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.card-heading-row strong {
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.card-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+}
+
+.participation-box {
+  background: #f8fafc;
+  border: 1px solid #dedede;
+  border-radius: 6px;
+  padding: 16px 20px;
+}
+
+.part-title {
+  font-size: 13.5px;
+  font-weight: 700;
   color: #0f172a;
   margin: 0 0 10px;
 }
 
-.system-card p {
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: #475569;
+.part-steps {
+  list-style: none;
+  padding: 0;
   margin: 0;
-}
-
-/* Schedule Section */
-.seminars-table-section {
-  padding-top: 30px;
-}
-
-.schedule-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.schedule-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 4px;
-}
-
-.schedule-sub {
-  font-size: 13.5px;
-  color: #64748b;
-  margin: 0;
-}
-
-.filter-pill-group {
-  display: flex;
-  gap: 8px;
-}
-
-.filter-btn {
-  padding: 8px 18px;
-  border-radius: 20px;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.16s ease;
-}
-
-.filter-btn:hover {
-  border-color: #00A3E0;
-  color: #00A3E0;
-}
-
-.filter-btn.active {
-  background: #00A3E0;
-  border-color: #00A3E0;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-/* Seminars List Grid */
-.seminars-list-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 22px;
-}
-
-.seminar-event-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 26px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s ease;
-}
-
-.seminar-event-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
-  border-color: #bae6fd;
-}
-
-.event-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.event-type-badge {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 3px 10px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-
-.badge-academy {
-  background-color: #fef3c7;
-  color: #b45309;
-}
-
-.badge-oneday {
-  background-color: #e0f2fe;
-  color: #0284c7;
-}
-
-.status-pill {
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-
-.status-pill.open {
-  background-color: #dcfce7;
-  color: #15803d;
-}
-
-.status-pill.filling_fast {
-  background-color: #fee2e2;
-  color: #b91c1c;
-}
-
-.event-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 14px;
-  line-height: 1.35;
-}
-
-.event-meta-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
   font-size: 13px;
+  line-height: 1.5;
   color: #334155;
 }
 
-.meta-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  line-height: 1.45;
+.part-steps strong {
+  color: #0082cd;
 }
 
-.meta-row strong {
-  color: #64748b;
-  margin-right: 4px;
+.success-highlights-box {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
 }
 
-.event-highlight-text {
-  font-size: 13px;
-  line-height: 1.55;
-  color: #64748b;
-  background-color: #f8fafc;
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin: 0 0 20px;
-  flex: 1;
-}
-
-.event-card-footer {
+.highlight-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 16px;
-}
-
-.seats-text {
-  font-size: 12.5px;
-  color: #64748b;
-}
-
-.seats-text strong {
-  color: #00A3E0;
-}
-
-.book-seat-btn {
-  background-color: #00A3E0;
-  color: #ffffff;
-  border: none;
-  padding: 9px 18px;
-  border-radius: 7px;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 14px;
   font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
+  font-weight: 500;
+  color: #334155;
+}
+
+/* 8. Tab 2: Video Training Guide */
+.cst-edu__video-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 24px;
+  margin-bottom: 36px;
+}
+
+.bx-video-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.bx-video-head {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  transition: all 0.16s ease;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.book-seat-btn:hover {
-  background-color: #0284c7;
+.yt-card .bx-video-head {
+  background: #fef2f2;
 }
 
-/* Modal */
-.seminar-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(4px);
-  z-index: 9999;
+.ch-card .bx-video-head {
+  background: #eff6ff;
+}
+
+.logo-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.yt-badge {
+  background: #ef4444;
+}
+
+.ch-badge {
+  background: #0082cd;
+}
+
+.bx-video-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.bx-video-body {
   padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.bx-video-text .text-lead {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.bx-video-text .text-sub {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.btn-video-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-video-link em {
+  font-style: normal;
+}
+
+.yt-btn {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.yt-btn:hover {
+  background: #dc2626;
+}
+
+.ch-btn {
+  background: #0082cd;
+  color: #ffffff;
+}
+
+.ch-btn:hover {
+  background: #026ca8;
+}
+
+/* Video Categories Grid */
+.video-categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.video-category-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cat-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-category-card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.video-category-card p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+.cat-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #0082cd;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.cat-link-btn:hover {
+  text-decoration: underline;
+}
+
+/* 9. Modal Styles */
+.seminar-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
 }
 
 .seminar-modal-card {
-  background-color: #ffffff;
-  border-radius: 16px;
-  max-width: 560px;
+  background: #ffffff;
+  border-radius: 12px;
   width: 100%;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
-  animation: modalPop 0.2s ease-out;
+  max-width: 520px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  animation: modalFadeIn 0.2s ease-out;
 }
 
-@keyframes modalPop {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .seminar-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 18px 24px;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.seminar-modal-header h3 {
+.modal-title-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-title-cluster h3 {
   font-size: 18px;
-  font-weight: 800;
-  margin: 0;
+  font-weight: 700;
   color: #0f172a;
+  margin: 0;
 }
 
 .seminar-modal-close {
   background: none;
   border: none;
-  color: #64748b;
+  color: #94a3b8;
   cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seminar-modal-close:hover {
+  color: #0f172a;
 }
 
 .seminar-modal-body {
@@ -376,24 +1124,24 @@
 }
 
 .event-summary-box {
-  background-color: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 10px;
-  padding: 14px 18px;
-  margin-bottom: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
 }
 
 .event-summary-box h4 {
-  font-size: 16px;
-  font-weight: 800;
-  color: #0369a1;
-  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 8px 0 6px;
 }
 
 .event-summary-box p {
-  font-size: 13px;
-  color: #0f172a;
-  margin: 2px 0;
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 3px 0;
 }
 
 .modal-form-group {
@@ -402,107 +1150,141 @@
 
 .modal-form-group label {
   display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
   margin-bottom: 6px;
 }
 
 .modal-form-group input {
   width: 100%;
   padding: 10px 14px;
-  border-radius: 7px;
   border: 1px solid #cbd5e1;
+  border-radius: 6px;
   font-size: 13.5px;
-  outline: none;
+  box-sizing: border-box;
 }
 
 .modal-form-group input:focus {
-  border-color: #00A3E0;
-  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.15);
+  outline: none;
+  border-color: #0082cd;
+  box-shadow: 0 0 0 3px rgba(0, 130, 205, 0.12);
 }
 
 .form-info-note {
-  font-size: 12px;
+  font-size: 11.5px;
   color: #64748b;
-  line-height: 1.45;
-  margin-bottom: 20px;
+  line-height: 1.4;
+  margin: 12px 0 20px;
 }
 
 .modal-actions-row {
   display: flex;
-  justify-content: flex-end;
   gap: 12px;
 }
 
 .btn-cancel {
-  background-color: #f1f5f9;
+  flex: 1;
+  padding: 10px;
   border: 1px solid #cbd5e1;
-  color: #475569;
-  padding: 10px 18px;
   border-radius: 6px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
 }
 
 .btn-confirm {
-  background-color: #00A3E0;
-  color: #ffffff;
+  flex: 2;
+  padding: 10px;
   border: none;
-  padding: 10px 22px;
   border-radius: 6px;
-  font-weight: 700;
+  background: #0082cd;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-/* Success Box */
+.btn-confirm:hover {
+  background: #026ca8;
+}
+
 .booking-success-box {
-  text-align: center;
-  padding: 16px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
+  padding: 20px 0;
+  gap: 14px;
 }
 
 .booking-success-box h3 {
   font-size: 20px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 14px 0 8px;
+  color: #166534;
+  margin: 0;
 }
 
 .booking-success-box p {
-  font-size: 14px;
+  font-size: 13.5px;
   color: #475569;
-  line-height: 1.55;
-  margin: 0 0 20px;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .ticket-meta-pill {
-  background-color: #f8fafc;
-  border: 1px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #f1f5f9;
   border-radius: 8px;
   padding: 12px 20px;
-  display: flex;
-  gap: 20px;
   font-size: 13px;
   color: #334155;
-  margin-bottom: 24px;
+  margin-top: 8px;
 }
 
 .modal-done-btn {
-  background-color: #00A3E0;
+  margin-top: 10px;
+  padding: 10px 32px;
+  background: #16a34a;
   color: #ffffff;
   border: none;
-  padding: 10px 30px;
   border-radius: 6px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 
-@media (max-width: 860px) {
-  .system-cards-grid {
-    grid-template-columns: 1fr;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .cst-title-area {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .my-chk-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cst-edu__diary_btm {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .list-seminar-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .list-col-action {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
 }

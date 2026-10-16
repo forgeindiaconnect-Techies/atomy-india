@@ -62,7 +62,9 @@ export default function Header({
   onNavigateAdminProfile = null,
   notificationCount = 0,
   overviewStats = null,
-  onSelectNotificationTab = null
+  onSelectNotificationTab = null,
+  onMarkAllNotifsAsRead = null,
+  onDismissNotif = null
 }) {
   const [activePortal, setActivePortal] = useState('mall');
   const [searchQuery, setSearchQuery] = useState('');
@@ -577,10 +579,24 @@ export default function Header({
                     {isAdminNotifOpen && (
                       <div className="admin-master-notif-dropdown">
                         <div className="notif-dropdown-header">
-                          <strong>Notifications & Alerts</strong>
-                          <span className="notif-count-pill">
-                            {notificationCount} Active
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <strong>Notifications & Alerts</strong>
+                            <span className="notif-count-pill">
+                              {notificationCount} Active
+                            </span>
+                          </div>
+                          {notificationCount > 0 && onMarkAllNotifsAsRead && (
+                            <button
+                              type="button"
+                              className="notif-clear-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onMarkAllNotifsAsRead();
+                              }}
+                            >
+                              Mark all read
+                            </button>
+                          )}
                         </div>
                         <div className="notif-dropdown-body">
                           {overviewStats?.recentNewOrders && overviewStats.recentNewOrders.length > 0 ? (
@@ -589,6 +605,7 @@ export default function Header({
                                 key={ro.orderId}
                                 className="notif-item order-specific-item"
                                 onClick={() => {
+                                  onDismissNotif && onDismissNotif(ro.orderId);
                                   onSelectNotificationTab && onSelectNotificationTab('orders', 'PLACED');
                                   setIsAdminNotifOpen(false);
                                 }}
@@ -596,7 +613,7 @@ export default function Header({
                                 <div className="notif-icon-circle placed">
                                   <Bell size={14} />
                                 </div>
-                                <div className="notif-text">
+                                <div className="notif-text" style={{ flex: 1 }}>
                                   <strong>New Order: #{ro.orderId}</strong>
                                   <span>{ro.customerName} • ₹{Number(ro.totalAmount || ro.grandTotal || 0).toLocaleString('en-IN')}</span>
                                   {ro.estimatedDeliveryDate && (
@@ -605,27 +622,24 @@ export default function Header({
                                     </span>
                                   )}
                                 </div>
+                                {onDismissNotif && (
+                                  <button
+                                    type="button"
+                                    className="notif-dismiss-btn"
+                                    title="Dismiss notification"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDismissNotif(ro.orderId);
+                                    }}
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                )}
                               </div>
                             ))
-                          ) : (overviewStats?.placedCount || 0) > 0 ? (
-                            <div
-                              className="notif-item"
-                              onClick={() => {
-                                onSelectNotificationTab && onSelectNotificationTab('orders', 'PLACED');
-                                setIsAdminNotifOpen(false);
-                              }}
-                            >
-                              <div className="notif-icon-circle placed">
-                                <Bell size={14} />
-                              </div>
-                              <div className="notif-text">
-                                <strong>{overviewStats.placedCount} New Customer Orders</strong>
-                                <span>Awaiting warehouse packing & fulfillment</span>
-                              </div>
-                            </div>
                           ) : null}
 
-                          {(overviewStats?.openTicketsCount || 0) > 0 && (
+                          {(overviewStats?.unreadTicketsCount || 0) > 0 && (
                             <div
                               className="notif-item"
                               onClick={() => {
@@ -637,7 +651,7 @@ export default function Header({
                                 <User size={14} />
                               </div>
                               <div className="notif-text">
-                                <strong>{overviewStats.openTicketsCount} Open Support Inquiries</strong>
+                                <strong>{overviewStats.unreadTicketsCount} Open Support Inquiries</strong>
                                 <span>Customer questions waiting for response</span>
                               </div>
                             </div>

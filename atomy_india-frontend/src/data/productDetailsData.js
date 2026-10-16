@@ -261,24 +261,27 @@ function resolveRawConfig(product) {
   if (id === 'D00101' || name.includes('hemohim')) {
     return {
       specs: {
-        brandExportedBy: "Atomy Co., Ltd., 2148-21, Baekjemunhwa-ro, Gongju-si, Chungcheongnam-do, Republic of Korea",
-        manufacturer: "KOLMAR BNH CO., LTD., Sejong-si 22-15, Sandan-gil, Jeonui-myeon, 30003 Sejong-si, Republic of Korea",
-        importedMarketedBy: "Atomy Enterprise India Pvt. Ltd., L-19, LGF, Kalkaji, New Delhi - 110019, India",
+        brandExportedBy: "Atomy Co., Ltd., 2148-21, Baekjemunhwa-ro, Gongju-si, Chungcheongnam-do (South Korea)",
+        manufacturer: "KOLMAR BNH CO., LTD.\nSejong-si 22-15, Sandan-gil, Jeonui-myeon, 30003 Sejong-si, Republic of Korea",
+        importedMarketedBy: "Atomy Enterprise India Pvt. Ltd.\nL-19, LGF, Kalkaji, New Delhi-110 019, India",
         countryOfOrigin: "Republic of Korea",
+        genericName: "Health Supplement (Botanical-Mix Liquid Packets)",
         netVolume: "1,200 ml (20 ml × 60 Liquid Packets)",
-        productType: "Food Supplement (Health Supplement for Adults)",
+        productType: "Health Supplement (Botanical-Mix Liquid Packets)",
         storage: "Store in a cool, dry place away from direct sunlight. Consume immediately after opening.",
         expiration: "24 months from date of manufacturing",
-        licenseNumber: "FSSAI Lic. No. 10019011006760",
+        licenseNumber: "10019011006760",
+        licenseLabel: "FSSAI Lic. No.",
         cautions: [
           "Not to exceed the stated recommended daily usage.",
           "Consult medical care practitioner for consumption beyond 4 months.",
           "This product is not intended to diagnose, treat, cure or prevent any disease.",
           "The product is not to be used by pregnant, nursing and lactating women or by infants, children, adolescents and elderly, except when medically advised.",
           "People on any medication or having any allergies are advised to consult their doctors or their medical practitioners before consuming the product.",
-          "Not for parenteral use. Keep out of reach of children."
+          "Not for parenteral use.",
+          "Keep out of reach of children."
         ],
-        contact: "Atomy Enterprise India Pvt. Ltd., Magnum Tower 2, Sector 58, Gurugram 122011, Haryana. Email: atomy_in@atomypark.com | Tel: +91-124-695-9000"
+        contact: "Atomy Enterprise India Pvt. Ltd.\nAddress: 801-802, 8th floor, Magnum Tower – 2, Sector – 58, Golf Course Ext. Road, Gurgaon 122 011, Haryana, India\nEmail us at: atomy_in@atomypark.com\nTel.No.: +91-124- 695-9000"
       }
     };
   }

@@ -1649,5 +1649,40 @@
   font-size: 11px;
 }
 
+.notif-clear-btn {
+  background: transparent;
+  border: none;
+  color: #00A3E0;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
 
+.notif-clear-btn:hover {
+  background: #e0f2fe;
+  color: #0284c7;
+}
 
+.notif-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  margin-left: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.15s ease;
+}
+
+.notif-dismiss-btn:hover {
+  opacity: 1;
+  color: #ef4444;
+  background: #fee2e2;
+}

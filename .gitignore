@@ -33,3 +33,8 @@ Thumbs.db
 *.env.local
 *.env.*.local
 *.local
+
+# Firebase & Cloud Secrets
+*firebase-adminsdk*.json
+*service-account*.json
+firebase-service-account.json

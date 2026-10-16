@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, User, ShoppingCart, ChevronDown, ChevronUp, Menu, Globe, X, Bell, Sparkles, Clock, Heart, Ticket, Compass, Settings } from 'lucide-react';
+import { Search, User, ShoppingCart, ChevronDown, ChevronUp, ChevronRight, Menu, Globe, X, Bell, Sparkles, Clock, Heart, Ticket, Compass, Settings } from 'lucide-react';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import atomyLogo from '../../assets/atomy-logo.png';
 import phoenixLogo from '../../assets/WhatsApp Image 2026-10-09 at 5.52.23 PM.jpeg';
@@ -258,19 +258,21 @@ export default function Header({
                     title="Atomy Distributor Membership Active - Wholesale DP Pricing Unlocked"
                   >
                     <span className="member-pill-sparkle">★</span>
-                    <span>Membership Active</span>
+                    <span className="member-pill-label-desktop">Membership Active</span>
+                    <span className="member-pill-label-mobile">Active</span>
                   </button>
                 ) : (
                   <button
                     type="button"
-                    className="top-utility-link-btn"
+                    className="top-utility-link-btn top-membership-join-btn"
                     onClick={(e) => {
                       e.preventDefault();
                       if (onOpenMembershipModal) onOpenMembershipModal();
                       else if (onNavigateMembership) onNavigateMembership();
                     }}
                   >
-                    Join Member
+                    <span className="join-label-desktop">Join Member</span>
+                    <span className="join-label-mobile">Join</span>
                   </button>
                 )}
                 <span className="top-utility-divider"></span>
@@ -297,9 +299,10 @@ export default function Header({
                     Sign in
                   </a>
                 )}
-                <span className="top-utility-divider"></span>
+                <span className="top-utility-divider top-utility-desktop-only"></span>
                 <a
                   href="/about-us"
+                  className="top-utility-desktop-only"
                   onClick={(e) => {
                     e.preventDefault();
                     if (onNavigateView) onNavigateView('about-us');
@@ -308,8 +311,8 @@ export default function Header({
                 >
                   About Us
                 </a>
-                <span className="top-utility-divider"></span>
-                <div className="region-selector">
+                <span className="top-utility-divider top-utility-desktop-only"></span>
+                <div className="region-selector top-utility-desktop-only">
                   <span className="region-title">India</span>
                   <Globe size={14} strokeWidth={1.8} />
                   <ChevronDown size={11} strokeWidth={2.2} />
@@ -443,9 +446,12 @@ export default function Header({
                       <span className="portal-divider"></span>
                       <span
                         className={`portal-tab ${activePortal === 'office' ? 'active' : ''}`}
-                        onClick={() => setActivePortal('office')}
+                        onClick={() => {
+                          window.open('https://in.atomy.com/main', '_blank');
+                        }}
+                        title="Official Atomy Distributor Portal (in.atomy.com/main)"
                       >
-                        My Office
+                        My Office ↗
                       </span>
                     </div>
                   </>
@@ -687,55 +693,198 @@ export default function Header({
 
               {/* Original Site Style Category Popup List with Subsidebar */}
               {isMegaMenuOpen && (
-                <div className="category-popup-dropdown" role="menu">
-                  {/* Left Sidebar: Primary Categories */}
-                  <div className="category-popup-sidebar">
-                    {categories.map((cat, idx) => {
-                      const isHovered = hoveredCategoryIndex === idx;
-                      return (
-                        <div
-                          key={cat.id}
-                          className={`category-popup-item ${isHovered ? 'active' : ''}`}
-                          onMouseEnter={() => setHoveredCategoryIndex(idx)}
-                          onClick={() => {
-                            setIsMegaMenuOpen(false);
-                            onSelectCategory && onSelectCategory(cat.id);
-                          }}
-                          role="menuitem"
-                        >
-                          <div className="category-item-icon-box">
-                            <img
-                              src={cat.icon}
-                              alt=""
-                              className="category-popup-icon"
-                              onError={(e) => { e.target.style.display = 'none'; }}
-                            />
+                <>
+                  <div
+                    className="category-popup-backdrop"
+                    onClick={() => setIsMegaMenuOpen(false)}
+                    aria-hidden="true"
+                  />
+                  <div className="category-popup-dropdown" role="menu">
+                    {/* Mobile Drawer Account Strip */}
+                    <div className="category-popup-mobile-account-bar">
+                      {currentUser ? (
+                        <div className="mobile-drawer-user-info">
+                          <div className="mobile-drawer-avatar">{userInitial}</div>
+                          <div className="mobile-drawer-meta">
+                            <span className="mobile-drawer-username">{userFullName}</span>
+                            <span className="mobile-drawer-status">{isMember ? '★ Member Active' : 'Consumer'}</span>
                           </div>
-                          <span className="category-item-label">{cat.name}</span>
+                          <button
+                            type="button"
+                            className="mobile-drawer-logout-btn"
+                            onClick={() => {
+                              setIsMegaMenuOpen(false);
+                              onLogout && onLogout();
+                            }}
+                          >
+                            Sign Out
+                          </button>
+                          <button
+                            type="button"
+                            className="mobile-drawer-close-icon-btn"
+                            onClick={() => setIsMegaMenuOpen(false)}
+                            aria-label="Close Menu"
+                          >
+                            <X size={20} />
+                          </button>
                         </div>
-                      );
-                    })}
-                  </div>
+                      ) : (
+                        <div className="mobile-drawer-guest-actions">
+                          <button
+                            type="button"
+                            className="mobile-drawer-auth-btn signin-btn"
+                            onClick={() => {
+                              setIsMegaMenuOpen(false);
+                              onNavigateSignIn ? onNavigateSignIn('signin') : (window.location.href = '/signin');
+                            }}
+                          >
+                            Sign In
+                          </button>
+                          <button
+                            type="button"
+                            className="mobile-drawer-auth-btn join-btn"
+                            onClick={() => {
+                              setIsMegaMenuOpen(false);
+                              if (onOpenMembershipModal) onOpenMembershipModal();
+                              else if (onNavigateMembership) onNavigateMembership();
+                            }}
+                          >
+                            Join Member
+                          </button>
+                          <button
+                            type="button"
+                            className="mobile-drawer-close-icon-btn"
+                            onClick={() => setIsMegaMenuOpen(false)}
+                            aria-label="Close Menu"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Right Subsidebar: Subcategories Panel */}
-                  <div className="category-popup-subsidebar">
-                    <div className="category-subsidebar-list">
-                      {categories[hoveredCategoryIndex]?.subcategories.map((sub, sIdx) => (
-                        <button
-                          key={sIdx}
-                          type="button"
-                          className="category-subsidebar-item"
-                          onClick={() => {
-                            setIsMegaMenuOpen(false);
-                            onSelectCategory && onSelectCategory(categories[hoveredCategoryIndex]?.id);
-                          }}
-                        >
-                          {sub}
-                        </button>
-                      ))}
+                    {/* Main Drawer Split Body */}
+                    <div className="category-popup-split-body">
+                      {/* Left Sidebar: Primary Categories */}
+                      <div className="category-popup-sidebar">
+                        {categories.map((cat, idx) => {
+                          const isHovered = hoveredCategoryIndex === idx;
+                          return (
+                            <div
+                              key={cat.id}
+                              className={`category-popup-item ${isHovered ? 'active' : ''}`}
+                              onMouseEnter={() => setHoveredCategoryIndex(idx)}
+                              onClick={() => {
+                                setHoveredCategoryIndex(idx);
+                              }}
+                              role="menuitem"
+                            >
+                              <div className="category-item-icon-box">
+                                <img
+                                  src={cat.icon}
+                                  alt=""
+                                  className="category-popup-icon"
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              </div>
+                              <span className="category-item-label">{cat.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Right Subsidebar: Subcategories Panel */}
+                      <div className="category-popup-subsidebar">
+                        <div className="category-subsidebar-header">
+                          <span className="category-subsidebar-title">
+                            {categories[hoveredCategoryIndex]?.name}
+                          </span>
+                        </div>
+
+                        <div className="category-subsidebar-list">
+                          {categories[hoveredCategoryIndex]?.subcategories.map((sub, sIdx) => (
+                            <button
+                              key={sIdx}
+                              type="button"
+                              className="category-subsidebar-item"
+                              onClick={() => {
+                                setIsMegaMenuOpen(false);
+                                onSelectCategory && onSelectCategory(categories[hoveredCategoryIndex]?.id);
+                              }}
+                            >
+                              <span>{sub}</span>
+                              <ChevronRight size={14} className="sub-chevron" />
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* View all products in active category */}
+                        <div className="category-subsidebar-footer">
+                          <button
+                            type="button"
+                            className="category-view-all-btn"
+                            onClick={() => {
+                              setIsMegaMenuOpen(false);
+                              onSelectCategory && onSelectCategory(categories[hoveredCategoryIndex]?.id);
+                            }}
+                          >
+                            <span>View All {categories[hoveredCategoryIndex]?.name}</span>
+                            <ChevronRight size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mobile Drawer Bottom Quick Links */}
+                    <div className="category-popup-mobile-quick-links">
+                      <button
+                        type="button"
+                        className="mobile-drawer-quick-link"
+                        onClick={() => {
+                          setIsMegaMenuOpen(false);
+                          if (onOpenQuickOrder) onOpenQuickOrder();
+                          else if (onNavigateQuickOrder) onNavigateQuickOrder();
+                        }}
+                      >
+                        <Compass size={17} />
+                        <span>Quick Order</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="mobile-drawer-quick-link"
+                        onClick={() => {
+                          setIsMegaMenuOpen(false);
+                          if (onNavigateOrders) onNavigateOrders();
+                        }}
+                      >
+                        <Clock size={17} />
+                        <span>Track Order</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="mobile-drawer-quick-link"
+                        onClick={() => {
+                          setIsMegaMenuOpen(false);
+                          if (onNavigateFavorites) onNavigateFavorites();
+                        }}
+                      >
+                        <Heart size={17} />
+                        <span>Wishlist</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="mobile-drawer-quick-link"
+                        onClick={() => {
+                          setIsMegaMenuOpen(false);
+                          if (onNavigateContact) onNavigateContact();
+                        }}
+                      >
+                        <Globe size={17} />
+                        <span>Centres</span>
+                      </button>
                     </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
 
@@ -940,6 +1089,26 @@ export default function Header({
                     <Settings size={20} className="quick-menu-corner-lucide" />
                     <span>Settings</span>
                   </button>
+
+                  {/* Mobile Only: About Us */}
+                  <button
+                    type="button"
+                    className="quick-menu-corner-item mobile-only-quick-item"
+                    onClick={() => {
+                      setIsQuickMenuOpen(false);
+                      if (onNavigateView) onNavigateView('about-us');
+                      else window.location.href = '/about-us';
+                    }}
+                  >
+                    <Compass size={20} className="quick-menu-corner-lucide" />
+                    <span>About Us</span>
+                  </button>
+
+                  {/* Mobile Only: Region / Language */}
+                  <div className="quick-menu-corner-item mobile-only-quick-item mobile-quick-region-item">
+                    <Globe size={20} className="quick-menu-corner-lucide" />
+                    <span>India (EN)</span>
+                  </div>
                 </div>
               )}
             </div>

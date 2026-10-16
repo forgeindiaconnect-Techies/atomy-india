@@ -118,3 +118,15 @@ img {
     padding: 0 16px;
   }
 }
+
+/* =========================================================================
+   Universal Modal & Popup Backdrop Blur Rule
+   Ensures top navbar and page background are smoothly blurred behind any active popup
+   ========================================================================= */
+.modal-backdrop-overlay,
+.ad-modal-backdrop {
+  z-index: 999999 !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  background-color: rgba(15, 23, 42, 0.68) !important;
+}
