@@ -143,22 +143,6 @@ const PIN_CODE_MAP = {
   '796001': { city: 'Aizawl', state: 'Mizoram', district: 'Aizawl' }
 };
 
-const INITIAL_DEFAULT_ADDRESS = {
-  id: 'addr-default-1',
-  tag: 'Home',
-  recipientName: 'Naveen Kumar',
-  recipientPhone: '9876543210',
-  alternatePhone: '',
-  pincode: '122003',
-  city: 'Gurugram',
-  state: 'Haryana',
-  addressLine1: 'Flat 402, Tower B, Cyber City Apartments',
-  addressLine2: 'Sector 39, Near Unitech Cyber Park',
-  landmark: 'Near Metro Station',
-  deliveryMessage: 'Please call before delivery',
-  isDefault: true
-};
-
 export default function QuickOrderPage({ 
   onNavigateHome,
   onNavigateBack,
@@ -184,10 +168,16 @@ export default function QuickOrderPage({
       const saved = localStorage.getItem('atomy_customer_addresses');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(a => a && a.id !== 'addr-default-1' && a.recipientName !== 'Naveen Kumar');
+          if (clean.length !== parsed.length) {
+            localStorage.setItem('atomy_customer_addresses', JSON.stringify(clean));
+          }
+          return clean;
+        }
       }
     } catch {}
-    return [INITIAL_DEFAULT_ADDRESS];
+    return [];
   });
 
   const [selectedAddressId, setSelectedAddressId] = useState(() => {
@@ -195,13 +185,14 @@ export default function QuickOrderPage({
       const saved = localStorage.getItem('atomy_customer_addresses');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const def = parsed.find(a => a.isDefault) || parsed[0];
+        if (Array.isArray(parsed)) {
+          const clean = parsed.filter(a => a && a.id !== 'addr-default-1' && a.recipientName !== 'Naveen Kumar');
+          const def = clean.find(a => a.isDefault) || clean[0];
           return def ? def.id : null;
         }
       }
     } catch {}
-    return 'addr-default-1';
+    return null;
   });
 
   // Modal / Form state for Add / Edit Address

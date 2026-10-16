@@ -68,30 +68,18 @@ export default function CustomerProfilePage({
   const [passwordMessage, setPasswordMessage] = useState('');
 
   // Saved Addresses state
-  const [addresses, setAddresses] = useState([
-    {
-      id: 'addr-1',
-      type: 'Home',
-      isDefault: true,
-      fullName: currentUser?.name || 'Customer',
-      phone: '+91 98765 43210',
-      street: 'Flat 402, Phoenix Heights, MG Road',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560001'
-    },
-    {
-      id: 'addr-2',
-      type: 'Office',
-      isDefault: false,
-      fullName: currentUser?.name || 'Customer',
-      phone: '+91 98765 43210',
-      street: 'Tower B, Tech Park, Outer Ring Road',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      pincode: '560103'
-    }
-  ]);
+  const [addresses, setAddresses] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_customer_addresses');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(a => a && a.id !== 'addr-default-1' && a.id !== 'addr-1' && a.id !== 'addr-2' && a.fullName !== 'Naveen Kumar' && a.recipientName !== 'Naveen Kumar');
+        }
+      }
+    } catch {}
+    return [];
+  });
 
   const [newAddressForm, setNewAddressForm] = useState({
     type: 'Home',
@@ -1365,7 +1353,14 @@ export default function CustomerProfilePage({
               )}
 
               <div className="addresses-grid">
-                {addresses.map((addr) => (
+                {addresses.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b', width: '100%', gridColumn: '1 / -1' }}>
+                    <MapPin size={40} color="#94a3b8" style={{ marginBottom: '10px' }} />
+                    <h4 style={{ color: '#1e293b', fontSize: '16px', margin: '0 0 6px' }}>No Delivery Addresses Added Yet</h4>
+                    <p style={{ fontSize: '13.5px', margin: '0 0 16px' }}>Add your doorstep delivery address to complete orders smoothly.</p>
+                  </div>
+                ) : (
+                  addresses.map((addr) => (
                   <div key={addr.id} className={`address-card ${addr.isDefault ? 'default' : ''}`}>
                     <div className="address-card-header">
                       <span className="address-type-tag">{addr.type}</span>
@@ -1396,7 +1391,7 @@ export default function CustomerProfilePage({
                       </button>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             </div>
           )}
