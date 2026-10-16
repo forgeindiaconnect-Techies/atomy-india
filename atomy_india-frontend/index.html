@@ -10,9 +10,70 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+      /* Complete suppression of Google Translate top banner bar and toolbar */
+      .goog-te-banner-frame,
+      .goog-te-banner-frame.skiptranslate,
+      iframe.goog-te-banner-frame,
+      iframe.skiptranslate,
+      iframe[id*=":1.container"],
+      iframe[id*=":2.container"],
+      iframe[id*="goog"],
+      .VIpgJd-ZVi9od-ORHb-OEVmcd,
+      .VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+      .VIpgJd-ZVi9od-xl07Ob-OEVmcd,
+      .VIpgJd-ZVi9od-ORHb,
+      #goog-gt-tt,
+      .goog-te-balloon-frame,
+      .goog-tooltip,
+      .goog-tooltip:hover,
+      .goog-text-highlight,
+      body > .skiptranslate:not(.allowed-translate),
+      body > iframe.skiptranslate {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+        max-height: 0 !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
+        z-index: -9999 !important;
+      }
+      body {
+        top: 0px !important;
+        position: static !important;
+      }
+      #google_translate_element,
+      .goog-te-gadget {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
+    <div id="google_translate_element" style="display: none;"></div>
     <div id="root"></div>
+    <script type="text/javascript">
+      try {
+        var savedLang = localStorage.getItem('atomy_selected_language');
+        if (savedLang && savedLang !== 'en') {
+          document.cookie = 'googtrans=/en/' + savedLang + '; path=/;';
+        } else if (savedLang === 'en') {
+          document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        }
+      } catch (e) {}
+
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          includedLanguages: 'en,hi,ta',
+          autoDisplay: false
+        }, 'google_translate_element');
+      }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

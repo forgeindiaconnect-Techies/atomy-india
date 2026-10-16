@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, User, ShoppingCart, ChevronDown, ChevronUp, ChevronRight, Menu, Globe, X, Bell, Sparkles, Clock, Heart, Ticket, Compass, Settings } from 'lucide-react';
+import { Search, User, ShoppingCart, ChevronDown, ChevronUp, ChevronRight, Menu, Globe, X, Bell, Sparkles, Clock, Heart, Ticket, Compass, Settings, Check } from 'lucide-react';
+import { SUPPORTED_LANGUAGES, getSavedLanguage, changeLanguage } from '../../services/languageService';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import atomyLogo from '../../assets/atomy-logo.png';
 import phoenixLogo from '../../assets/WhatsApp Image 2026-10-09 at 5.52.23 PM.jpeg';
@@ -72,10 +73,22 @@ export default function Header({
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
   const [isStickyNav, setIsStickyNav] = useState(false);
   const [isAtomySitesOpen, setIsAtomySitesOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState(() => getSavedLanguage());
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const searchContainerRef = useRef(null);
   const quickMenuRef = useRef(null);
   const categoryMenuRef = useRef(null);
   const atomySitesMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleLangChange = (e) => {
+      if (e.detail?.language) {
+        setSelectedLanguage(e.detail.language);
+      }
+    };
+    window.addEventListener('atomy:language-changed', handleLangChange);
+    return () => window.removeEventListener('atomy:language-changed', handleLangChange);
+  }, []);
 
   // Clean customer display names and initials
   const userFullName = currentUser?.name || currentUser?.username || currentUser?.email || 'Customer';
@@ -312,10 +325,18 @@ export default function Header({
                   About Us
                 </a>
                 <span className="top-utility-divider top-utility-desktop-only"></span>
-                <div className="region-selector top-utility-desktop-only">
-                  <span className="region-title">India</span>
-                  <Globe size={14} strokeWidth={1.8} />
-                  <ChevronDown size={11} strokeWidth={2.2} />
+                <div className="region-selector-wrapper top-utility-desktop-only">
+                  <button
+                    type="button"
+                    className="region-selector-btn"
+                    onClick={() => setIsLangModalOpen(true)}
+                    aria-label="Select Language and Region"
+                    title="Language/Region settings"
+                  >
+                    <span className="region-title">{SUPPORTED_LANGUAGES.find(l => l.code === selectedLanguage)?.region || 'India'}</span>
+                    <Globe size={14} strokeWidth={1.8} />
+                    <ChevronDown size={11} strokeWidth={2.2} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -1105,9 +1126,17 @@ export default function Header({
                   </button>
 
                   {/* Mobile Only: Region / Language */}
-                  <div className="quick-menu-corner-item mobile-only-quick-item mobile-quick-region-item">
+                  <div
+                    className="quick-menu-corner-item mobile-only-quick-item"
+                    onClick={() => {
+                      setIsQuickMenuOpen(false);
+                      setIsLangModalOpen(true);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
                     <Globe size={20} className="quick-menu-corner-lucide" />
-                    <span>India (EN)</span>
+                    <span>Language/Region settings</span>
                   </div>
                 </div>
               )}
@@ -1115,6 +1144,70 @@ export default function Header({
           </div>
         </nav>
       </>
+    )}
+
+    {/* Official Atomy India Language/Region settings Modal (Exact match to user reference screenshot) */}
+    {/* Official Atomy India Language/Region settings Modal (Exact match to user reference screenshot) */}
+    {isLangModalOpen && (
+      <div className="lang-region-modal-overlay notranslate" translate="no" onClick={() => setIsLangModalOpen(false)}>
+        <div
+          className="lang-region-modal-card notranslate"
+          translate="no"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="lang-modal-title"
+        >
+          <div className="lang-region-modal-header notranslate" translate="no">
+            <h2 id="lang-modal-title" className="lang-region-modal-title notranslate" translate="no">
+              Language/Region settings
+            </h2>
+            <button
+              type="button"
+              className="lang-region-close-btn"
+              onClick={() => setIsLangModalOpen(false)}
+              aria-label="Close"
+            >
+              <X size={26} strokeWidth={1.5} />
+            </button>
+          </div>
+
+          <div className="lang-region-modal-body notranslate" translate="no">
+            <h3 className="lang-region-section-heading notranslate" translate="no">Language settings</h3>
+
+            <div className="lang-radio-group notranslate" translate="no">
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const isChecked = selectedLanguage === lang.code;
+                return (
+                  <label
+                    key={lang.code}
+                    className={`lang-radio-label notranslate ${isChecked ? 'active' : ''}`}
+                    translate="no"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedLanguage(lang.code);
+                      changeLanguage(lang.code);
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="atomy_language_radio"
+                      value={lang.code}
+                      checked={isChecked}
+                      readOnly
+                      className="lang-native-radio"
+                    />
+                    <span className="lang-custom-radio">
+                      {isChecked && <span className="lang-radio-dot" />}
+                    </span>
+                    <span className="lang-radio-text notranslate" translate="no">{lang.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
     )}
     </header>
   );

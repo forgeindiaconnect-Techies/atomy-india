@@ -1580,17 +1580,6 @@ export default function PaymentSummaryPage({
               <Text style={styles.etaDateHighlight}>{estimatedDelivery.range}</Text>
             </View>
 
-            {/* Destination Snapshot Box */}
-            <View style={styles.destinationSnapshotBox}>
-              <Text style={styles.destSnapshotTitle}>Delivering To:</Text>
-              <Text style={styles.destSnapshotName}>
-                {selectedAddress.recipientName} (+91 {selectedAddress.recipientPhone})
-              </Text>
-              <Text style={styles.destSnapshotAddress}>
-                {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
-              </Text>
-            </View>
-
             <View style={styles.summaryDivider} />
 
             {/* Grand Total */}

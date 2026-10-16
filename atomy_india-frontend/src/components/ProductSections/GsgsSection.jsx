@@ -91,7 +91,8 @@ export default function GsgsSection({
 
                   <div className="product-info-wrap">
                     <h3
-                      className="product-title"
+                      className="product-title notranslate"
+                      translate="no"
                       title={product.name}
                       onClick={() => onProductClick && onProductClick(product)}
                       style={{ cursor: 'pointer' }}

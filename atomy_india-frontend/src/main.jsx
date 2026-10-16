@@ -5,6 +5,9 @@ import './index.css';
 import App from './App.jsx';
 import AdminDashboard from './components/Admin/AdminDashboard.jsx';
 import SignInPage from './components/Auth/SignInPage.jsx';
+import { initLanguageObserver } from './services/languageService';
+
+initLanguageObserver();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

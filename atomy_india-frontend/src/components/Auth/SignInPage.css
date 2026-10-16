@@ -141,7 +141,7 @@
   box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.15);
 }
 
-.phone-prefix-badge {
+.phone-input-group .phone-prefix-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;

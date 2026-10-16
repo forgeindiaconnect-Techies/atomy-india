@@ -54,6 +54,10 @@ import FloatingAdModal from './src/components/Promotions/FloatingAdModal';
 import SignInPage from './src/components/Auth/SignInPage';
 import SearchPage from './src/components/Search/SearchPage';
 import RecentlyViewedModal from './src/components/RecentlyViewed/RecentlyViewedModal';
+import {
+  registerForPushNotificationsAsync,
+  setupNotificationListeners,
+} from './src/services/pushNotificationService';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from './src/data/officialDistributorPrices';
 import {
   createOrderApi,
@@ -312,6 +316,42 @@ export default function App() {
     initFloatingAd();
     return () => {
       if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  // Register Push Notifications (FCM) & Attach Foreground / Tap Listeners
+  useEffect(() => {
+    let removeListeners = null;
+
+    async function initPush() {
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (token) {
+          console.log('[App] Push token registered successfully:', token);
+        }
+      } catch (e) {
+        console.log('[App] Push registration skipped or unsupported:', e?.message);
+      }
+    }
+
+    initPush();
+
+    removeListeners = setupNotificationListeners(
+      (notification) => {
+        const title = notification?.request?.content?.title || 'Atomy India';
+        const body = notification?.request?.content?.body || '';
+        setToastMessage(`${title}: ${body}`);
+        setTimeout(() => setToastMessage(null), 4500);
+      },
+      (response) => {
+        console.log('[App] Notification clicked by user:', response);
+      }
+    );
+
+    return () => {
+      if (typeof removeListeners === 'function') {
+        removeListeners();
+      }
     };
   }, []);
 
@@ -1746,6 +1786,14 @@ export default function App() {
         onClearAll={handleClearRecentlyViewed}
         isMember={isMember}
       />
+      {toastMessage && (
+        <View style={styles.toastCard}>
+          <View style={styles.toastDot} />
+          <Text style={styles.toastText} numberOfLines={2}>
+            {toastMessage}
+          </Text>
+        </View>
+      )}
     </View>
   </SafeAreaProvider>
   );

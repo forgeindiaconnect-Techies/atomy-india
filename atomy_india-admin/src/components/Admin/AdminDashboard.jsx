@@ -314,29 +314,73 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   // Session start timestamp & persistent read notification state
   const sessionStartTimeRef = useRef(Date.now());
   const [readNotifIds, setReadNotifIds] = useState(() => getReadNotifIds());
+  const [dismissedStockAlerts, setDismissedStockAlerts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_admin_dismissed_stock_alerts');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const handleDismissNotif = (id) => {
+    if (!id) return;
+    const strId = String(id);
+    markNotifAsRead(strId);
+    setReadNotifIds(prev => new Set([...prev, strId]));
+  };
+
+  const handleDismissTickets = () => {
+    const newSet = new Set(readNotifIds);
+    tickets.forEach(t => {
+      const tid = String(t.ticketId || t.id || '');
+      if (tid) {
+        newSet.add(tid);
+        markNotifAsRead(tid);
+      }
+    });
+    setReadNotifIds(newSet);
+    showToast('Support notifications marked as read');
+  };
+
+  const handleDismissStockAlerts = (productId) => {
+    setDismissedStockAlerts(prev => {
+      const next = new Set(prev);
+      if (productId) {
+        next.add(String(productId));
+      } else {
+        products.forEach(p => {
+          if (p.stockQuantity > 0 && p.stockQuantity <= (p.lowStockThreshold || 10)) {
+            next.add(String(p.id));
+          }
+        });
+      }
+      try {
+        localStorage.setItem('atomy_admin_dismissed_stock_alerts', JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  };
 
   const handleMarkAllNotifsAsRead = () => {
     const newSet = new Set(readNotifIds);
     orders.forEach(o => {
-      if (o && o.orderId) {
-        newSet.add(String(o.orderId));
-        markNotifAsRead(o.orderId);
+      const oid = String(o.orderId || o.id || '');
+      if (oid) {
+        newSet.add(oid);
+        markNotifAsRead(oid);
       }
     });
     tickets.forEach(t => {
-      if (t && t.ticketId) {
-        newSet.add(String(t.ticketId));
-        markNotifAsRead(t.ticketId);
+      const tid = String(t.ticketId || t.id || '');
+      if (tid) {
+        newSet.add(tid);
+        markNotifAsRead(tid);
       }
     });
     setReadNotifIds(newSet);
+    handleDismissStockAlerts();
     showToast('All notifications marked as read');
-  };
-
-  const handleDismissNotif = (id) => {
-    if (!id) return;
-    markNotifAsRead(id);
-    setReadNotifIds(prev => new Set([...prev, String(id)]));
   };
 
   // Admin Profile & Top Nav Notification Dropdown State
@@ -1158,18 +1202,21 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     });
 
     const lowStockCount = products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= (p.lowStockThreshold || 10)).length;
+    const unreadLowStockCount = products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= (p.lowStockThreshold || 10) && !dismissedStockAlerts.has(String(p.id))).length;
     const outOfStockCount = products.filter(p => p.stockQuantity === 0).length;
     const openTicketsCount = tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
     const recentNewOrders = orders.filter(o => {
       const st = String(o.orderStatus || o.status || 'PLACED').toUpperCase();
       const isNew = st === 'PLACED' || st.includes('PAYMENT COMPLETED') || st === 'NEW' || st === 'PAID';
-      const isUnread = !readNotifIds.has(String(o.orderId));
+      const oId = String(o.orderId || o.id || '');
+      const isUnread = !readNotifIds.has(oId);
       return isNew && isUnread;
     }).slice(0, 5);
 
     const unreadTickets = tickets.filter(t => {
       const isOpen = t.status === 'OPEN' || t.status === 'IN_PROGRESS';
-      const isUnread = !readNotifIds.has(String(t.ticketId));
+      const tId = String(t.ticketId || t.id || '');
+      const isUnread = !readNotifIds.has(tId);
       return isOpen && isUnread;
     });
 
@@ -1183,13 +1230,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       deliveredCount,
       totalOrders: orders.length,
       lowStockCount,
+      unreadLowStockCount,
       outOfStockCount,
       openTicketsCount,
       recentNewOrders,
       unreadOrdersCount: recentNewOrders.length,
       unreadTicketsCount: unreadTickets.length
     };
-  }, [orders, products, tickets, readNotifIds]);
+  }, [orders, products, tickets, readNotifIds, dismissedStockAlerts]);
 
   // 2. PRODUCT MANAGEMENT HANDLERS (ADD, EDIT, REMOVE)
   const handleOpenAddProduct = () => {
@@ -1734,16 +1782,26 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         notificationCount={
           (overviewStats.unreadOrdersCount || 0) +
           (overviewStats.unreadTicketsCount || 0) +
-          (overviewStats.lowStockCount || 0)
+          (overviewStats.unreadLowStockCount || 0)
         }
         overviewStats={overviewStats}
-        onSelectNotificationTab={(tab, filter) => {
+        onSelectNotificationTab={(tab, filter, targetOrderId) => {
           setActiveTab(tab);
           if (filter) setOrderStatusFilter(filter);
+          if (targetOrderId) {
+            setOrderSearchQuery(targetOrderId);
+            const matched = orders.find(o => (o.orderId || o.id) === targetOrderId);
+            if (matched) {
+              setSelectedOrderDetail(matched);
+            }
+            handleDismissNotif(targetOrderId);
+          }
           setIsEditingProductView(false);
         }}
         onMarkAllNotifsAsRead={handleMarkAllNotifsAsRead}
         onDismissNotif={handleDismissNotif}
+        onDismissTickets={handleDismissTickets}
+        onDismissStockAlerts={handleDismissStockAlerts}
       />
 
       {/* 2. Top Emergency / High-Priority Alert Banner (Hits hard with audio chime) */}

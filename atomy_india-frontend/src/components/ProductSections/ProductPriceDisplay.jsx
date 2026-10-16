@@ -11,7 +11,7 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
       <div className={`product-price-block is-member ${size}`}>
         <div className="price-strike-row">
           <span className="price-mrp-label">MRP</span>
-          <span className="price-original">
+          <span className="price-original notranslate" translate="no">
             ₹ {pricing.mrp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
           <span className="price-percent member-dp-save">
@@ -20,12 +20,12 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
         </div>
 
         <p className="product-price member-dp-price">
-          <span className="dp-price-amount">
+          <span className="dp-price-amount notranslate" translate="no">
             ₹ {pricing.activePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </p>
 
-        <p className="product-pv-note active-member-pv">
+        <p className="product-pv-note active-member-pv notranslate" translate="no">
           {pricing.pv.toLocaleString('en-IN')} PV
         </p>
       </div>
@@ -39,20 +39,20 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
       {pricing.hasOffer && (
         <div className="price-strike-row">
           <span className="price-mrp-label">MRP</span>
-          <span className="price-original">
+          <span className="price-original notranslate" translate="no">
             ₹ {pricing.mrp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
           <span className="price-percent">{pricing.discountPercent}% off</span>
         </div>
       )}
 
-      <p className="product-price">
+      <p className="product-price notranslate" translate="no">
         {!pricing.hasOffer && <span className="price-mrp-label" style={{ marginRight: '5px' }}>MRP</span>}
         ₹ {pricing.activePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </p>
 
       {/* PV is always visible even on public / non-member page */}
-      <p className="product-pv-note active-member-pv">
+      <p className="product-pv-note active-member-pv notranslate" translate="no">
         {pricing.pv.toLocaleString('en-IN')} PV
       </p>
 

@@ -78,7 +78,8 @@ export default function BrandShowcaseSection({
 
                 <div className="brand-product-info">
                   <h3
-                    className="brand-product-title"
+                    className="brand-product-title notranslate"
+                    translate="no"
                     title={product.name}
                     onClick={() => onProductClick && onProductClick(product)}
                     style={{ cursor: 'pointer' }}

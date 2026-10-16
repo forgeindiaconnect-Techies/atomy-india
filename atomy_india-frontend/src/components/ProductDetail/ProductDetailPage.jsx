@@ -95,9 +95,17 @@ export default function ProductDetailPage({
     const handleScroll = () => {
       if (!tabsSectionRef.current) return;
       const rect = tabsSectionRef.current.getBoundingClientRect();
-      // On mobile screens (<= 768px), activate floating card earlier as user scrolls past hero section
-      const threshold = typeof window !== 'undefined' && window.innerWidth <= 768 ? 320 : 140;
-      setShowFloatingCard(rect.top <= threshold);
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+      if (isMobile) {
+        // On mobile, show after hero and hide once reaching the end of product information / related products
+        const isPastHero = rect.top <= 320;
+        const isBeforeRelated = rect.bottom > 80;
+        setShowFloatingCard(isPastHero && isBeforeRelated);
+      } else {
+        // On desktop, activate when entering tabs section (CSS sticky stretches down column and stops above related products)
+        setShowFloatingCard(rect.top <= 140);
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -445,7 +453,7 @@ export default function ProductDetailPage({
             </div>
 
             {/* Product Title (matches Screenshot 1) */}
-            <h1 className="pdp-official-title">{product.name}</h1>
+            <h1 className="pdp-official-title notranslate" translate="no">{product.name}</h1>
 
             {/* Official Price & Tax Breakdown Block (Matches Atomy India Specifications) */}
             {(() => {

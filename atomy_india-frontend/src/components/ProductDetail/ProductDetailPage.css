@@ -1063,6 +1063,7 @@
   gap: 36px;
   width: 100%;
   padding-top: 26px;
+  position: relative;
 }
 
 /* Left Column: ~3/4 of the page for product information */
@@ -1076,18 +1077,19 @@
 .pdp-details-sticky-col {
   flex: 0 0 310px;
   width: 310px;
+  position: -webkit-sticky;
   position: sticky;
-  top: 66px; /* Sits cleanly 16px below the sticky tab bar */
+  top: 60px;
+  align-self: flex-start;
+  height: fit-content;
   z-index: 50;
   opacity: 0;
-  transform: translateY(14px);
   pointer-events: none;
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.25s ease;
 }
 
 .pdp-details-sticky-col.visible {
   opacity: 1;
-  transform: translateY(0);
   pointer-events: auto;
 }
 
@@ -1172,6 +1174,7 @@
 
 /* Floating Purchase Card (matches Screenshots 1 & 2) */
 .pdp-floating-purchase-card {
+  position: relative;
   background-color: #ffffff;
   width: 100%;
 }
@@ -1208,7 +1211,7 @@
 }
 
 
-@media (min-width: 769px) and (max-width: 992px) {
+@media (min-width: 769px) and (max-width: 860px) {
   .pdp-details-layout-grid {
     flex-direction: column;
     gap: 32px;
@@ -1220,7 +1223,6 @@
     width: 100%;
     position: static;
     opacity: 1;
-    transform: none;
     pointer-events: auto;
   }
 }

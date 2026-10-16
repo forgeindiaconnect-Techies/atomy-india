@@ -64,7 +64,9 @@ export default function Header({
   overviewStats = null,
   onSelectNotificationTab = null,
   onMarkAllNotifsAsRead = null,
-  onDismissNotif = null
+  onDismissNotif = null,
+  onDismissTickets = null,
+  onDismissStockAlerts = null
 }) {
   const [activePortal, setActivePortal] = useState('mall');
   const [searchQuery, setSearchQuery] = useState('');
@@ -600,49 +602,53 @@ export default function Header({
                         </div>
                         <div className="notif-dropdown-body">
                           {overviewStats?.recentNewOrders && overviewStats.recentNewOrders.length > 0 ? (
-                            overviewStats.recentNewOrders.map(ro => (
-                              <div
-                                key={ro.orderId}
-                                className="notif-item order-specific-item"
-                                onClick={() => {
-                                  onDismissNotif && onDismissNotif(ro.orderId);
-                                  onSelectNotificationTab && onSelectNotificationTab('orders', 'PLACED');
-                                  setIsAdminNotifOpen(false);
-                                }}
-                              >
-                                <div className="notif-icon-circle placed">
-                                  <Bell size={14} />
-                                </div>
-                                <div className="notif-text" style={{ flex: 1 }}>
-                                  <strong>New Order: #{ro.orderId}</strong>
-                                  <span>{ro.customerName} • ₹{Number(ro.totalAmount || ro.grandTotal || 0).toLocaleString('en-IN')}</span>
-                                  {ro.estimatedDeliveryDate && (
-                                    <span className="notif-eta-badge" style={{ display: 'block', fontSize: '11px', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
-                                      Est. Delivery: {ro.estimatedDeliveryDate}
-                                    </span>
+                            overviewStats.recentNewOrders.map(ro => {
+                              const orderId = ro.orderId || ro.id;
+                              return (
+                                <div
+                                  key={orderId}
+                                  className="notif-item order-specific-item"
+                                  onClick={() => {
+                                    onDismissNotif && onDismissNotif(orderId);
+                                    onSelectNotificationTab && onSelectNotificationTab('orders', 'ALL', orderId);
+                                    setIsAdminNotifOpen(false);
+                                  }}
+                                >
+                                  <div className="notif-icon-circle placed">
+                                    <Bell size={14} />
+                                  </div>
+                                  <div className="notif-text" style={{ flex: 1 }}>
+                                    <strong>New Order: #{orderId}</strong>
+                                    <span>{ro.customerName} • ₹{Number(ro.totalAmount || ro.grandTotal || 0).toLocaleString('en-IN')}</span>
+                                    {ro.estimatedDeliveryDate && (
+                                      <span className="notif-eta-badge" style={{ display: 'block', fontSize: '11px', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
+                                        Est. Delivery: {ro.estimatedDeliveryDate}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {onDismissNotif && (
+                                    <button
+                                      type="button"
+                                      className="notif-dismiss-btn"
+                                      title="Dismiss notification"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDismissNotif(orderId);
+                                      }}
+                                    >
+                                      <X size={14} />
+                                    </button>
                                   )}
                                 </div>
-                                {onDismissNotif && (
-                                  <button
-                                    type="button"
-                                    className="notif-dismiss-btn"
-                                    title="Dismiss notification"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onDismissNotif(ro.orderId);
-                                    }}
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                )}
-                              </div>
-                            ))
+                              );
+                            })
                           ) : null}
 
                           {(overviewStats?.unreadTicketsCount || 0) > 0 && (
                             <div
                               className="notif-item"
                               onClick={() => {
+                                onDismissTickets && onDismissTickets();
                                 onSelectNotificationTab && onSelectNotificationTab('support');
                                 setIsAdminNotifOpen(false);
                               }}
@@ -650,17 +656,31 @@ export default function Header({
                               <div className="notif-icon-circle support">
                                 <User size={14} />
                               </div>
-                              <div className="notif-text">
+                              <div className="notif-text" style={{ flex: 1 }}>
                                 <strong>{overviewStats.unreadTicketsCount} Open Support Inquiries</strong>
                                 <span>Customer questions waiting for response</span>
                               </div>
+                              {onDismissTickets && (
+                                <button
+                                  type="button"
+                                  className="notif-dismiss-btn"
+                                  title="Dismiss support alerts"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDismissTickets();
+                                  }}
+                                >
+                                  <X size={14} />
+                                </button>
+                              )}
                             </div>
                           )}
 
-                          {(overviewStats?.lowStockCount || 0) > 0 && (
+                          {(overviewStats?.unreadLowStockCount || 0) > 0 && (
                             <div
                               className="notif-item"
                               onClick={() => {
+                                onDismissStockAlerts && onDismissStockAlerts();
                                 onSelectNotificationTab && onSelectNotificationTab('inventory');
                                 setIsAdminNotifOpen(false);
                               }}
@@ -668,10 +688,23 @@ export default function Header({
                               <div className="notif-icon-circle stock">
                                 <Sparkles size={14} />
                               </div>
-                              <div className="notif-text">
-                                <strong>{overviewStats.lowStockCount} Inventory Stock Alerts</strong>
+                              <div className="notif-text" style={{ flex: 1 }}>
+                                <strong>{overviewStats.unreadLowStockCount} Inventory Stock Alerts</strong>
                                 <span>Products reaching threshold limit</span>
                               </div>
+                              {onDismissStockAlerts && (
+                                <button
+                                  type="button"
+                                  className="notif-dismiss-btn"
+                                  title="Dismiss stock alerts"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDismissStockAlerts();
+                                  }}
+                                >
+                                  <X size={14} />
+                                </button>
+                              )}
                             </div>
                           )}
 

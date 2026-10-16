@@ -58,7 +58,8 @@ export default function FoodEssentialSection({ onAddToCart, onProductClick, isMe
                   <div className="food-info-container">
                     <div className="food-header-row">
                       <h3
-                        className="food-product-title"
+                        className="food-product-title notranslate"
+                        translate="no"
                         title={product.name}
                         onClick={() => onProductClick && onProductClick(product)}
                         style={{ cursor: 'pointer' }}

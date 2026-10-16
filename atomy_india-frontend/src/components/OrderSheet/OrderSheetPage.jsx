@@ -1124,21 +1124,6 @@ export default function OrderSheetPage({
                       Expected delivery within {estimatedDeliveryInfo.timeFrame}
                     </div>
 
-                    {/* Destination preview in summary */}
-                    {currentSelectedAddress && (
-                      <div className="summary-delivery-preview" style={{ marginTop: '16px', background: '#f8fafc', padding: '12px 14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#00A3E0', textTransform: 'uppercase', marginBottom: '4px' }}>
-                          Delivering To:
-                        </div>
-                        <div style={{ fontSize: '13px', color: '#1e293b', fontWeight: 600 }}>
-                          {currentSelectedAddress.recipientName} (+91 {currentSelectedAddress.recipientPhone})
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                          {currentSelectedAddress.city}, {currentSelectedAddress.state} - {currentSelectedAddress.pincode}
-                        </div>
-                      </div>
-                    )}
-
                     <div className="summary-divider"></div>
 
                     <div className="summary-grand-total">
