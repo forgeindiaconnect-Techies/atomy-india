@@ -1593,11 +1593,27 @@ export default function ProductDetailPage({
         </div>
       )}
 
-      {/* Floating Toast Notification */}
+      {/* Floating Professional Toast Notification */}
       {toast && (
-        <div className="toast-notification">
-          <span className="toast-dot"></span>
-          <span>{toast}</span>
+        <div className="toast-notification-card toast-type-success" role="status">
+          <div className="toast-card-left">
+            <div className="toast-icon-badge toast-badge-success">
+              <CheckCircle2 size={18} strokeWidth={2.5} />
+            </div>
+            <div className="toast-card-body">
+              <span className="toast-card-title">Success</span>
+              <p className="toast-card-message">{toast}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="toast-card-close-btn"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss notification"
+          >
+            <X size={15} strokeWidth={2.4} />
+          </button>
+          <div className="toast-card-progress-bar"></div>
         </div>
       )}
     </div>

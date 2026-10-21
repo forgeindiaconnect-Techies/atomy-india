@@ -256,4 +256,21 @@ export async function fetchAdminCustomers() {
   return res.json();
 }
 
+export async function fetchAdminProfile() {
+  const res = await fetch(`${API_BASE}/admin/profile`);
+  if (!res.ok) throw new Error('Failed to fetch admin profile');
+  return res.json();
+}
+
+export async function updateAdminProfile(profileData) {
+  const res = await fetch(`${API_BASE}/admin/profile`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profileData)
+  });
+  if (!res.ok) throw new Error('Failed to update admin profile in database');
+  return res.json();
+}
+
+
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ArrowLeft, ChevronRight, Home } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { ArrowLeft, ChevronRight, Home, ShoppingCart, Heart, User, Check, X, ArrowRight } from 'lucide-react';
 import Header from './components/Header/Header';
 import HeroSlider from './components/HeroSlider/HeroSlider';
 import CategoryBar from './components/Categories/CategoryBar';
@@ -185,7 +185,8 @@ export default function App() {
   const [trackingOrderId, setTrackingOrderId] = useState('');
   const [isRecentlyViewedOpen, setIsRecentlyViewedOpen] = useState(false);
 
-  const [toast, setToast] = useState(null);
+  const [toast, setRawToast] = useState(null);
+  const toastTimeoutRef = useRef(null);
   
   // Initialize view from URL if present
   const initialRoute = useMemo(() => parseRouteFromLocation(), []);
@@ -264,6 +265,180 @@ export default function App() {
     setCurrentView(view);
     window.scrollTo(0, 0);
   }, [selectedCategory, selectedProduct]);
+
+  // Modern interactive toast notification controller with "Visit Cart" / Action button
+  const dismissToast = useCallback(() => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setRawToast(null);
+  }, []);
+
+  const showToast = useCallback((toastInput) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    if (!toastInput) {
+      setRawToast(null);
+      return;
+    }
+
+    let toastObj;
+    if (typeof toastInput === 'string') {
+      const lower = toastInput.toLowerCase();
+      if (lower.includes('cart')) {
+        toastObj = {
+          title: 'Item added to cart',
+          message: toastInput,
+          type: 'cart',
+          actionLabel: 'Visit Cart',
+          onAction: () => setIsCartOpen(true),
+          duration: 2000
+        };
+      } else if (lower.includes('sign in') || lower.includes('sign up') || lower.includes('auth')) {
+        toastObj = {
+          title: 'Sign In Required',
+          message: toastInput,
+          type: 'auth',
+          actionLabel: 'Sign In',
+          onAction: () => navigateTo('signin'),
+          duration: 2000
+        };
+      } else if (lower.includes('favorite') || lower.includes('wishlist')) {
+        toastObj = {
+          title: 'Wishlist Updated',
+          message: toastInput,
+          type: 'favorite',
+          actionLabel: 'View Wishlist',
+          onAction: () => navigateTo('favorites'),
+          duration: 2000
+        };
+      } else if (lower.includes('order')) {
+        toastObj = {
+          title: 'Order Status',
+          message: toastInput,
+          type: 'order',
+          actionLabel: 'View Orders',
+          onAction: () => navigateTo('orders'),
+          duration: 2500
+        };
+      } else {
+        toastObj = {
+          title: 'Notification',
+          message: toastInput,
+          type: 'info',
+          duration: 2000
+        };
+      }
+    } else {
+      toastObj = {
+        title: toastInput.title || 'Notification',
+        message: toastInput.message || '',
+        type: toastInput.type || 'info',
+        actionLabel: toastInput.actionLabel || toastInput.actionText,
+        onAction: toastInput.onAction,
+        duration: toastInput.duration || 2000
+      };
+    }
+
+    setRawToast(toastObj);
+
+    toastTimeoutRef.current = setTimeout(() => {
+      setRawToast(null);
+    }, toastObj.duration || 2000);
+  }, [navigateTo]);
+
+  const setToast = showToast;
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
+
+  const renderToast = () => {
+    if (!toast) return null;
+
+    const getIcon = () => {
+      switch (toast.type) {
+        case 'cart':
+          return (
+            <div className="toast-icon-badge toast-badge-cart">
+              <ShoppingCart size={18} strokeWidth={2.4} />
+            </div>
+          );
+        case 'favorite':
+          return (
+            <div className="toast-icon-badge toast-badge-favorite">
+              <Heart size={18} fill="#ffffff" strokeWidth={2} />
+            </div>
+          );
+        case 'auth':
+          return (
+            <div className="toast-icon-badge toast-badge-auth">
+              <User size={18} strokeWidth={2.4} />
+            </div>
+          );
+        case 'order':
+        case 'success':
+          return (
+            <div className="toast-icon-badge toast-badge-success">
+              <Check size={18} strokeWidth={2.8} />
+            </div>
+          );
+        default:
+          return (
+            <div className="toast-icon-badge toast-badge-info">
+              <Check size={18} strokeWidth={2.5} />
+            </div>
+          );
+      }
+    };
+
+    return (
+      <div 
+        className={`toast-notification-card toast-type-${toast.type || 'info'}`} 
+        role="alert" 
+        aria-live="polite"
+      >
+        <div className="toast-left-group">
+          {getIcon()}
+          <div className="toast-text-group">
+            <div className="toast-title-text">{toast.title || 'Notification'}</div>
+            {toast.message && (
+              <div className="toast-message-text" title={toast.message}>
+                {toast.message}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="toast-right-group">
+          {toast.actionLabel && toast.onAction && (
+            <button
+              type="button"
+              className="toast-action-btn"
+              onClick={() => {
+                const action = toast.onAction;
+                dismissToast();
+                action();
+              }}
+            >
+              <span>{toast.actionLabel}</span>
+              <ArrowRight size={14} strokeWidth={2.5} />
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="toast-close-btn"
+            onClick={dismissToast}
+            aria-label="Dismiss notification"
+          >
+            <X size={15} strokeWidth={2.4} />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // Centralized Back navigation: redirects to previous view without ever exiting the URL/app
   const handleGoBack = useCallback(() => {
@@ -567,12 +742,14 @@ export default function App() {
     try {
       localStorage.setItem('atomy_current_user', JSON.stringify(userObj));
     } catch {}
-    setToast(
-      isNewSignUp
-        ? `Welcome to Atomy, ${userObj.name}! Your account is ready.`
-        : `Welcome back, ${userObj.name}! Signed in successfully.`
-    );
-    setTimeout(() => setToast(null), 3500);
+    showToast({
+      title: isNewSignUp ? 'Welcome to Atomy!' : 'Welcome Back!',
+      message: isNewSignUp
+        ? `Your account is ready, ${userObj.name}!`
+        : `Signed in successfully as ${userObj.name}.`,
+      type: 'success',
+      duration: 4000
+    });
     handleNavigateHome();
   };
 
@@ -581,14 +758,24 @@ export default function App() {
     try {
       localStorage.removeItem('atomy_current_user');
     } catch {}
-    setToast('Signed out successfully.');
-    setTimeout(() => setToast(null), 2500);
+    showToast({
+      title: 'Signed Out',
+      message: 'You have signed out successfully.',
+      type: 'info',
+      duration: 3000
+    });
   };
 
   // Auth requirement notification & redirect
-  const requireAuth = (actionMessage = 'sign in or sign up') => {
-    setToast(`Please ${actionMessage} to continue.`);
-    setTimeout(() => setToast(null), 3200);
+  const requireAuth = (actionMessage = 'sign in or sign up to continue') => {
+    showToast({
+      title: 'Sign In Required',
+      message: `Please ${actionMessage}`,
+      type: 'auth',
+      actionLabel: 'Sign In',
+      onAction: () => handleNavigateSignIn('signin'),
+      duration: 2000
+    });
     handleNavigateSignIn();
     return false;
   };
@@ -598,12 +785,24 @@ export default function App() {
     setFavorites((prev) => {
       const exists = prev.some((p) => p.id === product.id);
       if (exists) {
-        setToast(`Removed ${product.name} from Favorites`);
-        setTimeout(() => setToast(null), 2000);
+        showToast({
+          title: 'Removed from Wishlist',
+          message: product.name,
+          type: 'info',
+          actionLabel: 'View Wishlist',
+          onAction: () => handleNavigateFavorites(),
+          duration: 3500
+        });
         return prev.filter((p) => p.id !== product.id);
       } else {
-        setToast(`Added ${product.name} to Favorites!`);
-        setTimeout(() => setToast(null), 2000);
+        showToast({
+          title: 'Added to Wishlist!',
+          message: product.name,
+          type: 'favorite',
+          actionLabel: 'View Wishlist',
+          onAction: () => handleNavigateFavorites(),
+          duration: 4500
+        });
         return [...prev, product];
       }
     });
@@ -750,11 +949,15 @@ export default function App() {
       return [...prev, { ...itemToCart, qty: addQty }];
     });
 
-    // Show toast
-    setToast(`${addQty > 1 ? `${addQty} × ` : ''}${product.name} added to cart!`);
-    setTimeout(() => {
-      setToast(null);
-    }, 2400);
+    // Modern customer-friendly toast with "Visit Cart" button on the right side
+    showToast({
+      title: 'Item added to cart',
+      message: `${addQty > 1 ? `${addQty} × ` : ''}${product.name}`,
+      type: 'cart',
+      actionLabel: 'Visit Cart',
+      onAction: () => setIsCartOpen(true),
+      duration: 2000
+    });
   };
 
   const handleBuyNow = (product, quantity = 1) => {
@@ -810,10 +1013,17 @@ export default function App() {
         recordProductPurchased(item.id, item.qty || 1);
       });
     }
-    setToast(`Order ${placedOrder.orderId} placed successfully!`);
-    setTimeout(() => {
-      setToast(null);
-    }, 3500);
+    showToast({
+      title: 'Order Placed Successfully!',
+      message: `Order #${placedOrder.orderId} confirmed. Thank you!`,
+      type: 'order',
+      actionLabel: 'Track Order',
+      onAction: () => {
+        setTrackingOrderId(placedOrder.orderId);
+        setIsTrackingOpen(true);
+      },
+      duration: 6000
+    });
   };
 
   const totalCartCount = cart.reduce((acc, item) => acc + item.qty, 0);
@@ -827,12 +1037,7 @@ export default function App() {
           onNavigateBack={handleGoBack}
           onLoginSuccess={handleLoginSuccess}
         />
-        {toast && (
-          <div className="toast-notification">
-            <span className="toast-dot"></span>
-            <span>{toast}</span>
-          </div>
-        )}
+        {renderToast()}
       </div>
     );
   }
@@ -1330,13 +1535,8 @@ export default function App() {
         currentView={currentView}
       />
 
-      {/* Toast Notification */}
-      {toast && (
-        <div className="toast-notification">
-          <span className="toast-dot"></span>
-          <span>{toast}</span>
-        </div>
-      )}
+      {/* Interactive Modern Toast Notification */}
+      {renderToast()}
     </div>
   );
 }

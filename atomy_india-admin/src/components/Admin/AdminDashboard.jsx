@@ -59,7 +59,9 @@ import {
   replyAdminTicket,
   updateAdminTicketStatus,
   clearAllAdminTickets,
-  fetchAdminCustomers
+  fetchAdminCustomers,
+  fetchAdminProfile,
+  updateAdminProfile
 } from '../../services/api';
 import {
   playOrderAlertSound,
@@ -418,6 +420,32 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     }
   });
 
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const handleSaveAdminProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      const saved = await updateAdminProfile(adminProfile);
+      if (saved) {
+        setAdminProfile(prev => ({ ...prev, ...saved }));
+        try {
+          localStorage.setItem('atomy_admin_profile', JSON.stringify({ ...adminProfile, ...saved }));
+        } catch {}
+      } else {
+        localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
+      }
+      showToast('Admin Profile credentials saved successfully to database!', 'success');
+    } catch (err) {
+      console.warn('Backend sync failed, saved locally:', err);
+      try {
+        localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
+      } catch {}
+      showToast('Saved locally. Backend database connecting...', 'warning');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   // Close notification dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -429,11 +457,47 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Toast feedback
+  // Professional Toast feedback controller
   const [toast, setToast] = useState(null);
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3500);
+  const toastTimerRef = useRef(null);
+
+  const showToast = (msgInput, typeOverride = null) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    if (!msgInput) {
+      setToast(null);
+      return;
+    }
+
+    let message = '';
+    let title = 'Notification';
+    let type = typeOverride || 'info';
+
+    if (typeof msgInput === 'string') {
+      message = msgInput;
+      const lower = msgInput.toLowerCase();
+      if (lower.includes('error') || lower.includes('failed') || lower.includes('invalid') || lower.includes('exceeds')) {
+        type = 'error';
+        title = 'Action Failed';
+      } else if (lower.includes('success') || lower.includes('saved') || lower.includes('updated') || lower.includes('published') || lower.includes('created') || lower.includes('cleared') || lower.includes('dispatched') || lower.includes('refunded')) {
+        type = 'success';
+        title = lower.includes('profile') ? 'Profile Updated' : lower.includes('saved') ? 'Settings Saved' : lower.includes('published') ? 'Published Live' : 'Success';
+      } else if (lower.includes('warning') || lower.includes('must remain') || lower.includes('please')) {
+        type = 'warning';
+        title = 'Attention Required';
+      } else {
+        type = 'info';
+        title = lower.includes('sound') ? 'Audio Feedback' : 'System Notice';
+      }
+    } else if (typeof msgInput === 'object') {
+      message = msgInput.message || '';
+      title = msgInput.title || 'Notification';
+      type = msgInput.type || 'info';
+    }
+
+    setToast({ message, title, type, key: Date.now() });
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+    }, 3600);
   };
 
   // References to track changes for audio alerts
@@ -601,13 +665,34 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
   const syncWithBackend = async () => {
     try {
-      const [statsRes, ordersRes, prodsRes, ticketsRes, custsRes] = await Promise.allSettled([
+      const [statsRes, ordersRes, prodsRes, ticketsRes, custsRes, profileRes] = await Promise.allSettled([
         fetchAdminStats(),
         fetchAdminOrders(),
         fetchAdminProducts(),
         fetchAdminTickets(),
-        fetchAdminCustomers()
+        fetchAdminCustomers(),
+        fetchAdminProfile()
       ]);
+
+      if (profileRes.status === 'fulfilled' && profileRes.value) {
+        const bp = profileRes.value;
+        setAdminProfile(prev => ({
+          ...prev,
+          name: bp.name || prev.name,
+          email: bp.email || prev.email,
+          phone: bp.phone !== undefined && bp.phone !== null ? bp.phone : prev.phone,
+          employeeId: bp.employeeId || prev.employeeId,
+          department: bp.department || prev.department,
+          role: bp.role || prev.role,
+          location: bp.location || prev.location,
+          twoFactorEnabled: bp.twoFactorEnabled !== undefined ? bp.twoFactorEnabled : prev.twoFactorEnabled,
+          sessionIp: bp.sessionIp || prev.sessionIp,
+          lastLogin: bp.lastLogin || prev.lastLogin
+        }));
+        try {
+          localStorage.setItem('atomy_admin_profile', JSON.stringify(bp));
+        } catch {}
+      }
 
       if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value)) {
         setBackendCustomers(custsRes.value);
@@ -3483,48 +3568,71 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           <label>Full Name</label>
                           <input
                             type="text"
-                            value={adminProfile.name}
+                            value={adminProfile.name || ''}
                             onChange={(e) => setAdminProfile({ ...adminProfile, name: e.target.value })}
                             className="atomy-form-input"
+                            placeholder="Enter full name"
                           />
                         </div>
                         <div className="setting-field-group">
                           <label>Official Email</label>
                           <input
                             type="email"
-                            value={adminProfile.email}
+                            value={adminProfile.email || ''}
                             onChange={(e) => setAdminProfile({ ...adminProfile, email: e.target.value })}
                             className="atomy-form-input"
+                            placeholder="admin@atomy.com"
                           />
                         </div>
                         <div className="setting-field-group">
                           <label>Phone Number</label>
                           <input
                             type="text"
-                            value={adminProfile.phone}
+                            value={adminProfile.phone || ''}
                             onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
                             className="atomy-form-input"
+                            placeholder="+91 98765 43210"
                           />
                         </div>
-                        <div className="setting-field-group">
-                          <label>Employee ID & Department</label>
-                          <input
-                            type="text"
-                            value={`${adminProfile.employeeId} - ${adminProfile.department}`}
-                            disabled
-                            className="atomy-form-input"
-                            style={{ backgroundColor: '#f1f5f9' }}
-                          />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div className="setting-field-group">
+                            <label>Employee ID</label>
+                            <input
+                              type="text"
+                              value={adminProfile.employeeId || ''}
+                              onChange={(e) => setAdminProfile({ ...adminProfile, employeeId: e.target.value })}
+                              className="atomy-form-input"
+                              placeholder="AT-IN-001"
+                            />
+                          </div>
+                          <div className="setting-field-group">
+                            <label>Department</label>
+                            <input
+                              type="text"
+                              value={adminProfile.department || ''}
+                              onChange={(e) => setAdminProfile({ ...adminProfile, department: e.target.value })}
+                              className="atomy-form-input"
+                              placeholder="Operations & Supply Chain"
+                            />
+                          </div>
                         </div>
                         <button
                           className="atomy-btn-primary"
-                          style={{ marginTop: '14px' }}
-                          onClick={() => {
-                            localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
-                            showToast('Admin Profile credentials updated successfully!');
-                          }}
+                          style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                          disabled={isSavingProfile}
+                          onClick={handleSaveAdminProfile}
                         >
-                          Save Profile Changes
+                          {isSavingProfile ? (
+                            <>
+                              <RefreshCw size={16} className="spin" />
+                              <span>Saving to Database...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Check size={16} />
+                              <span>Save Profile Changes</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -4218,11 +4326,30 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         </div>
       )}
 
-      {/* Floating Toast Notification */}
+      {/* Floating Professional Toast Notification */}
       {toast && (
-        <div className="toast-notification">
-          <span className="toast-dot"></span>
-          <span>{toast}</span>
+        <div className={`toast-notification-card toast-type-${toast.type || 'info'}`} role="status">
+          <div className="toast-card-left">
+            <div className={`toast-icon-badge toast-badge-${toast.type || 'info'}`}>
+              {toast.type === 'success' && <Check size={18} strokeWidth={2.8} />}
+              {toast.type === 'error' && <AlertTriangle size={18} strokeWidth={2.5} />}
+              {toast.type === 'warning' && <AlertTriangle size={18} strokeWidth={2.5} />}
+              {toast.type === 'info' && <Sparkles size={18} strokeWidth={2.4} />}
+            </div>
+            <div className="toast-card-body">
+              <span className="toast-card-title">{toast.title}</span>
+              <p className="toast-card-message">{toast.message}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="toast-card-close-btn"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss notification"
+          >
+            <X size={15} strokeWidth={2.4} />
+          </button>
+          <div className="toast-card-progress-bar"></div>
         </div>
       )}
     </div>

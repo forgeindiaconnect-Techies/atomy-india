@@ -3,8 +3,11 @@ import { Search, User, ShoppingCart, ChevronDown, ChevronUp, ChevronRight, Menu,
 import { SUPPORTED_LANGUAGES, getSavedLanguage, changeLanguage } from '../../services/languageService';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import atomyLogo from '../../assets/atomy-logo.png';
-import phoenixLogo from '../../assets/WhatsApp Image 2026-10-09 at 5.52.23 PM.jpeg';
+import ficLogo from '../../assets/fic-symbol.png';
+import IndiaMap from './IndiaMap';
 import PhoenixFlight from './PhoenixFlight';
+import NavbarColorPicker, { isHexColorDark, hexToRgba, rgbaToHex } from './NavbarColorPicker';
+import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
 import './Header.css';
 
 
@@ -71,14 +74,131 @@ export default function Header({
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [hoveredCategoryIndex, setHoveredCategoryIndex] = useState(0);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
-  const [isStickyNav, setIsStickyNav] = useState(false);
   const [isAtomySitesOpen, setIsAtomySitesOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState(() => getSavedLanguage());
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [navbarBottom, setNavbarBottom] = useState(0);
+  const [navbarBgColor, setNavbarBgColor] = useState(() => {
+    try {
+      return localStorage.getItem('atomy_navbar_bg') || '#EAB308';
+    } catch (e) {
+      return '#EAB308';
+    }
+  });
+
+  const [isNavbarGlass, setIsNavbarGlass] = useState(() => {
+    try {
+      return localStorage.getItem('atomy_navbar_glass') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const [navbarOpacity, setNavbarOpacity] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_navbar_opacity');
+      return saved ? parseFloat(saved) : 0.45;
+    } catch (e) {
+      return 0.45;
+    }
+  });
+
+  const isNavbarDark = isHexColorDark(navbarBgColor);
+
+  const finalNavbarBg = React.useMemo(() => {
+    if (!isNavbarGlass) return navbarBgColor;
+    return hexToRgba(navbarBgColor, navbarOpacity);
+  }, [navbarBgColor, isNavbarGlass, navbarOpacity]);
+
+  const handleNavbarColorChange = (newColor, isGlassOption) => {
+    setNavbarBgColor(newColor);
+    try {
+      localStorage.setItem('atomy_navbar_bg', newColor);
+    } catch (e) {
+      // ignore
+    }
+
+    if (typeof isGlassOption === 'boolean') {
+      setIsNavbarGlass(isGlassOption);
+      try {
+        localStorage.setItem('atomy_navbar_glass', isGlassOption ? 'true' : 'false');
+      } catch (e) {}
+    } else if (typeof newColor === 'string' && newColor.startsWith('rgba')) {
+      setIsNavbarGlass(true);
+      try {
+        localStorage.setItem('atomy_navbar_glass', 'true');
+      } catch (e) {}
+    }
+  };
+
+  const handleToggleNavbarGlass = (enableGlass) => {
+    setIsNavbarGlass(enableGlass);
+    try {
+      localStorage.setItem('atomy_navbar_glass', enableGlass ? 'true' : 'false');
+    } catch (e) {}
+  };
+
+  const handleChangeNavbarOpacity = (newOpacity) => {
+    setNavbarOpacity(newOpacity);
+    try {
+      localStorage.setItem('atomy_navbar_opacity', String(newOpacity));
+    } catch (e) {}
+  };
   const searchContainerRef = useRef(null);
   const quickMenuRef = useRef(null);
   const categoryMenuRef = useRef(null);
   const atomySitesMenuRef = useRef(null);
+  const mainHeaderBarRef = useRef(null);
+  const mobileSearchInputRef = useRef(null);
+
+  const handleToggleMobileSearch = () => {
+    if (mainHeaderBarRef.current) {
+      const rect = mainHeaderBarRef.current.getBoundingClientRect();
+      setNavbarBottom(Math.round(rect.bottom));
+    }
+    setIsMobileSearchOpen((prev) => !prev);
+  };
+
+  // Keep popup aligned right below the navbar even when window resizes or scrolls
+  useEffect(() => {
+    if (isMobileSearchOpen) {
+      const updateNavbarBottom = () => {
+        if (mainHeaderBarRef.current) {
+          const rect = mainHeaderBarRef.current.getBoundingClientRect();
+          setNavbarBottom(Math.round(rect.bottom));
+        }
+      };
+      updateNavbarBottom();
+      window.addEventListener('resize', updateNavbarBottom);
+      window.addEventListener('scroll', updateNavbarBottom, { passive: true });
+      return () => {
+        window.removeEventListener('resize', updateNavbarBottom);
+        window.removeEventListener('scroll', updateNavbarBottom);
+      };
+    }
+  }, [isMobileSearchOpen]);
+
+  // Auto-focus mobile search input when popup opens
+  useEffect(() => {
+    if (isMobileSearchOpen) {
+      const timer = setTimeout(() => {
+        mobileSearchInputRef.current?.focus();
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobileSearchOpen]);
+
+  // Close mobile search popup on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isMobileSearchOpen) {
+        setIsMobileSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileSearchOpen]);
 
   useEffect(() => {
     const handleLangChange = (e) => {
@@ -116,21 +236,6 @@ export default function Header({
     return clean ? clean.charAt(0).toUpperCase() : 'U';
   }, [currentUser]);
 
-  // Sticky navbar after first scroll on landing page and general views
-  useEffect(() => {
-    const handleScroll = () => {
-      if (currentView !== 'product' && window.scrollY > 95) {
-        setIsStickyNav(true);
-      } else {
-        setIsStickyNav(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [currentView]);
-
   const POPULAR_SEARCHES = [
     'HemoHIM',
     'Toothpaste',
@@ -166,7 +271,8 @@ export default function Header({
   const searchResults = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
-    return ALL_CATALOG_PRODUCTS.filter((prod) => {
+    const catalog = Array.isArray(ALL_CATALOG_PRODUCTS) ? ALL_CATALOG_PRODUCTS : [];
+    return catalog.filter((prod) => {
       const name = (prod.name || '').toLowerCase();
       const id = (prod.id || '').toLowerCase();
       const cat = (prod.category || '').toLowerCase();
@@ -177,6 +283,7 @@ export default function Header({
 
   const handleSelectSearchedProduct = (product) => {
     setIsSearchOpen(false);
+    setIsMobileSearchOpen(false);
     setSearchQuery('');
     if (onSelectProduct) {
       onSelectProduct(product);
@@ -189,6 +296,13 @@ export default function Header({
   };
 
   const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchResults.length > 0) {
+      handleSelectSearchedProduct(searchResults[0]);
+    }
+  };
+
+  const handleMobileSearchSubmit = (e) => {
     e.preventDefault();
     if (searchResults.length > 0) {
       handleSelectSearchedProduct(searchResults[0]);
@@ -247,15 +361,60 @@ export default function Header({
   ];
 
   return (
-    <header className="header-wrapper">
-      {/* Unified Main Brand Header Bar */}
-      <div className={`main-header-bar ${currentView === 'admin' ? 'admin-header-bar' : ''}`}>
-        {/* Soaring Golden Phoenix Bird Background with Splitting Wind Flames */}
-        <PhoenixFlight />
+    <>
+      <header className={`header-wrapper ${isNavbarGlass ? 'is-glass-mode' : ''}`}>
+      {/* Unified Main Brand Header Bar with Dynamic User Chosen Color */}
+      <div
+        ref={mainHeaderBarRef}
+        className={`main-header-bar ${currentView === 'admin' ? 'admin-header-bar' : ''} ${isNavbarDark ? 'theme-dark-navbar' : 'theme-light-navbar'} ${isNavbarGlass ? 'navbar-glass-effect' : ''}`}
+        style={{
+          backgroundColor: finalNavbarBg,
+          borderBottomColor: isNavbarDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)'
+        }}
+      >
+        {/* Bird flight temporarily stopped while changing navbar background color */}
+        {/* <PhoenixFlight /> */}
 
         <div className="container main-header-container">
+          {/* Mobile Common Brand Section (Large size, spans full height of both rows on mobile) */}
+          <div className="mobile-only-brand-col">
+            <a
+              href="/"
+              className="brand-col-logo"
+              aria-label="Forge India Connect Home"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigateHome && onNavigateHome();
+              }}
+            >
+              <div className="brand-logo-top-row">
+                <img
+                  src={ficLogo}
+                  alt="Forge India Connect"
+                  className="brand-logo-img"
+                />
+              </div>
+            </a>
 
-          
+            <div
+              className="team-phoenix-col fic-brand-col"
+              onClick={() => onNavigateHome && onNavigateHome()}
+              style={{ cursor: 'pointer' }}
+            >
+              <div className="team-phoenix-title fic-brand-title">
+                <span className="fic-forge-text">FORGE</span>
+                <span className="fic-india-text">
+                  <IndiaMap className="fic-india-map-svg" />
+                  NDIA
+                </span>
+              </div>
+              <div className="team-phoenix-sub fic-brand-sub">
+                <span className="fic-connect-text">CONNECT</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="main-header-content-col">
           {/* Top Utility Links Row - Hidden for Admin */}
           {currentView !== 'admin' && (
             <div className="head-top-row">
@@ -338,102 +497,32 @@ export default function Header({
                     <ChevronDown size={11} strokeWidth={2.2} />
                   </button>
                 </div>
+                <span className="top-utility-divider top-utility-desktop-only"></span>
+                <NavbarColorPicker
+                  currentColor={navbarBgColor}
+                  isGlass={isNavbarGlass}
+                  opacity={navbarOpacity}
+                  onChangeColor={handleNavbarColorChange}
+                  onToggleGlass={handleToggleNavbarGlass}
+                  onChangeOpacity={handleChangeNavbarOpacity}
+                  onReset={() => {
+                    handleNavbarColorChange('#EAB308', false);
+                    handleChangeNavbarOpacity(0.45);
+                  }}
+                />
               </div>
             </div>
           )}
 
-          {/* Main Row: Left Content + Search Bar (Parallel & close gap) + Right Action Icons */}
+          {/* Main Row: Left Content (Forge India Logo & Name, Shopping Mall & My Office) + Expanded Search Bar + Right Action Icons */}
           <div className="head-main-row">
-            {/* Atomy Corporate Logo with Family Sites Dropdown */}
-            <div className="atomy-corner-brand-wrapper" ref={atomySitesMenuRef}>
-              <a
-                href="/"
-                className="atomy-corner-logo"
-                aria-label="Atomy Home"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onNavigateHome && onNavigateHome();
-                }}
-              >
-                <img
-                  src={atomyLogo}
-                  alt="Atomy"
-                  className="atomy-corner-logo-img"
-                />
-              </a>
-              <button
-                type="button"
-                className={`brand-arrow-circle ${isAtomySitesOpen ? 'open' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAtomySitesOpen((prev) => !prev);
-                }}
-                aria-label="Toggle Atomy Family Sites"
-                aria-expanded={isAtomySitesOpen}
-              >
-                {isAtomySitesOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-
-              {/* Atomy Family Sites Dropdown Card (Referenced from in.atomy.com/main) */}
-              {isAtomySitesOpen && (
-                <div className="atomy-sites-dropdown-card">
-                  <div className="atomy-sites-header">
-                    <a
-                      href="https://in.atomy.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="atomy-sites-header-logo-link"
-                    >
-                      <img
-                        src="https://resources.atomy.com/20261007093306/fo/images/common/CI-blue_68.svg"
-                        alt="ATOMY"
-                        className="atomy-sites-header-img"
-                      />
-                    </a>
-                    <button
-                      type="button"
-                      className="atomy-sites-close-btn"
-                      onClick={() => setIsAtomySitesOpen(false)}
-                      aria-label="Close family menu"
-                    >
-                      <ChevronUp size={13} />
-                    </button>
-                  </div>
-
-                  <ul className="atomy-sites-list">
-                    {ATOMY_FAMILY_SITES.map((site) => (
-                      <li key={site.id}>
-                        <a
-                          href={site.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="atomy-site-item"
-                          onClick={() => setIsAtomySitesOpen(false)}
-                        >
-                          <img
-                            src={site.iconUrl}
-                            alt={site.title}
-                            className="atomy-site-icon-img"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
-                          />
-                          <span className="atomy-site-name">{site.title}</span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
-            {/* Left Content + Search Bar positioned directly next to My Office */}
+            {/* Left Content (Forge Brand + Portal Tabs) + Search Bar */}
             <div className="main-row-left-group">
-              <div className="brand-section">
+              <div className="brand-section desktop-only-brand-section">
                 <a
                   href="/"
                   className="brand-col-logo"
-                  aria-label="Team Phoenix Home"
+                  aria-label="Forge India Connect Home"
                   onClick={(e) => {
                     e.preventDefault();
                     onNavigateHome && onNavigateHome();
@@ -441,16 +530,28 @@ export default function Header({
                 >
                   <div className="brand-logo-top-row">
                     <img
-                      src={phoenixLogo}
-                      alt="Team Phoenix Logo"
+                      src={ficLogo}
+                      alt="Forge India Connect"
                       className="brand-logo-img"
                     />
                   </div>
                 </a>
 
-                <div className="team-phoenix-col">
-                  <span className="team-phoenix-title">Team Phoenix</span>
-                  <span className="team-phoenix-sub">Team Phoenix India</span>
+                <div
+                  className="team-phoenix-col fic-brand-col"
+                  onClick={() => onNavigateHome && onNavigateHome()}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="team-phoenix-title fic-brand-title">
+                    <span className="fic-forge-text">FORGE</span>
+                    <span className="fic-india-text">
+                      <IndiaMap className="fic-india-map-svg" />
+                      NDIA
+                    </span>
+                  </div>
+                  <div className="team-phoenix-sub fic-brand-sub">
+                    <span className="fic-connect-text">CONNECT</span>
+                  </div>
                 </div>
 
                 {/* Shopping Mall / My Office Portal Tabs - Hidden for Admin */}
@@ -481,7 +582,8 @@ export default function Header({
 
               {/* Search Box placed parallel right next to My Office - Hidden for Admin */}
               {currentView !== 'admin' && (
-                <div className="search-container" ref={searchContainerRef}>
+                <>
+                  <div className="search-container desktop-search-container" ref={searchContainerRef}>
                   <form onSubmit={handleSearchSubmit} className="search-box">
                     <input
                       type="text"
@@ -593,8 +695,23 @@ export default function Header({
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+
+                {/* Mobile Compact Search Pill (Same line as logo & profile) */}
+                <div
+                  className={`mobile-search-trigger-pill ${isMobileSearchOpen ? 'is-active' : ''}`}
+                  onClick={handleToggleMobileSearch}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Toggle search popup"
+                >
+                  <span className="mobile-search-pill-placeholder">
+                    {searchQuery || "Which product has monopoly in world?"}
+                  </span>
+                  <Search size={14} strokeWidth={2.4} className="mobile-search-pill-icon" />
+                </div>
+              </>
+            )}
+          </div>
 
             {/* Right Action Icons: Notification, Profile, Cart */}
             <div className="header-actions">
@@ -694,12 +811,12 @@ export default function Header({
           </div>
         </div>
       </div>
+    </div>
+  </header>
 
       {/* Sub-Navigation Bar - Hidden for Admin */}
       {currentView !== 'admin' && (
-        <>
-          {isStickyNav && <div className="sub-nav-placeholder" aria-hidden="true" />}
-          <nav className={`sub-nav-bar ${isStickyNav ? 'is-sticky' : ''}`}>
+        <nav className="sub-nav-bar">
           <div className="container sub-nav-container">
             {/* All Category Dropdown Trigger & Popup Menu */}
             <div className="category-menu-wrapper" ref={categoryMenuRef}>
@@ -1143,8 +1260,7 @@ export default function Header({
             </div>
           </div>
         </nav>
-      </>
-    )}
+      )}
 
     {/* Official Atomy India Language/Region settings Modal (Exact match to user reference screenshot) */}
     {/* Official Atomy India Language/Region settings Modal (Exact match to user reference screenshot) */}
@@ -1209,6 +1325,128 @@ export default function Header({
         </div>
       </div>
     )}
-    </header>
+
+    {/* Mobile Search Popup Modal - Opens below the navbar on mobile */}
+    {isMobileSearchOpen && (
+      <div 
+        className="mobile-search-popup-overlay"
+        style={{
+          top: navbarBottom ? `${navbarBottom}px` : undefined,
+          height: navbarBottom ? `calc(100dvh - ${navbarBottom}px)` : undefined
+        }}
+        onClick={() => setIsMobileSearchOpen(false)}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile Search"
+      >
+        <div 
+          className="mobile-search-popup-card" 
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mobile-search-popup-header">
+            <form onSubmit={handleMobileSearchSubmit} className="mobile-search-popup-form">
+              <Search size={18} strokeWidth={2.2} className="mobile-search-popup-input-icon" />
+              <input
+                ref={mobileSearchInputRef}
+                type="text"
+                className="mobile-search-popup-input"
+                placeholder="Search products, HemoHIM, toothpaste..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="mobile-search-popup-clear-btn"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear input"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </form>
+            <button
+              type="button"
+              className="mobile-search-popup-cancel-btn"
+              onClick={() => setIsMobileSearchOpen(false)}
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div className="mobile-search-popup-content">
+            {searchQuery.trim().length === 0 ? (
+              <div className="mobile-search-popular-section">
+                <div className="mobile-search-section-label">
+                  <Sparkles size={14} className="sparkle-icon" />
+                  <span>Popular Searches</span>
+                </div>
+                <div className="mobile-search-tags-grid">
+                  {POPULAR_SEARCHES.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className="mobile-search-tag-chip"
+                      onClick={() => {
+                        setSearchQuery(tag);
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mobile-search-results-section">
+                <div className="mobile-search-section-label">
+                  <span>Results for "{searchQuery}" ({searchResults.length})</span>
+                </div>
+                {searchResults.length === 0 ? (
+                  <div className="mobile-search-empty-state">
+                    <p>No products found for "{searchQuery}".</p>
+                    <span>Try searching for HemoHIM, Toothpaste, or Cleanser</span>
+                  </div>
+                ) : (
+                  <div className="mobile-search-results-list">
+                    {searchResults.map((prod) => (
+                      <div
+                        key={prod.id}
+                        className="mobile-search-result-card"
+                        onClick={() => handleSelectSearchedProduct(prod)}
+                      >
+                        <img
+                          src={prod.image}
+                          alt={prod.name}
+                          className="mobile-search-result-thumb"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg';
+                          }}
+                        />
+                        <div className="mobile-search-result-details">
+                          <span className="mobile-search-result-code">{prod.id}</span>
+                          <h4 className="mobile-search-result-title">{prod.name}</h4>
+                          <div className="mobile-search-result-price-row">
+                            <span className="mobile-search-result-price">
+                              ₹ {(prod.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                            {prod.pv && (
+                              <span className="mobile-search-result-pv">
+                                PV {prod.pv.toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
