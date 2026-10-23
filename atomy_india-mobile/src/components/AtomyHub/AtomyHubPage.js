@@ -17,7 +17,7 @@ import { COLORS } from '../../constants/theme';
 import AtomyFooter from '../Navigation/AtomyFooter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const phoenixLogo = require('../../../assets/team_phoenix_circle_clean.png');
+const phoenixLogo = require('../../../assets/fic-symbol.png');
 
 // 5 Official Atomy Hub Portals exactly from https://in.atomy.com/atomy/hub
 const OFFICIAL_HUB_PORTALS = [

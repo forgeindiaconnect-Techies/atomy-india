@@ -105,11 +105,11 @@
   flex: 1;
 }
 
-/* Left Brand Section: atom美 + ATOMY | Team Phoenix | Shopping Mall & My Office */
+/* Left Brand Section: Forge India Connect */
 .brand-section {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 16px;
   flex-shrink: 0;
   margin-left: 0;
 }
@@ -126,18 +126,91 @@
   opacity: 0.92;
 }
 
-.brand-logo-cluster {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  z-index: 100000;
-}
-
 .brand-logo-top-row {
   display: flex;
   align-items: center;
+}
+
+.brand-logo-img {
+  height: 52px;
+  width: auto;
+  max-height: 56px;
+  object-fit: contain;
+  display: block;
+  background-color: transparent !important;
+  background: transparent !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  border: none !important;
+  transition: transform 0.2s ease;
+}
+
+.brand-col-logo:hover .brand-logo-img {
+  transform: scale(1.04);
+}
+
+.fic-brand-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  user-select: none;
+}
+
+.fic-brand-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.2px;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.fic-forge-text {
+  color: #ffffff;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.fic-india-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  color: #FFB800;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-shadow: none;
+}
+
+.fic-india-map-svg {
+  height: 27px;
+  width: auto;
+  display: inline-block;
+  vertical-align: middle;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+  color: #FFB800;
+}
+
+.fic-brand-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 0.32em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  text-shadow: none;
+  opacity: 0.95;
+  margin-top: 1px;
+}
+
+.fic-connect-text {
+  letter-spacing: 0.32em;
 }
 
 .brand-logo-svg {

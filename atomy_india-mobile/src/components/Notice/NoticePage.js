@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import AtomyFooter from '../Navigation/AtomyFooter';
 
-const phoenixLogo = require('../../../assets/team_phoenix_circle_clean.png');
+const phoenixLogo = require('../../../assets/fic-symbol.png');
 
 const OFFICIAL_NOTICES = [
   {

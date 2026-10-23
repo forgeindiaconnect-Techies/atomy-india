@@ -18,7 +18,7 @@ import { COLORS } from '../../constants/theme';
 import AtomyFooter from '../Navigation/AtomyFooter';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const phoenixLogo = require('../../../assets/team_phoenix_circle_clean.png');
+const phoenixLogo = require('../../../assets/fic-symbol.png');
 const heroBannerImg = require('../../../assets/bn_compensation_mobile.jpg');
 
 // Authentic Atomy Mastership Hexagon Badges matching Website

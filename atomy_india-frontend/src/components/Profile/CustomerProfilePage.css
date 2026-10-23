@@ -531,6 +531,82 @@
   background: #1e293b;
 }
 
+/* Flipkart-Style FAQs Section in Profile Settings */
+.profile-faqs-card {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 26px;
+  margin-top: 28px;
+}
+
+.profile-faqs-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.profile-faqs-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-faqs-title {
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.profile-faqs-sub {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.profile-faqs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profile-faq-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 16px 20px;
+  transition: all 0.2s ease;
+}
+
+.profile-faq-item:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+.profile-faq-question {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.45;
+}
+
+.profile-faq-answer {
+  margin: 0;
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+
 /* Orders List */
 .orders-list-wrapper {
   display: flex;
@@ -1999,5 +2075,135 @@
   display: inline-flex;
   align-items: center;
 }
+
+/* PV SuperCoin Zone in Gift Cards tab */
+.pv-supercoin-redeem-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border: 1.5px solid #86efac;
+  border-radius: 12px;
+  padding: 22px;
+  margin-bottom: 24px;
+  box-shadow: 0 3px 12px rgba(22, 163, 74, 0.06);
+}
+
+.pv-supercoin-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pv-supercoin-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pv-supercoin-title {
+  margin: 0 0 3px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #14532d;
+}
+
+.pv-supercoin-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #166534;
+}
+
+.pv-supercoin-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+
+.pv-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pv-stat-sublabel {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pv-stat-highlight {
+  font-size: 18px;
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.pv-stat-cash {
+  font-size: 18px;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.pv-arrow-symbol {
+  font-size: 18px;
+  color: #94a3b8;
+}
+
+.pv-convert-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  padding: 11px 22px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pv-convert-btn:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.pv-progress-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pv-progress-bar-wrap {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.pv-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.pv-progress-text {
+  font-size: 12.5px;
+  color: #475569;
+  font-weight: 500;
+}
+
 
 

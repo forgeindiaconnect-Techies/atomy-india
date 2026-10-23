@@ -21,8 +21,8 @@ import AtomyFooter from '../Navigation/AtomyFooter';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_HEIGHT = Math.round(SCREEN_WIDTH * (360 / 720));
 
-// Authentic Team Phoenix Logo asset
-const phoenixLogo = require('../../../assets/team_phoenix_circle_clean.png');
+// Authentic Brand Logo asset
+const ficLogo = require('../../../assets/fic-symbol.png');
 
 export default function CategoryPage({
   categoryId = 'personal_care',
@@ -141,24 +141,23 @@ export default function CategoryPage({
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Team Phoenix Emblem & Name ONLY (without Atomy logo) */}
+          {/* Forge India Connect Branding */}
           <TouchableOpacity
             style={styles.phoenixGroup}
             activeOpacity={0.8}
             onPress={onNavigateBack || onNavigateHome}
           >
             <Image
-              source={phoenixLogo}
-              style={styles.phoenixEmblem}
+              source={ficLogo}
+              style={styles.ficLogoImg}
               resizeMode="contain"
             />
-            <View style={styles.phoenixTextCol}>
-              <Text style={styles.phoenixTitle} numberOfLines={1}>
-                Team Phoenix
-              </Text>
-              <Text style={styles.phoenixSub} numberOfLines={1}>
-                India
-              </Text>
+            <View style={styles.ficBrandCol}>
+              <View style={styles.ficTitleRow}>
+                <Text style={styles.ficForgeText}>FORGE </Text>
+                <Text style={styles.ficIndiaText}>INDIA</Text>
+              </View>
+              <Text style={styles.ficConnectText}>CONNECT</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -545,7 +544,40 @@ const styles = StyleSheet.create({
   phoenixGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 4,
+  },
+  ficLogoImg: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
+  },
+  ficBrandCol: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    marginLeft: 3,
+  },
+  ficTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ficForgeText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  ficIndiaText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFB800',
+    letterSpacing: 0.5,
+  },
+  ficConnectText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: 'rgba(255, 255, 255, 0.92)',
+    letterSpacing: 2.5,
+    marginTop: 1,
   },
   phoenixEmblem: {
     width: 32,

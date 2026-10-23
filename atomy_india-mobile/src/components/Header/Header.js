@@ -15,8 +15,8 @@ import { COLORS } from '../../constants/theme';
 import { SUB_NAV_LINKS } from '../../data/mockData';
 
 // Authentic logos
-const atomyLogoWhite = require('../../../assets/atomy-logo.png'); // White logo on blue background
-const phoenixLogo = require('../../../assets/team_phoenix_circle_clean.png');
+const ficLogo = require('../../../assets/fic-symbol.png');
+const phoenixLogo = require('../../../assets/fic-symbol.png');
 
 const SUB_NAV_ICONS = {
   home: 'home-outline',
@@ -54,39 +54,23 @@ export default function Header({
     <View style={styles.headerContainer}>
       {/* 1. Top Header Row: Solid Atomy Cyan Blue Background */}
       <View style={styles.topBlueRow}>
-        {/* Left Side: White Atomy Logo + Dropdown Circle + Team Phoenix */}
+        {/* Left Side: Forge India Connect Branding */}
         <TouchableOpacity
           style={styles.brandContainer}
           activeOpacity={0.8}
           onPress={onLogoPress}
         >
-          {/* White Atomy Logo */}
           <Image
-            source={atomyLogoWhite}
-            style={styles.atomyLogoImg}
+            source={ficLogo}
+            style={styles.ficLogoImg}
             resizeMode="contain"
           />
-
-          {/* Circle Dropdown Indicator */}
-          <View style={styles.dropdownCircle}>
-            <Ionicons name="chevron-down" size={12} color="#FFFFFF" />
-          </View>
-
-          {/* Team Phoenix Emblem & Name */}
-          <View style={styles.phoenixGroup}>
-            <Image
-              source={phoenixLogo}
-              style={styles.phoenixEmblem}
-              resizeMode="contain"
-            />
-            <View style={styles.phoenixTextCol}>
-              <Text style={styles.phoenixTitle} numberOfLines={1}>
-                Team Phoenix
-              </Text>
-              <Text style={styles.phoenixSub} numberOfLines={1}>
-                India
-              </Text>
+          <View style={styles.ficBrandCol}>
+            <View style={styles.ficTitleRow}>
+              <Text style={styles.ficForgeText}>FORGE </Text>
+              <Text style={styles.ficIndiaText}>INDIA</Text>
             </View>
+            <Text style={styles.ficConnectText}>CONNECT</Text>
           </View>
         </TouchableOpacity>
 
@@ -323,6 +307,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  ficLogoImg: {
+    width: 38,
+    height: 38,
+    resizeMode: 'contain',
+  },
+  ficBrandCol: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    marginLeft: 3,
+  },
+  ficTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ficForgeText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  ficIndiaText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFB800',
+    letterSpacing: 0.5,
+  },
+  ficConnectText: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: 'rgba(255, 255, 255, 0.92)',
+    letterSpacing: 2.8,
+    marginTop: 1,
   },
   atomyLogoImg: {
     width: 68,

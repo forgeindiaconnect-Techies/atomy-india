@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { ATOMY_CENTRES, ATOMY_STATES } from '../../data/centresData';
 
-const phoenixLogo = require('../../../assets/team_phoenix_circle_clean.png');
+const phoenixLogo = require('../../../assets/fic-symbol.png');
 
 export default function FindCentrePage({
   onNavigateHome,

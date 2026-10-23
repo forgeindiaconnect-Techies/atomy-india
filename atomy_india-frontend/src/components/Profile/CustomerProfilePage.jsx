@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   User,
   Settings,
@@ -28,7 +28,8 @@ import {
   FileText,
   ShieldCheck,
   Navigation,
-  Loader2
+  Loader2,
+  HelpCircle
 } from 'lucide-react';
 import './CustomerProfilePage.css';
 
@@ -51,21 +52,35 @@ export default function CustomerProfilePage({
   const [profileSuccessMessage, setProfileSuccessMessage] = useState('');
   
   // Profile edit form state
-  const [profileForm, setProfileForm] = useState({
-    name: currentUser?.name || 'Customer',
-    email: currentUser?.email || 'customer@atomy.in',
-    phone: currentUser?.phone || '+91 98765 43210',
-    gender: currentUser?.gender || 'Prefer not to say',
-    dob: currentUser?.dob || '1995-08-15'
+  const [profileForm, setProfileForm] = useState(() => {
+    const rawPhone = currentUser?.phone;
+    const finalPhone = (!rawPhone || rawPhone.includes('9876543210') || rawPhone.includes('98765 43210'))
+      ? '+91 93630 63276'
+      : rawPhone;
+    return {
+      name: currentUser?.name || 'Customer',
+      email: currentUser?.email || 'customer@atomy.in',
+      phone: finalPhone,
+      gender: currentUser?.gender || 'Prefer not to say',
+      dob: currentUser?.dob || '1995-08-15'
+    };
   });
 
-  // Password change state
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [passwordMessage, setPasswordMessage] = useState('');
+  // Sync phone number to +91 93630 63276 if unassigned or default demo number
+  useEffect(() => {
+    if (currentUser) {
+      const p = currentUser.phone;
+      if (!p || p.includes('9876543210') || p.includes('98765 43210')) {
+        const updated = { ...currentUser, phone: '+91 93630 63276' };
+        if (onUpdateUser) {
+          onUpdateUser(updated);
+        }
+        setProfileForm(prev => ({ ...prev, phone: '+91 93630 63276' }));
+      }
+    }
+  }, [currentUser, onUpdateUser]);
+
+
 
   // Saved Addresses state
   const [addresses, setAddresses] = useState(() => {
@@ -278,8 +293,51 @@ export default function CustomerProfilePage({
     }
   ]);
 
-  // Gift Cards state
-  const [giftCardBalance, setGiftCardBalance] = useState(1500);
+  // Real Personal PV dynamically calculated from real user placed orders & account
+  const personalPV = useMemo(() => {
+    const fromOrders = (placedOrders || []).reduce((sum, order) => {
+      if (typeof order.totalPv === 'number' && order.totalPv > 0) return sum + order.totalPv;
+      if (typeof order.totalPV === 'number' && order.totalPV > 0) return sum + order.totalPV;
+      if (Array.isArray(order.items)) {
+        return sum + order.items.reduce((acc, it) => acc + ((it.pv || 0) * (it.qty || 1)), 0);
+      }
+      return sum;
+    }, 0);
+    const userPv = currentUser?.pv || 0;
+    return Math.max(fromOrders, userPv);
+  }, [placedOrders, currentUser]);
+
+  const [redeemedPv, setRedeemedPv] = useState(() => {
+    try {
+      return Number(localStorage.getItem('atomy_redeemed_pv') || 0);
+    } catch {
+      return 0;
+    }
+  });
+
+  const availablePV = Math.max(0, personalPV - redeemedPv);
+
+  // Real Wallet Balance from store / account (starts at 0, not hardcoded 1500)
+  const [giftCardBalance, setGiftCardBalance] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_wallet_balance');
+      if (saved !== null) return Number(saved);
+      if (currentUser?.walletBalance !== undefined) return Number(currentUser.walletBalance);
+      return 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('atomy_wallet_balance', String(giftCardBalance));
+      if (currentUser && currentUser.walletBalance !== giftCardBalance && onUpdateUser) {
+        onUpdateUser({ ...currentUser, walletBalance: giftCardBalance });
+      }
+    } catch {}
+  }, [giftCardBalance]);
+
   const [redeemCardCode, setRedeemCardCode] = useState('');
   const [redeemMessage, setRedeemMessage] = useState('');
 
@@ -322,17 +380,7 @@ export default function CustomerProfilePage({
     setTimeout(() => setProfileSuccessMessage(''), 3000);
   };
 
-  // Handle Password Update
-  const handleSavePassword = (e) => {
-    e.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage('New passwords do not match. Please re-enter.');
-      return;
-    }
-    setPasswordMessage('Password changed successfully!');
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setTimeout(() => setPasswordMessage(''), 3000);
-  };
+
 
   // Handle Address Add
   const handleAddAddress = (e) => {
@@ -378,6 +426,21 @@ export default function CustomerProfilePage({
       setCouponMessage(`Invalid coupon code "${code}". Please check available coupons.`);
     }
     setTimeout(() => setCouponMessage(''), 4000);
+  };
+
+  // Handle Converting PV to Wallet Balance (SuperCoin style: 10,000 PV = ₹100 Wallet Credit)
+  const handleRedeemPv = () => {
+    if (availablePV < 10000) return;
+    const newRedeemed = redeemedPv + 10000;
+    const newWallet = giftCardBalance + 100;
+    setRedeemedPv(newRedeemed);
+    setGiftCardBalance(newWallet);
+    try {
+      localStorage.setItem('atomy_redeemed_pv', String(newRedeemed));
+      localStorage.setItem('atomy_wallet_balance', String(newWallet));
+    } catch {}
+    setRedeemMessage('🎉 10,000 PV successfully converted! ₹100 added to your Wallet Balance.');
+    setTimeout(() => setRedeemMessage(''), 4500);
   };
 
   // Handle Gift Card Redeem
@@ -467,7 +530,7 @@ export default function CustomerProfilePage({
           <div className="profile-pv-stats-card">
             <div className="pv-stat-item">
               <span className="pv-stat-label">Personal PV</span>
-              <span className="pv-stat-value">12,500 PV</span>
+              <span className="pv-stat-value">{availablePV.toLocaleString('en-IN')} PV</span>
             </div>
             <div className="pv-stat-divider"></div>
             <div className="pv-stat-item">
@@ -597,7 +660,7 @@ export default function CustomerProfilePage({
               <div className="profile-section-header">
                 <div>
                   <h2 className="profile-section-title">Profile Settings & Account</h2>
-                  <p className="profile-section-sub">Manage your personal information, contact details, and security.</p>
+                  <p className="profile-section-sub">Manage your personal information and contact details.</p>
                 </div>
                 {!isEditingProfile && (
                   <button
@@ -710,54 +773,46 @@ export default function CustomerProfilePage({
                 </form>
               )}
 
-              {/* Password & Security Card */}
-              <div className="profile-security-card">
-                <div className="security-card-header">
-                  <div className="security-icon-circle">
-                    <Lock size={18} />
+              {/* FAQs Section (Flipkart-style Personal Settings FAQs) */}
+              <div className="profile-faqs-card">
+                <div className="profile-faqs-header">
+                  <div className="profile-faqs-icon-badge">
+                    <HelpCircle size={18} />
                   </div>
                   <div>
-                    <h3 className="security-title">Change Account Password</h3>
-                    <p className="security-sub">Ensure your customer shopping account is guarded with a strong password.</p>
+                    <h3 className="profile-faqs-title">FAQs</h3>
+                    <p className="profile-faqs-sub">Answers to common queries regarding updating personal contact and account details</p>
                   </div>
                 </div>
 
-                {passwordMessage && (
-                  <div className="profile-alert info">
-                    <AlertCircle size={15} />
-                    <span>{passwordMessage}</span>
+                <div className="profile-faqs-list">
+                  <div className="profile-faq-item">
+                    <h4 className="profile-faq-question">
+                      What happens when I update my email address (or mobile number)?
+                    </h4>
+                    <p className="profile-faq-answer">
+                      Your login email id (or mobile number) changes, likewise. You'll receive all your account related communication on your updated email address (or mobile number).
+                    </p>
                   </div>
-                )}
 
-                <form onSubmit={handleSavePassword} className="security-form-row">
-                  <input
-                    type="password"
-                    placeholder="Current Password"
-                    className="profile-field-input"
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="password"
-                    placeholder="New Password"
-                    className="profile-field-input"
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                    required
-                  />
-                  <input
-                    type="password"
-                    placeholder="Confirm New Password"
-                    className="profile-field-input"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                    required
-                  />
-                  <button type="submit" className="security-update-btn">
-                    Update Password
-                  </button>
-                </form>
+                  <div className="profile-faq-item">
+                    <h4 className="profile-faq-question">
+                      When will my Atomy account be updated with the new email address (or mobile number)?
+                    </h4>
+                    <p className="profile-faq-answer">
+                      It happens as soon as you confirm the verification code sent to your email (or mobile) and save the changes.
+                    </p>
+                  </div>
+
+                  <div className="profile-faq-item">
+                    <h4 className="profile-faq-question">
+                      What happens to my existing Atomy account when I update my email address (or mobile number)?
+                    </h4>
+                    <p className="profile-faq-answer">
+                      Updating your email address (or mobile number) doesn't invalidate your account. Your account remains fully functional. You'll continue seeing your Order history, saved information and personal details.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1129,6 +1184,54 @@ export default function CustomerProfilePage({
                 <div className="giftcard-card-icon">
                   <Gift size={44} />
                 </div>
+              </div>
+
+              {/* SuperCoin Style PV to Cash Conversion Box */}
+              <div className="pv-supercoin-redeem-card">
+                <div className="pv-supercoin-header">
+                  <div className="pv-supercoin-badge">
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <h4 className="pv-supercoin-title">PV Rewards Store (SuperCoin Zone)</h4>
+                    <p className="pv-supercoin-sub">Convert your earned order PV points into instant Wallet Store Credit (10,000 PV = ₹ 100)</p>
+                  </div>
+                </div>
+
+                <div className="pv-supercoin-stats-row">
+                  <div className="pv-stat-box">
+                    <span className="pv-stat-sublabel">Your Available PV</span>
+                    <strong className="pv-stat-highlight">{availablePV.toLocaleString('en-IN')} PV</strong>
+                  </div>
+                  <div className="pv-arrow-symbol">➔</div>
+                  <div className="pv-stat-box">
+                    <span className="pv-stat-sublabel">Redeemable Value</span>
+                    <strong className="pv-stat-cash">₹ {Math.floor(availablePV / 10000) * 100} Cash Discount</strong>
+                  </div>
+                </div>
+
+                {availablePV >= 10000 ? (
+                  <button
+                    type="button"
+                    className="pv-convert-btn active"
+                    onClick={handleRedeemPv}
+                  >
+                    <Sparkles size={16} />
+                    <span>Convert 10,000 PV to ₹ 100 Wallet Cash</span>
+                  </button>
+                ) : (
+                  <div className="pv-progress-indicator">
+                    <div className="pv-progress-bar-wrap">
+                      <div
+                        className="pv-progress-bar-fill"
+                        style={{ width: `${Math.min(100, (availablePV / 10000) * 100)}%` }}
+                      ></div>
+                    </div>
+                    <span className="pv-progress-text">
+                      Earn {(10000 - availablePV).toLocaleString('en-IN')} more PV on your next order to unlock ₹ 100 Wallet Credit!
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Redeem Gift Card Form */}

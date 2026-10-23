@@ -1,6 +1,6 @@
 /* ==========================================================================
    ATOMY PROMO WIDE BANNER STRIP (User Guide & Resource Material)
-   Matches Original Atomy India Portal Styling
+   Matches Original Atomy India Portal Styling with Staggered Time-Lapse Reveal
    ========================================================================== */
 
 .promo-banner-strip-section {
@@ -24,7 +24,7 @@
   background-color: #f1f5f9;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .promo-banner-box:hover {
@@ -40,6 +40,11 @@
   display: block;
   object-fit: cover;
   object-position: right center;
+  transition: transform 0.4s ease;
+}
+
+.promo-banner-box:hover .promo-banner-img {
+  transform: scale(1.012);
 }
 
 .promo-banner-overlay-content {
@@ -63,29 +68,71 @@
   color: #111827;
   letter-spacing: -0.01em;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  transition: color 0.2s ease;
+  text-decoration: none !important;
 }
 
-/* User Guide has an underline as in the original site */
-.promo-banner-text-link.has-underline .promo-banner-text-word {
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-thickness: 1.5px;
+/* Staggered Time-Lapse: Text appears first, arrow follows right after */
+.promo-banner-text-word {
+  text-decoration: none !important;
+  opacity: 0;
+  transform: translateX(-14px);
+  display: inline-block;
+  transition: color 0.22s ease, transform 0.25s ease;
 }
 
 .promo-banner-chevron {
   color: #4b5563;
   stroke-width: 2.2;
-  transition: transform 0.25s ease, color 0.2s ease;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: color 0.22s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.promo-banner-box:hover .promo-banner-text-link {
+/* 1. When it comes into view (or on scroll/time-lapse): text slides in at 0.15s */
+.promo-banner-box.banner-in-view .promo-banner-text-word {
+  animation: promoStaggeredText 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+}
+
+/* 2. Arrow appears right after text at 0.42s like in carousel cards */
+.promo-banner-box.banner-in-view .promo-banner-chevron {
+  animation: promoStaggeredArrow 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.42s forwards;
+}
+
+/* 3. When cursor hovers: glowing Atomy blue with animated forward arrow glide */
+.promo-banner-box:hover .promo-banner-text-word {
   color: #00A3E0;
+  transform: translateX(2px);
 }
 
 .promo-banner-box:hover .promo-banner-chevron {
-  transform: translateX(4px);
   color: #00A3E0;
+  transform: translateX(8px);
+}
+
+@keyframes promoStaggeredText {
+  0% {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes promoStaggeredArrow {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.85);
+  }
+  65% {
+    opacity: 1;
+    transform: translateX(3px) scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 @media (max-width: 768px) {
@@ -106,3 +153,4 @@
     min-height: 65px;
   }
 }
+

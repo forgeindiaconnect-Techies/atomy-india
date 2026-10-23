@@ -294,6 +294,24 @@ export default function OrderSheetPage({
 
   const grandTotal = subtotal + shippingFee;
 
+  // Real Wallet Balance from store / localStorage
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
+  const availableWalletBalance = useMemo(() => {
+    try {
+      const saved = localStorage.getItem('atomy_wallet_balance');
+      return saved ? Number(saved) : 0;
+    } catch {
+      return 0;
+    }
+  }, []);
+
+  const walletDeduction = useMemo(() => {
+    if (!useWalletBalance || availableWalletBalance <= 0) return 0;
+    return Math.min(availableWalletBalance, grandTotal);
+  }, [useWalletBalance, availableWalletBalance, grandTotal]);
+
+  const finalPayableTotal = Math.max(0, grandTotal - walletDeduction);
+
   // GST Breakdown: Product amounts are already GST-included final amounts (5% for GST Reduced items, 18% standard)
   const gstSummary = useMemo(() => {
     let totalGst = 0;
@@ -639,9 +657,19 @@ export default function OrderSheetPage({
       items: cartItems.map(it => ({ ...it })),
       subtotal,
       shippingFee,
-      grandTotal: backendOrder?.totalAmount ? Number(backendOrder.totalAmount) : grandTotal,
-      totalPV
+      walletDeduction: useWalletBalance ? walletDeduction : 0,
+      grandTotal: backendOrder?.totalAmount ? Number(backendOrder.totalAmount) : (useWalletBalance ? finalPayableTotal : grandTotal),
+      totalPV,
+      totalPv: totalPV
     };
+
+    // Deduct used wallet balance if applied
+    if (useWalletBalance && walletDeduction > 0) {
+      const remainingWallet = Math.max(0, availableWalletBalance - walletDeduction);
+      try {
+        localStorage.setItem('atomy_wallet_balance', String(remainingWallet));
+      } catch {}
+    }
 
     // Store in localStorage across both keys
     try {
@@ -1752,6 +1780,30 @@ export default function OrderSheetPage({
                     </div>
                   )}
 
+                  {/* Real Wallet Balance Deduction (Flipkart SuperCoin style) */}
+                  {availableWalletBalance > 0 && (
+                    <div className="pg-summary-section" style={{ background: '#f0fdf4', padding: '10px 12px', borderRadius: '8px', margin: '8px 0', border: '1px solid #bbf7d0' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', margin: 0, width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="checkbox"
+                            checked={useWalletBalance}
+                            onChange={(e) => setUseWalletBalance(e.target.checked)}
+                            style={{ cursor: 'pointer', accentColor: '#16a34a' }}
+                          />
+                          <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#166534' }}>
+                            Use Wallet Credit (Bal: ₹{availableWalletBalance.toLocaleString('en-IN')})
+                          </span>
+                        </div>
+                        {useWalletBalance && walletDeduction > 0 && (
+                          <span style={{ color: '#15803d', fontWeight: 700, fontSize: '13px' }}>
+                            -₹{walletDeduction.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </label>
+                    </div>
+                  )}
+
                   {/* Estimated Delivery Row in Gateway Summary */}
                   <div className="pg-summary-section pg-eta-section">
                     <div className="pg-summary-nested-row pg-eta-row">
@@ -1771,7 +1823,7 @@ export default function OrderSheetPage({
                   {/* Total Amount Blue Highlight Container (Matching screenshot) */}
                   <div className="pg-total-amount-box">
                     <span className="pg-total-label">Total Amount</span>
-                    <span className="pg-total-val">₹{(grandTotal > 0 ? grandTotal : 409).toLocaleString('en-IN')}</span>
+                    <span className="pg-total-val">₹{((useWalletBalance ? finalPayableTotal : grandTotal) > 0 ? (useWalletBalance ? finalPayableTotal : grandTotal) : 0).toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 

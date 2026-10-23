@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Rect, Circle, Line, Text as SvgText, G } from 'react-native-svg';
 import { COLORS } from '../../constants/theme';
 
-const phoenixLogo = require('../../../assets/team_phoenix_circle_clean.png');
+const phoenixLogo = require('../../../assets/fic-symbol.png');
 
 // 1. Vector SVG Model: Envelope Mover
 function EnvelopeModel({ size = 1 }) {
