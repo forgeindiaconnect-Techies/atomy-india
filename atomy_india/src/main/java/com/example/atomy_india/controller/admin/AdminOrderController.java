@@ -77,4 +77,20 @@ public class AdminOrderController {
             @RequestBody AddCheckpointRequest req) {
         return ResponseEntity.ok(adminService.addTrackingCheckpoint(orderId, req));
     }
+
+    @GetMapping("/items")
+    public ResponseEntity<?> getAllOrderItems() {
+        return ResponseEntity.ok(adminService.getAllOrderItems());
+    }
+
+    @PostMapping("/sync-items")
+    public ResponseEntity<?> syncOrderItems() {
+        return ResponseEntity.ok(adminService.syncOrderItems());
+    }
+
+    @DeleteMapping("/all")
+    public ResponseEntity<?> clearAllOrders() {
+        adminService.clearAllOrders();
+        return ResponseEntity.ok(Map.of("message", "All orders and tracking cleared successfully"));
+    }
 }

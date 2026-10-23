@@ -1,65 +1,58 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "customer_orders")
+@Document(collection = "customer_orders")
 public class CustomerOrder {
 
     @Id
-    @Column(name = "order_id", length = 32)
     private String orderId; // e.g. ORD-20261003-8941
 
-    @Column(name = "customer_name", nullable = false)
+    @Field("customer_name")
     private String customerName;
 
-    @Column(name = "customer_email", nullable = false)
+    @Field("customer_email")
     private String customerEmail;
 
-    @Column(name = "customer_phone", nullable = false)
+    @Field("customer_phone")
     private String customerPhone;
 
-    @Column(name = "shipping_address", nullable = false, length = 512)
+    @Field("shipping_address")
     private String shippingAddress;
 
-    @Column(nullable = false)
     private String city;
 
-    @Column(nullable = false)
     private String state;
 
-    @Column(name = "pincode", nullable = false, length = 12)
     private String pincode;
 
-    @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
+    @Field("total_amount")
     private BigDecimal totalAmount;
 
-    @Column(name = "shipping_fee", precision = 10, scale = 2)
+    @Field("shipping_fee")
     private BigDecimal shippingFee = BigDecimal.ZERO;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false, length = 20)
+    @Field("payment_method")
     private PaymentMethod paymentMethod = PaymentMethod.ONLINE_UPI;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false, length = 20)
+    @Field("payment_status")
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "order_status", nullable = false, length = 25)
+    @Field("order_status")
     private OrderStatus orderStatus = OrderStatus.PLACED;
 
-    @Column(name = "created_at", nullable = false)
+    @Field("created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(name = "updated_at")
+    @Field("updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<OrderItem> items = new ArrayList<>();
 
     public enum PaymentMethod {

@@ -22,6 +22,9 @@ public class AdminService {
     private CustomerOrderRepository orderRepository;
 
     @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
     private ProductRepository productRepository;
 
     @Autowired
@@ -33,7 +36,16 @@ public class AdminService {
     @Autowired
     private SupportTicketRepository ticketRepository;
 
+    @Autowired
+    private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
     // --- 1. Dashboard Overview Metrics ---
+
+    public void clearAllOrders() {
+        orderRepository.deleteAll();
+        orderItemRepository.deleteAll();
+        trackingRepository.deleteAll();
+    }
 
     public DashboardStatsResponse getDashboardStats() {
         DashboardStatsResponse stats = new DashboardStatsResponse();
@@ -265,5 +277,83 @@ public class AdminService {
     @Transactional
     public void deleteTicket(String ticketId) {
         ticketRepository.deleteById(ticketId);
+    }
+
+    public List<OrderItem> getAllOrderItems() {
+        return orderItemRepository.findAll();
+    }
+
+    public java.util.Map<String, Object> syncOrderItems() {
+        long beforeCount = mongoTemplate.getCollection("order_items").countDocuments();
+        for (org.bson.Document orderDoc : mongoTemplate.getCollection("customer_orders").find()) {
+            String orderId = orderDoc.getString("_id");
+            @SuppressWarnings("unchecked")
+            List<org.bson.Document> items = (List<org.bson.Document>) orderDoc.get("items");
+            boolean orderModified = false;
+            if (items != null) {
+                for (org.bson.Document it : items) {
+                    String itemId = it.getString("_id");
+                    if (itemId == null || itemId.isEmpty()) {
+                        itemId = it.getString("id");
+                    }
+                    if (itemId == null || itemId.isEmpty()) {
+                        itemId = "ITEM-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+                        it.put("_id", itemId);
+                        it.put("id", itemId);
+                        orderModified = true;
+                    }
+
+                    String pId = it.getString("product_id");
+                    if (pId == null) pId = it.getString("productId");
+                    if (pId == null) pId = "D92676";
+                    it.put("product_id", pId);
+                    it.put("productId", pId);
+
+                    String pName = it.getString("product_name");
+                    if (pName == null) pName = it.getString("productName");
+                    if (pName == null) pName = "Atomy Premium Cotton T-Shirt";
+                    it.put("product_name", pName);
+                    it.put("productName", pName);
+
+                    String pImg = it.getString("product_image");
+                    if (pImg == null) pImg = it.getString("productImage");
+                    if (pImg == null) pImg = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
+                    it.put("product_image", pImg);
+                    it.put("productImage", pImg);
+
+                    it.put("order_id", orderId);
+                    it.put("orderId", orderId);
+
+                    org.bson.Document orderItemDoc = new org.bson.Document();
+                    orderItemDoc.put("_id", itemId);
+                    orderItemDoc.put("id", itemId);
+                    orderItemDoc.put("order_id", orderId);
+                    orderItemDoc.put("orderId", orderId);
+                    orderItemDoc.put("product_id", pId);
+                    orderItemDoc.put("productId", pId);
+                    orderItemDoc.put("product_name", pName);
+                    orderItemDoc.put("productName", pName);
+                    orderItemDoc.put("product_image", pImg);
+                    orderItemDoc.put("productImage", pImg);
+                    orderItemDoc.put("price", it.get("price"));
+                    orderItemDoc.put("quantity", it.get("quantity"));
+                    orderItemDoc.put("subtotal", it.get("subtotal"));
+
+                    mongoTemplate.getCollection("order_items").replaceOne(
+                            new org.bson.Document("_id", itemId),
+                            orderItemDoc,
+                            new com.mongodb.client.model.ReplaceOptions().upsert(true)
+                    );
+                }
+                if (orderModified) {
+                    mongoTemplate.getCollection("customer_orders").replaceOne(
+                            new org.bson.Document("_id", orderId),
+                            orderDoc
+                    );
+                }
+            }
+        }
+        long afterCount = mongoTemplate.getCollection("order_items").countDocuments();
+        return java.util.Map.of("beforeCount", beforeCount, "afterCount", afterCount, "status", "SUCCESS");
     }
 }

@@ -24,7 +24,7 @@ export default function TrackingModal({ isOpen, onClose, initialOrderId = '' }) 
     setError(null);
     try {
       const res = await getCustomerOrderTracking(idToSearch.trim());
-      setTrackingData(res.data);
+      setTrackingData(res?.data || res);
     } catch (err) {
       setTrackingData(null);
       setError(err.message || 'Order tracking not found.');
@@ -38,7 +38,15 @@ export default function TrackingModal({ isOpen, onClose, initialOrderId = '' }) 
     fetchTracking(orderIdInput);
   };
 
-  const checkpoints = trackingData?.checkpoints ? JSON.parse(trackingData.checkpoints) : [];
+  const rawCheckpoints = trackingData?.checkpointsJson || trackingData?.checkpoints;
+  let checkpoints = [];
+  try {
+    checkpoints = typeof rawCheckpoints === 'string' 
+      ? JSON.parse(rawCheckpoints) 
+      : (Array.isArray(rawCheckpoints) ? rawCheckpoints : []);
+  } catch {
+    checkpoints = [];
+  }
 
   return (
     <div className="tracking-overlay" onClick={onClose}>

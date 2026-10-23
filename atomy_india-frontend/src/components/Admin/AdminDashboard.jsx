@@ -821,6 +821,12 @@ export default function AdminDashboard({ onBackToStore }) {
             });
             return mappedOrders;
           });
+          try {
+            localStorage.setItem('atomy_admin_orders', JSON.stringify(mappedOrders));
+            if (mappedOrders.length === 0) {
+              localStorage.removeItem('atomy_placed_orders');
+            }
+          } catch {}
         }
       } catch (e) {}
 
@@ -842,45 +848,6 @@ export default function AdminDashboard({ onBackToStore }) {
             if (prev.length !== freshProds.length) return freshProds;
             return hasDiff ? updated : prev;
           });
-        }
-      } catch (e) {}
-
-      // Check localStorage for any fresh customer orders placed from customer storefront
-      try {
-        const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
-        if (localOrdersRaw) {
-          const freshList = JSON.parse(localOrdersRaw);
-          if (Array.isArray(freshList) && freshList.length > 0) {
-            freshList.forEach(latest => {
-              setOrders(prev => {
-                const alreadyHas = prev.some(o => o.orderId === latest.orderId);
-                if (alreadyHas) return prev;
-                const newOrderObj = {
-                  orderId: latest.orderId,
-                  createdAt: latest.date || new Date().toISOString(),
-                  customerName: latest.recipient || latest.customerName || "Customer",
-                  customerEmail: latest.customerEmail || "customer@atomy.com",
-                  customerPhone: latest.phone || latest.customerPhone || "+91 98000 00000",
-                  shippingAddress: latest.address?.fullAddress || latest.shippingAddress || "Direct Delivery",
-                  city: latest.city || "New Delhi",
-                  state: latest.state || "Delhi",
-                  pincode: latest.pincode || "110001",
-                  orderStatus: latest.orderStatus || "PLACED",
-                  paymentMethod: latest.paymentMethod || "ONLINE_UPI",
-                  paymentStatus: "PAID",
-                  totalAmount: latest.grandTotal || latest.totalAmount || 0,
-                  shippingFee: latest.shippingFee || 0,
-                  items: latest.items || [],
-                  tracking: null
-                };
-                triggerOrderNotification(newOrderObj);
-                if (Array.isArray(newOrderObj.items) && newOrderObj.items.length > 0) {
-                  deductStockForItems(newOrderObj.items);
-                }
-                return [newOrderObj, ...prev];
-              });
-            });
-          }
         }
       } catch (e) {}
 

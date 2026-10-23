@@ -546,6 +546,19 @@ export default function App() {
     } catch {}
   }, [recentlyViewed]);
 
+  // Current authenticated customer state
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_current_user');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
   const [placedOrders, setPlacedOrders] = useState(() => {
     try {
       const saved = localStorage.getItem('atomy_placed_orders');
@@ -575,6 +588,103 @@ export default function App() {
       localStorage.setItem('atomy_placed_orders', JSON.stringify(placedOrders));
     } catch {}
   }, [placedOrders]);
+
+  // Synchronize orders for the logged-in customer from Spring Boot backend
+  useEffect(() => {
+    if (!currentUser?.email && !currentUser?.phone) return;
+    const fetchUserOrders = async () => {
+      try {
+        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').trim().replace(/\/+$/, '').replace(/atomy_india\.onrender\.com/i, 'atomy-india.onrender.com');
+        const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
+        const queryParam = currentUser.email 
+          ? `email=${encodeURIComponent(currentUser.email.trim())}` 
+          : `phone=${encodeURIComponent(currentUser.phone.trim())}`;
+        const res = await fetch(`${apiBase}/orders/history?${queryParam}`);
+        if (!res.ok) return;
+        const backendHistory = await res.json();
+        if (Array.isArray(backendHistory)) {
+          const statusMap = {
+            'PLACED': 'Payment Completed',
+            'PROCESSING': 'Preparing Shipment',
+            'SHIPPED': 'In Transit',
+            'OUT_FOR_DELIVERY': 'Out for Delivery',
+            'DELIVERED': 'Delivered',
+            'CANCELLED': 'Cancelled'
+          };
+          const mapped = backendHistory.map(bo => ({
+            orderId: bo.orderId,
+            date: bo.createdAt,
+            orderDate: bo.createdAt ? bo.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            status: statusMap[bo.orderStatus] || bo.orderStatus || 'Payment Completed',
+            orderStatus: bo.orderStatus || 'PLACED',
+            estimatedDelivery: 'Within 48 Hours (2 - 4 Business Days)',
+            estimatedDeliveryDate: '2 - 4 Business Days',
+            courier: 'Blue Dart Express (Assigned)',
+            trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+            paymentMethod: bo.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)' 
+                         : bo.paymentMethod === 'CREDIT_DEBIT_CARD' ? 'Credit / Debit Card'
+                         : bo.paymentMethod === 'NET_BANKING' ? 'Net Banking'
+                         : bo.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on Delivery'
+                         : (bo.paymentMethod || 'Online Payment'),
+            recipient: bo.customerName || currentUser.name || 'Customer',
+            customerName: bo.customerName || currentUser.name || 'Customer',
+            customerEmail: bo.customerEmail || currentUser.email,
+            phone: bo.customerPhone || currentUser.phone || '',
+            address: {
+              recipient: bo.customerName || currentUser.name || 'Customer',
+              phone: bo.customerPhone || currentUser.phone || '',
+              fullAddress: `${bo.shippingAddress || ''}, ${bo.city || ''}, ${bo.state || ''} - ${bo.pincode || ''}`
+            },
+            shippingAddress: `${bo.shippingAddress || ''}, ${bo.city || ''}, ${bo.state || ''} - ${bo.pincode || ''}`,
+            items: Array.isArray(bo.items) ? bo.items.map(it => ({
+              id: it.productId,
+              name: it.productName || it.name,
+              image: it.productImage || it.image,
+              price: Number(it.price) || 0,
+              qty: it.quantity || it.qty || 1,
+              pv: Math.round((Number(it.price) || 0) * 4.5)
+            })) : [],
+            grandTotal: Number(bo.totalAmount) || 0,
+            subtotal: Number(bo.totalAmount) - Number(bo.shippingFee || 0)
+          }));
+
+          setPlacedOrders(mapped);
+          try {
+            localStorage.setItem('atomy_placed_orders', JSON.stringify(mapped));
+          } catch {}
+        }
+      } catch (err) {}
+    };
+
+    fetchUserOrders();
+    const interval = setInterval(fetchUserOrders, 3000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
+  // Orders specifically belonging to the active customer
+  const userPlacedOrders = useMemo(() => {
+    if (!currentUser) return [];
+    const email = (currentUser.email || '').trim().toLowerCase();
+    const phone = (currentUser.phone || '').trim().replace(/\D/g, '');
+    const name = (currentUser.name || currentUser.username || currentUser.fullName || '').trim().toLowerCase();
+
+    return placedOrders.filter(o => {
+      const oId = String(o.orderId || '').toUpperCase();
+      if (oId.includes('DEMO') || oId.startsWith('ORD-20261005') || oId.startsWith('ORD-20261008-3800') || oId.startsWith('ORD-20261008-1863')) {
+        return false;
+      }
+
+      const orderEmail = (o.customerEmail || '').trim().toLowerCase();
+      const orderPhone = (o.customerPhone || o.phone || '').trim().replace(/\D/g, '');
+      const orderCustName = (o.customerName || '').trim().toLowerCase();
+      const orderRecipient = (o.recipient || '').trim().toLowerCase();
+
+      if (email && orderEmail && orderEmail === email) return true;
+      if (phone && orderPhone && orderPhone === phone) return true;
+      if (name && (orderCustName === name || orderRecipient === name)) return true;
+      return false;
+    });
+  }, [placedOrders, currentUser]);
 
   // Live order status synchronization with Spring Boot Backend & Admin Console
   useEffect(() => {
@@ -651,19 +761,6 @@ export default function App() {
       try { syncChannel && syncChannel.close(); } catch {}
     };
   }, []);
-
-  // Current authenticated customer state
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('atomy_current_user');
-      if (saved) {
-        return JSON.parse(saved);
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  });
 
   const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
   const [membershipVersion, setMembershipVersion] = useState(0);
@@ -1268,7 +1365,7 @@ export default function App() {
               onNavigateBack={handleGoBack}
               onAddToCart={handleAddToCart}
               onProductClick={handleSelectProduct}
-              placedOrders={placedOrders}
+              placedOrders={userPlacedOrders}
             />
 
             {/* Notice Strip */}
@@ -1288,7 +1385,7 @@ export default function App() {
               onLogout={handleLogout}
               onNavigateHome={handleNavigateHome}
               onNavigateBack={handleGoBack}
-              placedOrders={placedOrders}
+              placedOrders={userPlacedOrders}
               favorites={favorites}
               onAddToCart={handleAddToCart}
               onToggleFavorite={handleToggleFavorite}

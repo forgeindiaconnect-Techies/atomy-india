@@ -1,52 +1,44 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "support_tickets")
+@Document(collection = "support_tickets")
 public class SupportTicket {
 
     @Id
-    @Column(name = "ticket_id", length = 32)
     private String ticketId; // e.g. TICK-1001
 
-    @Column(name = "customer_name", nullable = false)
+    @Field("customer_name")
     private String customerName;
 
-    @Column(name = "customer_email", nullable = false)
+    @Field("customer_email")
     private String customerEmail;
 
-    @Column(name = "customer_phone")
+    @Field("customer_phone")
     private String customerPhone;
 
-    @Column(name = "order_id", length = 32)
+    @Field("order_id")
     private String orderId;
 
-    @Column(nullable = false)
     private String subject;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
     private TicketCategory category = TicketCategory.ORDER_ISSUE;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private TicketPriority priority = TicketPriority.MEDIUM;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private TicketStatus status = TicketStatus.OPEN;
 
-    @Column(name = "created_at", nullable = false)
+    @Field("created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(name = "updated_at")
+    @Field("updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<TicketMessage> messages = new ArrayList<>();
 
     public enum TicketCategory {

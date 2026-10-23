@@ -590,8 +590,12 @@ export default function OrderSheetPage({
       pincode,
       paymentMethod: springPaymentMethod,
       items: (cartItems && cartItems.length > 0 ? cartItems : []).map(it => ({
-        productId: it.id,
-        quantity: it.qty || 1
+        productId: it.id || it.productId || '',
+        name: it.name || it.productName || '',
+        productName: it.name || it.productName || '',
+        price: Number(it.price) || 0,
+        image: it.image || it.productImage || '',
+        quantity: it.qty || it.quantity || 1
       }))
     };
 

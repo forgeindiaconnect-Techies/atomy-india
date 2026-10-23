@@ -1,35 +1,31 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "customer_notifications")
+@Document(collection = "customer_notifications")
 public class CustomerNotification {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(name = "email", nullable = false, length = 128)
     private String email;
 
-    @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    @Column(name = "message", columnDefinition = "TEXT", nullable = false)
     private String message;
 
-    @Column(name = "type", nullable = false, length = 64)
     private String type; // order_placed, order_delivery, order_cancelled, order_transit, login, promo, welcome
 
-    @Column(name = "order_id", length = 64)
+    @Field("order_id")
     private String orderId;
 
-    @Column(name = "is_read")
+    @Field("is_read")
     private boolean isRead = false;
 
-    @Column(name = "created_at")
+    @Field("created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public CustomerNotification() {}
@@ -44,8 +40,8 @@ public class CustomerNotification {
         this.createdAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

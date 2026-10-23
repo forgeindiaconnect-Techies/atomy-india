@@ -16,10 +16,26 @@ public class CreateOrderRequest {
 
     public static class OrderItemDto {
         private String productId;
+        private String name;
+        private String productName;
+        private java.math.BigDecimal price;
+        private String image;
         private int quantity;
 
         public String getProductId() { return productId; }
         public void setProductId(String productId) { this.productId = productId; }
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+
+        public String getProductName() { return productName; }
+        public void setProductName(String productName) { this.productName = productName; }
+
+        public java.math.BigDecimal getPrice() { return price; }
+        public void setPrice(java.math.BigDecimal price) { this.price = price; }
+
+        public String getImage() { return image; }
+        public void setImage(String image) { this.image = image; }
 
         public int getQuantity() { return quantity; }
         public void setQuantity(int quantity) { this.quantity = quantity; }

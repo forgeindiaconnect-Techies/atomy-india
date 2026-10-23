@@ -137,7 +137,7 @@ public class AdminCustomerController {
      * PUT /api/admin/customers/{id}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCustomer(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> updateCustomer(@PathVariable String id, @RequestBody Map<String, Object> payload) {
         return customerUserRepository.findById(id).map(customer -> {
             if (payload.containsKey("email") && payload.get("email") != null) {
                 customer.setEmail(String.valueOf(payload.get("email")).trim());
@@ -169,7 +169,7 @@ public class AdminCustomerController {
      * DELETE /api/admin/customers/{id}
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCustomer(@PathVariable Long id) {
+    public ResponseEntity<?> deleteCustomer(@PathVariable String id) {
         if (customerUserRepository.existsById(id)) {
             customerUserRepository.deleteById(id);
             return ResponseEntity.ok(Map.of("success", true, "message", "Customer removed"));

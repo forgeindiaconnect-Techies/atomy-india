@@ -1,38 +1,38 @@
 package com.example.atomy_india.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "order_items")
+@Document(collection = "order_items")
 public class OrderItem {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @Field("order_id")
+    private String orderId;
+
     @JsonIgnore
+    @Transient
     private CustomerOrder order;
 
-    @Column(name = "product_id", nullable = false, length = 32)
+    @Field("product_id")
     private String productId;
 
-    @Column(name = "product_name", nullable = false)
+    @Field("product_name")
     private String productName;
 
-    @Column(name = "product_image", length = 1024)
+    @Field("product_image")
     private String productImage;
 
-    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(nullable = false)
     private int quantity;
 
-    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
 
     public OrderItem() {}
@@ -43,11 +43,14 @@ public class OrderItem {
         this.productImage = productImage;
         this.price = price;
         this.quantity = quantity;
-        this.subtotal = price.multiply(BigDecimal.valueOf(quantity));
+        this.subtotal = price != null ? price.multiply(BigDecimal.valueOf(quantity)) : BigDecimal.ZERO;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getOrderId() { return orderId; }
+    public void setOrderId(String orderId) { this.orderId = orderId; }
 
     public CustomerOrder getOrder() { return order; }
     public void setOrder(CustomerOrder order) { this.order = order; }

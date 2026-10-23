@@ -33,7 +33,7 @@ public class PromotionController {
     public ResponseEntity<String> getPromotionById(@PathVariable String id) {
         return promotionSettingRepository.findById(id)
                 .map(s -> ResponseEntity.ok(s.getJsonContent()))
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.ok("{}"));
     }
 
     @PostMapping("/{id}")

@@ -92,7 +92,7 @@ export default function NewLaunchBadge({
             title="Hide badge"
             aria-label="Dismiss new launch badge"
           >
-            <X size={12} />
+            <X size={13} strokeWidth={2.5} />
           </button>
 
           {/* Card Content Row */}

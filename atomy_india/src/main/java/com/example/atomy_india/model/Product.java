@@ -1,62 +1,54 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "products")
+@Document(collection = "products")
 public class Product {
 
     @Id
-    @Column(length = 32)
     private String id; // e.g. D90178
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(precision = 10, scale = 2)
     private BigDecimal originalPrice;
 
-    @Column(name = "category_id", nullable = false)
+    @Field("category_id")
     private String categoryId;
 
-    @Column(name = "subcategory")
     private String subcategory;
 
-    @Column(length = 1024)
     private String image;
 
-    @Column(name = "gst_reduced")
+    @Field("gst_reduced")
     private Boolean gstReduced = false;
 
-    @Column(name = "is_veg")
+    @Field("is_veg")
     private Boolean isVeg = false;
 
-    @Column(name = "is_non_veg")
+    @Field("is_non_veg")
     private Boolean isNonVeg = false;
 
-    @Column(name = "likes_count")
+    @Field("likes_count")
     private Integer likesCount = 0;
 
-    @Column(name = "tags")
     private String tags; // Comma-separated tags
 
-    @Column(name = "free_delivery")
+    @Field("free_delivery")
     private Boolean freeDelivery = false;
 
-    @Column(name = "pv")
     private Long pv = 0L;
 
-    @Column(name = "discount_percent")
+    @Field("discount_percent")
     private Integer discountPercent = 0;
 
-    @Column(name = "dp_price", precision = 10, scale = 2)
+    @Field("dp_price")
     private BigDecimal dpPrice;
 
-    @Column(nullable = false)
     private Boolean active = true;
 
     public Product() {}

@@ -72,8 +72,8 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #1e293b;
   border: 2px solid #ffffff;
@@ -82,9 +82,10 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.9;
   transition: all 0.2s ease;
-  z-index: 2;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .new-launch-floating-card:hover .launch-dismiss-btn {
@@ -614,6 +615,26 @@
   }
   .launch-multi-banner-img {
     max-height: 60vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .launch-dismiss-btn {
+    opacity: 1 !important;
+    visibility: visible !important;
+    top: -8px !important;
+    right: -8px !important;
+    width: 24px !important;
+    height: 24px !important;
+    background: #0f172a !important;
+    border: 2px solid #ffffff !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 30 !important;
+    pointer-events: auto !important;
   }
 }
 

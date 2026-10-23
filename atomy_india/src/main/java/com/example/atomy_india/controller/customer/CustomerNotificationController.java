@@ -57,7 +57,7 @@ public class CustomerNotificationController {
     }
 
     @PutMapping("/{id}/read")
-    public ResponseEntity<?> markAsRead(@PathVariable Long id) {
+    public ResponseEntity<?> markAsRead(@PathVariable String id) {
         return notificationRepository.findById(id).map(notif -> {
             notif.setRead(true);
             notificationRepository.save(notif);
@@ -79,7 +79,7 @@ public class CustomerNotificationController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteNotification(@PathVariable Long id) {
+    public ResponseEntity<?> deleteNotification(@PathVariable String id) {
         if (!notificationRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }

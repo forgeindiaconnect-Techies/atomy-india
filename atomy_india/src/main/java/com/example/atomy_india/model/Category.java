@@ -1,22 +1,20 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
-@Entity
-@Table(name = "categories")
+@Document(collection = "categories")
 public class Category {
 
     @Id
-    @Column(length = 32)
     private String id; // e.g. health, hemohim, beauty
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(name = "disp_ctg_no")
+    @Field("disp_ctg_no")
     private String dispCtgNo;
 
-    @Column(length = 1024)
     private String subcategories; // Comma-separated list of subcategories
 
     public Category() {}

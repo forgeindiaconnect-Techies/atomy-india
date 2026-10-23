@@ -1,12 +1,9 @@
 package com.example.atomy_india.repository;
 
 import com.example.atomy_india.model.TicketMessage;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
-public interface TicketMessageRepository extends JpaRepository<TicketMessage, Long> {
-    List<TicketMessage> findByTicket_TicketIdOrderBySentAtAsc(String ticketId);
+public interface TicketMessageRepository extends MongoRepository<TicketMessage, String> {
 }

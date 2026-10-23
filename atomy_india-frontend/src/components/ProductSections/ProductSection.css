@@ -29,6 +29,24 @@
   font-weight: 400;
 }
 
+/* Category Filter Tabs Wrapper & Scroll Indication */
+.filter-tabs-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.mobile-swipe-hint-pill {
+  display: none;
+}
+
+.tabs-scroll-indicator-arrow {
+  display: none;
+}
+
+.best-products-more-container {
+  display: none;
+}
+
 /* Category Filter Tabs */
 .filter-tabs-container {
   display: flex;
@@ -689,7 +707,7 @@
   }
   .filter-tabs-container {
     gap: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     overflow-x: auto;
     justify-content: flex-start;
     padding-bottom: 4px;
@@ -705,6 +723,143 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
+
+  /* Sideways Scroll Indication on Mobile */
+  .filter-tabs-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
+  .mobile-swipe-hint-pill {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #00A3E0;
+    margin-bottom: 8px;
+    padding-right: 2px;
+  }
+
+  .swipe-hint-bounce-arrow {
+    animation: swipe-hint-bounce 1.5s infinite ease-in-out;
+  }
+
+  @keyframes swipe-hint-bounce {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(4px); }
+  }
+
+  .filter-tabs-wrapper.has-overflow-right::after {
+    content: '';
+    position: absolute;
+    top: 26px;
+    right: 0;
+    bottom: 2px;
+    width: 38px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.96));
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .tabs-scroll-indicator-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: -2px;
+    bottom: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #00A3E0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+    z-index: 5;
+    cursor: pointer;
+  }
+
+  /* Mobile 2-in-a-row Grid for Best Products */
+  .product-cards-slider.best-products-display.mobile-two-col-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px 10px !important;
+    overflow-x: visible !important;
+    padding: 4px 0 16px !important;
+    width: 100% !important;
+  }
+
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-card {
+    flex: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07) !important;
+  }
+
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-img-wrap {
+    height: 165px !important;
+    position: relative !important;
+  }
+
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-info-wrap {
+    padding: 10px 8px 12px !important;
+  }
+
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-title {
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    height: 35px !important;
+  }
+
+  /* View More Button below the 10 products (5 rows) */
+  .best-products-more-container {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding: 10px 0 24px !important;
+  }
+
+  .best-products-more-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 290px !important;
+    padding: 11px 20px !important;
+    background: #ffffff !important;
+    color: #00A3E0 !important;
+    border: 1.5px solid #00A3E0 !important;
+    border-radius: 28px !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px rgba(0, 163, 224, 0.16) !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .best-products-more-btn:active {
+    transform: scale(0.98) !important;
+    background: #f0f9ff !important;
+  }
+
   .product-nav-arrow {
     display: none;
   }

@@ -1,47 +1,41 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "admin_profiles")
+@Document(collection = "admin_profiles")
 public class AdminProfile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "email", nullable = false)
     private String email;
 
-    @Column(name = "phone")
     private String phone;
 
-    @Column(name = "employee_id")
+    @Field("employee_id")
     private String employeeId;
 
-    @Column(name = "department")
     private String department;
 
-    @Column(name = "role")
     private String role;
 
-    @Column(name = "location")
     private String location;
 
-    @Column(name = "two_factor_enabled")
+    @Field("two_factor_enabled")
     private Boolean twoFactorEnabled = true;
 
-    @Column(name = "last_login")
+    @Field("last_login")
     private String lastLogin;
 
-    @Column(name = "session_ip")
+    @Field("session_ip")
     private String sessionIp;
 
-    @Column(name = "updated_at")
+    @Field("updated_at")
     private LocalDateTime updatedAt;
 
     public AdminProfile() {
@@ -61,11 +55,11 @@ public class AdminProfile {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

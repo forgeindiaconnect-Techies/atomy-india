@@ -1,60 +1,58 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "memberships")
+@Document(collection = "memberships")
 public class Membership {
 
     @Id
-    @Column(name = "id", length = 64)
     private String id; // e.g. ATM-MEM-001
 
-    @Column(name = "customer_name", nullable = false)
+    @Field("customer_name")
     private String customerName;
 
-    @Column(name = "customer_email", nullable = false)
+    @Field("customer_email")
     private String customerEmail;
 
-    @Column(name = "customer_phone")
+    @Field("customer_phone")
     private String customerPhone;
 
-    @Column(name = "plan", nullable = false, length = 32)
     private String plan; // ANNUAL | MONTHLY
 
-    @Column(name = "status", nullable = false, length = 32)
     private String status; // ACTIVE | INACTIVE | EXPIRED
 
-    @Column(name = "amount_paid", precision = 10, scale = 2)
+    @Field("amount_paid")
     private BigDecimal amountPaid;
 
-    @Column(name = "payment_method", length = 64)
+    @Field("payment_method")
     private String paymentMethod; // RAZORPAY_UPI | CARD | NETBANKING | TEST_GATEWAY
 
-    @Column(name = "payment_id", length = 128)
+    @Field("payment_id")
     private String paymentId; // e.g. pay_atomy_912834
 
-    @Column(name = "payment_status", length = 32)
+    @Field("payment_status")
     private String paymentStatus; // PAID | PENDING | FAILED
 
-    @Column(name = "start_date", nullable = false)
+    @Field("start_date")
     private LocalDateTime startDate;
 
-    @Column(name = "expiry_date", nullable = false)
+    @Field("expiry_date")
     private LocalDateTime expiryDate;
 
-    @Column(name = "lifetime_pv")
+    @Field("lifetime_pv")
     private Long lifetimePv;
 
-    @Column(name = "total_savings", precision = 10, scale = 2)
+    @Field("total_savings")
     private BigDecimal totalSavings;
 
-    @Column(name = "created_at", nullable = false)
+    @Field("created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Field("updated_at")
     private LocalDateTime updatedAt;
 
     public Membership() {

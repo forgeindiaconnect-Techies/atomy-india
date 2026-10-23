@@ -26,6 +26,9 @@ public class CustomerService {
     private CustomerOrderRepository orderRepository;
 
     @Autowired
+    private OrderItemRepository orderItemRepository;
+
+    @Autowired
     private InventoryRepository inventoryRepository;
 
     @Autowired
@@ -74,43 +77,61 @@ public class CustomerService {
 
         for (CreateOrderRequest.OrderItemDto itemDto : req.getItems()) {
             String rawId = itemDto.getProductId() != null ? itemDto.getProductId().trim() : "";
-            Optional<Product> prodOpt = productRepository.findById(rawId);
-            if (!prodOpt.isPresent()) {
+            Optional<Product> prodOpt = Optional.empty();
+            if (!rawId.isEmpty()) {
+                prodOpt = productRepository.findById(rawId);
+                if (!prodOpt.isPresent()) {
+                    prodOpt = productRepository.findAll().stream()
+                            .filter(p -> p.getId() != null && p.getId().equalsIgnoreCase(rawId))
+                            .findFirst();
+                }
+            }
+            if (!prodOpt.isPresent() && itemDto.getName() != null && !itemDto.getName().trim().isEmpty()) {
+                String searchName = itemDto.getName().trim();
                 prodOpt = productRepository.findAll().stream()
-                        .filter(p -> p.getId() != null && p.getId().equalsIgnoreCase(rawId))
+                        .filter(p -> p.getName() != null && p.getName().trim().equalsIgnoreCase(searchName))
                         .findFirst();
             }
-            if (!prodOpt.isPresent()) {
-                throw new IllegalArgumentException("Product not found: " + itemDto.getProductId());
+            if (!prodOpt.isPresent() && itemDto.getProductName() != null && !itemDto.getProductName().trim().isEmpty()) {
+                String searchName = itemDto.getProductName().trim();
+                prodOpt = productRepository.findAll().stream()
+                        .filter(p -> p.getName() != null && p.getName().trim().equalsIgnoreCase(searchName))
+                        .findFirst();
             }
-            Product product = prodOpt.get();
+
+            Product product = prodOpt.orElse(null);
+            String effectiveId = product != null ? product.getId() : (!rawId.isEmpty() ? rawId : "PROD-" + UUID.randomUUID().toString().substring(0, 8));
+            String effectiveName = product != null ? product.getName() : (itemDto.getName() != null ? itemDto.getName() : (itemDto.getProductName() != null ? itemDto.getProductName() : "Atomy Product " + effectiveId));
+            String effectiveImage = product != null ? product.getImage() : (itemDto.getImage() != null ? itemDto.getImage() : "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg");
+            BigDecimal effectivePrice = product != null ? product.getPrice() : (itemDto.getPrice() != null ? itemDto.getPrice() : new BigDecimal("1000.00"));
+            int qty = Math.max(1, itemDto.getQuantity());
 
             // Inventory check & deduction
-            Optional<Inventory> invOpt = inventoryRepository.findByProductId(product.getId());
+            Optional<Inventory> invOpt = inventoryRepository.findByProductId(effectiveId);
             if (!invOpt.isPresent()) {
                 invOpt = inventoryRepository.findAll().stream()
-                        .filter(i -> i.getProductId() != null && i.getProductId().equalsIgnoreCase(product.getId()))
+                        .filter(i -> i.getProductId() != null && i.getProductId().equalsIgnoreCase(effectiveId))
                         .findFirst();
             }
 
             if (invOpt.isPresent()) {
                 Inventory inv = invOpt.get();
                 int currentQty = inv.getStockQuantity();
-                int newQty = Math.max(0, currentQty - itemDto.getQuantity());
+                int newQty = Math.max(0, currentQty - qty);
                 inv.updateStock(newQty);
                 inventoryRepository.save(inv);
             } else {
-                int newQty = Math.max(0, 100 - itemDto.getQuantity());
-                Inventory inv = new Inventory(product.getId(), product.getName(), "SKU-" + product.getId(), newQty, 15);
+                int newQty = Math.max(0, 100 - qty);
+                Inventory inv = new Inventory(effectiveId, effectiveName, "SKU-" + effectiveId, newQty, 15);
                 inventoryRepository.save(inv);
             }
 
             OrderItem orderItem = new OrderItem(
-                    product.getId(),
-                    product.getName(),
-                    product.getImage(),
-                    product.getPrice(),
-                    itemDto.getQuantity()
+                    effectiveId,
+                    effectiveName,
+                    effectiveImage,
+                    effectivePrice,
+                    qty
             );
             orderItems.add(orderItem);
             totalAmount = totalAmount.add(orderItem.getSubtotal());
@@ -135,10 +156,15 @@ public class CustomerService {
         );
 
         for (OrderItem oi : orderItems) {
+            if (oi.getId() == null || oi.getId().isEmpty()) {
+                oi.setId("ITEM-" + UUID.randomUUID().toString().substring(0, 8));
+            }
+            oi.setOrderId(orderId);
             order.addItem(oi);
         }
 
         CustomerOrder savedOrder = orderRepository.save(order);
+        orderItemRepository.saveAll(orderItems);
 
         // Initialize Live Order Tracking Record with Initial Checkpoint
         String trackingNumber = "ATMY-" + timestamp + "-" + (100000 + new Random().nextInt(900000));
@@ -163,7 +189,8 @@ public class CustomerService {
     }
 
     public List<CustomerOrder> getOrdersByEmail(String email) {
-        return orderRepository.findByCustomerEmailOrderByCreatedAtDesc(email);
+        if (email == null || email.trim().isEmpty()) return Collections.emptyList();
+        return orderRepository.findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(email.trim());
     }
 
     public List<CustomerOrder> getOrdersByPhone(String phone) {

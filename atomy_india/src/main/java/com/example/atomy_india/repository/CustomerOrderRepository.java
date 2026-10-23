@@ -1,28 +1,44 @@
 package com.example.atomy_india.repository;
 
 import com.example.atomy_india.model.CustomerOrder;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Repository
-public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, String> {
+public interface CustomerOrderRepository extends MongoRepository<CustomerOrder, String> {
     List<CustomerOrder> findAllByOrderByCreatedAtDesc();
     List<CustomerOrder> findByOrderStatusOrderByCreatedAtDesc(CustomerOrder.OrderStatus status);
     List<CustomerOrder> findByCustomerEmailOrderByCreatedAtDesc(String customerEmail);
+    List<CustomerOrder> findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(String customerEmail);
     List<CustomerOrder> findByCustomerPhoneOrderByCreatedAtDesc(String customerPhone);
 
     long countByOrderStatus(CustomerOrder.OrderStatus status);
 
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM CustomerOrder o WHERE o.orderStatus <> com.example.atomy_india.model.CustomerOrder.OrderStatus.CANCELLED")
-    BigDecimal calculateTotalRevenue();
+    default BigDecimal calculateTotalRevenue() {
+        return findAll().stream()
+                .filter(o -> o.getOrderStatus() != CustomerOrder.OrderStatus.CANCELLED)
+                .map(CustomerOrder::getTotalAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 
-    @Query("SELECT COUNT(o) FROM CustomerOrder o WHERE o.createdAt >= :startOfDay")
-    long countTodayOrders(@org.springframework.data.repository.query.Param("startOfDay") java.time.LocalDateTime startOfDay);
+    default long countTodayOrders(LocalDateTime startOfDay) {
+        return findAll().stream()
+                .filter(o -> o.getCreatedAt() != null && !o.getCreatedAt().isBefore(startOfDay))
+                .count();
+    }
 
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM CustomerOrder o WHERE o.createdAt >= :startOfDay AND o.orderStatus <> com.example.atomy_india.model.CustomerOrder.OrderStatus.CANCELLED")
-    BigDecimal calculateTodayRevenue(@org.springframework.data.repository.query.Param("startOfDay") java.time.LocalDateTime startOfDay);
+    default BigDecimal calculateTodayRevenue(LocalDateTime startOfDay) {
+        return findAll().stream()
+                .filter(o -> o.getCreatedAt() != null && !o.getCreatedAt().isBefore(startOfDay))
+                .filter(o -> o.getOrderStatus() != CustomerOrder.OrderStatus.CANCELLED)
+                .map(CustomerOrder::getTotalAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }

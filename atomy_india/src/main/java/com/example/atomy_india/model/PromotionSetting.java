@@ -1,21 +1,20 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "promotion_settings")
+@Document(collection = "promotion_settings")
 public class PromotionSetting {
 
     @Id
-    @Column(length = 64)
     private String id;
 
-    @Lob
-    @Column(columnDefinition = "LONGTEXT")
+    @Field("json_content")
     private String jsonContent;
 
-    @Column(name = "updated_at")
+    @Field("updated_at")
     private LocalDateTime updatedAt;
 
     public PromotionSetting() {

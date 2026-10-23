@@ -497,19 +497,6 @@ export default function Header({
                     <ChevronDown size={11} strokeWidth={2.2} />
                   </button>
                 </div>
-                <span className="top-utility-divider top-utility-desktop-only"></span>
-                <NavbarColorPicker
-                  currentColor={navbarBgColor}
-                  isGlass={isNavbarGlass}
-                  opacity={navbarOpacity}
-                  onChangeColor={handleNavbarColorChange}
-                  onToggleGlass={handleToggleNavbarGlass}
-                  onChangeOpacity={handleChangeNavbarOpacity}
-                  onReset={() => {
-                    handleNavbarColorChange('#EAB308', false);
-                    handleChangeNavbarOpacity(0.45);
-                  }}
-                />
               </div>
             </div>
           )}
@@ -727,26 +714,6 @@ export default function Header({
                 >
                   <span className="customer-greeting-text">
                     Hello, <strong className="customer-greeting-name">{userGreetingName}</strong>
-                    {isMember && (
-                      <span
-                        className="member-badge-chip"
-                        style={{
-                          marginLeft: '8px',
-                          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                          color: '#ffffff',
-                          fontSize: '11px',
-                          fontWeight: '800',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.18)'
-                        }}
-                      >
-                        ★ DP Member
-                      </span>
-                    )}
                   </span>
 
                   {/* Clean single-line hover tooltip showing ONLY the full name */}

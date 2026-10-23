@@ -1,36 +1,33 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "inventory")
+@Document(collection = "inventory")
 public class Inventory {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(name = "product_id", nullable = false, unique = true, length = 32)
+    @Field("product_id")
     private String productId;
 
-    @Column(name = "product_name", nullable = false)
+    @Field("product_name")
     private String productName;
 
-    @Column(name = "sku")
     private String sku;
 
-    @Column(name = "stock_quantity", nullable = false)
+    @Field("stock_quantity")
     private int stockQuantity;
 
-    @Column(name = "low_stock_threshold", nullable = false)
+    @Field("low_stock_threshold")
     private int lowStockThreshold = 10;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private StockStatus status = StockStatus.IN_STOCK;
 
-    @Column(name = "updated_at")
+    @Field("updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     public enum StockStatus {
@@ -63,8 +60,8 @@ public class Inventory {
         return StockStatus.IN_STOCK;
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
     public String getProductId() { return productId; }
     public void setProductId(String productId) { this.productId = productId; }

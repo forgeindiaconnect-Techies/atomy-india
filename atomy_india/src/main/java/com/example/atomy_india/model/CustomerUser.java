@@ -1,59 +1,54 @@
 package com.example.atomy_india.model;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "customers")
+@Document(collection = "customers")
 public class CustomerUser {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(name = "customer_id", unique = true, length = 64)
+    @Indexed(unique = true)
+    @Field("customer_id")
     private String customerId; // e.g. CUST-20261009-4821
 
-    @Column(name = "full_name", nullable = false)
+    @Field("full_name")
     private String fullName;
 
-    @Column(name = "username", unique = true, length = 64)
+    @Indexed(unique = true)
     private String username;
 
-    @Column(name = "email", unique = true, nullable = false, length = 128)
+    @Indexed(unique = true)
     private String email;
 
-    @Column(name = "phone", length = 32)
     private String phone;
 
-    @Column(name = "password", length = 256)
     private String password;
 
-    @Column(name = "address", length = 512)
     private String address;
 
-    @Column(name = "city", length = 64)
     private String city;
 
-    @Column(name = "state", length = 64)
     private String state;
 
-    @Column(name = "pincode", length = 16)
     private String pincode;
 
-    @Column(name = "role", length = 32)
     private String role; // CUSTOMER
 
-    @Column(name = "is_member")
+    @Field("is_member")
     private Boolean isMember = false;
 
-    @Column(name = "registration_source", length = 64)
+    @Field("registration_source")
     private String registrationSource; // EMAIL_SIGNUP | GOOGLE_OAUTH | MANUAL
 
-    @Column(name = "created_at", nullable = false)
+    @Field("created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "last_login_at")
+    @Field("last_login_at")
     private LocalDateTime lastLoginAt;
 
     public CustomerUser() {
@@ -63,11 +58,11 @@ public class CustomerUser {
         this.registrationSource = "EMAIL_SIGNUP";
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
