@@ -1,6 +1,5 @@
 import { Platform } from 'react-native';
-
-const API_BASE = 'http://localhost:8085/api';
+import { API_BASE } from './api';
 
 /**
  * Helper to get local storage safely across Web and React Native
@@ -98,12 +97,48 @@ export const formatRelativeTime = (isoString) => {
 /**
  * Generate & reconcile dynamic notifications from real user session and placed orders
  */
-export const reconcileNotifications = (email, user, orders = []) => {
+export const reconcileNotifications = (email, user, orders = [], membershipExpiry = null) => {
   const currentSaved = getStoredNotifications(email);
-  const existingIds = new Set(currentSaved.map((n) => n.id));
-  const newNotifications = [...currentSaved];
+  let newNotifications = [...currentSaved];
 
-  // 1. Welcome / New Login Notification (if user is signed in)
+  // 1. Membership Expiration & Renewal Alerts
+  if (membershipExpiry && membershipExpiry.status) {
+    // Clear previous stale membership notifications
+    newNotifications = newNotifications.filter((n) => !n.id.startsWith('notif_mem_'));
+
+    if (membershipExpiry.status === 'EXPIRING_SOON') {
+      const remainingDays = membershipExpiry.remainingDays || 2;
+      const expiryDate = membershipExpiry.expiryDateStr || 'soon';
+      newNotifications.unshift({
+        id: `notif_mem_expiring_${remainingDays}d`,
+        type: 'membership_expiring',
+        title: `⚠️ Distributor Plan Expires in ${remainingDays} Day${remainingDays === 1 ? '' : 's'}`,
+        message: `Your Atomy Distributor Membership plan expires on ${expiryDate}. Renew your plan today to prevent interruption to wholesale Distributor Price (DP) discounts and personal PV points.`,
+        unread: true,
+        isMembershipAlert: true,
+        createdAt: new Date().toISOString(),
+        time: 'Expiring Soon',
+        timestamp: 'Expiring Soon',
+      });
+    } else if (membershipExpiry.status === 'EXPIRED') {
+      const expiryDate = membershipExpiry.expiryDateStr || '';
+      newNotifications.unshift({
+        id: 'notif_mem_expired',
+        type: 'membership_expired',
+        title: '⛔ Distributor Membership Plan Expired',
+        message: `Your Atomy Distributor plan has expired${expiryDate ? ` on ${expiryDate}` : ''}. Reactivate your plan now to restore wholesale DP pricing and PV point accumulation.`,
+        unread: true,
+        isMembershipAlert: true,
+        createdAt: new Date().toISOString(),
+        time: 'Action Required',
+        timestamp: 'Action Required',
+      });
+    }
+  }
+
+  const existingIds = new Set(newNotifications.map((n) => n.id));
+
+  // 2. Welcome / New Login Notification (if user is signed in)
   if (email && email !== 'guest' && user?.name && user.name !== 'Guest User') {
     const welcomeId = `welcome_${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     if (!existingIds.has(welcomeId)) {
@@ -115,90 +150,98 @@ export const reconcileNotifications = (email, user, orders = []) => {
         unread: false,
         createdAt: new Date().toISOString(),
         time: 'Active Session',
+        timestamp: 'Active Session',
       });
       existingIds.add(welcomeId);
     }
   }
 
-  // 2. Orders Notifications (Placed, In Transit, Delivered, Cancelled)
+  // 3. Orders Notifications (single latest status notification per order, with real timestamps)
   orders.forEach((ord) => {
     if (!ord || !ord.id) return;
     const orderNum = String(ord.id);
     const status = (ord.status || '').toLowerCase();
 
-    // Notification for: Order Placed
-    const placedId = `notif_placed_${orderNum}`;
-    if (!existingIds.has(placedId)) {
-      newNotifications.unshift({
-        id: placedId,
-        type: 'order_placed',
-        orderId: orderNum,
-        title: `Order #${orderNum} Confirmed & Placed`,
-        message: `Your order for ${ord.title || 'Atomy items'} totaling ${ord.total || '₹0.00'} has been placed. Packaging and dispatch initiated.`,
-        unread: false,
-        createdAt: ord.date ? new Date().toISOString() : new Date().toISOString(),
-        time: ord.date || 'Recent',
-      });
-      existingIds.add(placedId);
-    }
-
-    // Notification for: Order Delivered
-    if (status.includes('deliver') && !status.includes('out')) {
-      const deliveredId = `notif_delivered_${orderNum}`;
-      if (!existingIds.has(deliveredId)) {
-        newNotifications.unshift({
-          id: deliveredId,
-          type: 'order_delivered',
-          orderId: orderNum,
-          title: `Order #${orderNum} Delivered! 🎉`,
-          message: `Package containing ${ord.title || 'Atomy items'} was successfully delivered to your shipping address via Blue Dart Express.`,
-          unread: true,
-          createdAt: new Date().toISOString(),
-          time: 'Delivered',
-        });
-        existingIds.add(deliveredId);
+    // Parse order date safely
+    let orderIso = new Date().toISOString();
+    const rawDate = ord.createdAt || ord.date || ord.orderDate;
+    if (rawDate) {
+      const parsed = new Date(rawDate);
+      if (!isNaN(parsed.getTime())) {
+        orderIso = parsed.toISOString();
       }
     }
+    const relativeTime = formatRelativeTime(orderIso);
 
-    // Notification for: Out for Delivery / In Transit
-    if (status.includes('transit') || status.includes('out') || status.includes('dispatch') || status.includes('shipped')) {
-      const transitId = `notif_transit_${orderNum}`;
-      if (!existingIds.has(transitId)) {
-        newNotifications.unshift({
-          id: transitId,
-          type: 'order_transit',
-          orderId: orderNum,
-          title: `Order #${orderNum} Out for Delivery`,
-          message: `Your package is on its way via ${ord.courier || 'Blue Dart Express'} (AWB: ${ord.awb || 'ATMY-EXP'}). Expected delivery within 24-48 hours.`,
-          unread: true,
-          createdAt: new Date().toISOString(),
-          time: 'In Transit',
-        });
-        existingIds.add(transitId);
-      }
-    }
+    // Courier info without fake hardcoded fallbacks
+    const courierInfo = ord.courier && ord.awb
+      ? ` via ${ord.courier} (AWB: ${ord.awb})`
+      : ord.courier
+      ? ` via ${ord.courier}`
+      : '';
 
-    // Notification for: Cancelled
+    // Determine latest primary notification type for this order
+    let notifType = 'order_placed';
+    let title = `Order #${orderNum} Confirmed & Placed`;
+    let message = `Your order for ${ord.title || 'Atomy items'} totaling ${ord.total || '₹0.00'} has been placed. Packaging and dispatch initiated.`;
+    let isUnread = false;
+
     if (status.includes('cancel')) {
-      const cancelId = `notif_cancelled_${orderNum}`;
-      if (!existingIds.has(cancelId)) {
-        newNotifications.unshift({
-          id: cancelId,
-          type: 'order_cancelled',
-          orderId: orderNum,
-          title: `Order #${orderNum} Cancelled`,
-          message: `Order #${orderNum} was cancelled. A refund of ${ord.total || 'the full amount'} has been initiated to your source payment method.`,
-          unread: true,
-          createdAt: new Date().toISOString(),
-          time: 'Cancelled',
-        });
-        existingIds.add(cancelId);
-      }
+      notifType = 'order_cancelled';
+      title = `Order #${orderNum} Cancelled`;
+      message = `Order #${orderNum} was cancelled. A refund of ${ord.total || 'the full amount'} has been initiated to your source payment method.`;
+      isUnread = true;
+    } else if (status.includes('deliver') && !status.includes('out')) {
+      notifType = 'order_delivered';
+      title = `Order #${orderNum} Delivered! 🎉`;
+      message = `Package containing ${ord.title || 'Atomy items'} was successfully delivered to your shipping address${courierInfo}.`;
+      isUnread = true;
+    } else if (status.includes('transit') || status.includes('out') || status.includes('dispatch') || status.includes('shipped')) {
+      notifType = 'order_transit';
+      title = `Order #${orderNum} Out for Delivery`;
+      message = `Your package is on its way${courierInfo}. Expected delivery within 24-48 hours.`;
+      isUnread = true;
+    }
+
+    const orderNotifId = `notif_order_${orderNum}`;
+    const existingIndex = newNotifications.findIndex(
+      (n) => n.id === orderNotifId || n.orderId === orderNum
+    );
+
+    if (existingIndex >= 0) {
+      // Update with latest status if it evolved
+      newNotifications[existingIndex] = {
+        ...newNotifications[existingIndex],
+        type: notifType,
+        title,
+        message,
+        orderId: orderNum,
+        time: relativeTime,
+        timestamp: relativeTime,
+      };
+    } else {
+      newNotifications.push({
+        id: orderNotifId,
+        type: notifType,
+        orderId: orderNum,
+        title,
+        message,
+        unread: isUnread,
+        createdAt: orderIso,
+        time: relativeTime,
+        timestamp: relativeTime,
+      });
+      existingIds.add(orderNotifId);
     }
   });
 
-  // Sort by createdAt descending
-  newNotifications.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  // Sort by createdAt descending (membership alerts stay pinned at top)
+  newNotifications.sort((a, b) => {
+    if (a.isMembershipAlert) return -1;
+    if (b.isMembershipAlert) return 1;
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
+
   saveStoredNotifications(email, newNotifications);
   return newNotifications;
 };

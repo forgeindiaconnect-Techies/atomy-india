@@ -21,11 +21,13 @@ import {
   isUserMember,
   cancelMembership
 } from '../../services/membershipService';
+import { getMembershipExpiryInfo } from './MembershipExpiryBanner';
 import './MembershipPage.css';
 
 export default function MembershipPage({
   currentUser,
   isMember,
+  membershipExpiryInfo,
   onNavigateHome,
   onNavigateBack,
   onNavigateSignIn,
@@ -36,7 +38,13 @@ export default function MembershipPage({
   const [activeFaq, setActiveFaq] = useState(null);
 
   const settings = getMembershipSettings();
-  const hasActiveMembership = isUserMember(currentUser);
+  const hasActiveMembership = isUserMember(currentUser) || isMember;
+
+  const expiry = membershipExpiryInfo || getMembershipExpiryInfo(
+    currentUser?.membership || (hasActiveMembership ? { expiryDate: true } : null)
+  );
+  const isExpiringSoon = expiry?.status === 'EXPIRING_SOON';
+  const isExpired = expiry?.status === 'EXPIRED';
 
   const handleSubscribe = (plan = selectedPlan) => {
     if (onNavigatePaymentPage) {
@@ -112,18 +120,70 @@ export default function MembershipPage({
             and personal care essentials with Point Value (PV) benefits.
           </p>
 
-          {hasActiveMembership && (
-            <div className="membership-status-active-box">
+          {(hasActiveMembership || isExpired) && (
+            <div className={`membership-status-active-box ${isExpiringSoon ? 'status-box-warning' : ''} ${isExpired ? 'status-box-expired' : ''}`}>
               <div className="active-badge-icon">
-                <ShieldCheck size={26} color="#34d399" />
+                {isExpired ? (
+                  <Clock size={26} color="#ef4444" />
+                ) : isExpiringSoon ? (
+                  <Clock size={26} color="#f59e0b" />
+                ) : (
+                  <ShieldCheck size={26} color="#34d399" />
+                )}
               </div>
               <div className="active-badge-details">
-                <h3>Active Distributor Member</h3>
+                <h3 className={isExpired ? 'title-expired' : isExpiringSoon ? 'title-warning' : ''}>
+                  {isExpired
+                    ? `Membership Plan Expired (${expiry?.expiryDateStr || ''})`
+                    : isExpiringSoon
+                    ? `Plan Expires in ${expiry?.remainingDays || 2} Day${expiry?.remainingDays === 1 ? '' : 's'} (${expiry?.expiryDateStr || ''})`
+                    : 'Active Distributor Member'}
+                </h3>
                 <p>
-                  Welcome, <strong>{currentUser?.name || 'Member'}</strong>! Wholesale Distributor Pricing (DP) is active on your account.
+                  {isExpired
+                    ? `Welcome back, ${currentUser?.name || 'Member'}. Reactivate your distributor plan now to restore wholesale DP pricing.`
+                    : isExpiringSoon
+                    ? `Welcome, ${currentUser?.name || 'Member'}! Wholesale Distributor Pricing (DP) is active. Renew today to maintain uninterrupted wholesale pricing and PV benefits.`
+                    : <>Welcome, <strong>{currentUser?.name || 'Member'}</strong>! Wholesale Distributor Pricing (DP) is active on your account.</>}
                 </p>
+
+                {/* Metadata Chips */}
+                <div className="membership-meta-chips">
+                  <div className="meta-chip">
+                    <span className="chip-label">Plan:</span>
+                    <span className="chip-val">
+                      {currentUser?.membership?.plan === 'ANNUAL' ? 'Annual (₹2,499)' : 'Monthly (₹299)'}
+                    </span>
+                  </div>
+                  <div className={`meta-chip ${isExpiringSoon ? 'chip-warning' : ''} ${isExpired ? 'chip-expired' : ''}`}>
+                    <span className="chip-label">Status:</span>
+                    <span className="chip-val">
+                      {isExpired
+                        ? '● Expired'
+                        : isExpiringSoon
+                        ? `⚠️ ${expiry?.remainingDays || 2}d Left`
+                        : '● Active'}
+                    </span>
+                  </div>
+                  {expiry?.expiryDateStr && (
+                    <div className="meta-chip">
+                      <span className="chip-label">Expires:</span>
+                      <span className="chip-val">{expiry.expiryDateStr}</span>
+                    </div>
+                  )}
+                </div>
               </div>
+
               <div className="active-status-actions">
+                {(isExpiringSoon || isExpired) && (
+                  <button
+                    type="button"
+                    className="btn-renew-membership"
+                    onClick={() => handleSubscribe('MONTHLY')}
+                  >
+                    {isExpired ? 'Reactivate Plan Now (₹299)' : 'Renew Plan Now (₹299)'}
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn-continue-mall"
@@ -131,20 +191,22 @@ export default function MembershipPage({
                 >
                   Start Shopping at DP Price
                 </button>
-                <button
-                  type="button"
-                  className="btn-cancel-membership"
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to cancel your distributor membership?')) {
-                      cancelMembership(currentUser);
-                      if (onMembershipActivated) {
-                        onMembershipActivated(null);
+                {hasActiveMembership && !isExpired && (
+                  <button
+                    type="button"
+                    className="btn-cancel-membership"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to cancel your distributor membership?')) {
+                        cancelMembership(currentUser);
+                        if (onMembershipActivated) {
+                          onMembershipActivated(null);
+                        }
                       }
-                    }
-                  }}
-                >
-                  Cancel Membership
-                </button>
+                    }}
+                  >
+                    Cancel Membership
+                  </button>
+                )}
               </div>
             </div>
           )}

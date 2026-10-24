@@ -85,29 +85,29 @@ export default function SignInPage({
       setIsLoading(true);
       try {
         const res = await loginCustomerApi({
-          email: identifier.trim(),
+          usernameOrEmail: identifier.trim(),
           password: password.trim(),
         });
 
         if (res.success && res.data?.customer) {
-          if (onAuthSuccess) {
-            onAuthSuccess(res.data.customer);
-          }
-        } else {
-          // Fallback to local verified login session if backend returns demo or offline
-          const fallbackUser = {
-            name: identifier.includes('@') ? identifier.split('@')[0] : 'Atomy Member',
-            email: identifier.includes('@') ? identifier.trim() : `${identifier.trim()}@atomy.in`,
-            phone: !identifier.includes('@') ? identifier.trim() : '9876543210',
-            gender: 'Male',
-            dob: '1992-05-18',
-            memberId: '35198024',
-            address: 'DLF Cyber City, Sector 24, Gurugram, Haryana - 122002',
-            isMember: true,
+          const cust = res.data.customer;
+          const userSession = {
+            name: cust.fullName || cust.name || cust.username || identifier.split('@')[0],
+            email: cust.email || identifier.trim(),
+            phone: cust.phone || '',
+            gender: cust.gender || 'Not Specified',
+            dob: cust.dob || '',
+            memberId: cust.customerId || cust.memberId || '',
+            address: cust.address || '',
+            isMember: Boolean(cust.isMember),
+            pv: Number(cust.pv || 0),
           };
           if (onAuthSuccess) {
-            onAuthSuccess(fallbackUser);
+            onAuthSuccess(userSession);
           }
+        } else {
+          const serverMsg = res.data?.message || res.error || 'Login failed. Please check your email and password.';
+          setErrorMsg(serverMsg);
         }
       } catch (err) {
         setErrorMsg(err.message || 'Login failed. Please check your credentials.');
@@ -137,6 +137,7 @@ export default function SignInPage({
       setIsLoading(true);
       try {
         const payload = {
+          fullName: fullName.trim(),
           name: fullName.trim(),
           email: regEmail.trim(),
           phone: cleanPhone,
@@ -145,24 +146,24 @@ export default function SignInPage({
 
         const res = await registerCustomerApi(payload);
         if (res.success && res.data?.customer) {
-          if (onAuthSuccess) {
-            onAuthSuccess(res.data.customer);
-          }
-        } else {
-          // Fallback registration
-          const newCustomer = {
-            name: fullName.trim(),
-            email: regEmail.trim(),
-            phone: cleanPhone,
+          const cust = res.data.customer;
+          const userSession = {
+            name: cust.fullName || cust.name || fullName.trim(),
+            email: cust.email || regEmail.trim(),
+            phone: cust.phone || cleanPhone,
             gender: 'Not Specified',
-            dob: '1995-01-01',
-            memberId: `35${Math.floor(100000 + Math.random() * 900000)}`,
-            address: 'India',
-            isMember: true,
+            dob: '',
+            memberId: cust.customerId || '',
+            address: cust.address || '',
+            isMember: Boolean(cust.isMember),
+            pv: 0,
           };
           if (onAuthSuccess) {
-            onAuthSuccess(newCustomer);
+            onAuthSuccess(userSession);
           }
+        } else {
+          const serverMsg = res.data?.message || res.error || 'Registration failed. Please try again.';
+          setErrorMsg(serverMsg);
         }
       } catch (err) {
         setErrorMsg(err.message || 'Registration failed. Please try again.');
@@ -186,23 +187,23 @@ export default function SignInPage({
 
       const res = await googleAuthCustomerApi(mockGoogleData);
       if (res.success && res.data?.customer) {
-        if (onAuthSuccess) {
-          onAuthSuccess(res.data.customer);
-        }
-      } else {
-        const user = {
-          name: 'Atomy Customer',
-          email: 'customer.google@atomy.in',
-          phone: '9811223344',
-          gender: 'Not Specified',
-          dob: '1994-08-22',
-          memberId: '35198024',
-          address: 'Gurugram, Haryana - 122003',
-          isMember: true,
+        const cust = res.data.customer;
+        const userSession = {
+          name: cust.fullName || cust.name || 'Google User',
+          email: cust.email || mockGoogleData.email,
+          phone: cust.phone || '',
+          gender: cust.gender || 'Not Specified',
+          dob: cust.dob || '',
+          memberId: cust.customerId || '',
+          address: cust.address || '',
+          isMember: Boolean(cust.isMember),
+          pv: Number(cust.pv || 0),
         };
         if (onAuthSuccess) {
-          onAuthSuccess(user);
+          onAuthSuccess(userSession);
         }
+      } else {
+        setErrorMsg(res.data?.message || 'Google sign-in could not authenticate with backend.');
       }
     } catch (err) {
       setErrorMsg('Google sign-in encountered an issue.');

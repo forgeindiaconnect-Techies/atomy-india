@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
+import { getMembershipExpiryInfo } from '../Membership/MembershipExpiryBanner';
 import {
   fetchNotificationsApi,
   getStoredNotifications,
@@ -25,6 +26,7 @@ import {
   deleteNotification,
   clearAllNotifications,
   addNotification,
+  formatRelativeTime,
 } from '../../services/notificationService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -59,6 +61,8 @@ export default function ProfilePage({
   currentUser,
   onUpdateUser,
   isMember = false,
+  membershipData = null,
+  membershipExpiryInfo = null,
   favoritesCount = 0,
   cartCount = 0,
   placedOrders = [],
@@ -72,6 +76,13 @@ export default function ProfilePage({
   onNavigateSignIn,
   onOpenAuthModal,
 }) {
+  const expiry = useMemo(() => {
+    return membershipExpiryInfo || getMembershipExpiryInfo(membershipData || (isMember ? { expiryDate: true } : null));
+  }, [membershipExpiryInfo, membershipData, isMember]);
+
+  const isExpiringSoon = expiry?.status === 'EXPIRING_SOON';
+  const isExpired = expiry?.status === 'EXPIRED';
+
   // Navigation between main menu and specific subpages
   // 'main' | 'edit_profile' | 'orders' | 'addresses' | 'coupons' | 'policies' | 'payment_refund' | 'settings' | 'notifications'
   const [currentSubView, setCurrentSubView] = useState('main');
@@ -161,23 +172,45 @@ export default function ProfilePage({
     }
   }, [placedOrders]);
 
+  // Dynamic Accumulated PV calculation from orders & user account
+  const accumulatedPV = useMemo(() => {
+    let sum = Number(currentUser?.accumulatedPv || currentUser?.pv || 0);
+    if (Array.isArray(orders)) {
+      orders.forEach((o) => {
+        if (o.totalPv || o.totalPV) {
+          sum += Number(o.totalPv || o.totalPV || 0);
+        } else if (typeof o.pv === 'string') {
+          const num = Number(o.pv.replace(/[^0-9]/g, '')) || 0;
+          sum += num;
+        } else if (typeof o.pv === 'number') {
+          sum += o.pv;
+        } else if (Array.isArray(o.items)) {
+          o.items.forEach((it) => {
+            sum += (Number(it.pv) || 0) * (Number(it.qty || it.quantity) || 1);
+          });
+        }
+      });
+    }
+    return sum;
+  }, [orders, currentUser]);
+
   // Notifications State & Sync
   const [notifications, setNotifications] = useState([]);
   const [notifFilter, setNotifFilter] = useState('all'); // 'all' | 'orders' | 'account'
 
-  // Dynamic reconciliation with orders and session
+  // Dynamic reconciliation with orders and session (including membership plan expiry state)
   useEffect(() => {
     const email = currentUser?.email || 'guest';
-    const initial = reconcileNotifications(email, currentUser, orders);
+    const initial = reconcileNotifications(email, currentUser, orders, expiry);
     setNotifications(initial);
 
     fetchNotificationsApi(email).then((remote) => {
       if (remote && remote.length > 0) {
-        const merged = reconcileNotifications(email, currentUser, orders);
+        const merged = reconcileNotifications(email, currentUser, orders, expiry);
         setNotifications(merged);
       }
     });
-  }, [currentUser?.email, orders]);
+  }, [currentUser?.email, orders, expiry]);
 
   const unreadNotifCount = notifications.filter((n) => n.unread).length;
 
@@ -241,7 +274,7 @@ export default function ProfilePage({
         message: `Order #${order.id} for ${order.title} has been cancelled. A full refund of ${order.total} has been initiated to your source payment method.`,
       });
 
-      const refreshed = reconcileNotifications(email, currentUser, updated);
+      const refreshed = reconcileNotifications(email, currentUser, updated, expiry);
       setNotifications(refreshed);
 
       if (Platform.OS === 'web') {
@@ -1952,9 +1985,16 @@ export default function ProfilePage({
 
     const getNotifIconInfo = (type) => {
       switch (type) {
+        case 'membership_expiring':
+          return { name: 'time', color: '#D97706', bg: '#FEF3C7' };
+        case 'membership_expired':
+          return { name: 'alert-circle', color: '#DC2626', bg: '#FEE2E2' };
+        case 'membership_active':
+          return { name: 'shield-checkmark', color: '#10B981', bg: '#DCFCE7' };
         case 'order_placed':
           return { name: 'bag-check', color: '#15803D', bg: '#DCFCE7' };
         case 'order_shipped':
+        case 'order_transit':
           return { name: 'airplane', color: '#0284C7', bg: '#E0F2FE' };
         case 'order_out_for_delivery':
           return { name: 'bicycle', color: '#D97706', bg: '#FEF3C7' };
@@ -2084,7 +2124,7 @@ export default function ProfilePage({
                 color={notifFilter === 'account' ? '#FFFFFF' : '#64748B'}
               />
               <Text style={[styles.notifFilterText, notifFilter === 'account' && styles.notifFilterTextActive]}>
-                Account & KYC ({accountNotifCount})
+                Account & Membership ({accountNotifCount})
               </Text>
             </TouchableOpacity>
           </View>
@@ -2120,7 +2160,12 @@ export default function ProfilePage({
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.notifCard, item.unread && styles.notifCardUnread]}
+                    style={[
+                      styles.notifCard,
+                      item.unread && styles.notifCardUnread,
+                      item.type === 'membership_expiring' && styles.notifCardWarning,
+                      item.type === 'membership_expired' && styles.notifCardExpired,
+                    ]}
                     onPress={() => handleMarkRead(item.id)}
                     activeOpacity={0.85}
                   >
@@ -2136,9 +2181,19 @@ export default function ProfilePage({
                           <Text style={styles.notifCardTitle} numberOfLines={2}>
                             {item.title}
                           </Text>
-                          {item.unread && <View style={styles.notifBlueDot} />}
+                          {item.unread && (
+                            <View
+                              style={[
+                                styles.notifBlueDot,
+                                item.type === 'membership_expiring' && { backgroundColor: '#F59E0B' },
+                                item.type === 'membership_expired' && { backgroundColor: '#DC2626' },
+                              ]}
+                            />
+                          )}
                         </View>
-                        <Text style={styles.notifCardTime}>{item.timestamp || 'Just now'}</Text>
+                        <Text style={styles.notifCardTime}>
+                          {item.time || item.timestamp || (item.createdAt ? formatRelativeTime(item.createdAt) : 'Recent')}
+                        </Text>
                       </View>
 
                       {/* Dismiss / Delete button */}
@@ -2154,7 +2209,33 @@ export default function ProfilePage({
                     {/* Message Body */}
                     <Text style={styles.notifCardMessage}>{item.message}</Text>
 
-                    {/* Order Action Buttons */}
+                    {/* Membership Renewal / Reactivation Action Button */}
+                    {(item.isMembershipAlert || item.type?.startsWith('membership')) && (
+                      <View style={styles.notifOrderActionRow}>
+                        <TouchableOpacity
+                          style={[
+                            styles.notifTrackBtn,
+                            item.type === 'membership_expired'
+                              ? { backgroundColor: '#DC2626' }
+                              : { backgroundColor: '#D97706' },
+                          ]}
+                          onPress={() => {
+                            handleMarkRead(item.id);
+                            if (onNavigateMembership) onNavigateMembership();
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="refresh" size={13} color="#FFFFFF" />
+                          <Text style={styles.notifTrackBtnText}>
+                            {item.type === 'membership_expired'
+                              ? 'Reactivate Plan Now'
+                              : 'Renew Plan Now (₹299)'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {/* Order Action Buttons (Clean wrap & concise labels to prevent overflow) */}
                     {matchedOrder && (
                       <View style={styles.notifOrderActionRow}>
                         <TouchableOpacity
@@ -2166,8 +2247,8 @@ export default function ProfilePage({
                           }}
                           activeOpacity={0.8}
                         >
-                          <Ionicons name="location-outline" size={13} color="#00A3E0" />
-                          <Text style={styles.notifTrackBtnText}>Track Order #{matchedOrder.id}</Text>
+                          <Ionicons name="location-outline" size={13} color="#FFFFFF" />
+                          <Text style={styles.notifTrackBtnText}>Track Order</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -2442,28 +2523,74 @@ export default function ProfilePage({
         <TouchableOpacity
           style={[
             styles.membershipBanner,
-            isMember ? styles.membershipBannerActive : styles.membershipBannerInactive,
+            isExpired
+              ? styles.membershipBannerExpired
+              : isExpiringSoon
+              ? styles.membershipBannerWarning
+              : isMember
+              ? styles.membershipBannerActive
+              : styles.membershipBannerInactive,
           ]}
           onPress={onNavigateMembership}
           activeOpacity={0.88}
         >
           <View style={styles.membershipBannerLeft}>
             <Ionicons
-              name={isMember ? 'shield-checkmark' : 'ribbon-outline'}
+              name={
+                isExpired
+                  ? 'alert-circle'
+                  : isExpiringSoon
+                  ? 'time'
+                  : isMember
+                  ? 'shield-checkmark'
+                  : 'ribbon-outline'
+              }
               size={22}
-              color={isMember ? '#10B981' : '#D97706'}
+              color={
+                isExpired
+                  ? '#DC2626'
+                  : isExpiringSoon
+                  ? '#D97706'
+                  : isMember
+                  ? '#10B981'
+                  : '#D97706'
+              }
             />
             <View style={{ flex: 1 }}>
               <Text
                 style={[
                   styles.membershipBannerTitle,
-                  { color: isMember ? '#15803D' : '#92400E' },
+                  {
+                    color: isExpired
+                      ? '#DC2626'
+                      : isExpiringSoon
+                      ? '#B45309'
+                      : isMember
+                      ? '#15803D'
+                      : '#92400E',
+                  },
                 ]}
               >
-                {isMember ? 'Active Distributor Member' : 'Standard Customer'}
+                {isExpired
+                  ? `Membership Plan Expired (${expiry?.expiryDateStr || ''})`
+                  : isExpiringSoon
+                  ? `Plan Expires in ${expiry?.remainingDays || 2} Day${expiry?.remainingDays === 1 ? '' : 's'} (${expiry?.expiryDateStr || ''})`
+                  : isMember
+                  ? 'Active Distributor Member'
+                  : 'Standard Customer'}
               </Text>
-              <Text style={styles.membershipBannerDesc}>
-                {isMember
+              <Text
+                style={[
+                  styles.membershipBannerDesc,
+                  isExpiringSoon && { color: '#92400E' },
+                  isExpired && { color: '#991B1B' },
+                ]}
+              >
+                {isExpired
+                  ? 'Reactivate now to restore wholesale DP pricing • Tap to renew'
+                  : isExpiringSoon
+                  ? 'Wholesale DP active • Tap to renew plan and prevent interruption'
+                  : isMember
                   ? 'Wholesale Distributor Pricing (DP) is active'
                   : 'Join Membership to get Distributor Price (DP) & PV'}
               </Text>
@@ -2472,14 +2599,22 @@ export default function ProfilePage({
           <Ionicons
             name="chevron-forward"
             size={18}
-            color={isMember ? '#15803D' : '#92400E'}
+            color={
+              isExpired
+                ? '#DC2626'
+                : isExpiringSoon
+                ? '#B45309'
+                : isMember
+                ? '#15803D'
+                : '#92400E'
+            }
           />
         </TouchableOpacity>
 
         {/* 4. Counters Summary Row */}
         <View style={styles.countersCard}>
           <View style={styles.counterBox}>
-            <Text style={styles.counterVal}>{isMember ? '80,000' : '0'}</Text>
+            <Text style={styles.counterVal}>{accumulatedPV.toLocaleString('en-IN')}</Text>
             <Text style={styles.counterLabel}>Accumulated PV</Text>
           </View>
 
@@ -2758,6 +2893,14 @@ const styles = StyleSheet.create({
   membershipBannerActive: {
     backgroundColor: '#F0FDF4',
     borderColor: '#BBF7D0',
+  },
+  membershipBannerWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+  },
+  membershipBannerExpired: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
   },
   membershipBannerInactive: {
     backgroundColor: '#FEF3C7',
@@ -4446,6 +4589,8 @@ const styles = StyleSheet.create({
   },
   notifOrderActionRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 10,
     marginLeft: 46,
@@ -4453,32 +4598,44 @@ const styles = StyleSheet.create({
   notifTrackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: '#00A3E0',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 7,
   },
   notifTrackBtnText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
   },
   notifInvoiceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F1F5F9',
+    gap: 5,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 7,
   },
   notifInvoiceBtnText: {
-    color: '#475569',
-    fontSize: 11,
+    color: '#334155',
+    fontSize: 11.5,
     fontWeight: '700',
+  },
+  notifCardWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+    borderLeftWidth: 3.5,
+    borderLeftColor: '#F59E0B',
+  },
+  notifCardExpired: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    borderLeftWidth: 3.5,
+    borderLeftColor: '#DC2626',
   },
 });
 

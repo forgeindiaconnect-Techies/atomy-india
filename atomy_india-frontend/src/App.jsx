@@ -47,7 +47,8 @@ import { onCatalogUpdate, syncCatalogFromBackend } from './services/catalogSyncS
 import MembershipModal from './components/Membership/MembershipModal';
 import MembershipPage from './components/Membership/MembershipPage';
 import MembershipPaymentPage from './components/Membership/MembershipPaymentPage';
-import { isUserMember, calculateProductPricing, verifyUserMembershipWithBackend } from './services/membershipService';
+import MembershipExpiryBanner from './components/Membership/MembershipExpiryBanner';
+import { isUserMember, calculateProductPricing, verifyUserMembershipWithBackend, fetchFullMembershipStatusWithBackend } from './services/membershipService';
 import { recordProductAddedToCart, recordProductPurchased } from './services/productStatsService';
 import './App.css';
 
@@ -594,7 +595,7 @@ export default function App() {
     if (!currentUser?.email && !currentUser?.phone) return;
     const fetchUserOrders = async () => {
       try {
-        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').trim().replace(/\/+$/, '').replace(/atomy_india\.onrender\.com/i, 'atomy-india.onrender.com');
+        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
         const queryParam = currentUser.email 
           ? `email=${encodeURIComponent(currentUser.email.trim())}` 
@@ -720,7 +721,7 @@ export default function App() {
     // Polling Spring Boot backend every 3.5 seconds for live order status changes
     const pollInterval = setInterval(async () => {
       try {
-        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085/api').trim().replace(/\/+$/, '').replace(/atomy_india\.onrender\.com/i, 'atomy-india.onrender.com');
+        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
         const res = await fetch(`${apiBase}/admin/orders`);
         if (!res.ok) return;
@@ -764,17 +765,32 @@ export default function App() {
 
   const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
   const [membershipVersion, setMembershipVersion] = useState(0);
+  const [membershipData, setMembershipData] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_current_membership_data');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  // Synchronize active membership status with backend database when logged in
+  // Synchronize active membership status and expiry details with backend database when logged in
   useEffect(() => {
     if (currentUser?.email) {
-      verifyUserMembershipWithBackend(currentUser.email).then((isActive) => {
-        if (isActive && !currentUser.isMember) {
+      fetchFullMembershipStatusWithBackend(currentUser.email).then((data) => {
+        if (data && data.membership) {
+          setMembershipData(data.membership);
+          try {
+            localStorage.setItem('atomy_current_membership_data', JSON.stringify(data.membership));
+          } catch {}
+        }
+        if (data?.isMember && !currentUser.isMember) {
           const updated = {
             ...currentUser,
             isMember: true,
             membership: {
               ...(currentUser.membership || {}),
+              ...(data.membership || {}),
               status: 'ACTIVE',
               active: true
             }
@@ -784,8 +800,26 @@ export default function App() {
             localStorage.setItem('atomy_current_user', JSON.stringify(updated));
           } catch {}
           setMembershipVersion((v) => v + 1);
+        } else if (data && !data.isMember && currentUser.isMember) {
+          const updated = {
+            ...currentUser,
+            isMember: false,
+            membership: {
+              ...(currentUser.membership || {}),
+              ...(data.membership || {}),
+              status: 'EXPIRED',
+              active: false
+            }
+          };
+          setCurrentUser(updated);
+          try {
+            localStorage.setItem('atomy_current_user', JSON.stringify(updated));
+          } catch {}
+          setMembershipVersion((v) => v + 1);
         }
       });
+    } else {
+      setMembershipData(null);
     }
   }, [currentUser?.email]);
 
@@ -852,8 +886,10 @@ export default function App() {
 
   const handleLogout = () => {
     setCurrentUser(null);
+    setMembershipData(null);
     try {
       localStorage.removeItem('atomy_current_user');
+      localStorage.removeItem('atomy_current_membership_data');
     } catch {}
     showToast({
       title: 'Signed Out',
@@ -1166,8 +1202,15 @@ export default function App() {
         onNavigateProfile={handleNavigateProfile}
         currentView={currentView}
         isMember={isMember}
+        membership={membershipData || currentUser?.membership}
         onOpenMembershipModal={handleNavigateMembership}
         onNavigateMembership={handleNavigateMembership}
+      />
+
+      {/* Pre-expiry (2 days before) & Post-expiry Alert Banner */}
+      <MembershipExpiryBanner
+        membership={membershipData || currentUser?.membership}
+        onRenewPress={handleNavigateMembership}
       />
 
       {/* Main Page Flow */}

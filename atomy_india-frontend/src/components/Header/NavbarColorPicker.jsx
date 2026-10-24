@@ -184,7 +184,7 @@ export function parseAndValidateColor(input) {
 }
 
 export default function NavbarColorPicker({
-  currentColor = '#EAB308',
+  currentColor = '#00A3E0',
   isGlass = false,
   opacity = 0.45,
   onChangeColor,
@@ -424,7 +424,7 @@ export default function NavbarColorPicker({
               <label className="navbar-color-input-wrapper" title="Pick any custom color">
                 <input
                   type="color"
-                  value={currentColor.startsWith('#') && currentColor.length === 7 ? currentColor : '#EAB308'}
+                  value={currentColor.startsWith('#') && currentColor.length === 7 ? currentColor : '#00A3E0'}
                   onChange={(e) => onChangeColor && onChangeColor(e.target.value, isGlass)}
                   className="navbar-native-color-input"
                 />
@@ -485,9 +485,9 @@ export default function NavbarColorPicker({
                 className="navbar-reset-color-btn"
                 onClick={() => {
                   if (onReset) onReset();
-                  else if (onChangeColor) onChangeColor('#EAB308', false);
+                  else if (onChangeColor) onChangeColor('#00A3E0', false);
                 }}
-                title="Reset to default dark yellow"
+                title="Reset to default Atomy blue"
               >
                 <RotateCcw size={12} />
                 <span>Reset</span>

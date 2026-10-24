@@ -592,7 +592,7 @@ export const BEST_PRODUCTS = [
     "price": 13000,
     "dpPrice": 9450,
     "formattedPrice": "₹ 13,000.00",
-    "discountPercent": "27%",
+    "discountPercent": 0,
     "pv": 80000,
     "image": "https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480",
     "gstReduced": true,

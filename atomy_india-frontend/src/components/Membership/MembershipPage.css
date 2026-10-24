@@ -215,6 +215,93 @@
   transform: translateY(-1px);
 }
 
+.membership-status-active-box.status-box-warning {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.membership-status-active-box.status-box-expired {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.active-badge-details h3.title-warning {
+  color: #fbbf24;
+}
+
+.active-badge-details h3.title-expired {
+  color: #f87171;
+}
+
+.membership-meta-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.membership-meta-chips .meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.membership-meta-chips .meta-chip .chip-label {
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.membership-meta-chips .meta-chip .chip-val {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.membership-meta-chips .meta-chip.chip-warning {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.membership-meta-chips .meta-chip.chip-warning .chip-val {
+  color: #fbbf24;
+}
+
+.membership-meta-chips .meta-chip.chip-expired {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.membership-meta-chips .meta-chip.chip-expired .chip-val {
+  color: #f87171;
+}
+
+.btn-renew-membership {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  border: none;
+  padding: 11px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-renew-membership:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.45);
+}
+
 /* Section Headings */
 .section-title-center {
   font-size: 26px;

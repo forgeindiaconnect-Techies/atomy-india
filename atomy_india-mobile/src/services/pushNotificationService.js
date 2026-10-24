@@ -1,22 +1,28 @@
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 
-// Configure foreground notification behavior (alert, sound, badge)
-if (Platform.OS !== 'web') {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
+let Notifications = null;
+try {
+  // Guard against missing native modules in Expo Go (e.g. ExpoTopicSubscriptionModule)
+  Notifications = require('expo-notifications');
+  if (Platform.OS !== 'web' && Notifications && typeof Notifications.setNotificationHandler === 'function') {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  }
+} catch (loadErr) {
+  console.log('[PushNotification] Native notification module not available in Expo Go:', loadErr?.message);
+  Notifications = null;
 }
 
 /**
  * Register device with Firebase / APNs and obtain push token
  */
 export async function registerForPushNotificationsAsync() {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || !Notifications) {
     return null;
   }
 
@@ -62,11 +68,11 @@ export async function registerForPushNotificationsAsync() {
         token = expoToken.data;
         console.log('[PushNotification] Obtained Expo Push Token:', token);
       } catch (expoTokenErr) {
-        console.warn('[PushNotification] Could not obtain push token:', expoTokenErr?.message);
+        console.log('[PushNotification] Expo Go push token info:', expoTokenErr?.message);
       }
     }
   } catch (error) {
-    console.warn('[PushNotification] Registration error:', error);
+    console.log('[PushNotification] Registration note:', error?.message);
   }
 
   return token;
@@ -76,7 +82,7 @@ export async function registerForPushNotificationsAsync() {
  * Listen for incoming notifications while app is in foreground and user taps
  */
 export function setupNotificationListeners(onReceived, onResponse) {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || !Notifications) {
     return () => {};
   }
 
@@ -100,4 +106,31 @@ export function setupNotificationListeners(onReceived, onResponse) {
     receivedSubscription.remove();
     responseSubscription.remove();
   };
+}
+
+/**
+ * Send an out-of-the-app notification that appears in the device system status bar / lock screen
+ */
+export async function scheduleLocalNotificationAsync({ title, body, data = {}, delaySeconds = 1 }) {
+  if (Platform.OS === 'web' || !Notifications) {
+    return null;
+  }
+  try {
+    const trigger = delaySeconds > 0 ? { seconds: delaySeconds } : null;
+    const notifId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title || 'Atomy India',
+        body: body || '',
+        data: data,
+        sound: 'default',
+        vibrate: [0, 250, 250, 250],
+      },
+      trigger,
+    });
+    console.log('[PushNotification] Scheduled system out-of-app notification:', notifId);
+    return notifId;
+  } catch (err) {
+    console.log('[PushNotification] System notification note:', err?.message);
+    return null;
+  }
 }

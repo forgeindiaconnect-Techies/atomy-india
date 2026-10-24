@@ -16,6 +16,7 @@ export default function MembershipModal({
   onClose,
   isMember = false,
   onToggleMembership,
+  onNavigateMembership,
 }) {
   const [authMode, setAuthMode] = useState('join'); // 'join' or 'signin'
   const [memberId, setMemberId] = useState('');
@@ -103,7 +104,7 @@ export default function MembershipModal({
               </View>
             </View>
 
-            {/* Toggle Button to Switch Mode */}
+            {/* Action Button to Join Membership with payment */}
             <TouchableOpacity
               style={[
                 styles.toggleModeBtn,
@@ -111,8 +112,14 @@ export default function MembershipModal({
               ]}
               activeOpacity={0.85}
               onPress={() => {
-                onToggleMembership && onToggleMembership(!isMember);
                 onClose();
+                if (isMember) {
+                  onToggleMembership && onToggleMembership(false);
+                } else if (onNavigateMembership) {
+                  onNavigateMembership();
+                } else {
+                  onToggleMembership && onToggleMembership(true);
+                }
               }}
             >
               <Ionicons
@@ -123,7 +130,7 @@ export default function MembershipModal({
               <Text style={styles.toggleModeBtnText}>
                 {isMember
                   ? 'Switch back to Public Guest View'
-                  : 'Activate Free Member Mode (Unlock DP Prices)'}
+                  : 'Join Membership (Choose Plan & Activate)'}
               </Text>
             </TouchableOpacity>
 

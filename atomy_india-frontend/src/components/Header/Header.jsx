@@ -7,6 +7,7 @@ import ficLogo from '../../assets/fic-symbol.png';
 import IndiaMap from './IndiaMap';
 import PhoenixFlight from './PhoenixFlight';
 import NavbarColorPicker, { isHexColorDark, hexToRgba, rgbaToHex } from './NavbarColorPicker';
+import { getMembershipExpiryInfo } from '../Membership/MembershipExpiryBanner';
 import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
 import './Header.css';
 
@@ -65,9 +66,13 @@ export default function Header({
   onNavigateProfile,
   currentView = 'home',
   isMember = false,
+  membership = null,
   onOpenMembershipModal,
   onNavigateMembership
 }) {
+  const activeMembership = membership || currentUser?.membership;
+  const expiryInfo = React.useMemo(() => getMembershipExpiryInfo(activeMembership), [activeMembership]);
+
   const [activePortal, setActivePortal] = useState('mall');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -78,12 +83,16 @@ export default function Header({
   const [selectedLanguage, setSelectedLanguage] = useState(() => getSavedLanguage());
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const [navbarBottom, setNavbarBottom] = useState(0);
   const [navbarBgColor, setNavbarBgColor] = useState(() => {
     try {
-      return localStorage.getItem('atomy_navbar_bg') || '#EAB308';
+      const saved = localStorage.getItem('atomy_navbar_bg');
+      if (!saved || saved.toUpperCase() === '#EAB308') {
+        localStorage.setItem('atomy_navbar_bg', '#00A3E0');
+        return '#00A3E0';
+      }
+      return saved;
     } catch (e) {
-      return '#EAB308';
+      return '#00A3E0';
     }
   });
 
@@ -419,19 +428,43 @@ export default function Header({
           {currentView !== 'admin' && (
             <div className="head-top-row">
               <div className="top-utility-links">
-                {isMember ? (
+                {(isMember || expiryInfo?.status === 'EXPIRED') ? (
                   <button
                     type="button"
-                    className="top-membership-pill member-active"
+                    className={`top-membership-pill ${
+                      expiryInfo?.status === 'EXPIRING_SOON'
+                        ? 'member-expiring'
+                        : expiryInfo?.status === 'EXPIRED'
+                        ? 'member-expired'
+                        : 'member-active'
+                    }`}
                     onClick={(e) => {
                       e.preventDefault();
                       if (onNavigateMembership) onNavigateMembership();
                     }}
-                    title="Atomy Distributor Membership Active - Wholesale DP Pricing Unlocked"
+                    title={
+                      expiryInfo?.status === 'EXPIRING_SOON'
+                        ? `Atomy Distributor Plan Expires in ${expiryInfo.remainingDays} Day${expiryInfo.remainingDays === 1 ? '' : 's'} (${expiryInfo.expiryDateStr}) - Click to Renew`
+                        : expiryInfo?.status === 'EXPIRED'
+                        ? 'Atomy Distributor Plan Expired - Click to Reactivate'
+                        : 'Atomy Distributor Membership Active - Wholesale DP Pricing Unlocked'
+                    }
                   >
-                    <span className="member-pill-sparkle">★</span>
-                    <span className="member-pill-label-desktop">Membership Active</span>
-                    <span className="member-pill-label-mobile">Active</span>
+                    <span className="member-pill-sparkle">●</span>
+                    <span className="member-pill-label-desktop">
+                      {expiryInfo?.status === 'EXPIRING_SOON'
+                        ? `Expires in ${expiryInfo.remainingDays} Day${expiryInfo.remainingDays === 1 ? '' : 's'}`
+                        : expiryInfo?.status === 'EXPIRED'
+                        ? 'Expired'
+                        : 'Member Account'}
+                    </span>
+                    <span className="member-pill-label-mobile">
+                      {expiryInfo?.status === 'EXPIRING_SOON'
+                        ? `${expiryInfo.remainingDays}d Left`
+                        : expiryInfo?.status === 'EXPIRED'
+                        ? 'Expired'
+                        : 'Member'}
+                    </span>
                   </button>
                 ) : (
                   <button
@@ -723,32 +756,45 @@ export default function Header({
                 </div>
               )}
 
-              <div className="profile-action-container">
+              <div className="profile-action-container" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                 {currentUser ? (
-                  <button 
-                    className="action-btn logged-in-profile-btn" 
-                    aria-label="Customer Profile & Settings" 
-                    title={`${userFullName} - Profile & Settings`}
-                    onClick={() => onNavigateProfile && onNavigateProfile()}
-                  >
-                    <div className="profile-avatar-circle">
-                      {userInitial}
-                    </div>
-                    <span className="profile-online-badge"></span>
-                  </button>
+                  <>
+                    <button 
+                      className="action-btn logged-in-profile-btn" 
+                      aria-label="Customer Profile & Settings" 
+                      title={`${userFullName} - Profile & Settings`}
+                      onClick={() => onNavigateProfile && onNavigateProfile()}
+                    >
+                      <div className="profile-avatar-circle">
+                        {userInitial}
+                      </div>
+                      <span className="profile-online-badge"></span>
+                    </button>
+                  </>
                 ) : (
-                  <button 
-                    className="action-btn" 
-                    aria-label={currentView === 'admin' ? "Admin Profile" : "Sign in / My Account"} 
-                    title={currentView === 'admin' ? "Admin Profile" : "Sign in / My Account"}
-                    onClick={() => {
-                      if (currentView !== 'admin') {
-                        onNavigateSignIn ? onNavigateSignIn('signin') : (window.location.href = '/signin');
-                      }
-                    }}
-                  >
-                    <User size={25} strokeWidth={1.8} />
-                  </button>
+                  <>
+                    <button 
+                      className="action-btn" 
+                      aria-label={currentView === 'admin' ? "Admin Profile" : "Sign in / My Account"} 
+                      title={currentView === 'admin' ? "Admin Profile" : "Sign in / My Account"}
+                      onClick={() => {
+                        if (currentView !== 'admin') {
+                          onNavigateSignIn ? onNavigateSignIn('signin') : (window.location.href = '/signin');
+                        }
+                      }}
+                    >
+                      <User size={25} strokeWidth={1.8} />
+                    </button>
+                    {isMember && (
+                      <span
+                        className="header-member-account-badge"
+                        onClick={() => onNavigateMembership && onNavigateMembership()}
+                        title="Atomy Distributor Membership Active"
+                      >
+                        <span className="member-status-dot">●</span> Member Account
+                      </span>
+                    )}
+                  </>
                 )}
                 {currentView === 'admin' && (
                   <span className="profile-role-title">Admin</span>

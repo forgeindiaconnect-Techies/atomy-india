@@ -39,6 +39,8 @@ export default function Header({
   onDropdownMenuPress,
   onOpenRecentlyViewed,
   recentlyViewedCount = 0,
+  isMember = false,
+  onMemberBadgePress,
 }) {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,7 +72,15 @@ export default function Header({
               <Text style={styles.ficForgeText}>FORGE </Text>
               <Text style={styles.ficIndiaText}>INDIA</Text>
             </View>
-            <Text style={styles.ficConnectText}>CONNECT</Text>
+            <View style={styles.ficSubRow}>
+              <Text style={styles.ficConnectText}>CONNECT</Text>
+              {isMember && (
+                <View style={styles.headerMemberPill}>
+                  <Ionicons name="star" size={9} color="#FFD700" />
+                  <Text style={styles.headerMemberPillText}>MEMBER</Text>
+                </View>
+              )}
+            </View>
           </View>
         </TouchableOpacity>
 
@@ -340,6 +350,28 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.92)',
     letterSpacing: 2.8,
     marginTop: 1,
+  },
+  ficSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerMemberPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.28)',
+    borderWidth: 1,
+    borderColor: '#FFD700',
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    gap: 3,
+  },
+  headerMemberPillText: {
+    fontSize: 8,
+    fontWeight: '900',
+    color: '#FFD700',
+    letterSpacing: 0.6,
   },
   atomyLogoImg: {
     width: 68,

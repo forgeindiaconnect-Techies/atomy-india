@@ -150,15 +150,44 @@ export default function FavoritesPage({
             {favoriteProducts.map((prod) => {
               const priceData = OFFICIAL_DISTRIBUTOR_PRICES[prod.id] || null;
               const rawPrice = Number(prod.price) || (priceData ? priceData.dpPrice : 1000);
-              let mrp = Number(prod.originalPrice) || Number(prod.mrp);
+
+              // Database discount percentage
+              const dbDiscount =
+                prod.discountPercent !== undefined &&
+                prod.discountPercent !== null &&
+                prod.discountPercent !== ''
+                  ? Number(String(prod.discountPercent).replace(/[^0-9]/g, ''))
+                  : 0;
+
+              let mrp = Number(prod.originalPrice || prod.mrp);
               if (!mrp || mrp <= rawPrice) {
-                mrp = priceData?.mrp || Math.round(rawPrice * 1.18);
+                if (priceData && priceData.mrp && priceData.mrp > rawPrice) {
+                  mrp = priceData.mrp;
+                } else {
+                  mrp = rawPrice;
+                }
               }
-              const dpPrice =
-                Number(prod.dpPrice || priceData?.dpPrice) || Math.round(rawPrice * 0.85);
-              const pv = Number(prod.pv || priceData?.pv) || Math.round(rawPrice * 4.5);
+
+              let dpPrice = Number(prod.dpPrice || (priceData ? priceData.dpPrice : 0));
+              if (!dpPrice || dpPrice >= rawPrice) {
+                dpPrice = priceData?.dpPrice || rawPrice;
+              }
+
+              const pv =
+                Number(prod.pv !== undefined ? prod.pv : priceData?.pv || 0) ||
+                Math.round(rawPrice * 4.5);
               const activePrice = isMember ? dpPrice : rawPrice;
-              const discountPercent = Math.round(((mrp - activePrice) / mrp) * 100);
+
+              const hasOffer = isMember
+                ? mrp > dpPrice
+                : dbDiscount > 0 && mrp > activePrice;
+
+              const discountPercent =
+                dbDiscount > 0
+                  ? dbDiscount
+                  : hasOffer
+                  ? Math.round(((mrp - activePrice) / mrp) * 100)
+                  : 0;
 
               const imgUri =
                 prod.image ||
@@ -206,18 +235,24 @@ export default function FavoritesPage({
                     </TouchableOpacity>
 
                     {/* Price Row */}
-                    <View style={styles.priceRow}>
-                      <Text style={styles.mrpText}>MRP ₹ {formatInr(mrp)}</Text>
-                      {isMember ? (
-                        <View style={styles.dpBadge}>
-                          <Text style={styles.dpBadgeText}>DP Price</Text>
-                        </View>
-                      ) : (
-                        <View style={styles.discountBadge}>
-                          <Text style={styles.discountBadgeText}>{discountPercent}% off</Text>
-                        </View>
-                      )}
-                    </View>
+                    {hasOffer ? (
+                      <View style={styles.priceRow}>
+                        <Text style={styles.mrpText}>MRP ₹ {formatInr(mrp)}</Text>
+                        {isMember ? (
+                          <View style={styles.dpBadge}>
+                            <Text style={styles.dpBadgeText}>DP Price</Text>
+                          </View>
+                        ) : (
+                          <View style={styles.discountBadge}>
+                            <Text style={styles.discountBadgeText}>{discountPercent}% off</Text>
+                          </View>
+                        )}
+                      </View>
+                    ) : (
+                      <View style={styles.priceRow}>
+                        <Text style={styles.mrpText}>MRP ₹ {formatInr(mrp)}</Text>
+                      </View>
+                    )}
 
                     <Text style={[styles.mainPriceText, isMember && styles.mainPriceTextGreen]}>
                       ₹ {formatInr(activePrice)}

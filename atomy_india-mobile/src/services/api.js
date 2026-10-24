@@ -1,11 +1,24 @@
 import { Platform, NativeModules } from 'react-native';
+import Constants from 'expo-constants';
 
-// Standard Spring Boot API base URL on port 8085
-// Dynamically resolves to host machine LAN IP (physical devices via Expo), 10.0.2.2 (Android Emulator), or localhost (Web)
-const getApiBase = () => {
+// Live Production / Cloud Server API Base
+export const CLOUD_API_BASE = 'https://atomy-india-lqsy.onrender.com/api';
+
+// Dynamic Localhost / LAN Machine API Base (for local testing)
+const getLocalApiBase = () => {
   if (Platform.OS === 'web') {
     return 'http://localhost:8085/api';
   }
+
+  try {
+    const hostUri = Constants?.expoConfig?.hostUri || Constants?.manifest2?.extra?.expoClient?.hostUri;
+    if (hostUri) {
+      const ip = hostUri.split(':')[0];
+      if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+        return `http://${ip}:8085/api`;
+      }
+    }
+  } catch (e) {}
 
   try {
     const scriptURL = NativeModules?.SourceCode?.scriptURL;
@@ -17,121 +30,180 @@ const getApiBase = () => {
     }
   } catch (e) {}
 
-  if (Platform.OS === 'android') {
-    // Priority: Host LAN IP reachable by physical Android devices over Wi-Fi, fallback to emulator 10.0.2.2
-    return 'http://192.168.1.19:8085/api';
-  }
-  return 'http://localhost:8085/api';
+  return 'http://192.168.1.27:8085/api';
 };
 
-export const API_BASE = getApiBase();
+export const LOCAL_API_BASE = getLocalApiBase();
+
+// Default API Base prioritizes the active local backend (connected to MongoDB Atlas)
+export const API_BASE = LOCAL_API_BASE;
 
 /**
- * Fetch all active products live from MySQL database (port 8085)
+ * Fetch all active products live from database (tries Local Backend first for instant response, falls back to Cloud)
  */
 export async function fetchLiveProducts(categoryId = null, search = null) {
-  try {
-    let url = `${API_BASE}/products`;
-    const params = [];
-    if (categoryId && categoryId !== 'all_products') {
-      params.push(`categoryId=${encodeURIComponent(categoryId)}`);
-    }
-    if (search && search.trim()) {
-      params.push(`search=${encodeURIComponent(search.trim())}`);
-    }
-    if (params.length > 0) {
-      url += `?${params.join('&')}`;
-    }
+  const params = [];
+  if (categoryId && categoryId !== 'all_products') {
+    params.push(`categoryId=${encodeURIComponent(categoryId)}`);
+  }
+  if (search && search.trim()) {
+    params.push(`search=${encodeURIComponent(search.trim())}`);
+  }
+  const queryString = params.length > 0 ? `?${params.join('&')}` : '';
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const candidateUrls = [
+    `${LOCAL_API_BASE}/products${queryString}`,
+    `${CLOUD_API_BASE}/products${queryString}`,
+  ];
 
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
+  for (const url of candidateUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data.map((p) => ({
-          ...p,
-          id: p.id,
-          name: p.name,
-          price: Number(p.price || 0),
-          mrp: Number(p.originalPrice || p.mrp || p.price || 0),
-          pv: Number(p.pv || 0),
-          img: p.image || p.img || '',
-          category: p.categoryId || p.category || 'all',
-          badge: p.tags?.replace('#', '') || p.badge || '',
-          isBest: p.isBest || ((p.likesCount || 0) > 50) || false,
-          isNew: p.isNew || false,
-          isRecommended: p.isRecommended || true,
-        }));
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((p) => ({
+            ...p,
+            id: p.id,
+            name: p.name,
+            price: Number(p.price || 0),
+            originalPrice: Number(p.originalPrice || p.mrp || p.price || 0),
+            mrp: Number(p.originalPrice || p.mrp || p.price || 0),
+            discountPercent: p.discountPercent !== undefined && p.discountPercent !== null ? Number(p.discountPercent) : 0,
+            dpPrice: Number(p.dpPrice || 0),
+            pv: Number(p.pv || 0),
+            img: p.image || p.img || '',
+            image: p.image || p.img || '',
+            category: p.categoryId || p.category || 'all',
+            badge: typeof p.tags === 'string'
+              ? p.tags.replace('#', '')
+              : Array.isArray(p.tags) && p.tags.length > 0
+              ? String(p.tags[0]).replace('#', '')
+              : p.badge || '',
+            tags: Array.isArray(p.tags)
+              ? p.tags
+              : typeof p.tags === 'string' && p.tags.trim()
+              ? p.tags.split(',').map((t) => t.trim()).filter(Boolean)
+              : [],
+            gstReduced: Boolean(p.gstReduced),
+            isBest: p.isBest || ((p.likesCount || 0) > 50) || false,
+            isNew: p.isNew || false,
+            isRecommended: p.isRecommended || true,
+          }));
+        }
       }
+    } catch (err) {
+      // quiet fallback to next candidate
     }
-  } catch (err) {
-    console.warn('[API] Could not fetch live products from backend, using fallback:', err.message);
   }
   return null;
 }
 
 /**
- * Check customer membership status from live MySQL database
+ * Check customer membership status from database (Local Backend first + Cloud fallback)
  */
 export async function fetchMembershipStatusApi(email) {
-  try {
-    if (!email) return null;
-    const res = await fetch(`${API_BASE}/membership/status?email=${encodeURIComponent(email)}`);
-    if (res.ok) {
-      return await res.json();
+  if (!email) return null;
+  const candidateUrls = [
+    `${LOCAL_API_BASE}/membership/status?email=${encodeURIComponent(email)}`,
+    `${CLOUD_API_BASE}/membership/status?email=${encodeURIComponent(email)}`,
+  ];
+
+  for (const url of candidateUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      // quiet fallback
     }
-  } catch (err) {
-    console.warn('[API] Could not check membership status:', err.message);
   }
   return null;
 }
 
 /**
- * Create order and save directly to MySQL database
- * Instantly synchronized with Admin Dashboard on port 5174!
+ * Create order and broadcast to BOTH Cloud Server and Local Host in parallel!
+ * This guarantees the live server Admin and local Admin BOTH receive the order!
  */
 export async function createOrderApi(orderPayload) {
-  try {
-    const res = await fetch(`${API_BASE}/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderPayload),
-    });
+  const targetUrls = [
+    `${CLOUD_API_BASE}/orders`,
+    `${LOCAL_API_BASE}/orders`,
+  ];
 
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data.orderId) {
-      return { success: true, order: data };
-    }
-    return {
-      success: false,
-      error: data.error || data.message || 'Failed to place order on server',
-    };
-  } catch (err) {
-    console.warn('[API] Error calling placeOrder endpoint:', err.message);
-    return { success: false, error: err.message };
+  let successfulResult = null;
+  let lastErrorMessage = null;
+
+  await Promise.allSettled(
+    targetUrls.map(async (url) => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.orderId) {
+          console.log(`[API] Order successfully received by: ${url} (Order ID: ${data.orderId})`);
+          successfulResult = { success: true, order: data };
+        } else {
+          lastErrorMessage = data.error || data.message || `Failed on ${url}`;
+        }
+      } catch (err) {
+        console.warn(`[API] Order dispatch to ${url} failed:`, err.message);
+        lastErrorMessage = err.message;
+      }
+    })
+  );
+
+  if (successfulResult) {
+    return successfulResult;
   }
+  return { success: false, error: lastErrorMessage || 'Failed to place order on server' };
 }
 
 /**
- * Fetch customer orders from MySQL database
+ * Fetch customer orders from database (Cloud Server + Local fallback)
  */
 export async function fetchOrderHistoryApi(email, phone) {
-  try {
-    let url = `${API_BASE}/orders/history?`;
-    if (email) url += `email=${encodeURIComponent(email)}`;
-    else if (phone) url += `phone=${encodeURIComponent(phone)}`;
-    else return [];
+  let param = '';
+  if (email) param = `email=${encodeURIComponent(email)}`;
+  else if (phone) param = `phone=${encodeURIComponent(phone)}`;
+  else return [];
 
-    const res = await fetch(url);
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    console.warn('[API] Could not fetch order history from backend:', err.message);
+  const candidateUrls = [
+    `${CLOUD_API_BASE}/orders/history?${param}`,
+    `${LOCAL_API_BASE}/orders/history?${param}`,
+  ];
+
+  for (const url of candidateUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const orders = await res.json();
+        if (Array.isArray(orders) && orders.length > 0) {
+          return orders;
+        }
+      }
+    } catch (err) {}
   }
   return [];
 }
@@ -140,89 +212,134 @@ export async function fetchOrderHistoryApi(email, phone) {
  * Fetch real-time dispatch and logistics tracking
  */
 export async function fetchTrackingApi(orderId) {
-  try {
-    const res = await fetch(`${API_BASE}/tracking/${encodeURIComponent(orderId)}`);
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (err) {
-    console.warn('[API] Could not fetch tracking details:', err.message);
+  const candidateUrls = [
+    `${CLOUD_API_BASE}/tracking/${encodeURIComponent(orderId)}`,
+    `${LOCAL_API_BASE}/tracking/${encodeURIComponent(orderId)}`,
+  ];
+
+  for (const url of candidateUrls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {}
   }
   return null;
 }
 
 /**
- * Join Membership directly in MySQL database
- * Synced with Admin Membership management
+ * Join Membership in Cloud Server AND Local Host in parallel
  */
 export async function joinMembershipApi(memberPayload) {
-  try {
-    const res = await fetch(`${API_BASE}/membership/join`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(memberPayload),
-    });
+  const targetUrls = [
+    `${CLOUD_API_BASE}/membership/join`,
+    `${LOCAL_API_BASE}/membership/join`,
+  ];
 
-    const data = await res.json().catch(() => ({}));
-    if (res.ok) {
-      return { success: true, member: data };
-    }
-    return { success: false, error: data.error || 'Failed to join membership' };
-  } catch (err) {
-    console.warn('[API] Error joining membership:', err.message);
-    return { success: false, error: err.message };
-  }
+  let successfulResult = null;
+
+  await Promise.allSettled(
+    targetUrls.map(async (url) => {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(memberPayload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          successfulResult = { success: true, member: data };
+        }
+      } catch (err) {}
+    })
+  );
+
+  return successfulResult || { success: false, error: 'Failed to join membership on server' };
 }
 
 /**
- * Customer Registration in MySQL database
+ * Customer Registration (Cloud Server + Local fallback)
  */
 export async function registerCustomerApi(customerData) {
-  try {
-    const res = await fetch(`${API_BASE}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(customerData),
-    });
-    const data = await res.json().catch(() => ({}));
-    return { success: res.ok, data };
-  } catch (err) {
-    return { success: false, error: err.message };
+  const payload = {
+    fullName: customerData.fullName || customerData.name || '',
+    email: customerData.email || '',
+    phone: customerData.phone || '',
+    password: customerData.password || '',
+    username: customerData.username || (customerData.email ? customerData.email.split('@')[0] : ''),
+    address: customerData.address || '',
+    source: customerData.source || 'MOBILE_SIGNUP',
+  };
+
+  const targetUrls = [
+    `${CLOUD_API_BASE}/auth/register`,
+    `${LOCAL_API_BASE}/auth/register`,
+  ];
+
+  for (const url of targetUrls) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) return { success: true, data };
+    } catch (err) {}
   }
+  return { success: false, error: 'Failed to register on server' };
 }
 
 /**
- * Customer Login
+ * Customer Login (Cloud Server + Local fallback)
  */
 export async function loginCustomerApi(credentials) {
-  try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-    const data = await res.json().catch(() => ({}));
-    return { success: res.ok, data };
-  } catch (err) {
-    return { success: false, error: err.message };
+  const payload = {
+    usernameOrEmail: credentials.usernameOrEmail || credentials.email || credentials.username || credentials.identifier || '',
+    password: credentials.password || '',
+  };
+
+  const targetUrls = [
+    `${CLOUD_API_BASE}/auth/login`,
+    `${LOCAL_API_BASE}/auth/login`,
+  ];
+
+  for (const url of targetUrls) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) return { success: true, data };
+    } catch (err) {}
   }
+  return { success: false, error: 'Failed to log in on server' };
 }
 
 /**
  * Customer Google Sign-in / Fast Auth
  */
 export async function googleAuthCustomerApi(googleData) {
-  try {
-    const res = await fetch(`${API_BASE}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(googleData),
-    });
-    const data = await res.json().catch(() => ({}));
-    return { success: res.ok, data };
-  } catch (err) {
-    return { success: false, error: err.message };
+  const targetUrls = [
+    `${CLOUD_API_BASE}/auth/google`,
+    `${LOCAL_API_BASE}/auth/google`,
+  ];
+
+  for (const url of targetUrls) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(googleData),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) return { success: true, data };
+    } catch (err) {}
   }
+  return { success: false, error: 'Google sign-in failed on server' };
 }
 
 export const DEFAULT_POPUP_ADS = [

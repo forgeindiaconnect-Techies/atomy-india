@@ -33,31 +33,47 @@ export default function LandingProductCard({
   const official = product?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
   const rawPrice = Number(product.price) || (official ? official.dpPrice : 0);
 
-  // Accurate MRP: explicit originalPrice/mrp -> official database mrp -> approx ~18% higher than raw price
-  let mrp = Number(product.originalPrice) || Number(product.mrp);
+  // Explicit database discount percent (0 means NO promotional retail discount)
+  const dbDiscount = product.discountPercent !== undefined && product.discountPercent !== null && product.discountPercent !== ''
+    ? Number(String(product.discountPercent).replace(/[^0-9]/g, ''))
+    : 0;
+
+  // Accurate MRP from database
+  let mrp = Number(product.originalPrice || product.mrp);
   if (!mrp || mrp <= rawPrice) {
     if (official && official.mrp && official.mrp > rawPrice) {
       mrp = official.mrp;
     } else {
-      mrp = Math.round(rawPrice * 1.18);
+      mrp = rawPrice;
     }
   }
 
-  // Official Member DP Wholesale Price: ~15-20% discount below retail price
+  // Official Member DP Wholesale Price
   let dpPrice = Number(product.dpPrice || (official ? official.dpPrice : 0));
   if (!dpPrice || dpPrice >= rawPrice) {
-    dpPrice = Math.round(rawPrice * 0.85);
+    dpPrice = official?.dpPrice || rawPrice;
   }
 
   // Point Value (PV)
-  const pv = Number(product.pv || (official ? official.pv : 0)) || Math.round(rawPrice * 4.5);
+  const pv = Number(product.pv !== undefined ? product.pv : (official?.pv || 0)) || Math.round(rawPrice * 4.5);
 
   // Active selling price: Member gets wholesale DP, guest gets retail price
   const activePrice = isMember ? dpPrice : rawPrice;
-  const hasOffer = mrp > activePrice;
-  const discountPercent = hasOffer
-    ? Math.round(((mrp - activePrice) / mrp) * 100)
-    : 0;
+
+  // Real offer condition matching website: only if DB has explicit promotional discount or member getting DP discount
+  const hasOffer = isMember
+    ? (mrp > dpPrice)
+    : (dbDiscount > 0 && mrp > activePrice);
+
+  const discountPercent = dbDiscount > 0
+    ? dbDiscount
+    : (hasOffer ? Math.round(((mrp - activePrice) / mrp) * 100) : 0);
+
+  const productTags = Array.isArray(product.tags)
+    ? product.tags
+    : typeof product.tags === 'string' && product.tags.trim()
+    ? product.tags.split(',').map((t) => t.trim()).filter(Boolean)
+    : [];
 
   return (
     <TouchableOpacity
@@ -174,12 +190,10 @@ export default function LandingProductCard({
           </TouchableOpacity>
         ) : null}
 
-
-
         {/* Product Tags (like #GST REDUCED, #Immunity) */}
-        {product.tags && product.tags.length > 0 ? (
+        {productTags.length > 0 ? (
           <View style={styles.tagsRow}>
-            {product.tags.map((tag, idx) => (
+            {productTags.map((tag, idx) => (
               <Text key={idx} style={styles.tagText}>
                 {tag}
               </Text>

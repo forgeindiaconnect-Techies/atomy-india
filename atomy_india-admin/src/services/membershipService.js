@@ -1,8 +1,15 @@
 // Membership Service for Atomy India Admin Console
 // Manages single-class Atomy Distributor Membership, Monthly & Annual plans, and Member Registry
-// Synced with Spring Boot MySQL backend on port 8085
+// Synced with Spring Boot Backend on Cloud Server & Localhost
 
-const ADMIN_API_BASE = 'http://localhost:8085/api/admin/membership';
+const rawBase = (typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost'
+  ? 'https://atomy-india-lqsy.onrender.com/api'
+  : (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api')
+).trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
+
+const CLOUD_ADMIN_API_BASE = 'https://atomy-india-lqsy.onrender.com/api/admin/membership';
+const LOCAL_ADMIN_API_BASE = 'http://localhost:8085/api/admin/membership';
+const ADMIN_API_BASE = rawBase.endsWith('/api') ? `${rawBase}/admin/membership` : `${rawBase}/api/admin/membership`;
 
 const SETTINGS_KEY = 'atomy_membership_settings';
 const MEMBERS_KEY = 'atomy_members_registry';
@@ -31,16 +38,24 @@ export function getMembershipSettings() {
 }
 
 export async function fetchMembershipSettingsFromBackend() {
-  try {
-    const res = await fetch(`${ADMIN_API_BASE}/settings`);
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
-      window.dispatchEvent(new CustomEvent('atomy:membership-settings-updated', { detail: data }));
-      return data;
+  const candidateUrls = [CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE];
+  const uniqueUrls = [...new Set(candidateUrls)];
+
+  for (const baseUrl of uniqueUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`${baseUrl}/settings`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+        window.dispatchEvent(new CustomEvent('atomy:membership-settings-updated', { detail: data }));
+        return data;
+      }
+    } catch (e) {
+      // try next candidate
     }
-  } catch (e) {
-    console.warn('Backend membership settings fetch error:', e);
   }
   return getMembershipSettings();
 }
@@ -50,12 +65,15 @@ export function saveMembershipSettings(settings) {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     window.dispatchEvent(new CustomEvent('atomy:membership-settings-updated', { detail: settings }));
 
-    // Sync to MySQL Backend on port 8085
-    fetch(`${ADMIN_API_BASE}/settings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings)
-    }).catch(err => console.warn('Backend save settings error:', err));
+    // Sync to Cloud Server and Local Host in parallel
+    const targetUrls = [...new Set([CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE])];
+    targetUrls.forEach((baseUrl) => {
+      fetch(`${baseUrl}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      }).catch(err => console.warn(`Save settings error on ${baseUrl}:`, err));
+    });
   } catch (e) {
     console.error('Failed to save membership settings', e);
   }
@@ -88,34 +106,42 @@ export function getMembersRegistry() {
 }
 
 export async function fetchMembersFromBackend() {
-  try {
-    const res = await fetch(`${ADMIN_API_BASE}/members`);
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list)) {
-        // Normalize fields
-        const normalized = list
-          .filter(m => 
-            !['ATM-MEM-001', 'ATM-MEM-002', 'ATM-MEM-003', 'ATM-MEM-414'].includes(m.id) && 
-            !m.paymentId?.includes('test') &&
-            !m.email?.includes('example.com') &&
-            !m.customerEmail?.includes('example.com')
-          )
-          .map(m => ({
-            ...m,
-            name: m.customerName || m.name,
-            email: m.customerEmail || m.email,
-            phone: m.customerPhone || m.phone,
-            startDate: m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : '',
-            expiryDate: m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : ''
-          }));
-        localStorage.setItem(MEMBERS_KEY, JSON.stringify(normalized));
-        window.dispatchEvent(new CustomEvent('atomy:members-registry-updated', { detail: normalized }));
-        return normalized;
+  const candidateUrls = [CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE];
+  const uniqueUrls = [...new Set(candidateUrls)];
+
+  for (const baseUrl of uniqueUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${baseUrl}/members`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          // Normalize fields
+          const normalized = list
+            .filter(m => 
+              !['ATM-MEM-001', 'ATM-MEM-002', 'ATM-MEM-003', 'ATM-MEM-414'].includes(m.id) && 
+              !m.paymentId?.includes('test') &&
+              !m.email?.includes('example.com') &&
+              !m.customerEmail?.includes('example.com')
+            )
+            .map(m => ({
+              ...m,
+              name: m.customerName || m.name,
+              email: m.customerEmail || m.email,
+              phone: m.customerPhone || m.phone,
+              startDate: m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : '',
+              expiryDate: m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : ''
+            }));
+          localStorage.setItem(MEMBERS_KEY, JSON.stringify(normalized));
+          window.dispatchEvent(new CustomEvent('atomy:members-registry-updated', { detail: normalized }));
+          return normalized;
+        }
       }
+    } catch (e) {
+      // try next URL
     }
-  } catch (e) {
-    console.warn('Backend members fetch failed, fallback to local:', e);
   }
   return getMembersRegistry();
 }
@@ -139,34 +165,43 @@ export async function addMemberToRegistry(memberData) {
     expiry.setMonth(expiry.getMonth() + 1);
   }
 
-  // 1. Post to MySQL Backend
-  try {
-    const res = await fetch(`${ADMIN_API_BASE}/members`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: memberData.name,
-        email: memberData.email,
-        phone: memberData.phone,
-        plan: memberData.plan
-      })
-    });
-    if (res.ok) {
-      const saved = await res.json();
-      const normalized = {
-        ...saved,
-        name: saved.customerName || saved.name,
-        email: saved.customerEmail || saved.email,
-        phone: saved.customerPhone || saved.phone,
-        startDate: saved.startDate ? saved.startDate.split('T')[0] : now.toISOString().split('T')[0],
-        expiryDate: saved.expiryDate ? saved.expiryDate.split('T')[0] : expiry.toISOString().split('T')[0]
-      };
-      const updated = [normalized, ...registry.filter(m => (m.email || m.customerEmail) !== normalized.email)];
-      saveMembersRegistry(updated);
-      return normalized;
-    }
-  } catch (e) {
-    console.warn('Backend add member error:', e);
+  // 1. Post to Cloud and Local Backends in parallel
+  const targetUrls = [...new Set([CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE])];
+  let savedResult = null;
+
+  await Promise.allSettled(
+    targetUrls.map(async (baseUrl) => {
+      try {
+        const res = await fetch(`${baseUrl}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: memberData.name,
+            email: memberData.email,
+            phone: memberData.phone,
+            plan: memberData.plan
+          })
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          if (!savedResult) savedResult = saved;
+        }
+      } catch (err) {}
+    })
+  );
+
+  if (savedResult) {
+    const normalized = {
+      ...savedResult,
+      name: savedResult.customerName || savedResult.name,
+      email: savedResult.customerEmail || savedResult.email,
+      phone: savedResult.customerPhone || savedResult.phone,
+      startDate: savedResult.startDate ? savedResult.startDate.split('T')[0] : now.toISOString().split('T')[0],
+      expiryDate: savedResult.expiryDate ? savedResult.expiryDate.split('T')[0] : expiry.toISOString().split('T')[0]
+    };
+    const updated = [normalized, ...registry.filter(m => (m.email || m.customerEmail) !== normalized.email)];
+    saveMembersRegistry(updated);
+    return normalized;
   }
 
   // Fallback
@@ -204,16 +239,15 @@ export async function updateMemberStatus(memberId, newStatus) {
   });
   saveMembersRegistry(updated);
 
-  // Sync to MySQL Backend
-  try {
-    await fetch(`${ADMIN_API_BASE}/members/${encodeURIComponent(memberId)}/status`, {
+  // Sync to Cloud & Local in parallel
+  const targetUrls = [...new Set([CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE])];
+  targetUrls.forEach((baseUrl) => {
+    fetch(`${baseUrl}/members/${encodeURIComponent(memberId)}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus })
-    });
-  } catch (e) {
-    console.warn('Backend update member status error:', e);
-  }
+    }).catch(e => console.warn(`Update member status error on ${baseUrl}:`, e));
+  });
 
   return updated;
 }

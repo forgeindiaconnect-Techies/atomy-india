@@ -12,12 +12,12 @@
 
 /* 1. Main Brand & Search Header Bar */
 .main-header-bar {
-  background-color: #EAB308;
+  background-color: var(--atomy-blue);
   padding: 12px 0 16px;
-  color: #0f172a;
+  color: #ffffff;
   position: relative;
   overflow: visible !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
@@ -88,11 +88,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 11.5px;
   font-weight: 700;
-  padding: 4px 14px;
-  border-radius: 20px;
+  padding: 5px 18px 5px 14px;
+  border-radius: 9999px;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -100,14 +100,15 @@
   white-space: nowrap;
   box-sizing: border-box;
   flex-shrink: 0;
+  min-width: max-content;
 }
 
 .top-membership-pill.member-active {
   background: #ffffff !important;
   color: #047857 !important;
-  border: 1px solid #10b981 !important;
+  border: 1.5px solid #10b981 !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12) !important;
-  padding: 4px 14px;
+  padding: 5px 18px 5px 14px !important;
 }
 
 .top-membership-pill.member-active span,
@@ -119,7 +120,7 @@
 
 .top-membership-pill.member-active .member-pill-sparkle {
   color: #10b981 !important;
-  font-size: 11px;
+  font-size: 8.5px !important;
   display: inline-flex;
   align-items: center;
 }
@@ -133,6 +134,96 @@
 
 .top-membership-pill.member-active:hover span {
   color: #065f46 !important;
+}
+
+.header-member-account-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #10b981;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.header-member-account-badge:hover {
+  background: #d1fae5;
+  border-color: #059669;
+  transform: translateY(-1px);
+}
+
+.header-member-account-badge .member-status-dot {
+  color: #10b981;
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Expiring Soon State (Amber Warning: e.g. Expires in 2 Days) */
+.top-membership-pill.member-expiring {
+  background: #FFFBEB !important;
+  color: #B45309 !important;
+  border: 1.5px solid #F59E0B !important;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.22) !important;
+  padding: 5px 18px 5px 14px !important;
+}
+
+.top-membership-pill.member-expiring span,
+.top-membership-pill.member-expiring .member-pill-label-desktop,
+.top-membership-pill.member-expiring .member-pill-label-mobile {
+  color: #B45309 !important;
+  font-weight: 700 !important;
+}
+
+.top-membership-pill.member-expiring .member-pill-sparkle {
+  color: #F59E0B !important;
+  font-size: 8.5px !important;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.top-membership-pill.member-expiring:hover {
+  background: #FEF3C7 !important;
+  border-color: #D97706 !important;
+  color: #92400E !important;
+}
+
+/* Expired State (Red Alert: Expired) */
+.top-membership-pill.member-expired {
+  background: #FEF2F2 !important;
+  color: #DC2626 !important;
+  border: 1.5px solid #EF4444 !important;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.22) !important;
+  padding: 5px 18px 5px 14px !important;
+}
+
+.top-membership-pill.member-expired span,
+.top-membership-pill.member-expired .member-pill-label-desktop,
+.top-membership-pill.member-expired .member-pill-label-mobile {
+  color: #DC2626 !important;
+  font-weight: 700 !important;
+}
+
+.top-membership-pill.member-expired .member-pill-sparkle {
+  color: #EF4444 !important;
+  font-size: 8.5px !important;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.top-membership-pill.member-expired:hover {
+  background: #FEE2E2 !important;
+  border-color: #B91C1C !important;
+  color: #991B1B !important;
 }
 
 .top-membership-pill.member-join {

@@ -12,7 +12,15 @@ import {
   Animated,
   Platform,
   Easing,
+  LogBox,
 } from 'react-native';
+
+// Ignore informational Expo Go push notifications notice
+LogBox.ignoreLogs([
+  '[expo-notifications] Push notifications',
+  'Push notifications (remote notifications) are unavailable in Expo Go',
+]);
+
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +47,7 @@ import ProductDetailPage from './src/components/ProductDetail/ProductDetailPage'
 import FavoritesPage from './src/components/Favorites/FavoritesPage';
 import ProfilePage from './src/components/Profile/ProfilePage';
 import MembershipPage from './src/components/Membership/MembershipPage';
+import MembershipExpiryBanner, { getMembershipExpiryInfo } from './src/components/Membership/MembershipExpiryBanner';
 import AboutUsPage from './src/components/AboutUs/AboutUsPage';
 import CustomerSupportPage from './src/components/AboutUs/CustomerSupportPage';
 import FindCentrePage from './src/components/FindCentre/FindCentrePage';
@@ -57,6 +66,7 @@ import RecentlyViewedModal from './src/components/RecentlyViewed/RecentlyViewedM
 import {
   registerForPushNotificationsAsync,
   setupNotificationListeners,
+  scheduleLocalNotificationAsync,
 } from './src/services/pushNotificationService';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from './src/data/officialDistributorPrices';
 import {
@@ -67,6 +77,8 @@ import {
   fetchMembershipStatusApi,
   fetchFloatingAdConfigApi,
 } from './src/services/api';
+import { syncCatalogFromBackend, onCatalogUpdate } from './src/services/catalogSyncService';
+import storageService from './src/services/storageService';
 import {
   ALL_PRODUCTS,
   HERO_SLIDES,
@@ -116,6 +128,13 @@ const loadInitialIsMember = () => {
       if (isLoggedOut === 'true') {
         return false;
       }
+      const savedUser = window.localStorage.getItem('atomy_user_session');
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && typeof parsed.isMember === 'boolean') {
+          return parsed.isMember;
+        }
+      }
       const savedMember = window.localStorage.getItem('atomy_is_member');
       if (savedMember !== null) {
         return savedMember === 'true';
@@ -155,6 +174,8 @@ export default function App() {
   const [activeSubTab, setActiveSubTab] = useState('home');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isMember, setIsMember] = useState(loadInitialIsMember);
+  const [membershipData, setMembershipData] = useState(null);
+  const membershipExpiryInfo = useMemo(() => getMembershipExpiryInfo(membershipData), [membershipData]);
   const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
   const [cart, setCart] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -167,6 +188,7 @@ export default function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [pendingOrderAction, setPendingOrderAction] = useState(null);
+  const [catalogVersion, setCatalogVersion] = useState(0);
 
   // Recently Viewed product recorder & storage persistence
   const recordRecentlyViewed = (product) => {
@@ -319,6 +341,55 @@ export default function App() {
     };
   }, []);
 
+  // 0. Restore persisted session & user state across app restarts (Ensures user stays logged in until explicit logout)
+  useEffect(() => {
+    async function restoreSession() {
+      try {
+        const cached = await storageService.initStorage();
+        if (cached?.userSession && cached.userSession.name && cached.userSession.name !== 'Guest User') {
+          setCurrentUser(cached.userSession);
+        }
+        if (typeof cached?.isMember === 'boolean') {
+          setIsMember(cached.isMember);
+        }
+        if (cached?.membershipData) {
+          setMembershipData(cached.membershipData);
+        }
+        if (Array.isArray(cached?.recentlyViewed) && cached.recentlyViewed.length > 0) {
+          setRecentlyViewed(cached.recentlyViewed);
+        }
+        if (Array.isArray(cached?.cart) && cached.cart.length > 0) {
+          setCart(cached.cart);
+        }
+        if (Array.isArray(cached?.favorites) && cached.favorites.length > 0) {
+          setFavorites(cached.favorites);
+        }
+        if (Array.isArray(cached?.placedOrders) && cached.placedOrders.length > 0) {
+          setPlacedOrders(cached.placedOrders);
+        }
+
+        // Live verify membership expiry from server
+        if (cached?.userSession?.email) {
+          fetchMembershipStatusApi(cached.userSession.email).then((mem) => {
+            if (mem) {
+              if (typeof mem.isMember === 'boolean') {
+                setIsMember(mem.isMember);
+                storageService.saveMembershipStatus(mem.isMember);
+              }
+              if (mem.membership) {
+                setMembershipData(mem.membership);
+                storageService.saveMembershipData(mem.membership);
+              }
+            }
+          }).catch(() => {});
+        }
+      } catch (err) {
+        console.warn('[App] Session restoration error:', err);
+      }
+    }
+    restoreSession();
+  }, []);
+
   // Register Push Notifications (FCM) & Attach Foreground / Tap Listeners
   useEffect(() => {
     let removeListeners = null;
@@ -355,6 +426,21 @@ export default function App() {
     };
   }, []);
 
+  // Live Sync Catalog Products from Live Database
+  useEffect(() => {
+    syncCatalogFromBackend();
+    const unsubscribe = onCatalogUpdate(() => {
+      setCatalogVersion((v) => v + 1);
+    });
+    const catalogTimer = setInterval(() => {
+      syncCatalogFromBackend();
+    }, 30000);
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+      clearInterval(catalogTimer);
+    };
+  }, []);
+
   // Live Sync with Spring Boot Backend & MySQL Database (Port 8085)
   useEffect(() => {
     async function loadLiveBackendData() {
@@ -365,6 +451,14 @@ export default function App() {
         const memData = await fetchMembershipStatusApi(currentUser.email);
         if (memData && typeof memData.isMember === 'boolean') {
           setIsMember(memData.isMember);
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('atomy_is_member', memData.isMember ? 'true' : 'false');
+          }
+        } else if (currentUser?.isMember !== undefined) {
+          setIsMember(Boolean(currentUser.isMember));
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('atomy_is_member', currentUser.isMember ? 'true' : 'false');
+          }
         }
       } catch (e) {
         console.warn('Membership sync error:', e);
@@ -415,6 +509,8 @@ export default function App() {
       }
     }
     loadLiveBackendData();
+    const intervalTimer = setInterval(loadLiveBackendData, 10000);
+    return () => clearInterval(intervalTimer);
   }, [currentUser?.email]);
 
   // Quick Toast Helper
@@ -581,9 +677,10 @@ export default function App() {
     setIsMembershipModalOpen(false);
   };
 
-  // User Logout handler (Clears active session, persists logout to localStorage, resets membership, cart & favorites)
+  // User Logout handler (Clears active session, persists logout to AsyncStorage & localStorage, resets membership, cart & favorites)
   const handleUserLogout = () => {
     try {
+      storageService.clearUserSession();
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem('atomy_user_session');
         window.localStorage.setItem('atomy_user_logged_out', 'true');
@@ -592,6 +689,7 @@ export default function App() {
     } catch (e) {}
     setCurrentUser(GUEST_USER);
     setIsMember(false);
+    setMembershipData(null);
     setCart([]);
     setFavorites([]);
     setPlacedOrders([]);
@@ -600,9 +698,10 @@ export default function App() {
     handleNavigateHome();
   };
 
-  // User Profile Update handler (Persists to session storage)
+  // User Profile Update handler (Persists to AsyncStorage & session storage)
   const handleUpdateUser = (updated) => {
     setCurrentUser(updated);
+    storageService.saveUserSession(updated);
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem('atomy_user_session', JSON.stringify(updated));
@@ -622,14 +721,29 @@ export default function App() {
       const memData = await fetchMembershipStatusApi(user.email);
       if (memData && typeof memData.isMember === 'boolean') {
         setIsMember(memData.isMember);
+        storageService.saveMembershipStatus(memData.isMember);
+        if (memData.membership) {
+          setMembershipData(memData.membership);
+          storageService.saveMembershipData(memData.membership);
+        }
         if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.setItem('atomy_is_member', memData.isMember ? 'true' : 'false');
         }
-      } else if (user.isMember) {
-        setIsMember(true);
+      } else {
+        const fallbackMem = Boolean(user.isMember);
+        setIsMember(fallbackMem);
+        storageService.saveMembershipStatus(fallbackMem);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('atomy_is_member', fallbackMem ? 'true' : 'false');
+        }
       }
     } catch (e) {
-      if (user.isMember) setIsMember(true);
+      const fallbackMem = Boolean(user.isMember);
+      setIsMember(fallbackMem);
+      storageService.saveMembershipStatus(fallbackMem);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('atomy_is_member', fallbackMem ? 'true' : 'false');
+      }
     }
 
     // Automatically resume pending order if user attempted to order before signing in!
@@ -946,6 +1060,13 @@ export default function App() {
               };
               setPlacedOrders((prev) => [newOrder, ...prev]);
               showToast('Order Placed & Synced with Database! 🎉');
+
+              // Trigger system notification (pops up in device notification tray outside the app)
+              scheduleLocalNotificationAsync({
+                title: 'Order Confirmed! 📦 Atomy India',
+                body: `Your order #${realOrderId} for ${orderDetails?.totalFormatted || '₹ 0.00'} (${orderDetails?.pvFormatted || '0 PV'}) has been synced with the database.`,
+                data: { orderId: realOrderId },
+              });
             }}
             onProductClick={handleOpenProductDetail}
           />
@@ -1040,6 +1161,8 @@ export default function App() {
                 onUpdateUser={handleUpdateUser}
                 placedOrders={placedOrders}
                 isMember={isMember}
+                membershipData={membershipData}
+                membershipExpiryInfo={membershipExpiryInfo}
                 favoritesCount={favorites.length}
                 cartCount={totalCartCount}
                 onNavigateHome={handleNavigateHome}
@@ -1073,6 +1196,8 @@ export default function App() {
               onTabPress={handleTabPress}
               favoritesCount={favorites.length}
               recentlyViewedCount={recentlyViewed.length}
+              isMember={isMember}
+              membershipExpiryState={membershipExpiryInfo?.status}
             />
             <SafeAreaView edges={['bottom']} style={styles.bottomSafeArea} />
           </>
@@ -1080,29 +1205,53 @@ export default function App() {
           /* OFFICIAL MEMBERSHIP PAGE (Matching Authentic Website View) */
           <MembershipPage
             isMember={isMember}
+            membershipData={membershipData}
+            membershipExpiryInfo={membershipExpiryInfo}
+            currentUser={currentUser}
             onNavigateHome={handleNavigateHome}
             onNavigateBack={handleNavigateBack}
             onMembershipActivated={async (member) => {
               setIsMember(true);
+              storageService.saveMembershipStatus(true);
               try {
                 if (typeof window !== 'undefined' && window.localStorage) {
                   window.localStorage.setItem('atomy_is_member', 'true');
                   window.localStorage.removeItem('atomy_user_logged_out');
                 }
               } catch (e) {}
-              // Sync membership to live MySQL database
-              await joinMembershipApi({
-                name: currentUser.name,
-                email: currentUser.email,
-                phone: currentUser.phone,
-                plan: member?.plan || 'ANNUAL',
-                amountPaid: member?.plan === 'MONTHLY' ? 299 : 2499,
-              });
+
+              // Update user profile with membership details if member has email
+              const memberEmail = member?.customerEmail || member?.email || currentUser.email;
+              const memberName = member?.customerName || member?.name || currentUser.name;
+              const memberPhone = member?.customerPhone || member?.phone || currentUser.phone;
+
+              if (memberEmail && (!currentUser.email || currentUser.name === 'Guest User')) {
+                const updatedUser = {
+                  ...currentUser,
+                  name: memberName || 'Atomy Customer',
+                  email: memberEmail,
+                  phone: memberPhone || '',
+                  memberId: member?.id || member?.memberId || '',
+                  isMember: true,
+                };
+                handleUpdateUser(updatedUser);
+              } else if (currentUser && currentUser.email) {
+                handleUpdateUser({ ...currentUser, isMember: true });
+              }
+
+              if (member) {
+                setMembershipData(member);
+                storageService.saveMembershipData(member);
+              }
+
               showToast('Official Distributor Membership Activated & Synced with Database! 🎉');
               handleNavigateHome();
             }}
             onMembershipCancelled={() => {
               setIsMember(false);
+              setMembershipData(null);
+              storageService.saveMembershipStatus(false);
+              storageService.saveMembershipData(null);
               showToast('Distributor Membership Cancelled');
             }}
           />
@@ -1492,6 +1641,13 @@ export default function App() {
               onDropdownMenuPress={() => setIsCategoryModalOpen(true)}
               onOpenRecentlyViewed={() => setIsRecentlyViewedModalOpen(true)}
               recentlyViewedCount={recentlyViewed.length}
+              isMember={isMember}
+            />
+
+            {/* 1.1 Membership Pre-Expiry (2 days) & Post-Expiry Alert Banner */}
+            <MembershipExpiryBanner
+              membership={membershipData}
+              onRenewPress={() => navigateTo('membership')}
             />
 
             {/* 2. Main Scrollable Page Body */}
@@ -1541,6 +1697,7 @@ export default function App() {
 
               {/* EXACT AUTHENTIC WEBSITE LANDING PAGE SECTIONS SEQUENCE */}
               <BestProductsSection
+                key={`best-${catalogVersion}`}
                 onAddToCart={handleAddToCart}
                 onProductClick={handleOpenProductDetail}
                 favorites={favorites}
@@ -1551,6 +1708,7 @@ export default function App() {
 
               {/* 5. Atomy India Hair & Body Essential */}
               <HairBodySection
+                key={`hair-${catalogVersion}`}
                 onAddToCart={handleAddToCart}
                 onProductClick={handleOpenProductDetail}
                 favorites={favorites}
@@ -1561,6 +1719,7 @@ export default function App() {
 
               {/* 6. Atomy Absolute Skincare set (Brand Showcase + Banner) */}
               <BrandShowcaseSection
+                key={`skincare-${catalogVersion}`}
                 title="Atomy Absolute Skincare set"
                 subtitle="Recapture The Skin of Your Youth"
                 bannerImage={ABSOLUTE_SKINCARE_BANNER}
@@ -1583,6 +1742,7 @@ export default function App() {
 
               {/* 8. Atomy Food Essential */}
               <FoodEssentialSection
+                key={`food-${catalogVersion}`}
                 onAddToCart={handleAddToCart}
                 onProductClick={handleOpenProductDetail}
                 favorites={favorites}
@@ -1600,6 +1760,7 @@ export default function App() {
 
               {/* 10. Atomy India Health Essential (Brand Showcase + Banner) */}
               <BrandShowcaseSection
+                key={`health-${catalogVersion}`}
                 title={"Atomy India Health\nEssential"}
                 subtitle="Your Daily Dose of Exceptional Health"
                 bannerImage={HEALTH_ESSENTIAL_BANNER}
@@ -1615,6 +1776,7 @@ export default function App() {
 
               {/* 11. Atomy India GSGS Product */}
               <GsgsSection
+                key={`gsgs-${catalogVersion}`}
                 onAddToCart={handleAddToCart}
                 onProductClick={handleOpenProductDetail}
                 favorites={favorites}
@@ -1657,6 +1819,8 @@ export default function App() {
                 onTabPress={handleTabPress}
                 favoritesCount={favorites.length}
                 recentlyViewedCount={recentlyViewed.length}
+                isMember={isMember}
+                membershipExpiryState={membershipExpiryInfo?.status}
               />
               <SafeAreaView edges={['bottom']} style={styles.bottomSafeArea} />
             </Animated.View>
@@ -1728,8 +1892,13 @@ export default function App() {
         visible={isMembershipModalOpen}
         onClose={() => setIsMembershipModalOpen(false)}
         isMember={isMember}
+        onNavigateMembership={() => {
+          setIsMembershipModalOpen(false);
+          navigateTo('membership');
+        }}
         onToggleMembership={(newStatus) => {
           setIsMember(newStatus);
+          storageService.saveMembershipStatus(newStatus);
           showToast(
             newStatus
               ? 'Switched to Member View (Distributor DP Prices Active ★)'

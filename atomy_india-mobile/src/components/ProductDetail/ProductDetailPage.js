@@ -141,25 +141,40 @@ export default function ProductDetailPage({
 
   // Prices and PV
   const rawPrice = Number(product.price) || (priceData ? priceData.dpPrice : 1000);
-  let mrp = Number(product.originalPrice) || Number(product.mrp);
+
+  // Explicit database discount percent (0 means NO promotional retail discount)
+  const dbDiscount = product.discountPercent !== undefined && product.discountPercent !== null && product.discountPercent !== ''
+    ? Number(String(product.discountPercent).replace(/[^0-9]/g, ''))
+    : 0;
+
+  // Accurate MRP from database
+  let mrp = Number(product.originalPrice || product.mrp);
   if (!mrp || mrp <= rawPrice) {
     if (priceData && priceData.mrp && priceData.mrp > rawPrice) {
       mrp = priceData.mrp;
     } else {
-      mrp = Math.round(rawPrice * 1.18);
+      mrp = rawPrice;
     }
   }
 
+  // Official Member DP Wholesale Price
   let dpPrice = Number(product.dpPrice || (priceData ? priceData.dpPrice : 0));
   if (!dpPrice || dpPrice >= rawPrice) {
-    dpPrice = Math.round(rawPrice * 0.85);
+    dpPrice = priceData?.dpPrice || rawPrice;
   }
 
-  const pv = Number(product.pv || (priceData ? priceData.pv : 0)) || Math.round(rawPrice * 4.5);
+  const pv = Number(product.pv !== undefined ? product.pv : (priceData?.pv || 0)) || Math.round(rawPrice * 4.5);
   const activePrice = isMember ? dpPrice : rawPrice;
-  const hasOffer = mrp > activePrice;
+
+  // Real offer condition matching website
+  const hasOffer = isMember
+    ? (mrp > dpPrice)
+    : (dbDiscount > 0 && mrp > activePrice);
+
+  const discountPercent = dbDiscount > 0
+    ? dbDiscount
+    : (hasOffer ? Math.round(((mrp - activePrice) / mrp) * 100) : 0);
   const savingsAmount = hasOffer ? mrp - activePrice : 0;
-  const discountPercent = hasOffer ? Math.round(((mrp - activePrice) / mrp) * 100) : 0;
 
   // Tax calculations matching website
   const isReducedGst =

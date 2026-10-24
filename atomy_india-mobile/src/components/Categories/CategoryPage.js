@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { CATEGORIES, CATEGORY_CONFIGS } from '../../data/mockData';
+import { onCatalogUpdate, syncCatalogFromBackend } from '../../services/catalogSyncService';
 import LandingProductCard from '../Products/LandingProductCard';
 import HeroBannerCarousel from '../Banner/HeroBannerCarousel';
 import AtomyFooter from '../Navigation/AtomyFooter';
@@ -45,6 +46,15 @@ export default function CategoryPage({
   const [isSortPickerOpen, setIsSortPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [, setCatalogTick] = useState(0);
+
+  // Live database catalog sync
+  useEffect(() => {
+    syncCatalogFromBackend();
+    return onCatalogUpdate(() => {
+      setCatalogTick((t) => t + 1);
+    });
+  }, []);
 
   // Normalize category key
   const categoryKey = useMemo(() => {

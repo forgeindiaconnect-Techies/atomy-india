@@ -13,6 +13,8 @@ export default function BottomNavBar({
   onTabPress,
   favoritesCount = 0,
   recentlyViewedCount = 0,
+  isMember = false,
+  membershipExpiryState = null, // 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED'
 }) {
   const TABS = [
     {
@@ -103,6 +105,27 @@ export default function BottomNavBar({
                     <Text style={styles.badgeText}>
                       {tab.badge > 99 ? '99+' : tab.badge}
                     </Text>
+                  </View>
+                )}
+                {tab.id === 'profile' && isMember && (
+                  <View
+                    style={[
+                      styles.profileMemberBadge,
+                      membershipExpiryState === 'EXPIRING_SOON' && styles.profileMemberBadgeWarning,
+                      membershipExpiryState === 'EXPIRED' && styles.profileMemberBadgeExpired,
+                    ]}
+                  >
+                    <Ionicons
+                      name={
+                        membershipExpiryState === 'EXPIRED'
+                          ? 'alert'
+                          : membershipExpiryState === 'EXPIRING_SOON'
+                          ? 'time'
+                          : 'star'
+                      }
+                      size={8.5}
+                      color="#FFFFFF"
+                    />
                   </View>
                 )}
               </View>
@@ -225,5 +248,31 @@ const styles = StyleSheet.create({
   homeTabLabelActive: {
     color: '#FF6B00', // Vibrant orange accent when active
     fontWeight: '900',
+  },
+  profileMemberBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: '#F59E0B', // Golden amber
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    elevation: 3,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  profileMemberBadgeWarning: {
+    backgroundColor: '#EA580C', // Orange warning
+    shadowColor: '#EA580C',
+  },
+  profileMemberBadgeExpired: {
+    backgroundColor: '#DC2626', // Red alert
+    shadowColor: '#DC2626',
   },
 });

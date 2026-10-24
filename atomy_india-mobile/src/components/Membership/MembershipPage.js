@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
+import MembershipPaymentModal from './MembershipPaymentModal';
+import { getMembershipExpiryInfo } from './MembershipExpiryBanner';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MembershipPage({
   isMember = false,
+  currentUser = null,
+  membershipData = null,
+  membershipExpiryInfo = null,
   onNavigateHome,
   onNavigateBack,
   onMembershipActivated,
@@ -22,6 +27,14 @@ export default function MembershipPage({
 }) {
   const [selectedPlan, setSelectedPlan] = useState('ANNUAL'); // 'MONTHLY' | 'ANNUAL'
   const [activeFaq, setActiveFaq] = useState(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  const expiry = useMemo(() => {
+    return membershipExpiryInfo || getMembershipExpiryInfo(membershipData || (isMember ? { expiryDate: true } : null));
+  }, [membershipExpiryInfo, membershipData, isMember]);
+
+  const isExpiringSoon = expiry?.status === 'EXPIRING_SOON';
+  const isExpired = expiry?.status === 'EXPIRED';
 
   // Official membership pricing matching website
   const settings = {
@@ -30,28 +43,8 @@ export default function MembershipPage({
   };
 
   const handleSubscribe = (plan = selectedPlan) => {
-    const fee = plan === 'ANNUAL' ? settings.annualFee : settings.monthlyFee;
-    Alert.alert(
-      'Activate Distributor Membership',
-      `Proceed to activate your Atomy Distributor Membership with the ${
-        plan === 'ANNUAL' ? 'Annual Plan (₹ 2,499/year)' : 'Monthly Plan (₹ 299/month)'
-      }?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm & Activate',
-          onPress: () => {
-            if (onMembershipActivated) {
-              onMembershipActivated({
-                plan,
-                memberId: 'IN' + Math.floor(10000000 + Math.random() * 90000000),
-                startDate: new Date().toISOString(),
-              });
-            }
-          },
-        },
-      ]
-    );
+    setSelectedPlan(plan);
+    setIsPaymentModalOpen(true);
   };
 
   const handleCancelMembership = () => {
@@ -166,35 +159,160 @@ export default function MembershipPage({
             supplements, and personal care essentials with Point Value (PV) benefits.
           </Text>
 
-          {/* Active Status Box if Member */}
-          {isMember && (
-            <View style={styles.activeStatusBox}>
+          {/* Active / Expiring Soon / Expired Status Box */}
+          {(isMember || isExpired) && (
+            <View
+              style={[
+                styles.activeStatusBox,
+                isExpiringSoon && styles.activeStatusBoxWarning,
+                isExpired && styles.activeStatusBoxExpired,
+              ]}
+            >
               <View style={styles.activeStatusHeader}>
-                <Ionicons name="shield-checkmark" size={28} color="#10B981" />
+                <View
+                  style={[
+                    styles.activeStatusIconCircle,
+                    isExpiringSoon && styles.activeStatusIconCircleWarning,
+                    isExpired && styles.activeStatusIconCircleExpired,
+                  ]}
+                >
+                  <Ionicons
+                    name={
+                      isExpired
+                        ? 'alert-circle'
+                        : isExpiringSoon
+                        ? 'time'
+                        : 'shield-checkmark'
+                    }
+                    size={22}
+                    color={
+                      isExpired
+                        ? '#DC2626'
+                        : isExpiringSoon
+                        ? '#D97706'
+                        : '#10B981'
+                    }
+                  />
+                </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.activeStatusTitle}>Active Distributor Member</Text>
-                  <Text style={styles.activeStatusDesc}>
-                    Wholesale Distributor Pricing (DP) is active on your account.
+                  <Text
+                    style={[
+                      styles.activeStatusTitle,
+                      isExpiringSoon && styles.activeStatusTitleWarning,
+                      isExpired && styles.activeStatusTitleExpired,
+                    ]}
+                  >
+                    {isExpired
+                      ? `Membership Plan Expired (${expiry?.expiryDateStr || ''})`
+                      : isExpiringSoon
+                      ? `Plan Expires in ${expiry?.remainingDays || 2} Day${expiry?.remainingDays === 1 ? '' : 's'} (${expiry?.expiryDateStr || ''})`
+                      : 'Active Distributor Member'}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.activeStatusDesc,
+                      isExpiringSoon && styles.activeStatusDescWarning,
+                      isExpired && styles.activeStatusDescExpired,
+                    ]}
+                  >
+                    {isExpired
+                      ? 'Reactivate your distributor plan now to unlock wholesale DP pricing and earn personal PV points.'
+                      : isExpiringSoon
+                      ? 'Renew today to maintain uninterrupted access to wholesale DP prices and accumulate personal PV points.'
+                      : 'Wholesale Distributor Pricing (DP) is active on your account.'}
                   </Text>
                 </View>
               </View>
 
+              {/* Status Metadata Chips Row */}
+              <View style={styles.statusChipsRow}>
+                <View style={styles.statusChip}>
+                  <Text style={styles.statusChipLabel}>Plan: </Text>
+                  <Text style={styles.statusChipVal}>
+                    {membershipData?.plan === 'ANNUAL' ? 'Annual (₹2,499)' : 'Monthly (₹299)'}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.statusChip,
+                    isExpiringSoon && styles.statusChipWarning,
+                    isExpired && styles.statusChipExpired,
+                  ]}
+                >
+                  <Text style={styles.statusChipLabel}>Status: </Text>
+                  <Text
+                    style={[
+                      styles.statusChipVal,
+                      isExpiringSoon && { color: '#B45309', fontWeight: '800' },
+                      isExpired && { color: '#DC2626', fontWeight: '800' },
+                    ]}
+                  >
+                    {isExpired
+                      ? '● Expired'
+                      : isExpiringSoon
+                      ? `⚠️ ${expiry?.remainingDays || 2}d Left`
+                      : '● Active'}
+                  </Text>
+                </View>
+                {expiry?.expiryDateStr ? (
+                  <View style={styles.statusChip}>
+                    <Text style={styles.statusChipLabel}>Expires: </Text>
+                    <Text style={styles.statusChipVal}>{expiry.expiryDateStr}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Action Buttons: Clean full-width layout without cramped text wrapping */}
               <View style={styles.activeActionsRow}>
+                {isExpiringSoon || isExpired ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.actionPrimaryBtn,
+                      isExpired ? styles.reactivateActionBtn : styles.renewActionBtn,
+                    ]}
+                    onPress={() => handleSubscribe('MONTHLY')}
+                    activeOpacity={0.88}
+                  >
+                    <Ionicons name="refresh" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.actionPrimaryBtnText}>
+                      {isExpired ? 'Reactivate Plan Now (₹299)' : 'Renew Plan Now (₹299)'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+
                 <TouchableOpacity
-                  style={styles.continueMallBtn}
+                  style={[
+                    styles.actionPrimaryBtn,
+                    (isExpiringSoon || isExpired) ? styles.actionSecondaryShoppingBtn : styles.continueMallBtn,
+                  ]}
                   onPress={onNavigateHome}
                   activeOpacity={0.88}
                 >
-                  <Text style={styles.continueMallBtnText}>Start Shopping at DP Price</Text>
+                  <Ionicons
+                    name="cart-outline"
+                    size={16}
+                    color={(isExpiringSoon || isExpired) ? '#0F172A' : '#FFFFFF'}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text
+                    style={[
+                      styles.actionPrimaryBtnText,
+                      (isExpiringSoon || isExpired) && { color: '#0F172A' },
+                    ]}
+                  >
+                    Start Shopping at DP Price
+                  </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.cancelMembershipBtn}
-                  onPress={handleCancelMembership}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.cancelMembershipBtnText}>Cancel Membership</Text>
-                </TouchableOpacity>
+                {isMember && !isExpired && (
+                  <TouchableOpacity
+                    style={styles.cancelMembershipInlineBtn}
+                    onPress={handleCancelMembership}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.cancelMembershipInlineText}>Cancel Membership</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
@@ -438,6 +556,20 @@ export default function MembershipPage({
 
         <View style={{ height: 60 }} />
       </ScrollView>
+
+      {/* Official Membership Payment Sheet Modal */}
+      <MembershipPaymentModal
+        visible={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        currentUser={currentUser}
+        plan={selectedPlan}
+        onSuccess={(member) => {
+          setIsPaymentModalOpen(false);
+          if (onMembershipActivated) {
+            onMembershipActivated(member);
+          }
+        }}
+      />
     </View>
   );
 }
@@ -538,55 +670,152 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     borderWidth: 1,
     borderColor: '#BBF7D0',
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 14,
+    borderRadius: 14,
+    padding: 16,
+    marginTop: 16,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  activeStatusBoxWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
+    shadowColor: '#F59E0B',
+  },
+  activeStatusBoxExpired: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    shadowColor: '#EF4444',
   },
   activeStatusHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     marginBottom: 12,
+  },
+  activeStatusIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  activeStatusIconCircleWarning: {
+    backgroundColor: '#FEF3C7',
+  },
+  activeStatusIconCircleExpired: {
+    backgroundColor: '#FEE2E2',
   },
   activeStatusTitle: {
     fontSize: 15,
     fontWeight: '900',
     color: '#15803D',
+    lineHeight: 20,
+  },
+  activeStatusTitleWarning: {
+    color: '#B45309',
+  },
+  activeStatusTitleExpired: {
+    color: '#DC2626',
   },
   activeStatusDesc: {
     fontSize: 12,
     color: '#166534',
-    marginTop: 2,
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  activeStatusDescWarning: {
+    color: '#92400E',
+  },
+  activeStatusDescExpired: {
+    color: '#991B1B',
+  },
+  statusChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginVertical: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+  },
+  statusChipWarning: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  statusChipExpired: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FECACA',
+  },
+  statusChipLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  statusChipVal: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   activeActionsRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 8,
+    marginTop: 4,
+  },
+  actionPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    borderRadius: 9,
   },
   continueMallBtn: {
-    flex: 1,
     backgroundColor: '#059669',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
   },
-  continueMallBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
-    fontWeight: '800',
+  renewActionBtn: {
+    backgroundColor: '#D97706',
   },
-  cancelMembershipBtn: {
+  reactivateActionBtn: {
+    backgroundColor: '#DC2626',
+  },
+  actionSecondaryShoppingBtn: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
   },
-  cancelMembershipBtnText: {
-    color: '#DC2626',
-    fontSize: 12,
+  actionPrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  cancelMembershipInlineBtn: {
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  cancelMembershipInlineText: {
+    color: '#EF4444',
+    fontSize: 11.5,
     fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 
   // Section titles

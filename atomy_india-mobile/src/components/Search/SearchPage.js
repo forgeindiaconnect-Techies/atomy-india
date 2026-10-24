@@ -387,17 +387,18 @@ export default function SearchPage({
 
               <View style={styles.productGrid}>
                 {recommendedBestsellers.map((prod) => (
-                  <LandingProductCard
-                    key={`rec-${prod.id}`}
-                    product={prod}
-                    cardWidth={CARD_WIDTH}
-                    isMember={isMember}
-                    isFavorite={favorites.includes(prod.id)}
-                    onToggleFavorite={onToggleFavorite}
-                    onPress={onProductClick}
-                    onAddToCart={onAddToCart}
-                    onJoinMemberPress={onJoinMemberPress}
-                  />
+                  <View key={`rec-${prod.id}`} style={styles.gridItem}>
+                    <LandingProductCard
+                      product={prod}
+                      cardWidth="100%"
+                      isMember={isMember}
+                      isFavorite={favorites.includes(prod.id)}
+                      onToggleFavorite={onToggleFavorite}
+                      onPress={onProductClick}
+                      onAddToCart={onAddToCart}
+                      onJoinMemberPress={onJoinMemberPress}
+                    />
+                  </View>
                 ))}
               </View>
             </View>
@@ -442,17 +443,18 @@ export default function SearchPage({
             {searchResults.length > 0 ? (
               <View style={styles.productGrid}>
                 {searchResults.map((product) => (
-                  <LandingProductCard
-                    key={`search-${product.id}`}
-                    product={product}
-                    cardWidth={CARD_WIDTH}
-                    isMember={isMember}
-                    isFavorite={favorites.includes(product.id)}
-                    onToggleFavorite={onToggleFavorite}
-                    onPress={onProductClick}
-                    onAddToCart={onAddToCart}
-                    onJoinMemberPress={onJoinMemberPress}
-                  />
+                  <View key={`search-${product.id}`} style={styles.gridItem}>
+                    <LandingProductCard
+                      product={product}
+                      cardWidth="100%"
+                      isMember={isMember}
+                      isFavorite={favorites.includes(product.id)}
+                      onToggleFavorite={onToggleFavorite}
+                      onPress={onProductClick}
+                      onAddToCart={onAddToCart}
+                      onJoinMemberPress={onJoinMemberPress}
+                    />
+                  </View>
                 ))}
               </View>
             ) : (
@@ -807,8 +809,12 @@ const styles = StyleSheet.create({
   productGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
+    rowGap: 14,
+  },
+  gridItem: {
+    width: '48%',
+    marginBottom: 6,
   },
   emptyResultsWrapper: {
     alignItems: 'center',
