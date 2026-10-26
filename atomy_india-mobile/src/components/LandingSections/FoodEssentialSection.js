@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { FOOD_ESSENTIAL_PRODUCTS } from '../../data/mockData';
+import { getHighResImageUrl } from '../../utils/imageUtils';
 
 function formatInr(val) {
   return Number(val || 0).toLocaleString('en-IN', {
@@ -54,7 +55,7 @@ export default function FoodEssentialSection({
                 <View style={styles.circleImageWrapper}>
                   <View style={styles.circleImageContainer}>
                     <Image
-                      source={{ uri: product.image }}
+                      source={{ uri: getHighResImageUrl(product.image || product.img) }}
                       style={styles.circleImage}
                       resizeMode="cover"
                     />

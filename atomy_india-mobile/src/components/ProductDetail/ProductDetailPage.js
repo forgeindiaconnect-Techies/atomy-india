@@ -9,6 +9,7 @@ import {
   Dimensions,
   Share,
   Modal,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
@@ -20,6 +21,8 @@ import {
   getGenericName,
   getOfficialProductDetails,
 } from '../../data/productDetailsData';
+import { getProductYoutubeVideo } from '../../data/productYoutubeVideos';
+import { getHighResImageUrl } from '../../utils/imageUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -46,16 +49,18 @@ const LOCAL_BROCHURES = {
 function resolveBrochureSource(uri) {
   if (!uri) return null;
   if (typeof uri !== 'string') return uri;
-  const fileName = uri.split('/').pop().split('?')[0];
+  const cleanUri = getHighResImageUrl(uri);
+  const fileName = cleanUri.split('/').pop().split('?')[0];
   if (LOCAL_BROCHURES[fileName]) {
     return LOCAL_BROCHURES[fileName];
   }
-  return { uri };
+  return { uri: cleanUri };
 }
 
 const AutoHeightBrochureImage = React.memo(({ uri, onPressZoom }) => {
   const [aspectRatio, setAspectRatio] = useState(null);
-  const imageSource = useMemo(() => resolveBrochureSource(uri), [uri]);
+  const cleanUri = useMemo(() => getHighResImageUrl(uri), [uri]);
+  const imageSource = useMemo(() => resolveBrochureSource(cleanUri), [cleanUri]);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,7 +81,7 @@ const AutoHeightBrochureImage = React.memo(({ uri, onPressZoom }) => {
             }
           },
           () => {
-            if (isMounted) setAspectRatio(750 / 3730);
+            if (isMounted) setAspectRatio(1.0);
           }
         );
       }
@@ -96,7 +101,7 @@ const AutoHeightBrochureImage = React.memo(({ uri, onPressZoom }) => {
         source={imageSource}
         style={[
           styles.brochureImage,
-          aspectRatio ? { aspectRatio } : { minHeight: 320 },
+          aspectRatio ? { aspectRatio } : { minHeight: 320, aspectRatio: 1.0 },
         ]}
         resizeMode="contain"
       />
@@ -138,6 +143,7 @@ export default function ProductDetailPage({
   const officialData = config?.officialData || getOfficialProductDetails(product.id, product.name);
   const genericName = useMemo(() => getGenericName(product), [product]);
   const priceData = OFFICIAL_DISTRIBUTOR_PRICES[product.id] || null;
+  const videoInfo = useMemo(() => getProductYoutubeVideo(product), [product]);
 
   // Prices and PV
   const rawPrice = Number(product.price) || (priceData ? priceData.dpPrice : 1000);
@@ -194,16 +200,33 @@ export default function ProductDetailPage({
   const reviewsCount = productReviews.length || (Number(product?.reviewsCount) > 0 ? Number(product.reviewsCount) : 0);
   const ratingValue = reviewsCount > 0 ? (product?.rating || '5.0') : '0.0';
 
-  // Multi-angle gallery images
+  // On Atomy India official site, Beauty / Cosmetics / Makeup products have Generic Name FIRST in the table
+  const categoryStr = ((product?.category || '') + ' ' + (product?.name || '')).toLowerCase();
+  const isGenericNameFirst = categoryStr.includes('beauty') ||
+                             categoryStr.includes('skincare') ||
+                             categoryStr.includes('cosmetic') ||
+                             categoryStr.includes('makeup') ||
+                             categoryStr.includes('eyeliner') ||
+                             categoryStr.includes('concealer') ||
+                             categoryStr.includes('air pact') ||
+                             categoryStr.includes('evening care') ||
+                             categoryStr.includes('sunscreen') ||
+                             categoryStr.includes('the fame') ||
+                             categoryStr.includes('absolute');
+
+  // Multi-angle gallery images with crisp high resolution
   const galleryImages = useMemo(() => {
     const list = [];
     if (officialData?.galleryImages && officialData.galleryImages.length > 0) {
       officialData.galleryImages.forEach((img) => {
-        if (!list.includes(img)) list.push(img);
+        const clean = getHighResImageUrl(img);
+        if (clean && !list.includes(clean)) list.push(clean);
       });
     }
-    if (product.image && !list.includes(product.image)) list.unshift(product.image);
-    else if (product.img && !list.includes(product.img)) list.unshift(product.img);
+    const cleanProductImg = getHighResImageUrl(product.image || product.img);
+    if (cleanProductImg && !list.includes(cleanProductImg)) {
+      list.push(cleanProductImg);
+    }
 
     if (list.length === 0) {
       list.push('https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg');
@@ -211,7 +234,7 @@ export default function ProductDetailPage({
     return list;
   }, [product, officialData]);
 
-  const activeMainImg = galleryImages[currentImgIdx] || galleryImages[0];
+  const activeMainImg = getHighResImageUrl(galleryImages[currentImgIdx] || galleryImages[0]);
 
   // Related products list
   const relatedProducts = useMemo(() => {
@@ -592,17 +615,19 @@ export default function ProductDetailPage({
               {isProductInfoOpen && (
                 <View style={styles.specsTableContainer}>
                   <View style={styles.specsTable}>
-                    {/* Generic Name */}
-                    <View style={styles.specTableRow}>
-                      <View style={styles.specTableTh}>
-                        <Text style={styles.specThText}>Generic Name</Text>
+                    {/* Generic Name (Rendered first for Beauty / Cosmetics / Skincare) */}
+                    {isGenericNameFirst && (
+                      <View style={styles.specTableRow}>
+                        <View style={styles.specTableTh}>
+                          <Text style={styles.specThText}>Generic Name</Text>
+                        </View>
+                        <View style={styles.specTableTd}>
+                          <Text style={styles.specTdText}>
+                            {config.specs?.genericName || genericName}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.specTableTd}>
-                        <Text style={styles.specTdText}>
-                          {config.specs?.genericName || genericName}
-                        </Text>
-                      </View>
-                    </View>
+                    )}
 
                     {/* Brand Exported By */}
                     <View style={styles.specTableRow}>
@@ -654,6 +679,34 @@ export default function ProductDetailPage({
                         </Text>
                       </View>
                     </View>
+
+                    {/* Generic Name (Rendered after Country of Origin for Non-Beauty) */}
+                    {!isGenericNameFirst && (
+                      <View style={styles.specTableRow}>
+                        <View style={styles.specTableTh}>
+                          <Text style={styles.specThText}>Generic Name</Text>
+                        </View>
+                        <View style={styles.specTableTd}>
+                          <Text style={styles.specTdText}>
+                            {config.specs?.genericName || genericName}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Directions / How to use */}
+                    {config.specs?.directions && (
+                      <View style={styles.specTableRow}>
+                        <View style={styles.specTableTh}>
+                          <Text style={styles.specThText}>Directions</Text>
+                        </View>
+                        <View style={styles.specTableTd}>
+                          <Text style={styles.specDirectionsItem}>
+                            {config.specs.directions}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
 
                     {/* Net Volume / Quantity */}
                     <View style={styles.specTableRow}>
@@ -726,7 +779,7 @@ export default function ProductDetailPage({
                       </View>
                     )}
 
-                    {/* License Number / FSSAI */}
+                    {/* License Number / FSSAI / CDSCO */}
                     {config.specs?.licenseNumber && (
                       <View style={styles.specTableRow}>
                         <View style={styles.specTableTh}>
@@ -743,8 +796,22 @@ export default function ProductDetailPage({
                       </View>
                     )}
 
+                    {/* Ingredients */}
+                    {config.specs?.ingredients && (
+                      <View style={styles.specTableRow}>
+                        <View style={styles.specTableTh}>
+                          <Text style={styles.specThText}>Ingredients</Text>
+                        </View>
+                        <View style={styles.specTableTd}>
+                          <Text style={styles.specIngredientsText}>
+                            {config.specs.ingredients}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
                     {/* Contact Us */}
-                    <View style={[styles.specTableRow, { borderBottomWidth: 0 }]}>
+                    <View style={[styles.specTableRow, !videoInfo?.youtubeUrl && { borderBottomWidth: 0 }]}>
                       <View style={styles.specTableTh}>
                         <Text style={styles.specThText}>
                           For feedback or complaints, Contact us at
@@ -757,12 +824,55 @@ export default function ProductDetailPage({
                         </Text>
                       </View>
                     </View>
+
+                    {/* Video link */}
+                    {videoInfo?.youtubeUrl && (
+                      <View style={[styles.specTableRow, { borderBottomWidth: 0 }]}>
+                        <View style={[styles.specTableTh, styles.specVideoTh]}>
+                          <Text style={[styles.specThText, styles.specVideoThText]}>Video link :</Text>
+                        </View>
+                        <View style={styles.specTableTd}>
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => Linking.openURL(videoInfo.youtubeUrl)}
+                            style={styles.specVideoLinkBtn}
+                          >
+                            <Ionicons name="logo-youtube" size={18} color="#FF0000" style={{ marginRight: 6 }} />
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.specVideoLinkUrl} numberOfLines={1}>
+                                {videoInfo.youtubeUrl}
+                              </Text>
+                              {videoInfo.videoTitle && (
+                                <Text style={styles.specVideoLinkSub} numberOfLines={1}>
+                                  {videoInfo.videoTitle}
+                                </Text>
+                              )}
+                            </View>
+                            <Ionicons name="open-outline" size={14} color="#0284C7" style={{ marginLeft: 6 }} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
                   </View>
 
                   {/* Expanded Brochure Images */}
-                  {isExpandedBrochure &&
-                    officialData?.brochureImages &&
-                    officialData.brochureImages.length > 0 && (
+                  {isExpandedBrochure && (() => {
+                    const validBrochures = (officialData?.brochureImages || [])
+                      .filter((bUri) => {
+                        const lower = (bUri || '').toLowerCase();
+                        if (lower.endsWith('.mp4') || lower.endsWith('.webm')) return false;
+                        if (/_000[12349]\.gif/i.test(lower)) return false;
+                        if (lower.includes('dc-alogo1-blue.png') || lower.includes('dc-quality-seal.png')) return false;
+                        if (lower.includes('detail_d00217_0001.png')) return false;
+                        if (lower.includes('detail_d01513_0001.jpg')) return false;
+                        if (lower.includes('detail_d04086_0001.jpg')) return false;
+                        return true;
+                      })
+                      .map((bUri) => getHighResImageUrl(bUri));
+
+                    const displayImages = validBrochures.length > 0 ? validBrochures : galleryImages;
+
+                    return displayImages && displayImages.length > 0 ? (
                       <View style={styles.brochureImagesContainer}>
                         <View style={styles.brochureZoomHint}>
                           <Ionicons name="search-outline" size={14} color="#0284C7" />
@@ -770,20 +880,16 @@ export default function ProductDetailPage({
                             Tap any brochure section to view in High-Definition Zoom
                           </Text>
                         </View>
-                        {officialData.brochureImages
-                          .filter((bUri) => {
-                            const lower = (bUri || '').toLowerCase();
-                            return !lower.endsWith('.mp4') && !lower.endsWith('.webm');
-                          })
-                          .map((bUri, bIdx) => (
-                            <AutoHeightBrochureImage
-                              key={`brochure-${bIdx}`}
-                              uri={bUri}
-                              onPressZoom={(src) => setZoomBrochureSource(src)}
-                            />
-                          ))}
+                        {displayImages.map((bUri, bIdx) => (
+                          <AutoHeightBrochureImage
+                            key={`brochure-${bIdx}`}
+                            uri={bUri}
+                            onPressZoom={(src) => setZoomBrochureSource(src)}
+                          />
+                        ))}
                       </View>
-                    )}
+                    ) : null;
+                  })()}
 
                   <TouchableOpacity
                     style={styles.expandDetailsBtn}
@@ -1748,6 +1854,16 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     lineHeight: 16,
   },
+  specDirectionsItem: {
+    fontSize: 11.5,
+    color: '#0F172A',
+    lineHeight: 17,
+  },
+  specIngredientsText: {
+    fontSize: 11,
+    color: '#475569',
+    lineHeight: 16,
+  },
   specCautionItem: {
     fontSize: 11,
     color: '#334155',
@@ -1860,6 +1976,66 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontWeight: '700',
     color: '#00A3E0',
+  },
+  // Video Link in Product Information
+  specVideoTh: {
+    backgroundColor: '#FEF2F2',
+  },
+  specVideoThText: {
+    color: '#991B1B',
+  },
+  specVideoLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  specVideoLinkUrl: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0284C7',
+    textDecorationLine: 'underline',
+  },
+  specVideoLinkSub: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  videoInfoFooterBar: {
+    marginTop: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF0000',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  videoInfoFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  videoInfoFooterLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  videoInfoFooterCenter: {
+    flex: 1,
+  },
+  videoInfoFooterUrl: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0284C7',
+    textDecorationLine: 'underline',
+  },
+  videoInfoFooterTitle: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 1,
   },
 
   // Review Tab

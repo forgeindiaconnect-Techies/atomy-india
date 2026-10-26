@@ -41,6 +41,98 @@ function updateArrayInPlace(arr, updatedProduct) {
   }
 }
 
+const KNOWN_BEAUTY_IDS = new Set([
+  'D00207', 'D00003', 'D00351', 'D00757', 'D01440', 'D04704', 'D01526', 'D00396', 'D00281', 'D00261',
+  'D00301', 'D00271', 'D00321', 'D00756', 'D00466', 'D00266', 'D00267', 'D00331', 'D00311', 'D00198',
+  'D04723', 'D00227', 'D00755', 'D00286', 'D04717', 'D00467', 'D00237', 'D00190', 'D00192', 'D01513',
+  'D01523', 'D01235', 'D00465', 'D00196', 'D00217', 'D00257', 'D00482', 'D00247', 'D01443'
+]);
+
+const KNOWN_PERSONAL_CARE_IDS = new Set([
+  'D00510', 'D00511', 'D00521', 'D00501', 'D90501', 'D00520', 'D00601', 'D00691', 'D00620', 'D00681',
+  'D00631', 'D00629', 'D00487', 'D00488', 'D00692', 'D00541', 'D00693', 'D00400', 'D00661',
+  'D00460', 'D00645', 'D00611'
+]);
+
+const KNOWN_HEALTH_IDS = new Set([
+  'D90178', 'D04086', 'D94085', 'D04006', 'D00174', 'D00160', 'D00111', 'D94084', 'D00170'
+]);
+
+const KNOWN_HEMOHIM_IDS = new Set([
+  'D00101', 'D00102', 'D00104'
+]);
+
+const KNOWN_FOOD_IDS = new Set([
+  'D00975', 'D00183', 'D00180'
+]);
+
+const KNOWN_HOME_IDS = new Set([
+  'D00835', 'D00828', 'D01883'
+]);
+
+const KNOWN_ETC_IDS = new Set([
+  'D00553', 'D92445', 'D07115', 'D07116', 'D92676',
+  'D92658', 'D92677', 'D92688', 'D92680', 'D02479'
+]);
+
+export function resolveTargetCategoryKey(product) {
+  if (!product) return 'others';
+  const id = String(product.id || '').toUpperCase();
+  const name = String(product.name || '').toLowerCase();
+
+  // 1. Authoritative ID lookups
+  if (KNOWN_ETC_IDS.has(id)) return 'others';
+  if (KNOWN_BEAUTY_IDS.has(id)) return 'beauty';
+  if (KNOWN_PERSONAL_CARE_IDS.has(id)) return 'personal_care';
+  if (KNOWN_HEMOHIM_IDS.has(id)) return 'hemohim';
+  if (KNOWN_HEALTH_IDS.has(id)) return 'health';
+  if (KNOWN_FOOD_IDS.has(id)) return 'food';
+  if (KNOWN_HOME_IDS.has(id)) return 'home';
+
+  // 2. Keyword categorization
+  if (name.includes('hemohim')) return 'hemohim';
+  if (
+    name.includes('skincare') || name.includes('snow') || name.includes('fame') ||
+    name.includes('cream') || name.includes('serum') || name.includes('toner') ||
+    name.includes('lotion') || name.includes('eyeliner') || name.includes('mascara') ||
+    name.includes('concealer') || name.includes('air pact') || name.includes('sunscreen') ||
+    name.includes('bb cream') || name.includes('ampoule') || name.includes('mask') ||
+    name.includes('hydra') || name.includes('night mask') || name.includes('sun stick') ||
+    name.includes('brow pencil')
+  ) {
+    return 'beauty';
+  }
+
+  if (
+    name.includes('toothbrush') || name.includes('toothpaste') || name.includes('shampoo') ||
+    name.includes('conditioner') || name.includes('body cleanser') || name.includes('soap') ||
+    name.includes('hair tonic') || name.includes('body lotion') || name.includes('body scrub') ||
+    name.includes('oral care') || name.includes('hair treatment') || name.includes('hair essential oil') ||
+    name.includes('scalpcare') || name.includes('lip glow') || name.includes('lip treatment')
+  ) {
+    return 'personal_care';
+  }
+
+  if (
+    name.includes('spirulina') || name.includes('omega') || name.includes('moringa') ||
+    name.includes('shilajit') || name.includes('milk thistle') || name.includes('nutraceutical') ||
+    name.includes('noni') || name.includes('health combo')
+  ) {
+    return 'health';
+  }
+
+  if (name.includes('coffee') || name.includes('tea') || name.includes('pomegranate') || name.includes('jelly') || name.includes('arabica')) {
+    return 'food';
+  }
+
+  if (name.includes('detergent') || name.includes('scrubber')) {
+    return 'home';
+  }
+
+  const rawCat = (product.categoryId || product.category || '').toLowerCase().replace(/[\s-]+/g, '_');
+  return rawCat || 'others';
+}
+
 /**
  * Merge a single product into all live in-memory catalog structures
  */
@@ -110,27 +202,38 @@ export function mergeProductIntoCatalog(product) {
 
   // 3. Update across CATEGORY_CONFIGS
   if (CATEGORY_CONFIGS && typeof CATEGORY_CONFIGS === 'object') {
-    const targetCatKey = (product.categoryId || 'health').toLowerCase().replace(/[\s-]+/g, '_');
+    const targetCatKey = resolveTargetCategoryKey(product);
+    merged.categoryId = targetCatKey;
+
+    const seenConfigs = new Set();
     Object.entries(CATEGORY_CONFIGS).forEach(([catKey, cfg]) => {
-      if (cfg) {
-        if (catKey === targetCatKey) {
-          if (Array.isArray(cfg.allProducts)) {
-            const idx = cfg.allProducts.findIndex(p => p && String(p.id) === String(product.id));
-            if (idx >= 0) {
-              cfg.allProducts[idx] = { ...cfg.allProducts[idx], ...merged };
-            } else {
-              cfg.allProducts.unshift(merged);
-            }
+      if (!cfg || seenConfigs.has(cfg)) return;
+      seenConfigs.add(cfg);
+
+      const isTarget = catKey === targetCatKey ||
+        ((catKey === 'others' || catKey === 'etc') && (targetCatKey === 'others' || targetCatKey === 'etc'));
+
+      if (isTarget) {
+        if (Array.isArray(cfg.allProducts)) {
+          const idx = cfg.allProducts.findIndex(p => p && String(p.id) === String(product.id));
+          if (idx >= 0) {
+            cfg.allProducts[idx] = { ...cfg.allProducts[idx], ...merged };
+          } else {
+            cfg.allProducts.push(merged);
           }
-          if (Array.isArray(cfg.bestProducts)) {
-            updateArrayInPlace(cfg.bestProducts, merged);
-          }
-        } else {
-          // If category changed, remove from old category
-          if (Array.isArray(cfg.allProducts)) {
-            const idx = cfg.allProducts.findIndex(p => p && String(p.id) === String(product.id));
-            if (idx >= 0) cfg.allProducts.splice(idx, 1);
-          }
+        }
+        if (Array.isArray(cfg.bestProducts)) {
+          updateArrayInPlace(cfg.bestProducts, merged);
+        }
+      } else {
+        // If product does not belong to this category, ensure it is completely removed
+        if (Array.isArray(cfg.allProducts)) {
+          const idx = cfg.allProducts.findIndex(p => p && String(p.id) === String(product.id));
+          if (idx >= 0) cfg.allProducts.splice(idx, 1);
+        }
+        if (Array.isArray(cfg.bestProducts)) {
+          const bIdx = cfg.bestProducts.findIndex(p => p && String(p.id) === String(product.id));
+          if (bIdx >= 0) cfg.bestProducts.splice(bIdx, 1);
         }
       }
     });
@@ -167,8 +270,10 @@ export function removeProductFromCatalog(productId) {
   removeFromArray(ABSOLUTE_SKINCARE_PRODUCTS);
 
   if (CATEGORY_CONFIGS && typeof CATEGORY_CONFIGS === 'object') {
+    const seenConfigs = new Set();
     Object.values(CATEGORY_CONFIGS).forEach(cfg => {
-      if (cfg) {
+      if (cfg && !seenConfigs.has(cfg)) {
+        seenConfigs.add(cfg);
         removeFromArray(cfg.allProducts);
         removeFromArray(cfg.bestProducts);
       }

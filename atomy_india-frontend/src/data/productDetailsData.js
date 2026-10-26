@@ -246,8 +246,36 @@ export function getProductDetailConfig(product) {
   }
   raw.specs.genericName = PRODUCT_GENERIC_NAME_MAP[product.id] || getGenericName(product);
 
-  if (official?.volumeDesc && (!raw.specs.netVolume || raw.specs.netVolume.includes('Standard Factory Sealed'))) {
-    raw.specs.netVolume = official.volumeDesc;
+  if (official) {
+    if (official.volumeDesc && (!raw.specs.netVolume || raw.specs.netVolume.includes('Standard Factory Sealed'))) {
+      raw.specs.netVolume = official.volumeDesc;
+    }
+    if (official.directions && !raw.specs.directions) {
+      raw.specs.directions = official.directions;
+    }
+    if (official.ingredients && !raw.specs.ingredients) {
+      raw.specs.ingredients = official.ingredients;
+    }
+    if (official.precautions && !raw.specs.cautions) {
+      raw.specs.cautions = official.precautions;
+    }
+    if (official.goodsDescHtml) {
+      const html = official.goodsDescHtml;
+      // Extract Ingredients if not yet present
+      if (!raw.specs.ingredients) {
+        const ingMatch = html.match(/<th[^>]*>(?:Ingredients|Key Ingredients|Full Ingredients|Ingredients List)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
+        if (ingMatch) {
+          raw.specs.ingredients = ingMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+      }
+      // Extract Directions / How to use if not yet present
+      if (!raw.specs.directions) {
+        const dirMatch = html.match(/<th[^>]*>(?:How to use|Directions|Instructions|Usage)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>/i);
+        if (dirMatch) {
+          raw.specs.directions = dirMatch[1].replace(/<li[^>]*>/gi, '\n• ').replace(/<[^>]+>/g, ' ').replace(/\n\s+/g, '\n').trim();
+        }
+      }
+    }
   }
   return raw;
 }
@@ -280,6 +308,72 @@ function resolveRawConfig(product) {
           "People on any medication or having any allergies are advised to consult their doctors or their medical practitioners before consuming the product.",
           "Not for parenteral use.",
           "Keep out of reach of children."
+        ],
+        contact: "Atomy Enterprise India Pvt. Ltd.\nAddress: 801-802, 8th floor, Magnum Tower – 2, Sector – 58, Golf Course Ext. Road, Gurgaon 122 011, Haryana, India\nEmail us at: atomy_in@atomypark.com\nTel.No.: +91-124- 695-9000"
+      }
+    };
+  }
+
+  // 1b. ATOMY ABSOLUTE SNOW DARK SPOT CORRECTOR (D01526)
+  if (id === 'D01526' || name.includes('dark spot corrector') || name.includes('snow dark spot')) {
+    return {
+      specs: {
+        brandExportedBy: "Atomy Co., Ltd., 2148-21, Baekjemunhwa-ro, Gongju-si, Chungcheongnam-do, Republic of Korea",
+        manufacturer: "Kolmar Korea Co., Ltd., 12-11, Deokgogae-gil, Jeonui-myeon, Sejong-si, Republic of Korea",
+        importedMarketedBy: "Atomy Enterprise India Pvt. Ltd., L-19, LGF, Kalkaji, New Delhi - 110019, India",
+        countryOfOrigin: "Republic of Korea",
+        genericName: "Skin Tone Brightening Corrector",
+        netVolume: "9.5 mL (0.3 FL. OZ.)",
+        productType: "Cosmetics / Brightening Functional Spot Care",
+        directions: "1. Organize the skin with toner.\n2. After pressing the product, gently apply it to the areas that need spot care and massage with the surgical steel ball applicator.\n* Includes applicator packaging formulation.",
+        ingredients: "Hylocereus undatus fruit extract, Paeonia albiflora root extract, Paeonia albiflora root extract, butylene glycol, dipropylene glycol, niacinamide, water, glycerin, 1,2-hexanediol, glyceryl stearate SE, polyglyceryl-3 methylglucose distearate, cetearyl alcohol, hydrogenated poly(C6-14 olefin), propanediol, cetearyl ethylhexanoate, caprylic/capric triglyceride, dipentaerythrityl hexahydroxystearate/hexastearate/hexarosinate, disodium EDTA, ascorbic acid, tranexamic acid, centella asiatica extract, camellia sinensis leaf extract, sodium stearoyl glutamate, Pichia ferment lysate filtrate, carbomer, allantoine, Spiraea ulmaria extract, capryloyl salicylic acid, hydrogenated lecithin, tocopheryl acetate, citric acid, sodium hyaluronate, squalane, myristoyl/palmitoyl oxostearamide/arachamide MEA, phytosterol, Gaultheria procumbens (wintergreen) leaf extract, Tromethamine, Tropaeolum majus flower/leaf/stem extract, fig fruit extract, Camellia sinensis leaf extract, Solanum lycopersicum (tomato) fruit extract, Rosa canina flower extract, Glycyrrhiza glabra (licorice) root extract, panthenol, zinc PCA, hydroxyethylcellulose, pentylene glycol, betaine, propylene glycol, raffinose, sodium acetylated hyaluronate, hydrolyzed collagen, allantoin, hydrolyzed hyaluronic acid, lecithin, potassium sorbate, sodium benzoate, sodium hyaluronate crosspolymer, 3-O-ethyl ascorbic acid, isododecane, synthetic fluorphlogopite, titanium dioxide, polyglyceryl-10 oleate, ceramide NP, polyacrylate crosspolymer-6, hydrolyzed jojoba esters, olea europaea (olive) leaf extract, xylitylglucoside, diethylhexyl carbonate, polyglyceryl-6 laurate, glucose, ascorbyl glucoside, inositol, lecithin, trehalose, phytosterols, citric acid, hydrogenated lecithin, 1,2-hexanediol, lactic acid, serine, glutamic acid, glycine, lysine, arginine, alanine, threonine, tyrosine, phenylalanine, valine, leucine, isoleucine, proline, histidine, hydrolyzed lupine protein, and tropolone.",
+        storage: "Store in a cool, dry place away from direct sunlight (10°C~30°C). Keep out of reach of children.",
+        expiration: "30 months from date of manufacturing (12 months after opening)",
+        licenseNumber: "CDSCO Cosmetic Registration Certificate No. COS-002148",
+        licenseLabel: "CDSCO Reg. No.",
+        cautions: [
+          "If any redness, swelling, itching, or irritation occurs at the application site due to direct sunlight exposure during or after using the cosmetic, consult a specialist.",
+          "Avoid using the product on areas with wounds.",
+          "Keep out of reach of children.",
+          "Store away from direct sunlight."
+        ],
+        contact: "Atomy Enterprise India Pvt. Ltd.\nAddress: 801-802, 8th floor, Magnum Tower – 2, Sector – 58, Golf Course Ext. Road, Gurgaon 122 011, Haryana, India\nEmail us at: atomy_in@atomypark.com\nTel.No.: +91-124- 695-9000"
+      }
+    };
+  }
+
+  // 1c. HEALTH & WELLNESS SUPPLEMENTS (Spirulina, Shilajit, Moringa, Algae Omega 3, Milk Thistle, Rhodiola, Finezyme, Calcium, Vitamin C)
+  if (cat.includes('health') || name.includes('spirulina') || name.includes('shilajit') || name.includes('moringa') || name.includes('omega') || name.includes('thistle') || name.includes('calcium') || name.includes('finezyme') || name.includes('ginseng') || name.includes('sophora') || name.includes('sawpalmetto') || name.includes('noni') || name.includes('health combo')) {
+    const isSpirulina = name.includes('spirulina');
+    const isOmega = name.includes('omega');
+    const isShilajit = name.includes('shilajit');
+    const isMoringa = name.includes('moringa');
+    const isMilkThistle = name.includes('milk thistle') || name.includes('rhodiola');
+    const isCalcium = name.includes('calcium');
+    const isFinezyme = name.includes('finezyme');
+    const isNoni = name.includes('noni');
+
+    return {
+      specs: {
+        brandExportedBy: "Atomy Co., Ltd., 2148-21, Baekjemunhwa-ro, Gongju-si, Chungcheongnam-do (South Korea)",
+        manufacturer: "KOLMAR BNH CO., LTD., Sejong-si 22-15, Sandan-gil, Jeonui-myeon, 30003 Sejong-si, Republic of Korea",
+        importedMarketedBy: "Atomy Enterprise India Pvt. Ltd., L-19, LGF, Kalkaji, New Delhi - 110019, India",
+        countryOfOrigin: "Republic of Korea",
+        genericName: isSpirulina ? "100% Pure Spirulina Capsules" : isOmega ? "Omega-3 Dietary Health Supplement" : isShilajit ? "Shilajit Wellness Capsules" : isMoringa ? "Moringa Extract Supplement" : isMilkThistle ? "Milk Thistle Liver Health Supplement" : isFinezyme ? "Metabolic Enzyme Health Supplement" : isNoni ? "Fermented Organic Noni Concentrate" : "Nutraceutical / Health Supplement",
+        netVolume: isSpirulina ? "120 Vegetarian Capsules (400mg × 120)" : isOmega ? "180 Softgels (550mg × 180)" : isShilajit ? "60 Vegetarian Capsules" : isMoringa ? "60 Vegetarian Capsules" : isMilkThistle ? "120 Tablets (600mg × 120)" : isFinezyme ? "60 Packets (2g × 60)" : isNoni ? "1,000 mL Glass Bottle" : "Standard Factory Sealed Pack",
+        productType: "Nutraceutical / Dietary Health Supplement",
+        directions: isSpirulina ? "Take 1-2 capsules daily with plenty of water." : isOmega ? "Take 2 softgels daily after meals with water." : isShilajit ? "Take 1 capsule daily with lukewarm water or milk." : isMoringa ? "Take 1-2 capsules daily after meals." : isMilkThistle ? "Take 1 tablet daily with water." : isCalcium ? "Chew or take 1-2 tablets daily after meals." : isFinezyme ? "Take 1 packet daily directly or mixed with water." : "Take 1 unit daily with water as recommended by your health practitioner.",
+        storage: "Store in a cool, dry place away from direct sunlight, moisture, and high temperature (below 25°C). Keep bottle tightly closed.",
+        expiration: "24 months from date of manufacturing",
+        licenseNumber: "10019011006760",
+        licenseLabel: "FSSAI Lic. No.",
+        cautions: [
+          "Not to exceed the stated recommended daily usage.",
+          "Health supplement is not to be used as a substitute for a varied diet.",
+          "Pregnant or lactating women, children, and people on regular medication should consult a doctor before use.",
+          "This product is not intended to diagnose, treat, cure, or prevent any disease.",
+          "Keep out of reach of children.",
+          "Not for parenteral use."
         ],
         contact: "Atomy Enterprise India Pvt. Ltd.\nAddress: 801-802, 8th floor, Magnum Tower – 2, Sector – 58, Golf Course Ext. Road, Gurgaon 122 011, Haryana, India\nEmail us at: atomy_in@atomypark.com\nTel.No.: +91-124- 695-9000"
       }

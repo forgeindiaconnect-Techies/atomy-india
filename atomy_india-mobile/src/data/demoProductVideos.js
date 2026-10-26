@@ -1,0 +1,430 @@
+/**
+ * DEMO PRODUCT VIDEOS (Atomy India Official Channel - @globalatomy_in)
+ * 
+ * Filter Criteria Applied:
+ * 1. Category: Strictly "How to Use" | "Product Launch" | "Product Presentation"
+ * 2. Language: English version only (Hindi / Regional languages excluded)
+ * 3. Channel: Official Atomy India (https://www.youtube.com/@globalatomy_in)
+ * 
+ * Note: Stored in this separate demo file as requested.
+ * NOT linked to production catalog/mockData until reviewed and approved.
+ */
+
+export const demoProductVideos = [
+  {
+    productId: "D00101",
+    productName: "HemoHIM",
+    category: "Product Launch",
+    language: "English",
+    videoTitle: "HemoHim Launch",
+    youtubeId: "JM4QHnysd_U",
+    videoUrl: "https://www.youtube.com/watch?v=JM4QHnysd_U",
+    alternateVideo: {
+      category: "Product Presentation",
+      videoTitle: "PRODUCT PRESENTATION - (Atomy HemoHIM, Atomy Absolute Set, Atomy Milk Thistle) | Nasharah",
+      youtubeId: "tMJq2e9d4Pg",
+      videoUrl: "https://www.youtube.com/watch?v=tMJq2e9d4Pg"
+    }
+  },
+  {
+    productId: "D00207",
+    productName: "Absolute Skincare Set",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "How to Use Absolute Skincare System? Atomy India Official",
+    youtubeId: "XhMdMrTI76Q",
+    videoUrl: "https://www.youtube.com/watch?v=XhMdMrTI76Q",
+    alternateVideo: {
+      category: "Product Presentation",
+      videoTitle: "Atomy Absolute Skincare Set",
+      youtubeId: "5vTXvip9r34",
+      videoUrl: "https://www.youtube.com/watch?v=5vTXvip9r34"
+    }
+  },
+  {
+    productId: "D00003",
+    productName: "The Fame Skincare Set",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "How to Apply The Fame Set (English)",
+    youtubeId: "xcmM1sQt798",
+    videoUrl: "https://www.youtube.com/watch?v=xcmM1sQt798",
+    alternateVideo: {
+      category: "Product Presentation",
+      videoTitle: "Atomy Skin Care System The Fame (English), Atomy India Official",
+      youtubeId: "pLjzpN9N0Ec",
+      videoUrl: "https://www.youtube.com/watch?v=pLjzpN9N0Ec"
+    }
+  },
+  {
+    productId: "D00351",
+    productName: "Evening Care Set",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Evening Care 4 Set",
+    youtubeId: "mpYzFwSaYSY",
+    videoUrl: "https://www.youtube.com/watch?v=mpYzFwSaYSY",
+    alternateVideo: {
+      category: "How to Use",
+      videoTitle: "Atomy Evening Care set",
+      youtubeId: "JIVwldoVJZ0",
+      videoUrl: "https://www.youtube.com/watch?v=JIVwldoVJZ0"
+    }
+  },
+  {
+    productId: "D00757",
+    productName: "Hydra Brightening Care Set",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Hydra Brightening Care Set",
+    youtubeId: "55V_swvgFhI",
+    videoUrl: "https://www.youtube.com/watch?v=55V_swvgFhI",
+    alternateVideo: {
+      category: "How to Use",
+      videoTitle: "Atomy Product Training : Hydra Brightening Care Set",
+      youtubeId: "NJL75fjYYME",
+      videoUrl: "https://www.youtube.com/watch?v=NJL75fjYYME"
+    }
+  },
+  {
+    productId: "D01440",
+    productName: "Brush Pen Eyeliner",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Not individually uploaded on @globalatomy_in (Covered under general K-Beauty / Adelica cosmetics)",
+    youtubeId: null,
+    videoUrl: null
+  },
+  {
+    productId: "D04704",
+    productName: "Adelica Concealer",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Not individually uploaded on @globalatomy_in (Covered under general K-Beauty / Adelica cosmetics)",
+    youtubeId: null,
+    videoUrl: null
+  },
+  {
+    productId: "D01526",
+    productName: "Atomy Absolute Snow Dark Spot Corrector",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Absolute Snow Dark Spot Corrector ✨ Science Meets Skincare",
+    youtubeId: "O_CAsakwtZA",
+    videoUrl: "https://www.youtube.com/watch?v=O_CAsakwtZA"
+  },
+  {
+    productId: "D00396",
+    productName: "Atomy Air Pact",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Not individually uploaded on @globalatomy_in (Covered under general K-Beauty / Adelica cosmetics)",
+    youtubeId: null,
+    videoUrl: null
+  },
+  {
+    productId: "D00170",
+    productName: "Atomy Noni Drink",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "From Noni Farm to Bottle 🌿 | How Atomy Noni Drink Is Made",
+    youtubeId: "Tw5keqeg4Tc",
+    videoUrl: "https://www.youtube.com/watch?v=Tw5keqeg4Tc"
+  },
+  {
+    productId: "D00281",
+    productName: "Sunscreen SPF50+ PA+++",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Sunscreen SPF50+ PA+++ [ White/Beige]",
+    youtubeId: "c2unCztGxA0",
+    videoUrl: "https://www.youtube.com/watch?v=c2unCztGxA0",
+    alternateVideo: {
+      category: "Product Presentation",
+      videoTitle: "Atomy Sunscreen SPF 50+ PA+++ | Sun Ready, Skin Ready!",
+      youtubeId: "B_St8cGNMcU",
+      videoUrl: "https://www.youtube.com/watch?v=B_St8cGNMcU"
+    }
+  },
+  {
+    productId: "D00261",
+    productName: "BB Cream SPF30 PA++",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Product Training : The Fame Skin Care set & BB Cream",
+    youtubeId: "K_Kc9pTN7Yc",
+    videoUrl: "https://www.youtube.com/watch?v=K_Kc9pTN7Yc"
+  },
+  {
+    productId: "D00510",
+    productName: "Toothbrush",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Toothbrush (English), Atomy India Official",
+    youtubeId: "mK6ZH6DHnwg",
+    videoUrl: "https://www.youtube.com/watch?v=mK6ZH6DHnwg",
+    alternateVideo: {
+      category: "Product Presentation",
+      videoTitle: "Atomy Toothbrush",
+      youtubeId: "fiNBkon4KhI",
+      videoUrl: "https://www.youtube.com/watch?v=fiNBkon4KhI"
+    }
+  },
+  {
+    productId: "D00693",
+    productName: "Scalpcare 2 Set",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Scalpcare 2 Set",
+    youtubeId: "zNkssuXSHj0",
+    videoUrl: "https://www.youtube.com/watch?v=zNkssuXSHj0"
+  },
+  {
+    productId: "D00691",
+    productName: "Scalpcare Hair Shampoo",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy India Scalp care shampoo",
+    youtubeId: "g4pihCJTsw4",
+    videoUrl: "https://www.youtube.com/watch?v=g4pihCJTsw4"
+  },
+  {
+    productId: "D00681",
+    productName: "Hair Essential Oil",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Not individually uploaded on @globalatomy_in (Covered under general Hair Care series)",
+    youtubeId: null,
+    videoUrl: null
+  },
+  {
+    productId: "D00661",
+    productName: "Herbal Hair Conditioner",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Herbal Hair Shampoo, Atomy Herbal Hair Conditioner, Atomy Herbal Body Cleanser",
+    youtubeId: "deCRWJCqg2U",
+    videoUrl: "https://www.youtube.com/watch?v=deCRWJCqg2U"
+  },
+  {
+    productId: "D00631",
+    productName: "Herbal Body Cleanser",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Herbal Hair Shampoo, Atomy Herbal Hair Conditioner, Atomy Herbal Body Cleanser",
+    youtubeId: "deCRWJCqg2U",
+    videoUrl: "https://www.youtube.com/watch?v=deCRWJCqg2U"
+  },
+  {
+    productId: "D00620",
+    productName: "Saengmodan Hair Tonic",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "Product Training : Scalpcare Hair Shampoo, Saengmodan Hair Tonic & Herbal Hair Treatment",
+    youtubeId: "C61P2OqqV1s",
+    videoUrl: "https://www.youtube.com/watch?v=C61P2OqqV1s"
+  },
+  {
+    productId: "D00611",
+    productName: "Herbal Hair Treatment",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "Product Training : Scalpcare Hair Shampoo, Saengmodan Hair Tonic & Herbal Hair Treatment",
+    youtubeId: "C61P2OqqV1s",
+    videoUrl: "https://www.youtube.com/watch?v=C61P2OqqV1s"
+  },
+  {
+    productId: "D00601",
+    productName: "Herbal Hair Shampoo",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Herbal Hair Shampoo, Atomy Herbal Hair Conditioner, Atomy Herbal Body Cleanser",
+    youtubeId: "deCRWJCqg2U",
+    videoUrl: "https://www.youtube.com/watch?v=deCRWJCqg2U"
+  },
+  {
+    productId: "D00975",
+    productName: "Atomy Cafe Arabica Black",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Coffee Presentation by Atomy India",
+    youtubeId: "-0Z2knl3TD4",
+    videoUrl: "https://www.youtube.com/watch?v=-0Z2knl3TD4"
+  },
+  {
+    productId: "D00183",
+    productName: "Atomy Pomegranate Mixed Fruit Jelly",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Product Training : Pomegranate Mixed Fruit Jelly",
+    youtubeId: "Zdp6_BlxUrs",
+    videoUrl: "https://www.youtube.com/watch?v=Zdp6_BlxUrs"
+  },
+  {
+    productId: "D00180",
+    productName: "Atomy Pu'er Tea",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Product Presentation -Atomy Puer Tea (English) | Product Manager Nasharah",
+    youtubeId: "HUO3L8_P-e4",
+    videoUrl: "https://www.youtube.com/watch?v=HUO3L8_P-e4",
+    alternateVideo: {
+      category: "Product Presentation",
+      videoTitle: "Product Information by MD Dr. Abraham Lee - Atomy Pu'er Tea",
+      youtubeId: "ZHqAnQFlQag",
+      videoUrl: "https://www.youtube.com/watch?v=ZHqAnQFlQag"
+    }
+  },
+  {
+    productId: "D00111",
+    productName: "Alaska E-Omega 3",
+    category: "Product Launch",
+    language: "English",
+    videoTitle: "NEW PRODUCT LAUNCH - ATOMY SHILAJIT & ATOMY ALASKA E-OMEGA3 | MR. RAHUL KOKADWAR, COO, ATOMY INDIA",
+    youtubeId: "rkg6wbEja8M",
+    videoUrl: "https://www.youtube.com/watch?v=rkg6wbEja8M"
+  },
+  {
+    productId: "D00160",
+    productName: "Atomy Nutraceutical Mix",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Product Information by MD Dr. Abraham Lee - Atomy Nutraceutical Mix",
+    youtubeId: "iuxS_FNXgQ0",
+    videoUrl: "https://www.youtube.com/watch?v=iuxS_FNXgQ0"
+  },
+  {
+    productId: "D00174",
+    productName: "Atomy Milk Thistle",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "ATOMY INDIA PRODUCT PRESENTATION - ATOMY MILK THISTLE | PRODUCT MANAGER NASHARAH",
+    youtubeId: "5jRUw1zBz0g",
+    videoUrl: "https://www.youtube.com/watch?v=5jRUw1zBz0g"
+  },
+  {
+    productId: "D94085",
+    productName: "Atomy Shilajit Capsules",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "PRODUCT PRESENTATION - ATOMY SHILAJIT (ENGLISH) | PRODUCT MANAGER NASHARAH",
+    youtubeId: "URKfGLgc69I",
+    videoUrl: "https://www.youtube.com/watch?v=URKfGLgc69I",
+    alternateVideo: {
+      category: "Product Launch",
+      videoTitle: "NEW PRODUCT LAUNCH - ATOMY SHILAJIT & ATOMY ALASKA E-OMEGA3 | MR. RAHUL KOKADWAR, COO, ATOMY INDIA",
+      youtubeId: "rkg6wbEja8M",
+      videoUrl: "https://www.youtube.com/watch?v=rkg6wbEja8M"
+    }
+  },
+  {
+    productId: "D90178",
+    productName: "ATOMY 100% Pure Spirulina (India)",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Product Presentation - Atomy 100% Pure* Spirulina Powder | Product Manager Nasharah | Atomy India",
+    youtubeId: "1tPt4irGxLQ",
+    videoUrl: "https://www.youtube.com/watch?v=1tPt4irGxLQ"
+  },
+  {
+    productId: "D04086",
+    productName: "Atomy Moringa",
+    category: "Product Launch",
+    language: "English",
+    videoTitle: "New Product Launch - ATOMY MORINGA CAPSULES",
+    youtubeId: "D1gP637XQ24",
+    videoUrl: "https://www.youtube.com/watch?v=D1gP637XQ24",
+    alternateVideo: {
+      category: "Product Presentation",
+      videoTitle: "New Product Presentation - Atomy Moringa | Product Manager Nasharah Siddiquee | March 2025",
+      youtubeId: "DNp_DWmqdeU",
+      videoUrl: "https://www.youtube.com/watch?v=DNp_DWmqdeU"
+    }
+  },
+  {
+    productId: "D94084",
+    productName: "Atomy 100% Pure Spirulina Powder",
+    category: "Product Launch",
+    language: "English",
+    videoTitle: "New Product Launch - Atomy 100% Pure* Spirulina Powder | Dr. Abraham Lee (Managing Director)",
+    youtubeId: "H9ABtD4eOp8",
+    videoUrl: "https://www.youtube.com/watch?v=H9ABtD4eOp8"
+  },
+  {
+    productId: "D00217",
+    productName: "Absolute Toner",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "How to Use Absolute Skincare System? Atomy India Official",
+    youtubeId: "XhMdMrTI76Q",
+    videoUrl: "https://www.youtube.com/watch?v=XhMdMrTI76Q"
+  },
+  {
+    productId: "D00227",
+    productName: "Absolute Ampoule",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Atomy Absolute Ampoule",
+    youtubeId: "B8svMCM0m0g",
+    videoUrl: "https://www.youtube.com/watch?v=B8svMCM0m0g",
+    alternateVideo: {
+      category: "How to Use",
+      videoTitle: "How to Use Absolute Skincare System? Atomy India Official",
+      youtubeId: "XhMdMrTI76Q",
+      videoUrl: "https://www.youtube.com/watch?v=XhMdMrTI76Q"
+    }
+  },
+  {
+    productId: "D00237",
+    productName: "Absolute Serum",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "How to Use Absolute Skincare System? Atomy India Official",
+    youtubeId: "XhMdMrTI76Q",
+    videoUrl: "https://www.youtube.com/watch?v=XhMdMrTI76Q"
+  },
+  {
+    productId: "D00247",
+    productName: "Absolute Lotion",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "How to Use Absolute Skincare System? Atomy India Official",
+    youtubeId: "XhMdMrTI76Q",
+    videoUrl: "https://www.youtube.com/watch?v=XhMdMrTI76Q"
+  },
+  {
+    productId: "D00257",
+    productName: "Absolute Eye-Complex",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "How to Use Absolute Skincare System? Atomy India Official",
+    youtubeId: "XhMdMrTI76Q",
+    videoUrl: "https://www.youtube.com/watch?v=XhMdMrTI76Q"
+  },
+  {
+    productId: "D00267",
+    productName: "Absolute Nutrition Cream",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "How to Use Absolute Skincare System? Atomy India Official",
+    youtubeId: "XhMdMrTI76Q",
+    videoUrl: "https://www.youtube.com/watch?v=XhMdMrTI76Q"
+  },
+  {
+    productId: "D01513",
+    productName: "Atomy Absolute 24K Gold Night Mask",
+    category: "Product Presentation",
+    language: "English",
+    videoTitle: "Product Presentation - Atomy Absolute 24K Gold Night Mask (English) | Product Manager Nasharah",
+    youtubeId: "l1LFkdJFjLw",
+    videoUrl: "https://www.youtube.com/watch?v=l1LFkdJFjLw",
+    alternateVideo: {
+      category: "How to Use",
+      videoTitle: "A Golden Touch Before Bed ✨ | Atomy Absolute 24K Gold Night Mask #Shorts",
+      youtubeId: "D_Rr9ag2ZPk",
+      videoUrl: "https://www.youtube.com/watch?v=D_Rr9ag2ZPk"
+    }
+  }
+];
+
+export default demoProductVideos;

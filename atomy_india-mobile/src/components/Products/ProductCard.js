@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
+import { getHighResImageUrl } from '../../utils/imageUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 36) / 2; // 2 products per row with 12px margin
@@ -74,8 +75,8 @@ export default function ProductCard({
     : (hasOffer ? Math.round(((mrp - activePrice) / mrp) * 100) : 0);
 
   const imageSource = imgError || (!product.img && !product.image)
-    ? require('../../../assets/team_phoenix_logo.jpeg')
-    : { uri: product.image || product.img };
+    ? { uri: 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg' }
+    : { uri: getHighResImageUrl(product.image || product.img) };
 
   return (
     <TouchableOpacity

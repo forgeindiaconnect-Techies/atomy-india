@@ -137,7 +137,7 @@ export const CATEGORIES = [
   },
   {
     id: "others",
-    name: "OTHERS",
+    name: "ETC",
     icon: "https://image.atomy.com/IN/banner/90/801/251000000020801144016.svg",
     link: "#"
   },
@@ -148,6 +148,7 @@ export const CATEGORIES = [
     link: "#"
   }
 ];
+
 
 export const BEST_PRODUCTS = [
   {
@@ -306,8 +307,7 @@ export const BEST_PRODUCTS = [
     price: 1020.0,
     pv: 7000,
     formattedPrice: "₹ 1,020.00",
-    discountPercent: "15%",pv: 7000,
-    
+    discountPercent: "15%",
     image: "https://image.atomy.com/IN/goods/D01526/org/447/251119000048447.jpg?w=480&h=480",
     gstReduced: false,
     likes: 89,
@@ -1440,7 +1440,7 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 11,699.00",
         "image": "https://image.atomy.com/IN/goods/D07116/org/183/260330000051183.jpeg?w=480&h=480",
         "likes": "26 Likes",
-        "subTopic": "Supplements",
+        "subTopic": "Special Set",
         "category": "HEALTH",
         "tags": [
           "#HEALTH"
@@ -1623,7 +1623,7 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 11,699.00",
         "image": "https://image.atomy.com/IN/goods/D07116/org/183/260330000051183.jpeg?w=480&h=480",
         "likes": "26 Likes",
-        "subTopic": "Supplements",
+        "subTopic": "Special Set",
         "category": "HEALTH",
         "tags": [
           "#HEALTH"
@@ -2397,24 +2397,6 @@ export const CATEGORY_CONFIGS = {
           "#BEAUTY"
         ],
         "gstReduced": false,
-        "isVeg": false,
-        "isNonVeg": false
-      },
-      {
-        "id": "D07116",
-        "rank": 32,
-        "name": "Atomy 360 Degree Health Combo*",
-        "price": 11699,
-      "pv": 70000,
-        "formattedPrice": "₹ 11,699.00",
-        "image": "https://image.atomy.com/IN/goods/D07116/org/183/260330000051183.jpeg?w=480&h=480",
-        "likes": "26 Likes",
-        "subTopic": "Skincare",
-        "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
-        "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3404,7 +3386,7 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 1,500.00",
         "image": "https://image.atomy.com/IN/goods/D00553/D00553_00.jpg?w=480&h=480",
         "likes": "106 Likes",
-        "subTopic": "Hair & Body",
+        "subTopic": "Special Set",
         "category": "PERSONAL CARE",
         "tags": [
           "#PERSONAL CARE"
@@ -3508,7 +3490,7 @@ export const CATEGORY_CONFIGS = {
   "others": {
     "id": "others",
     "dispCtgNo": "2510004180",
-    "name": "OTHERS",
+    "name": "ETC",
     "banners": [
       {
         "title": "Atomy Official Merchandise & Tools",
@@ -3519,8 +3501,8 @@ export const CATEGORY_CONFIGS = {
     ],
     "subcategories": [
       "All",
-      "Merchandise",
-      "Business Tools"
+      "Special Set",
+      "Supplementary Goods"
     ],
     "bestProducts": [
       {
@@ -3532,10 +3514,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 1,500.00",
         "image": "https://image.atomy.com/IN/goods/D00553/D00553_00.jpg?w=480&h=480",
         "likes": "106 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3550,10 +3532,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 28.00",
         "image": "https://image.atomy.com/IN/goods/D92445/org/969/260424000051969.jpeg?w=480&h=480",
         "likes": "23 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3568,10 +3550,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 3,200.00",
         "image": "https://image.atomy.com/IN/goods/D07115/org/184/260330000051184.jpeg?w=480&h=480",
         "likes": "66 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3586,10 +3568,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 11,699.00",
         "image": "https://image.atomy.com/IN/goods/D07116/org/183/260330000051183.jpeg?w=480&h=480",
         "likes": "26 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": true,
         "isVeg": false,
@@ -3604,10 +3586,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92676/org/878/260422000051878.jpeg?w=480&h=480",
         "likes": "15 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3622,10 +3604,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 150.00",
         "image": "https://image.atomy.com/IN/goods/D92658/org/905/260422000051905.jpeg?w=480&h=480",
         "likes": "14 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3640,10 +3622,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92677/org/901/260422000051901.jpeg?w=480&h=480",
         "likes": "10 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3658,10 +3640,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 350.00",
         "image": "https://image.atomy.com/IN/goods/D92688/org/688/thumb_d92688_0001.jpg?w=480&h=480",
         "likes": "13 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3676,10 +3658,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92680/org/899/260422000051899.jpeg?w=480&h=480",
         "likes": "10 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3694,10 +3676,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 850.00",
         "image": "https://image.atomy.com/IN/goods/D02479/org/971/260424000051971.jpeg?w=480&h=480",
         "likes": "5 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3714,10 +3696,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 11,699.00",
         "image": "https://image.atomy.com/IN/goods/D07116/org/183/260330000051183.jpeg?w=610&h=610",
         "likes": "26 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": true,
         "isVeg": false,
@@ -3732,10 +3714,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 3,200.00",
         "image": "https://image.atomy.com/IN/goods/D07115/org/184/260330000051184.jpeg?w=610&h=610",
         "likes": "66 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3750,10 +3732,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 850.00",
         "image": "https://image.atomy.com/IN/goods/D02479/org/971/260424000051971.jpeg?w=610&h=610",
         "likes": "5 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3768,10 +3750,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 350.00",
         "image": "https://image.atomy.com/IN/goods/D92688/org/688/thumb_d92688_0001.jpg?w=610&h=610",
         "likes": "13 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3786,10 +3768,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92680/org/899/260422000051899.jpeg?w=610&h=610",
         "likes": "10 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3804,10 +3786,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92676/org/878/260422000051878.jpeg?w=610&h=610",
         "likes": "15 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3822,10 +3804,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92677/org/901/260422000051901.jpeg?w=610&h=610",
         "likes": "10 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3840,10 +3822,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 150.00",
         "image": "https://image.atomy.com/IN/goods/D92658/org/905/260422000051905.jpeg?w=610&h=610",
         "likes": "14 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3858,10 +3840,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 28.00",
         "image": "https://image.atomy.com/IN/goods/D92445/org/969/260424000051969.jpeg?w=610&h=610",
         "likes": "23 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3876,10 +3858,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 1,500.00",
         "image": "https://image.atomy.com/IN/goods/D00553/D00553_00.jpg?w=610&h=610",
         "likes": "106 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3896,10 +3878,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 1,500.00",
         "image": "https://image.atomy.com/IN/goods/D00553/D00553_00.jpg?w=480&h=480",
         "likes": "106 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3914,10 +3896,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 28.00",
         "image": "https://image.atomy.com/IN/goods/D92445/org/969/260424000051969.jpeg?w=480&h=480",
         "likes": "23 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3932,10 +3914,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 3,200.00",
         "image": "https://image.atomy.com/IN/goods/D07115/org/184/260330000051184.jpeg?w=480&h=480",
         "likes": "66 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3950,10 +3932,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 11,699.00",
         "image": "https://image.atomy.com/IN/goods/D07116/org/183/260330000051183.jpeg?w=480&h=480",
         "likes": "26 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": true,
         "isVeg": false,
@@ -3968,10 +3950,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92676/org/878/260422000051878.jpeg?w=480&h=480",
         "likes": "15 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -3986,10 +3968,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 150.00",
         "image": "https://image.atomy.com/IN/goods/D92658/org/905/260422000051905.jpeg?w=480&h=480",
         "likes": "14 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -4004,10 +3986,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92677/org/901/260422000051901.jpeg?w=480&h=480",
         "likes": "10 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -4022,10 +4004,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 350.00",
         "image": "https://image.atomy.com/IN/goods/D92688/org/688/thumb_d92688_0001.jpg?w=480&h=480",
         "likes": "13 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -4040,10 +4022,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92680/org/899/260422000051899.jpeg?w=480&h=480",
         "likes": "10 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -4058,10 +4040,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 850.00",
         "image": "https://image.atomy.com/IN/goods/D02479/org/971/260424000051971.jpeg?w=480&h=480",
         "likes": "5 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -4503,7 +4485,7 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 11,699.00",
         "image": "https://image.atomy.com/IN/goods/D07116/org/183/260330000051183.jpeg?w=480&h=480",
         "likes": "26 Likes",
-        "subTopic": "Supplements",
+        "subTopic": "Special Set",
         "category": "HEALTH",
         "tags": [
           "#HEALTH"
@@ -5583,7 +5565,7 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 1,500.00",
         "image": "https://image.atomy.com/IN/goods/D00553/D00553_00.jpg?w=480&h=480",
         "likes": "106 Likes",
-        "subTopic": "Hair & Body",
+        "subTopic": "Special Set",
         "category": "PERSONAL CARE",
         "tags": [
           "#PERSONAL CARE"
@@ -5745,10 +5727,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 28.00",
         "image": "https://image.atomy.com/IN/goods/D92445/org/969/260424000051969.jpeg?w=480&h=480",
         "likes": "23 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -5763,10 +5745,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 3,200.00",
         "image": "https://image.atomy.com/IN/goods/D07115/org/184/260330000051184.jpeg?w=480&h=480",
         "likes": "66 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Special Set",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -5781,10 +5763,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92676/org/878/260422000051878.jpeg?w=480&h=480",
         "likes": "15 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -5799,10 +5781,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 150.00",
         "image": "https://image.atomy.com/IN/goods/D92658/org/905/260422000051905.jpeg?w=480&h=480",
         "likes": "14 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -5817,10 +5799,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92677/org/901/260422000051901.jpeg?w=480&h=480",
         "likes": "10 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -5835,10 +5817,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 350.00",
         "image": "https://image.atomy.com/IN/goods/D92688/org/688/thumb_d92688_0001.jpg?w=480&h=480",
         "likes": "13 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -5853,10 +5835,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 378.00",
         "image": "https://image.atomy.com/IN/goods/D92680/org/899/260422000051899.jpeg?w=480&h=480",
         "likes": "10 Likes",
-        "subTopic": "Merchandise",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -5871,10 +5853,10 @@ export const CATEGORY_CONFIGS = {
         "formattedPrice": "₹ 850.00",
         "image": "https://image.atomy.com/IN/goods/D02479/org/971/260424000051971.jpeg?w=480&h=480",
         "likes": "5 Likes",
-        "subTopic": "Business Tools",
-        "category": "OTHERS",
+        "subTopic": "Supplementary Goods",
+        "category": "ETC",
         "tags": [
-          "#OTHERS"
+          "#ETC"
         ],
         "gstReduced": false,
         "isVeg": false,
@@ -5883,6 +5865,8 @@ export const CATEGORY_CONFIGS = {
     ]
   }
 };
+
+CATEGORY_CONFIGS.etc = CATEGORY_CONFIGS.others;
 
 export const OFFICIAL_RECOMMENDED_PRODUCTS_BY_CATEGORY = {
   "beauty": [

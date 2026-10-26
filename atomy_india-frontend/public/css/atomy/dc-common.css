@@ -1,0 +1,808 @@
+/* CHART : gray table with dotted border */
+.dc-chart-1 {
+  border: 1px dashed #bbb;
+  padding: 1em;
+  background: #f8f8f8;
+}
+.dc-chart-1 .chart-table {
+  width: 100%;
+  line-height: 1.2;
+  border-collapse: collapse;
+}
+.dc-chart-1 .chart-col1 {
+  width: 20%;
+}
+.dc-chart-1 .chart-col2 {
+  width: auto;
+}
+.dc-chart-1 .chart-tr {
+  border-bottom: 1px solid #bbb;
+}
+.dc-chart-1 .chart-tr:last-child {
+  border-bottom: 0;
+}
+.dc-chart-1 .chart-th {
+  padding: 0.3em;
+  font-weight: 500;
+  text-align: left;
+  letter-spacing: -0.03em;
+  color: var(--dc-chart-col, #00b5ef);
+}
+.dc-chart-1 .chart-td {
+  padding: 0.3em;
+  border-left: 1px solid #bbb;
+  letter-spacing: -0.03em;
+}
+
+/* CHART : nutrition table in orange */
+.dc-chart-2 .chart-table {
+  width: 100%;
+  line-height: 1.2;
+  text-align: center;
+  border-collapse: collapse;
+  background: #fff;
+}
+.dc-chart-2 .chart-caption {
+  padding: 0.7em 0;
+  border-radius: 4px 4px 0 0;
+  color: #fff;
+  background: #e26852;
+}
+.dc-chart-2 .chart-col1 {
+  width: auto;
+}
+.dc-chart-2 .chart-col2 {
+  width: 32%;
+}
+.dc-chart-2 .chart-col3 {
+  width: 32%;
+}
+.dc-chart-2 .chart-tr {
+  border-bottom: 1px solid #bbb;
+}
+.dc-chart-2 .chart-td {
+  padding: 0.5em 1.5em;
+  border-left: 1px solid #bbb;
+}
+.dc-chart-2 .chart-th {
+  padding: 0.5em 1.5em;
+  color: #A36358;
+  font-weight: 600;
+  vertical-align: middle;
+  background: #ffe0dd;
+}
+.dc-chart-2 .chart-tbody .chart-th {
+  text-align: left;
+}
+
+/* CHART : nutrition table */
+.dc-chart-3 {
+  padding: 1em;
+  border: 2px solid #666;
+  background: #fff;
+}
+.dc-chart-3 .chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  line-height: 1.1;
+}
+.dc-chart-3 .chart-caption {
+  padding: 0.5em;
+  text-align: left;
+  line-height: 1.2;
+  border-bottom: 0.75em solid #666;
+}
+.dc-chart-3 .chart-col1 {
+  width: auto;
+}
+.dc-chart-3 .chart-col2 {
+  width: var(--dc-chart-wid2, 25%);
+}
+.dc-chart-3 .chart-thead,
+.dc-chart-3 .chart-tbody {
+  border-bottom: 0.5em solid #666;
+}
+.dc-chart-3 .chart-tr {
+  padding: 0 0.5em;
+  border-bottom: 1px solid #666;
+}
+.dc-chart-3 .chart-tr:last-child {
+  border-bottom: 0;
+}
+.dc-chart-3 .chart-th,
+.dc-chart-3 .chart-td {
+  padding: 0.2em 0.5em;
+}
+.dc-chart-3 .chart-th:nth-child(2),
+.dc-chart-3 .chart-td:nth-child(2) {
+  text-align: right;
+}
+.dc-chart-3 .chart-tbody .chart-th {
+  font-weight: 400;
+}
+
+/* CHART : nutrition table */
+.dc-chart-4 {
+  border: 2px solid #666;
+  background: #fff;
+}
+.dc-chart-4 .chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  line-height: 1.1;
+}
+.dc-chart-4 .chart-thead {
+  border-bottom: 2px solid #666;
+}
+.dc-chart-4 .chart-thead .chart-th {
+  font-weight: 500;
+}
+.dc-chart-4 .chart-td {
+  text-align: right;
+}
+.dc-chart-4 .chart-col1 {
+  width: auto;
+}
+.dc-chart-4 .chart-col2 {
+  width: 20%;
+}
+.dc-chart-4 .chart-th,
+.dc-chart-4 .chart-td {
+  padding: 0.2em 1em;
+  line-height: 1.1;
+}
+.dc-chart-4 .chart-caption {
+  padding: 0.2em 1em;
+  text-align: left;
+  border-bottom: 2px solid #666;
+}
+
+/* CHART : minimalist table */
+.dc-chart-5 .chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  line-height: 1.1;
+  border-top: 1px solid #bbb;
+}
+.dc-chart-5 .chart-col1 {
+  width: 27%;
+}
+.dc-chart-5 .chart-col2 {
+  width: auto;
+}
+.dc-chart-5 .chart-tr {
+  border-bottom: 1px solid #bbb;
+}
+.dc-chart-5 .chart-th {
+  padding: 0.5em 1em;
+  line-height: 1.1;
+  font-weight: 500;
+}
+.dc-chart-5 .chart-td {
+  padding: 0.5em;
+  line-height: 1.1;
+  font-weight: 300;
+}
+
+/* CHART : simple table with blue th on left */
+.dc-chart-6 .chart-table {
+  border-top: var( --dc-chart-border, 1px solid #00b5ef);
+  border-bottom: var( --dc-chart-border, 1px solid #00b5ef);
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.dc-chart-6 .chart-col1 {
+  width: 23.64%;
+}
+.dc-chart-6 .chart-col2 {
+  width: auto;
+}
+.dc-chart-6 .chart-th {
+  padding: 0.5em;
+  border-bottom: 1px solid #fff;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  vertical-align: middle;
+  color: #fff;
+  background: #00b5ef;
+}
+.dc-chart-6 .chart-td {
+  padding: 0.5em 1em;
+  border-bottom: 1px solid #bbb;
+  font-weight: 300;
+  line-height: 1.2;
+  text-align: left;
+  vertical-align: middle;
+}
+.dc-chart-6 .chart-last .chart-th,
+.dc-chart-6 .chart-last .chart-td {
+  border-bottom: 0;
+}
+
+/* CHART : equal width column with light blue 2nd column */
+.dc-chart-7 .chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: #fff;
+  border-bottom: 2px solid #00b5ef ;
+}
+.dc-chart-7 .chart-caption {
+  padding: 0.5em;
+  line-height: 1.2;
+  text-align: center;
+  color: #fff;
+  background: #00b5ef;
+}
+.dc-chart-7 .chart-thead {
+  border-bottom: 1px solid #bbb;
+}
+.dc-chart-7 .chart-thead .chart-th {
+  text-align: center;
+}
+.dc-chart-7 .chart-tr {
+  border-bottom: 1px solid #bbb;
+}
+.dc-chart-7 .chart-tr:last-child {
+  border-bottom: 0;
+}
+.dc-chart-7 .chart-th {
+  padding: 0.5em 1em;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.dc-chart-7 .chart-td {
+  padding: 0.5em 1em;
+  text-align: center;
+  font-weight: 300;
+  line-height: 1.2;
+}
+.dc-chart-7 .chart-th:first-child {
+  text-align: inherit;
+}
+.dc-chart-7 .chart-th:nth-child(2),
+.dc-chart-7 .chart-td:nth-child(2) {
+  background: #E5F6FD;
+}
+.dc-chart-7 .chart-th:nth-child(3),
+.dc-chart-7 .chart-td:nth-child(3) {
+  text-align: right;
+}
+
+/* CHART : table with gray th */
+.dc-chart-8 .chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-bottom: 2px solid #333;
+}
+.dc-chart-8 .chart-caption {
+  padding: 0.5em;
+  border-bottom: 2px solid #333;
+  line-height: 1.2;
+  font-weight: 400;
+}
+.dc-chart-8 .chart-col1 {
+  width: 34.3%;
+}
+.dc-chart-8 .chart-col2 {
+  width: auto;
+}
+.dc-chart-8 .chart-tr {
+  border-bottom: 1px solid #bbb;
+}
+.dc-chart-8 .chart-th {
+  padding: 0.5em;
+  line-height: 1.2;
+  font-weight: 400;
+  color: #666;
+  background: #f3f3f3;
+}
+.dc-chart-8 .chart-td {
+  padding: 0.5em;
+  line-height: 1.2;
+}
+
+
+
+/* LISTS (UL) : dash */
+.dc-ulist-dash .ulist-item {
+  font-size: 100%;
+  padding-left: var(--dc-ulist-padl, 1em);
+  margin-bottom: var(--dc-ulist-marb, 0);
+  position: relative;
+}
+.dc-ulist-dash .ulist-item:last-child {
+  margin-bottom: 0;
+}
+.dc-ulist-dash .ulist-item::before {
+  content: "–";
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--dc-ulist-col, #00b5ef);
+}
+
+/* LISTS (UL) : dot */
+.dc-ulist-dot .ulist-item {
+  font-size: 100%;
+  padding-left: var(--dc-ulist-padl, 1em);
+  margin-bottom: var(--dc-ulist-marb, 0);
+  position: relative;
+}
+.dc-ulist-dot .ulist-item:last-child {
+  margin-bottom: 0;
+}
+.dc-ulist-dot .ulist-item::before {
+  content: "•";
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--dc-ulist-col, #00b5ef);
+}
+
+/* LISTS (UL) : asterisk */
+.dc-ulist-star .ulist-item {
+  font-size: 100%;
+  padding-left: var(--dc-ulist-padl, 1em);
+  margin-bottom: var(--dc-ulist-marb, 0);
+  position: relative;
+}
+.dc-ulist-star .ulist-item:last-child {
+  margin-bottom: 0;
+}
+.dc-ulist-star .ulist-item::before {
+  content: "*";
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--dc-ulist-col, #333);
+}
+
+/* LISTS (UL) : reference mark */
+.dc-ulist-pool .ulist-item {
+  font-size: 100%;
+  padding-left: var(--dc-ulist-padl, 1.5em);
+  margin-bottom: var(--dc-ulist-marb, 0);
+  position: relative;
+}
+.dc-ulist-pool .ulist-item:last-child {
+  margin-bottom: 0;
+}
+.dc-ulist-pool .ulist-item::before {
+  content: "※";
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--dc-ulist-col, #333);
+}
+
+/* LISTS (OL) : regular bolded number */
+.dc-olist-basic > .olist-item {
+  font-size: 100%;
+  padding-left: var(--dc-olist-padl, 1.5em);
+  margin-bottom: var(--dc-olist-marb, 0);
+  position: relative;
+}
+.dc-olist-basic > .olist-item:last-child {
+  margin-bottom: 0;
+}
+.dc-olist-basic > .olist-item::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--dc-olist-col, #333);
+}
+.dc-olist-basic > .olist-item1::before {
+  content: "1.";
+}
+.dc-olist-basic > .olist-item2::before {
+  content: "2.";
+}
+.dc-olist-basic > .olist-item3::before {
+  content: "3.";
+}
+.dc-olist-basic > .olist-item4::before {
+  content: "4.";
+}
+.dc-olist-basic > .olist-item5::before {
+  content: "5.";
+}
+.dc-olist-basic > .olist-item6::before {
+  content: "6.";
+}
+.dc-olist-basic > .olist-item7::before {
+  content: "7.";
+}
+.dc-olist-basic > .olist-item8::before {
+  content: "8.";
+}
+.dc-olist-basic > .olist-item9::before {
+  content: "9.";
+}
+.dc-olist-basic > .olist-item10::before {
+  content: "10.";
+}
+.dc-olist-basic > .olist-item11::before {
+  content: "11.";
+}
+.dc-olist-basic > .olist-item12::before {
+  content: "12.";
+}
+.dc-olist-basic > .olist-item13::before {
+  content: "13.";
+}
+.dc-olist-basic > .olist-item14::before {
+  content: "14.";
+}
+.dc-olist-basic > .olist-item15::before {
+  content: "15.";
+}
+.dc-olist-basic > .olist-item16::before {
+  content: "16.";
+}
+.dc-olist-basic > .olist-item17::before {
+  content: "17.";
+}
+.dc-olist-basic > .olist-item18::before {
+  content: "18.";
+}
+.dc-olist-basic > .olist-item19::before {
+  content: "19.";
+}
+.dc-olist-basic > .olist-item20::before {
+  content: "20.";
+}
+
+/* LIST (OL) : circled number */
+.dc-olist-cir > .olist-item {
+  font-size: 100%;
+  padding-left: var(--dc-olist-padl, 1.5em);
+  margin-bottom: var(--dc-olist-marb, 0);
+  position: relative;
+}
+.dc-olist-cir > .olist-item:last-child {
+  margin-bottom: 0;
+}
+.dc-olist-cir > .olist-item::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--dc-olist-col, #333);
+}
+.dc-olist-cir > .olist-item1::before {
+  content: "①";
+}
+.dc-olist-cir > .olist-item2::before {
+  content: "②";
+}
+.dc-olist-cir > .olist-item3::before {
+  content: "③";
+}
+.dc-olist-cir > .olist-item4::before {
+  content: "④";
+}
+.dc-olist-cir > .olist-item5::before {
+  content: "⑤";
+}
+.dc-olist-cir > .olist-item6::before {
+  content: "⑥";
+}
+.dc-olist-cir > .olist-item7::before {
+  content: "⑦";
+}
+.dc-olist-cir > .olist-item8::before {
+  content: "⑧";
+}
+.dc-olist-cir > .olist-item9::before {
+  content: "⑨";
+}
+
+/* LIST (OL) : parenthesis */
+.dc-olist-par > .olist-item {
+  font-size: 100%;
+  padding-left: var(--dc-olist-padl, 1.5em);
+  margin-bottom: var(--dc-olist-marb, 0);
+  position: relative;
+}
+.dc-olist-par > .olist-item:last-child {
+  margin-bottom: 0;
+}
+.dc-olist-par > .olist-item::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--dc-olist-col, #333);
+}
+.dc-olist-par > .olist-item1::before {
+  content: "1)";
+}
+.dc-olist-par > .olist-item2::before {
+  content: "2)";
+}
+.dc-olist-par > .olist-item3::before {
+  content: "3)";
+}
+.dc-olist-par > .olist-item4::before {
+  content: "4)";
+}
+.dc-olist-par > .olist-item5::before {
+  content: "5)";
+}
+.dc-olist-par > .olist-item6::before {
+  content: "6)";
+}
+.dc-olist-par > .olist-item7::before {
+  content: "7)";
+}
+.dc-olist-par > .olist-item8::before {
+  content: "8)";
+}
+.dc-olist-par > .olist-item9::before {
+  content: "9)";
+}
+.dc-olist-par > .olist-item10::before {
+  content: "10)";
+}
+.dc-olist-par > .olist-item11::before {
+  content: "11)";
+}
+.dc-olist-par > .olist-item12::before {
+  content: "12)";
+}
+.dc-olist-par > .olist-item13::before {
+  content: "13)";
+}
+.dc-olist-par > .olist-item14::before {
+  content: "14)";
+}
+.dc-olist-par > .olist-item15::before {
+  content: "15)";
+}
+.dc-olist-par > .olist-item16::before {
+  content: "16)";
+}
+.dc-olist-par > .olist-item17::before {
+  content: "17)";
+}
+.dc-olist-par > .olist-item18::before {
+  content: "18)";
+}
+.dc-olist-par > .olist-item19::before {
+  content: "19)";
+}
+.dc-olist-par > .olist-item20::before {
+  content: "20)";
+}
+
+
+
+/* TEXT DECORATION : highlighter across bottom */
+.dc-deco-1 {
+  display: inline;
+  background: linear-gradient(transparent, transparent 50%, var(--dc-deco-col, #CCF0FC) 50%, var(--dc-deco-col, #CCF0FC) 95%, transparent 95%);
+}
+
+/* TEXT DECORATION : dot above letter */
+.dc-deco-2 {
+  display: inline;
+  position: relative;
+}
+.dc-deco-2::before {
+  content: ".";
+  display: block;
+  position: absolute;
+  top: var(--dc-deco-top, -70%);
+  left: 50%;
+  color: var(--dc-deco-col, inherit);
+  transform: translateX(-50%);
+}
+
+
+
+/* TITLE BAR : product name at top of detail content */
+.dc-title-1 {
+  padding: 7% 0 3%;
+}
+.dc-title-1 .title-txt {
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: var(--dc-title-ls, -0.02em);
+  color: var(--dc-title-col, #00b5ef);
+}
+
+/* TITLE BAR : gray box with line through middle */
+.dc-title-2 {
+  position: relative;
+  z-index: 1;
+  border-bottom: 0.1em solid #898989;
+}
+.dc-title-2 .title-txt {
+  padding: 0.4em 0.5em;
+  margin: 0 auto;
+  width: fit-content;
+  white-space: nowrap;
+  letter-spacing: 0;
+  font-weight: 600;
+  font-size: 100%;
+  color: #fff;
+  position: relative;
+  background: #898989;
+}
+.dc-title-2 .title-txt::before {
+  content: "";
+  display: block;
+  width: calc(100% - 2em);
+  height: 1px;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+}
+.dc-title-2 .title-txt::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 0.5em;
+  position: absolute;
+  bottom: -0.5em;
+  left: 0;
+  background: #898989;
+}
+
+/* TITLE BAR : bordered box with floating title */
+.dc-title-3 {
+  padding: 6% 4% 4%;
+  border: 1px solid #bbb;
+  position: relative;
+}
+.dc-title-3 .title-txt {
+  white-space: nowrap;
+  padding-inline: 0.5em;
+  font-weight: 500;
+  text-align: center;
+  color: #333;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+}
+
+
+
+/* BOX : quality assurance */
+.dc-quality {
+  padding: 10% 0;
+  background: #d6f3fd;
+}
+.dc-quality .pane1 {
+  position: relative;
+}
+.dc-quality .pane1::after {
+  content: "";
+  display: block;
+  width: 1em;
+  height: 1px;
+  position: absolute;
+  bottom: -1em;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+}
+.dc-quality .pane1-item1 {
+  color: #00b5ef;
+}
+.dc-quality .pane3 {
+  padding: 10% 7.78% 0;
+  position: relative;
+}
+.dc-quality .pane3-item1 {
+  width: 21%;
+  height: 0;
+  padding-bottom: 21%;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.dc-quality .pane3-item2 {
+  padding: 14% 4% 8%;
+  border-radius: 1em;
+  background: #fff;
+}
+.dc-quality .pane3-item2-bit1 {
+  color: #00b5ef;
+}
+.dc-quality .pane3-item2-bit2-sub1 {
+  padding: 0.5em 0 0.5em 1.3em;
+  border-bottom: 1px solid #737373;
+  background: left top 0.8em / 1.125em url("https://publish-static.atomy.com/images/products/kr/common/dc-quality-check.png") no-repeat;
+}
+.dc-quality .pane3-item2-bit2-sub1:last-child {
+  border-bottom: 0;
+}
+.dc-quality .pane3-item2-bit3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 4%;
+}
+.dc-quality .pane3-item2-bit3-sub1 {
+  padding: 0.5em 0 0.5em 1.3em;
+  border-bottom: 1px solid #737373;
+  background: left top 0.8em / 1.125em url("https://publish-static.atomy.com/images/products/kr/common/dc-quality-check.png") no-repeat;
+}
+.dc-quality .pane3-item2-bit3-sub1:nth-last-child(2) {
+  border-bottom: 0;
+}
+.dc-quality .pane3-item2-bit3-sub1:last-child {
+  border-bottom: 0;
+}
+
+/* BOX : sustainable promise */
+.dc-sustain {
+  padding: 13% 0;
+  color: #fff;
+  background: center / cover url("https://publish-static.atomy.com/images/products/kr/common/dc-sustain-bg.webp") #00b5ef;
+}
+.dc-sustain .pane1 {
+  width: 57.78%;
+}
+.dc-sustain .pane1-item1 {
+  color: #fff;
+}
+.dc-sustain .pane1-item2 {
+  width: 21%;
+  margin-inline: auto;
+}
+
+/* BOX : see more */
+.dc-seemore {
+  display: block;
+}
+.dc-seemore .pane1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8% 0;
+  color: #fff;
+  background: #00b5ef;
+  text-decoration: none;
+}
+.dc-seemore .pane1-item1 {
+  width: 10%;
+  margin-right: 3%;
+}
+
+
+
+/* dc iframe */
+.dc-video-iframe {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 100%;
+  overflow: hidden;
+}
+.dc-video-iframe iframe {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+
+
+/* OLD! do not use! */
+.dc-intro {
+  height: 0;
+  padding-bottom: calc(56% - 0.5em);
+  border: 0.25em solid var(--dc-intro-col, #00b5ef);
+}

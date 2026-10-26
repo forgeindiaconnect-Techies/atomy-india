@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { GST_BADGE_IMAGE } from '../../data/mockData';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
+import { getHighResImageUrl } from '../../utils/imageUtils';
 
 function formatInr(val) {
   return Number(val || 0).toLocaleString('en-IN', {
@@ -120,10 +121,11 @@ export default function LandingProductCard({
         {/* Product Photo */}
         <Image
           source={{
-            uri:
+            uri: getHighResImageUrl(
               product.image ||
               product.img ||
-              'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg',
+              'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg'
+            ),
           }}
           style={styles.productImg}
           resizeMode="contain"

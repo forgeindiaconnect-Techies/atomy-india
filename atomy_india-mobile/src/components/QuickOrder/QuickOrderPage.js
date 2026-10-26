@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { ALL_PRODUCTS } from '../../data/mockData';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
+import { getHighResImageUrl } from '../../utils/imageUtils';
 
 const phoenixLogo = require('../../../assets/fic-symbol.png');
 
@@ -314,7 +315,7 @@ export default function QuickOrderPage({
             return (
               <View key={row.product.id} style={styles.rowCard}>
                 <Image
-                  source={{ uri: row.product.image || row.product.img }}
+                  source={{ uri: getHighResImageUrl(row.product.image || row.product.img) }}
                   style={styles.rowThumbnail}
                   resizeMode="contain"
                 />

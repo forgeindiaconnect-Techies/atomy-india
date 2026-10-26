@@ -2104,8 +2104,41 @@
 .pdp-expanded-presentation {
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 32px;
   padding-top: 10px;
+}
+
+.pdp-official-html-brochure {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  border-radius: 8px;
+}
+
+.pdp-official-html-brochure img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.pdp-official-html-brochure table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pdp-official-html-brochure .dc-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.pdp-official-html-brochure video {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 16px auto;
 }
 
 .pdp-presentation-block {
@@ -3232,5 +3265,108 @@
   }
 }
 
+/* =========================================================
+   OFFICIAL PRODUCT VIDEO LINK STYLES
+   ========================================================= */
+.pdp-specs-video-row {
+  background-color: #fafcfe;
+}
 
+.pdp-specs-video-row th {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  vertical-align: middle !important;
+}
 
+.pdp-video-info-cell {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pdp-video-link-anchor {
+  display: inline-flex;
+  align-items: center;
+  color: #0284c7;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  word-break: break-all;
+}
+
+.pdp-video-link-anchor:hover {
+  color: #0369a1;
+  text-decoration: underline;
+}
+
+.pdp-video-link-url {
+  font-weight: 600;
+  color: #0284c7;
+}
+
+.pdp-video-link-title {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.pdp-video-link-arrow {
+  margin-left: 4px;
+  font-size: 13px;
+  color: #0284c7;
+}
+
+/* Footer banner under specifications table */
+.pdp-video-info-footer-bar {
+  margin-top: 14px;
+  margin-bottom: 6px;
+  padding: 12px 16px;
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.pdp-video-footer-label {
+  font-weight: 700;
+  color: #0369a1;
+  font-size: 14px;
+}
+
+.pdp-video-footer-link {
+  display: inline-flex;
+  align-items: center;
+  color: #0284c7;
+  font-weight: 600;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.pdp-video-footer-link:hover {
+  text-decoration: underline;
+  color: #0369a1;
+}
+
+.pdp-video-footer-url {
+  color: #0284c7;
+  font-weight: 600;
+}
+
+.pdp-video-footer-name {
+  color: #475569;
+  font-weight: 400;
+  font-size: 13.5px;
+  margin-left: 4px;
+}
+
+.pdp-video-footer-arrow {
+  margin-left: 4px;
+  font-size: 13px;
+  color: #0284c7;
+}
