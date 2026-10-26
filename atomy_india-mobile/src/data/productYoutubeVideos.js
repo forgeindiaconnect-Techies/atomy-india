@@ -8,32 +8,42 @@ export const PRODUCT_YOUTUBE_VIDEOS = {
   "D00101": {
     productId: "D00101",
     productName: "HemoHIM",
-    category: "Product Presentation",
-    language: "English / Hindi",
-    videoTitle: "Immunity & Atomy HemoHIM | Dr. Abraham Lee (Managing Director) | Wellness Talk",
-    youtubeUrl: "https://www.youtube.com/watch?v=oPz_b3j5v4Q",
-    videoId: "oPz_b3j5v4Q",
-    channel: "@globalatomy_in"
+    category: "How to Use",
+    language: "English",
+    videoTitle: "What is HemoHIM by Mike Surjadi",
+    youtubeUrl: "https://www.youtube.com/watch?v=TKL_1_yh1zE",
+    videoId: "TKL_1_yh1zE",
+    channel: "@ATOMYInternational"
+  },
+  "D0101": {
+    productId: "D0101",
+    productName: "HemoHIM",
+    category: "How to Use",
+    language: "English",
+    videoTitle: "What is HemoHIM by Mike Surjadi",
+    youtubeUrl: "https://www.youtube.com/watch?v=TKL_1_yh1zE",
+    videoId: "TKL_1_yh1zE",
+    channel: "@ATOMYInternational"
   },
   "D00102": {
     productId: "D00102",
     productName: "HemoHIM 2set",
-    category: "Product Presentation",
-    language: "English / Hindi",
-    videoTitle: "Immunity & Atomy HemoHIM | Dr. Abraham Lee (Managing Director) | Wellness Talk",
-    youtubeUrl: "https://www.youtube.com/watch?v=oPz_b3j5v4Q",
-    videoId: "oPz_b3j5v4Q",
-    channel: "@globalatomy_in"
+    category: "How to Use",
+    language: "English",
+    videoTitle: "What is HemoHIM by Mike Surjadi",
+    youtubeUrl: "https://www.youtube.com/watch?v=TKL_1_yh1zE",
+    videoId: "TKL_1_yh1zE",
+    channel: "@ATOMYInternational"
   },
   "D00104": {
     productId: "D00104",
     productName: "HemoHIM 4set",
-    category: "Product Presentation",
-    language: "English / Hindi",
-    videoTitle: "Immunity & Atomy HemoHIM | Dr. Abraham Lee (Managing Director) | Wellness Talk",
-    youtubeUrl: "https://www.youtube.com/watch?v=oPz_b3j5v4Q",
-    videoId: "oPz_b3j5v4Q",
-    channel: "@globalatomy_in"
+    category: "How to Use",
+    language: "English",
+    videoTitle: "What is HemoHIM by Mike Surjadi",
+    youtubeUrl: "https://www.youtube.com/watch?v=TKL_1_yh1zE",
+    videoId: "TKL_1_yh1zE",
+    channel: "@ATOMYInternational"
   },
   "D00207": {
     productId: "D00207",
