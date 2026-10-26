@@ -27,7 +27,14 @@ import {
   Boxes,
   HelpCircle,
   IndianRupee,
-  Maximize2
+  Maximize2,
+  Plus,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 import officialProductDetails from '../../data/officialProductDetails.json';
 import './ProductEditorPage.css';
@@ -55,6 +62,17 @@ export default function ProductEditorPage({
 
   const [discountPercent, setDiscountPercent] = useState(initialDiscount);
 
+  const initialGallery = (
+    Array.isArray(initialData?.galleryImages) && initialData.galleryImages.length > 0
+      ? initialData.galleryImages
+      : (Array.isArray(officialData?.galleryImages) && officialData.galleryImages.length > 0
+          ? officialData.galleryImages
+          : [initialData?.image || officialData?.baseImage || 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg'])
+  ).filter(Boolean);
+
+  const [galleryImages, setGalleryImages] = useState(initialGallery);
+  const [newGalleryUrl, setNewGalleryUrl] = useState('');
+
   const [formData, setFormData] = useState({
     id: initialData?.id || `D0${Math.floor(1000 + Math.random() * 9000)}`,
     name: initialData?.name || officialData.name || '',
@@ -67,7 +85,7 @@ export default function ProductEditorPage({
     pv: initialData?.pv || officialData.pv || 80000,
     stockQuantity: initialData?.stockQuantity || 50,
     lowStockThreshold: initialData?.lowStockThreshold || 10,
-    image: initialData?.image || officialData.baseImage || 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg',
+    image: initialData?.image || officialData.baseImage || (initialGallery[0] || 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg'),
     description: initialData?.description || officialData.goodsDescHtml || '',
     features: initialData?.features || 'Absolute Quality, Absolute Price, Natural Botanical Ingredients',
     ingredients: initialData?.ingredients || 'Natural botanical extracts, patented herbal formulation',
@@ -308,6 +326,85 @@ export default function ProductEditorPage({
     updateWordCount();
   };
 
+  // Multi-Angle Gallery Handlers
+  const handleAddGalleryUrl = () => {
+    const trimmed = newGalleryUrl.trim();
+    if (!trimmed) return;
+    if (galleryImages.includes(trimmed)) {
+      alert('This image URL is already in the gallery.');
+      return;
+    }
+    const updated = [...galleryImages, trimmed];
+    setGalleryImages(updated);
+    if (!formData.image) {
+      setFormData(prev => ({ ...prev, image: trimmed }));
+    }
+    setNewGalleryUrl('');
+  };
+
+  const handleBatchGalleryUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    let processed = 0;
+    const newUrls = [];
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        if (loadEvt.target?.result) {
+          newUrls.push(loadEvt.target.result);
+        }
+        processed++;
+        if (processed === files.length) {
+          setGalleryImages(prev => {
+            const merged = [...prev, ...newUrls];
+            if (!formData.image && merged.length > 0) {
+              setFormData(f => ({ ...f, image: merged[0] }));
+            }
+            return merged;
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
+  };
+
+  const handleRemoveGalleryImage = (index) => {
+    const targetImg = galleryImages[index];
+    const updated = galleryImages.filter((_, i) => i !== index);
+    setGalleryImages(updated);
+    if (formData.image === targetImg) {
+      setFormData(prev => ({ ...prev, image: updated[0] || '' }));
+    }
+  };
+
+  const handleSetPrimaryCover = (imgUrl) => {
+    setFormData(prev => ({ ...prev, image: imgUrl }));
+    setGalleryImages(prev => [imgUrl, ...prev.filter(url => url !== imgUrl)]);
+  };
+
+  const handleMoveGalleryImage = (index, direction) => {
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= galleryImages.length) return;
+    const updated = [...galleryImages];
+    const temp = updated[index];
+    updated[index] = updated[targetIdx];
+    updated[targetIdx] = temp;
+    setGalleryImages(updated);
+  };
+
+  const handleLoadOfficialAngles = () => {
+    if (officialData?.galleryImages && officialData.galleryImages.length > 0) {
+      setGalleryImages(officialData.galleryImages);
+      if (!formData.image || !officialData.galleryImages.includes(formData.image)) {
+        setFormData(prev => ({ ...prev, image: officialData.galleryImages[0] }));
+      }
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.id || !formData.name) {
@@ -316,9 +413,13 @@ export default function ProductEditorPage({
     }
 
     const editorHtml = editorRef.current ? editorRef.current.innerHTML : formData.description;
+    const finalGallery = galleryImages.filter(Boolean);
+    const finalCover = formData.image || finalGallery[0] || '';
 
     onSave({
       ...formData,
+      image: finalCover,
+      galleryImages: finalGallery.length > 0 ? finalGallery : (finalCover ? [finalCover] : []),
       description: editorHtml,
       price: Number(formData.price) || 0,
       originalPrice: Number(formData.originalPrice) || 0,
@@ -559,38 +660,46 @@ export default function ProductEditorPage({
           </div>
         </div>
 
-        {/* SECTION 3: Primary Showcase Image & Badges */}
+        {/* SECTION 3: Primary Showcase Image & Badges & Multi-Angle Gallery */}
         <div className="editor-card-panel">
           <div className="panel-header">
             <ImageIcon size={20} color="#00A3E0" />
             <div>
-              <h3>3. Primary Product Photography & Consumer Badges</h3>
-              <p>Primary thumbnail shown in catalog grid, cart, and order sheets</p>
+              <h3>3. Product Photography & Multi-Angle Showcase Gallery</h3>
+              <p>Primary catalog cover thumbnail & multi-angle gallery photos (1/5 slider on customer store & app)</p>
             </div>
           </div>
 
           <div className="panel-body">
+            {/* Primary Cover Image Row */}
             <div className="photo-preview-grid">
               <div className="photo-preview-box">
                 <img
-                  src={formData.image || "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg"}
+                  src={formData.image || galleryImages[0] || "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg"}
                   alt="Thumbnail Preview"
                   onError={(e) => {
                     e.currentTarget.src = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
                   }}
                 />
+                <span className="primary-cover-badge">Primary Cover</span>
               </div>
 
               <div className="photo-input-group">
-                <label>Primary Image URL *</label>
+                <label>Primary Cover Image URL *</label>
                 <input
                   type="text"
                   value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({ ...prev, image: val }));
+                    if (val && !galleryImages.includes(val)) {
+                      setGalleryImages(prev => [val, ...prev]);
+                    }
+                  }}
                   placeholder="https://image.atomy.com/IN/goods/..."
                   required
                 />
-                <span className="input-hint">Paste an authentic Atomy product photography link or image asset.</span>
+                <span className="input-hint">Main thumbnail displayed across catalog cards, search suggestions, cart, and order sheets.</span>
 
                 {/* Flags and Badges */}
                 <div className="editor-flags-row">
@@ -621,6 +730,167 @@ export default function ProductEditorPage({
                     <span>Free Home Delivery Eligible</span>
                   </label>
                 </div>
+              </div>
+            </div>
+
+            {/* Multi-Angle Showcase Gallery Manager */}
+            <div className="gallery-manager-section">
+              <div className="gallery-manager-header">
+                <div className="gallery-header-left">
+                  <div className="gallery-counter-pill">
+                    <Layers size={14} />
+                    <span>{galleryImages.length} Gallery Photos</span>
+                  </div>
+                  <span className="gallery-header-subtitle">
+                    Multi-angle views displayed in the interactive customer carousel (e.g. 1/5, 2/5, 3/5...)
+                  </span>
+                </div>
+
+                <div className="gallery-header-actions">
+                  {officialData?.galleryImages && officialData.galleryImages.length > 0 && (
+                    <button
+                      type="button"
+                      className="gallery-action-secondary-btn"
+                      onClick={handleLoadOfficialAngles}
+                      title="Load official multi-angle studio shots for this product"
+                    >
+                      <Sparkles size={13} />
+                      <span>Load Studio Shots ({officialData.galleryImages.length})</span>
+                    </button>
+                  )}
+                  {galleryImages.length > 0 && (
+                    <button
+                      type="button"
+                      className="gallery-action-secondary-btn danger"
+                      onClick={() => {
+                        if (window.confirm("Clear all additional gallery photos? (The primary cover will remain)")) {
+                          setGalleryImages(formData.image ? [formData.image] : []);
+                        }
+                      }}
+                    >
+                      <Trash2 size={13} />
+                      <span>Clear Gallery</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Upload & Add Bar */}
+              <div className="gallery-upload-bar">
+                <div className="gallery-url-input-wrap">
+                  <input
+                    type="text"
+                    value={newGalleryUrl}
+                    onChange={(e) => setNewGalleryUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddGalleryUrl();
+                      }
+                    }}
+                    placeholder="Paste additional product image URL (https://...) and press Add"
+                    className="gallery-url-input"
+                  />
+                  <button
+                    type="button"
+                    className="gallery-add-url-btn"
+                    onClick={handleAddGalleryUrl}
+                  >
+                    <Plus size={15} />
+                    <span>Add URL</span>
+                  </button>
+                </div>
+
+                <span className="gallery-upload-or">OR</span>
+
+                <label className="gallery-upload-file-btn">
+                  <UploadCloud size={16} />
+                  <span>Upload Local Photos</span>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleBatchGalleryUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+
+              {/* Visual Gallery Cards Grid */}
+              <div className="gallery-thumbnails-grid">
+                {galleryImages.map((imgUrl, idx) => {
+                  const isPrimary = formData.image === imgUrl || (!formData.image && idx === 0);
+                  return (
+                    <div key={idx} className={`gallery-card ${isPrimary ? 'is-primary-card' : ''}`}>
+                      <div className="gallery-card-img-wrap">
+                        <img
+                          src={imgUrl}
+                          alt={`Angle ${idx + 1}`}
+                          onError={(e) => {
+                            e.currentTarget.src = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
+                          }}
+                        />
+                        <div className="gallery-card-index">#{idx + 1}</div>
+                        {isPrimary && (
+                          <div className="gallery-card-primary-tag">
+                            <Star size={11} fill="#ffffff" />
+                            <span>Cover</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="gallery-card-actions">
+                        {!isPrimary && (
+                          <button
+                            type="button"
+                            className="gallery-card-btn make-primary"
+                            onClick={() => handleSetPrimaryCover(imgUrl)}
+                            title="Make this the Primary Catalog Cover Photo"
+                          >
+                            <Star size={12} />
+                            <span>Set Cover</span>
+                          </button>
+                        )}
+                        <div className="gallery-card-move-group">
+                          <button
+                            type="button"
+                            className="gallery-card-btn nav"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveGalleryImage(idx, -1)}
+                            title="Move Earlier in Slider"
+                          >
+                            <ChevronLeft size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="gallery-card-btn nav"
+                            disabled={idx === galleryImages.length - 1}
+                            onClick={() => handleMoveGalleryImage(idx, 1)}
+                            title="Move Later in Slider"
+                          >
+                            <ChevronRight size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="gallery-card-btn delete"
+                            onClick={() => handleRemoveGalleryImage(idx)}
+                            title="Remove Photo"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {galleryImages.length === 0 && (
+                  <div className="gallery-empty-state">
+                    <ImageIcon size={32} color="#94a3b8" />
+                    <p>No gallery photos configured yet.</p>
+                    <span>Upload multiple photos or paste image URLs to populate the customer product carousel slider.</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Document(collection = "products")
 public class Product {
@@ -23,6 +24,9 @@ public class Product {
     private String subcategory;
 
     private String image;
+
+    @Field("gallery_images")
+    private List<String> galleryImages;
 
     @Field("gst_reduced")
     private Boolean gstReduced = false;
@@ -92,6 +96,9 @@ public class Product {
 
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
+
+    public List<String> getGalleryImages() { return galleryImages; }
+    public void setGalleryImages(List<String> galleryImages) { this.galleryImages = galleryImages; }
 
     public Boolean isGstReduced() { return gstReduced != null ? gstReduced : false; }
     public Boolean getGstReduced() { return gstReduced != null ? gstReduced : false; }

@@ -1357,7 +1357,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       freeDelivery: Boolean(productData.freeDelivery),
       active: productData.active !== undefined ? Boolean(productData.active) : true,
       likesCount: Number(productData.likesCount) || 0,
-      tags: productData.tags || 'Best Seller'
+      tags: productData.tags || 'Best Seller',
+      galleryImages: Array.isArray(productData.galleryImages) && productData.galleryImages.length > 0
+        ? productData.galleryImages.filter(Boolean)
+        : (productData.image ? [productData.image] : [])
     };
 
     try {

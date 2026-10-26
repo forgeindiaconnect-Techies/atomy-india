@@ -133,11 +133,13 @@ export default function ProductDetailPage({
                              categoryStr.includes('the fame') ||
                              categoryStr.includes('absolute');
 
-  // Gallery images (official multi-angle gallery images from Atomy studio or product image)
+  // Gallery images (admin-configured gallery, official multi-angle studio shots, or primary cover)
   const galleryImages = (
-    officialData?.galleryImages && officialData.galleryImages.length > 0
-      ? officialData.galleryImages
-      : [product?.image, product?.image, product?.image, product?.image]
+    (Array.isArray(product?.galleryImages) && product.galleryImages.length > 0)
+      ? product.galleryImages
+      : (officialData?.galleryImages && officialData.galleryImages.length > 0
+          ? officialData.galleryImages
+          : [product?.image, product?.image, product?.image, product?.image])
   ).filter(Boolean);
 
   useEffect(() => {

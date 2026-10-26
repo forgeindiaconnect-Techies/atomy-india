@@ -217,7 +217,12 @@ export default function ProductDetailPage({
   // Multi-angle gallery images with crisp high resolution
   const galleryImages = useMemo(() => {
     const list = [];
-    if (officialData?.galleryImages && officialData.galleryImages.length > 0) {
+    if (Array.isArray(product?.galleryImages) && product.galleryImages.length > 0) {
+      product.galleryImages.forEach((img) => {
+        const clean = getHighResImageUrl(img);
+        if (clean && !list.includes(clean)) list.push(clean);
+      });
+    } else if (officialData?.galleryImages && officialData.galleryImages.length > 0) {
       officialData.galleryImages.forEach((img) => {
         const clean = getHighResImageUrl(img);
         if (clean && !list.includes(clean)) list.push(clean);
