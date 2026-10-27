@@ -27,9 +27,12 @@ import {
   Edit2,
   Home,
   Briefcase,
-  Clock
+  Clock,
+  Ticket,
+  Tag
 } from 'lucide-react';
 import './OrderSheetPage.css';
+import { fetchCouponsFromBackend, applyCouponBackend } from '../../services/couponService';
 import { createCustomerOrder } from '../../services/api';
 import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS, getRelatedProducts, getPopularProducts } from '../../data/mockData';
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
@@ -292,7 +295,209 @@ export default function OrderSheetPage({
     return isFreeDeliveryEligible ? 0 : 150;
   }, [cartItems.length, isFreeDeliveryEligible]);
 
-  const grandTotal = subtotal + shippingFee;
+  // Live Backend Coupons State (Stored/updated by admin in MongoDB)
+  const [allStoreCoupons, setAllStoreCoupons] = useState([]);
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [isCouponListOpen, setIsCouponListOpen] = useState(false);
+
+  // Check if customer is placing their first order (order history check)
+  const isFirstOrder = useMemo(() => {
+    try {
+      const placed = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
+      const adminOrders = JSON.parse(localStorage.getItem('atomy_admin_orders') || '[]');
+      const userEmail = currentUser?.email?.toLowerCase();
+      if (userEmail) {
+        const userPast = [...placed, ...adminOrders].filter(o => 
+          (o.customerEmail || o.email || '').toLowerCase() === userEmail
+        );
+        return userPast.length === 0;
+      }
+      return placed.length === 0;
+    } catch {
+      return true;
+    }
+  }, [currentUser]);
+
+  // Load live store coupons saved/updated by Admin in MongoDB
+  useEffect(() => {
+    let isMounted = true;
+    fetchCouponsFromBackend().then((data) => {
+      if (isMounted && Array.isArray(data)) {
+        const activeOnly = data.filter(c => c.status === 'Active' || c.status === 'ACTIVE');
+        setAllStoreCoupons(activeOnly);
+      }
+    });
+
+    const handleCouponsUpdated = () => {
+      fetchCouponsFromBackend().then((data) => {
+        if (Array.isArray(data)) {
+          const activeOnly = data.filter(c => c.status === 'Active' || c.status === 'ACTIVE');
+          setAllStoreCoupons(activeOnly);
+        }
+      });
+    };
+    window.addEventListener('atomy_coupons_updated', handleCouponsUpdated);
+    window.addEventListener('storage', handleCouponsUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('atomy_coupons_updated', handleCouponsUpdated);
+      window.removeEventListener('storage', handleCouponsUpdated);
+    };
+  }, []);
+
+  // Compute available coupons matching the CURRENT products in the cart & customer order status
+  const availableCoupons = useMemo(() => {
+    if (!Array.isArray(allStoreCoupons) || allStoreCoupons.length === 0) return [];
+    
+    return allStoreCoupons.filter(cpn => {
+      const status = (cpn.status || '').toUpperCase();
+      if (status !== 'ACTIVE') return false;
+
+      const code = (cpn.code || '').toUpperCase();
+      const title = (cpn.title || '').toLowerCase();
+      const desc = (cpn.description || '').toLowerCase();
+      const scope = (cpn.categoryScope || 'ALL').toUpperCase();
+      const target = (cpn.targetProduct || '').toUpperCase();
+
+      // 1. First-Time Order Rule: Only show for first order
+      const isWelcomeCoupon = cpn.firstOrderOnly === true || 
+                              code.includes('WELCOME') || 
+                              code.includes('FIRST') || 
+                              title.includes('first purchase') || 
+                              title.includes('first order') || 
+                              desc.includes('first purchase') || 
+                              desc.includes('first order');
+      if (isWelcomeCoupon && !isFirstOrder) {
+        return false;
+      }
+
+      // 2. Specific Product Rule: HemoHIM offer ONLY appears if cart contains HemoHIM
+      const isHemohimCoupon = target === 'HEMOHIM' || 
+                              code.includes('HEMO') || 
+                              title.includes('hemohim') || 
+                              desc.includes('hemohim');
+      if (isHemohimCoupon) {
+        const hasHemohimInCart = (cartItems || []).some(item => {
+          const name = (item.name || '').toLowerCase();
+          const tags = Array.isArray(item.tags) ? item.tags.join(' ').toLowerCase() : '';
+          return name.includes('hemohim') || name.includes('hemo him') || tags.includes('hemohim');
+        });
+        if (!hasHemohimInCart) {
+          return false; // Exclude HemoHIM offer if order doesn't contain HemoHIM!
+        }
+      }
+
+      // 3. Category Scope Rule: Only show if cart contains products in that category
+      if (scope !== 'ALL' && scope !== 'HEMOHIM') {
+        const hasMatchingCategory = (cartItems || []).some(item => {
+          const name = (item.name || '').toLowerCase();
+          const cat = (item.category || '').toLowerCase();
+          const tags = Array.isArray(item.tags) ? item.tags.join(' ').toLowerCase() : '';
+
+          if (scope === 'HEALTH') {
+            return cat.includes('health') || name.includes('hemohim') || 
+                   name.includes('probiotics') || name.includes('omega') || 
+                   name.includes('vitamin') || tags.includes('health');
+          }
+          if (scope === 'BEAUTY') {
+            return cat.includes('skin') || cat.includes('beauty') || 
+                   name.includes('fame') || name.includes('absolute') || 
+                   name.includes('cream') || name.includes('cleanser') || tags.includes('beauty');
+          }
+          if (scope === 'PERSONAL') {
+            return cat.includes('personal') || name.includes('toothpaste') || 
+                   name.includes('toothbrush') || name.includes('shampoo') || tags.includes('personal');
+          }
+          if (scope === 'FOOD') {
+            return cat.includes('food') || cat.includes('living') || 
+                   name.includes('coffee') || name.includes('cafe') || name.includes('noni');
+          }
+          return false;
+        });
+
+        if (!hasMatchingCategory) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [allStoreCoupons, cartItems, isFirstOrder]);
+
+  // Remove applied coupon if an item was removed from the cart that disqualified it
+  useEffect(() => {
+    if (appliedCoupon && cartItems.length > 0) {
+      const isHemohim = (appliedCoupon.code || '').toUpperCase().includes('HEMO') ||
+        (appliedCoupon.targetProduct || '').toUpperCase() === 'HEMOHIM';
+      if (isHemohim) {
+        const hasHemohim = cartItems.some(i => (i.name || '').toLowerCase().includes('hemohim'));
+        if (!hasHemohim) {
+          setAppliedCoupon(null);
+          setCouponError('Applied coupon was removed because HemoHIM was removed from your cart.');
+        }
+      }
+    }
+  }, [cartItems, appliedCoupon]);
+
+  const handleApplyCouponCode = async (codeToApply) => {
+    const raw = codeToApply || couponCodeInput;
+    const code = (raw || '').trim().toUpperCase();
+    if (!code) {
+      setCouponError('Please enter a coupon code.');
+      setCouponSuccess('');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    setCouponError('');
+    setCouponSuccess('');
+
+    try {
+      const res = await applyCouponBackend(code, subtotal, cartItems, isFirstOrder);
+      if (res && res.valid) {
+        setAppliedCoupon({
+          code: res.coupon?.code || code,
+          title: res.coupon?.title,
+          discountDisplay: res.discountDisplay || res.coupon?.discountDisplay,
+          discountAmount: Number(res.discountAmount) || 0,
+          discountType: res.coupon?.discountType || 'FLAT',
+          targetProduct: res.coupon?.targetProduct
+        });
+        setCouponSuccess(res.message || `Coupon "${code}" applied successfully!`);
+        setCouponCodeInput('');
+        setIsCouponListOpen(false);
+      } else {
+        setCouponError(res?.message || `Coupon "${code}" is not valid or minimum amount not met.`);
+      }
+    } catch {
+      setCouponError('Unable to verify coupon with server. Please try again.');
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponSuccess('');
+    setCouponError('');
+  };
+
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountType === 'FREE_SHIPPING') return 0;
+    return appliedCoupon.discountAmount || 0;
+  }, [appliedCoupon]);
+
+  const effectiveShippingFee = useMemo(() => {
+    if (appliedCoupon && appliedCoupon.discountType === 'FREE_SHIPPING') return 0;
+    return shippingFee;
+  }, [appliedCoupon, shippingFee]);
+
+  const grandTotal = Math.max(0, subtotal - couponDiscount + effectiveShippingFee);
 
   // Real Wallet Balance from store / localStorage
   const [useWalletBalance, setUseWalletBalance] = useState(false);
@@ -607,6 +812,8 @@ export default function OrderSheetPage({
       state,
       pincode,
       paymentMethod: springPaymentMethod,
+      couponCode: appliedCoupon?.code || null,
+      couponDiscount: couponDiscount || 0,
       items: (cartItems && cartItems.length > 0 ? cartItems : []).map(it => ({
         productId: it.id || it.productId || '',
         name: it.name || it.productName || '',
@@ -656,7 +863,9 @@ export default function OrderSheetPage({
       pincode,
       items: cartItems.map(it => ({ ...it })),
       subtotal,
-      shippingFee,
+      shippingFee: effectiveShippingFee,
+      couponCode: appliedCoupon?.code || null,
+      couponDiscount: couponDiscount || 0,
       walletDeduction: useWalletBalance ? walletDeduction : 0,
       grandTotal: backendOrder?.totalAmount ? Number(backendOrder.totalAmount) : (useWalletBalance ? finalPayableTotal : grandTotal),
       totalPV,
@@ -1151,6 +1360,142 @@ export default function OrderSheetPage({
                       Expected delivery within {estimatedDeliveryInfo.timeFrame}
                     </div>
 
+                    {/* Applied Coupon Discount Row */}
+                    {appliedCoupon && (
+                      <div className="summary-line coupon-applied-row">
+                        <span className="line-label">
+                          <Ticket size={13} color="#16a34a" style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                          Coupon Discount ({appliedCoupon.code})
+                        </span>
+                        <span className="line-value coupon-discount-value">
+                          {appliedCoupon.discountType === 'FREE_SHIPPING' ? 'FREE DELIVERY' : `- ₹ ${couponDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Apply Coupon / Promo Code Widget */}
+                    <div className="summary-coupon-widget">
+                      {!appliedCoupon ? (
+                        <>
+                          <div 
+                            className="coupon-widget-toggle"
+                            onClick={() => setIsCouponListOpen(!isCouponListOpen)}
+                            title="Click to view available coupons saved by store admin"
+                          >
+                            <div className="coupon-widget-title">
+                              <Ticket size={15} color="#00A3E0" />
+                              <span>Apply Gift Coupon / Promo Code</span>
+                            </div>
+                            {availableCoupons.length > 0 && (
+                              <span className="available-coupons-badge">
+                                {availableCoupons.length} Available {isCouponListOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                              </span>
+                            )}
+                          </div>
+
+                          <form 
+                            onSubmit={(e) => { e.preventDefault(); handleApplyCouponCode(); }} 
+                            className="coupon-input-form"
+                          >
+                            <input
+                              type="text"
+                              placeholder="Enter coupon code (e.g. FESTIVE500)"
+                              value={couponCodeInput}
+                              onChange={(e) => setCouponCodeInput(e.target.value)}
+                              className="coupon-text-input"
+                            />
+                            <button 
+                              type="submit" 
+                              className="coupon-submit-btn" 
+                              disabled={isApplyingCoupon || !couponCodeInput.trim()}
+                            >
+                              {isApplyingCoupon ? '...' : 'Apply'}
+                            </button>
+                          </form>
+
+                          {couponError && <div className="coupon-feedback error">{couponError}</div>}
+                          {couponSuccess && <div className="coupon-feedback success">{couponSuccess}</div>}
+
+                          {/* Available coupons saved/updated by Admin in database */}
+                          {/* Available coupons saved/updated by Admin in database */}
+                          {isCouponListOpen && availableCoupons.length > 0 && (
+                            <div className="available-coupons-dropdown">
+                              <div className="dropdown-label">Eligible Offers For Your Cart Items:</div>
+                              <div className="dropdown-coupons-list">
+                                {availableCoupons.map((cpn) => (
+                                  <div key={cpn.id || cpn.code} className="available-coupon-chip">
+                                    <div className="chip-left">
+                                      <div className="chip-code-row">
+                                        <span className="chip-code">{cpn.code}</span>
+                                        <span className="chip-tag">{cpn.discount}</span>
+                                        {cpn.firstOrderOnly && (
+                                          <span className="chip-scope-badge" style={{ background: '#dcfce7', color: '#15803d', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                            1st Order
+                                          </span>
+                                        )}
+                                        {cpn.targetProduct === 'HEMOHIM' && (
+                                          <span className="chip-scope-badge" style={{ background: '#fef3c7', color: '#b45309', fontSize: '10px', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                            HemoHIM
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="chip-title">{cpn.title}</span>
+                                      {cpn.minOrderValue > 0 && (
+                                        <span className="chip-min">Min order: ₹{cpn.minOrderValue.toLocaleString('en-IN')}</span>
+                                      )}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      className="chip-apply-btn"
+                                      onClick={() => handleApplyCouponCode(cpn.code)}
+                                    >
+                                      Apply
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {isCouponListOpen && availableCoupons.length === 0 && (
+                            <div className="available-coupons-dropdown">
+                              <div style={{ padding: '12px', fontSize: '12.5px', color: '#64748b', textAlign: 'center' }}>
+                                No coupons currently match your cart items.
+                                <div style={{ fontSize: '11px', marginTop: '4px', color: '#94a3b8' }}>
+                                  HemoHIM offers require HemoHIM in cart. Welcome vouchers require first-time order.
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="applied-coupon-card">
+                          <div className="applied-left">
+                            <CheckCircle2 size={16} color="#16a34a" />
+                            <div>
+                              <div className="applied-code-row">
+                                <strong>{appliedCoupon.code}</strong>
+                                <span className="applied-tag">{appliedCoupon.discountDisplay}</span>
+                              </div>
+                              <div className="applied-desc">
+                                {appliedCoupon.discountType === 'FREE_SHIPPING'
+                                  ? 'Free delivery waived for your entire order'
+                                  : `You saved ₹ ${couponDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })} on this order`}
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            type="button" 
+                            className="coupon-remove-btn" 
+                            onClick={handleRemoveCoupon} 
+                            title="Remove coupon"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="summary-divider"></div>
 
                     <div className="summary-grand-total">
@@ -1314,7 +1659,6 @@ export default function OrderSheetPage({
                     <div className="pg-method-info">
                       <div className="pg-method-name">Credit / Debit / ATM Card</div>
                       <div className="pg-method-desc">Add and secure cards as per RBI guidelines</div>
-                      <div className="pg-method-offer-tag">Get upto 5% cashback • 2 offers available</div>
                     </div>
                   </div>
 
@@ -1770,6 +2114,20 @@ export default function OrderSheetPage({
                     )}
                   </div>
 
+                  {/* Applied Coupon in Payment Summary */}
+                  {appliedCoupon && (
+                    <div className="pg-summary-section" style={{ background: '#f0fdf4', padding: '10px 12px', borderRadius: '8px', margin: '8px 0', border: '1px solid #bbf7d0' }}>
+                      <div className="pg-summary-nested-row" style={{ margin: 0 }}>
+                        <span className="pg-nested-label" style={{ color: '#166534', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Ticket size={13} color="#16a34a" /> Coupon ({appliedCoupon.code})
+                        </span>
+                        <span className="pg-nested-val" style={{ color: '#15803d', fontWeight: 700 }}>
+                          {appliedCoupon.discountType === 'FREE_SHIPPING' ? 'FREE DELIVERY' : `-₹${couponDiscount.toLocaleString('en-IN')}`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Member PV Points info (Replacing coupon as requested) */}
                   {totalPV > 0 && (
                     <div className="pg-summary-section">
@@ -1824,18 +2182,6 @@ export default function OrderSheetPage({
                   <div className="pg-total-amount-box">
                     <span className="pg-total-label">Total Amount</span>
                     <span className="pg-total-val">₹{((useWalletBalance ? finalPayableTotal : grandTotal) > 0 ? (useWalletBalance ? finalPayableTotal : grandTotal) : 0).toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-
-                {/* 5% Cashback Green Card (Matching screenshot) */}
-                <div className="pg-cashback-banner-card">
-                  <div className="pg-cashback-info">
-                    <h5 className="pg-cb-title">5% Cashback</h5>
-                    <p className="pg-cb-sub">Claim now with payment offers</p>
-                  </div>
-                  <div className="pg-cashback-icons-wrap">
-                    <span className="pg-cb-circle blue"></span>
-                    <span className="pg-cb-circle red"></span>
                   </div>
                 </div>
 

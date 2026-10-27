@@ -29,7 +29,8 @@ import {
   getHeroSlides,
   saveHeroSlides,
   getCategoryBanners,
-  saveCategoryBanners
+  saveCategoryBanners,
+  syncPromotionsFromBackend
 } from '../../services/bannerService';
 import './AdPromotionManager.css';
 
@@ -106,8 +107,10 @@ export default function AdPromotionManager({ showToast }) {
     setCatBanners(getCategoryBanners(selectedCatId));
   }, [selectedCatId]);
 
-  // Sync floating ad with remote backend on mount & events
+  // Sync promotions & floating ad with remote MongoDB Atlas backend on mount & events
   useEffect(() => {
+    syncPromotionsFromBackend();
+
     fetchRemoteAdConfig().then((cfg) => {
       if (cfg) setAdConfig(cfg);
     });
@@ -115,9 +118,25 @@ export default function AdPromotionManager({ showToast }) {
     const handleAdUpdated = (e) => {
       if (e.detail) setAdConfig(e.detail);
     };
+    const handleHeroUpdated = (e) => {
+      if (e.detail && Array.isArray(e.detail)) setHeroSlides(e.detail);
+    };
+    const handleCatUpdated = (e) => {
+      if (e.detail && e.detail.categoryId === selectedCatId && Array.isArray(e.detail.banners)) {
+        setCatBanners(e.detail.banners);
+      }
+    };
+
     window.addEventListener('atomy:ad-updated', handleAdUpdated);
-    return () => window.removeEventListener('atomy:ad-updated', handleAdUpdated);
-  }, []);
+    window.addEventListener('atomy:hero-slides-updated', handleHeroUpdated);
+    window.addEventListener('atomy:cat-banners-updated', handleCatUpdated);
+
+    return () => {
+      window.removeEventListener('atomy:ad-updated', handleAdUpdated);
+      window.removeEventListener('atomy:hero-slides-updated', handleHeroUpdated);
+      window.removeEventListener('atomy:cat-banners-updated', handleCatUpdated);
+    };
+  }, [selectedCatId]);
 
   // Generic Photo Upload to Base64 Data URL
   const handlePhotoUpload = (e, callback) => {

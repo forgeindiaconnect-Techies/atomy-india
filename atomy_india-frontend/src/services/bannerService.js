@@ -1,7 +1,13 @@
 import { HERO_SLIDES, CATEGORY_CONFIGS } from '../data/mockData';
 
-const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
-const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
+export function getApiBase() {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8085/api';
+  }
+  const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
+  return rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
+}
+
 const STORAGE_KEY_HERO_SLIDES = 'atomy_hero_slides';
 const STORAGE_PREFIX_CAT_BANNERS = 'atomy_cat_banners_';
 
@@ -37,9 +43,10 @@ export async function saveHeroSlides(slides) {
     console.error('Error saving hero slides locally:', err);
   }
 
-  // Push to MySQL backend
+  // Push to Spring Boot backend
   try {
-    await fetch(`${API_BASE}/promotions/hero_slides`, {
+    const apiBase = getApiBase();
+    await fetch(`${apiBase}/promotions/hero_slides`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(slides)
@@ -58,7 +65,7 @@ export function getCategoryBanners(categoryId) {
     const raw = localStorage.getItem(STORAGE_PREFIX_CAT_BANNERS + catKey);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
@@ -87,9 +94,10 @@ export async function saveCategoryBanners(categoryId, banners) {
     console.error('Error saving category banners locally:', err);
   }
 
-  // Push to MySQL backend
+  // Push to Spring Boot backend
   try {
-    await fetch(`${API_BASE}/promotions/cat_banners_${catKey}`, {
+    const apiBase = getApiBase();
+    await fetch(`${apiBase}/promotions/cat_banners_${catKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(banners)
@@ -101,34 +109,33 @@ export async function saveCategoryBanners(categoryId, banners) {
   return banners;
 }
 
-// 3. Pull all latest promotions & banners from MySQL backend
+// 3. Pull all latest promotions & banners from backend database
 export async function syncPromotionsFromBackend() {
+  const apiBase = getApiBase();
   try {
-    const res = await fetch(`${API_BASE}/promotions`);
+    const res = await fetch(`${apiBase}/promotions`);
     if (!res.ok) return;
     const data = await res.json();
     if (!data || typeof data !== 'object') return;
 
-    // Check Hero Slides
+    // Check Hero Slides from DB
     if (data.hero_slides) {
       try {
         const remoteHero = JSON.parse(data.hero_slides);
-        const localHero = getHeroSlides();
-        if (JSON.stringify(remoteHero) !== JSON.stringify(localHero)) {
+        if (Array.isArray(remoteHero) && remoteHero.length > 0) {
           localStorage.setItem(STORAGE_KEY_HERO_SLIDES, JSON.stringify(remoteHero));
           window.dispatchEvent(new CustomEvent('atomy:hero-slides-updated', { detail: remoteHero }));
         }
       } catch (e) {}
     }
 
-    // Check Category Banners
+    // Check Category Banners from DB
     Object.keys(data).forEach((key) => {
       if (key.startsWith('cat_banners_')) {
         const catKey = key.replace('cat_banners_', '');
         try {
           const remoteBanners = JSON.parse(data[key]);
-          const localBanners = getCategoryBanners(catKey);
-          if (JSON.stringify(remoteBanners) !== JSON.stringify(localBanners)) {
+          if (Array.isArray(remoteBanners) && remoteBanners.length > 0) {
             localStorage.setItem(STORAGE_PREFIX_CAT_BANNERS + catKey, JSON.stringify(remoteBanners));
             window.dispatchEvent(new CustomEvent('atomy:cat-banners-updated', {
               detail: { categoryId: catKey, banners: remoteBanners }
@@ -152,5 +159,5 @@ if (typeof window !== 'undefined') {
 
   setInterval(() => {
     syncPromotionsFromBackend();
-  }, 3000);
+  }, 4000);
 }

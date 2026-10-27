@@ -31,6 +31,7 @@ import {
   Loader2,
   HelpCircle
 } from 'lucide-react';
+import { fetchCouponsFromBackend, applyCouponBackend } from '../../services/couponService';
 import './CustomerProfilePage.css';
 
 export default function CustomerProfilePage({
@@ -235,35 +236,107 @@ export default function CustomerProfilePage({
   // Coupons state
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [couponMessage, setCouponMessage] = useState('');
-  const [coupons, setCoupons] = useState([
-    {
-      id: 'cpn-1',
-      code: 'WELCOME10',
-      discount: '10% OFF',
-      title: 'New Customer Welcome Voucher',
-      description: 'Applicable on your first order with minimum cart value of ₹1,500',
-      validTill: '31 Dec 2026',
-      status: 'Active'
-    },
-    {
-      id: 'cpn-2',
-      code: 'ATOMYFREESHIP',
-      discount: 'FREE DELIVERY',
-      title: 'Free Shipping Across India',
-      description: 'Enjoy zero delivery fees on all health and skincare products',
-      validTill: '15 Nov 2026',
-      status: 'Active'
-    },
-    {
-      id: 'cpn-3',
-      code: 'FESTIVE500',
-      discount: '₹500 OFF',
-      title: 'Festive Season Gift Coupon',
-      description: 'Get instant flat ₹500 discount on Absolute Skincare and HemoHIM',
-      validTill: '20 Oct 2026',
-      status: 'Active'
+  const [coupons, setCoupons] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_coupons');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        id: 'cpn-1',
+        code: 'WELCOME10',
+        discount: '10% OFF',
+        title: 'New Customer Welcome Voucher',
+        description: 'Applicable on your first order with minimum cart value of ₹1,500',
+        validTill: '31 Dec 2026',
+        status: 'Active'
+      },
+      {
+        id: 'cpn-2',
+        code: 'ATOMYFREESHIP',
+        discount: 'FREE DELIVERY',
+        title: 'Free Shipping Across India',
+        description: 'Enjoy zero delivery fees on all health and skincare products',
+        validTill: '15 Nov 2026',
+        status: 'Active'
+      },
+      {
+        id: 'cpn-3',
+        code: 'FESTIVE500',
+        discount: '₹500 OFF',
+        title: 'Festive Season Gift Coupon',
+        description: 'Get instant flat ₹500 discount on Absolute Skincare and HemoHIM',
+        validTill: '20 Oct 2026',
+        status: 'Active'
+      }
+    ];
+  });
+
+  // Load coupons from backend MongoDB database on mount
+  useEffect(() => {
+    let isMounted = true;
+    fetchCouponsFromBackend().then(backendCoupons => {
+      if (isMounted && Array.isArray(backendCoupons) && backendCoupons.length > 0) {
+        const customerFormat = backendCoupons.map(c => ({
+          id: c.id,
+          code: c.code,
+          discount: c.discountDisplay,
+          title: c.title,
+          description: c.description,
+          validTill: c.validTill,
+          status: c.status === 'ACTIVE' ? 'Active' : 'Inactive',
+          minOrderValue: c.minOrderValue,
+          discountType: c.discountType,
+          discountValue: c.discountValue
+        }));
+        setCoupons(customerFormat);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  // Sync coupons if changed by Admin in another tab
+  useEffect(() => {
+    const handleUpdate = () => {
+      try {
+        const saved = localStorage.getItem('atomy_coupons');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) setCoupons(parsed);
+        }
+      } catch {}
+    };
+    window.addEventListener('atomy_coupons_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('atomy_coupons_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  // Handle Apply Coupon in Customer Profile
+  const handleApplyCoupon = async (e) => {
+    e.preventDefault();
+    const code = (couponCodeInput || '').trim().toUpperCase();
+    if (!code) {
+      setCouponMessage('⚠️ Please enter a coupon code.');
+      return;
     }
-  ]);
+    try {
+      const result = await applyCouponBackend(code, 2000);
+      if (result && result.valid) {
+        setCouponMessage(`✅ ${result.message || 'Coupon applied successfully!'}`);
+      } else {
+        setCouponMessage(`❌ ${result?.message || 'Invalid or expired coupon code.'}`);
+      }
+    } catch {
+      setCouponMessage('❌ Unable to validate coupon code at this time.');
+    }
+    setTimeout(() => setCouponMessage(''), 5000);
+  };
 
   // Notifications state
   const [notifications, setNotifications] = useState([
@@ -412,20 +485,6 @@ export default function CustomerProfilePage({
 
   const handleDeleteAddress = (id) => {
     setAddresses(addresses.filter(a => a.id !== id));
-  };
-
-  // Handle Coupon Apply
-  const handleApplyCoupon = (e) => {
-    e.preventDefault();
-    const code = couponCodeInput.trim().toUpperCase();
-    if (!code) return;
-    const found = coupons.find(c => c.code === code);
-    if (found) {
-      setCouponMessage(`Coupon "${code}" is active! ${found.discount} applied.`);
-    } else {
-      setCouponMessage(`Invalid coupon code "${code}". Please check available coupons.`);
-    }
-    setTimeout(() => setCouponMessage(''), 4000);
   };
 
   // Handle Converting PV to Wallet Balance (SuperCoin style: 10,000 PV = ₹100 Wallet Credit)

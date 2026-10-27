@@ -48,4 +48,16 @@ public class PromotionController {
         PromotionSetting saved = promotionSettingRepository.save(setting);
         return ResponseEntity.ok(saved);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> deletePromotion(@PathVariable String id) {
+        boolean existed = promotionSettingRepository.existsById(id);
+        if (existed) {
+            promotionSettingRepository.deleteById(id);
+        }
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", existed);
+        resp.put("id", id);
+        return ResponseEntity.ok(resp);
+    }
 }

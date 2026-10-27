@@ -40,7 +40,9 @@ import {
   User,
   RotateCcw,
   LogOut,
-  Crown
+  Crown,
+  Ticket,
+  Menu
 } from 'lucide-react';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
@@ -71,6 +73,7 @@ import {
 import ProductEditorPage from './ProductEditorPage';
 import AdPromotionManager from './AdPromotionManager';
 import MembershipManagementPage from './MembershipManagementPage';
+import CouponManager from './CouponManager';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
 import {
   getAdConfig,
@@ -157,9 +160,20 @@ const markNotifAsRead = (id) => {
 };
 
 export default function AdminDashboard({ onBackToStore, onLogout, adminProfileProp }) {
-  // Navigation tabs: 'overview' | 'inventory' | 'orders' | 'customers' | 'support' | 'settings' | 'floating-ad'
+  // Navigation tabs: 'overview' | 'inventory' | 'orders' | 'customers' | 'membership' | 'coupons' | 'support' | 'settings' | 'floating-ad'
   const [activeTab, setActiveTab] = useState('overview');
+  // Sub-sidebar state inside Settings page: 'profile' | 'security' | 'audio' | 'store' | 'policies'
+  const [settingsSubTab, setSettingsSubTab] = useState('profile');
+  const [isSettingsSubSidebarOpen, setIsSettingsSubSidebarOpen] = useState(true);
   const [adPromotionConfig, setAdPromotionConfig] = useState(getAdConfig);
+
+  // Automatically map legacy or external 'profile' tab requests into the unified Settings subsidebar
+  useEffect(() => {
+    if (activeTab === 'profile') {
+      setActiveTab('settings');
+      setSettingsSubTab('profile');
+    }
+  }, [activeTab]);
 
   // Notification & Sound Settings
   const [soundSettings, setSoundSettings] = useState(() => {
@@ -1829,7 +1843,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         adminProfile={adminProfile}
         onLogout={onLogout}
         onNavigateAdminProfile={() => {
-          setActiveTab('profile');
+          setActiveTab('settings');
+          setSettingsSubTab('profile');
           setIsEditingProductView(false);
         }}
         notificationCount={
@@ -1981,19 +1996,19 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             </button>
 
             <button
+              className={`sidebar-nav-button ${activeTab === 'coupons' && !isEditingProductView ? 'active' : ''}`}
+              onClick={() => { setActiveTab('coupons'); setIsEditingProductView(false); }}
+            >
+              <Ticket size={20} />
+              <span>Coupons & Offers</span>
+            </button>
+
+            <button
               className={`sidebar-nav-button ${activeTab === 'support' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('support'); setIsEditingProductView(false); }}
             >
               <Headphones size={20} />
               <span>Customer Support Desk</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'settings' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => { setActiveTab('settings'); setIsEditingProductView(false); }}
-            >
-              <Settings size={20} />
-              <span>Settings & Audio Alerts</span>
             </button>
 
             <button
@@ -2005,11 +2020,11 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             </button>
 
             <button
-              className={`sidebar-nav-button ${activeTab === 'profile' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => { setActiveTab('profile'); setIsEditingProductView(false); }}
+              className={`sidebar-nav-button ${activeTab === 'settings' && !isEditingProductView ? 'active' : ''}`}
+              onClick={() => { setActiveTab('settings'); setIsEditingProductView(false); }}
             >
-              <User size={20} />
-              <span>Admin Profile & Policies</span>
+              <Settings size={20} />
+              <span>Settings</span>
             </button>
           </nav>
 
@@ -3254,484 +3269,638 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               {/* ========================================================
               TAB 6: ADS, BANNERS & PROMOTION MANAGER (LANDING, CATEGORY, FLOATING)
               ======================================================== */}
-              {activeTab === 'floating-ad' && (
-                <AdPromotionManager showToast={showToast} />
-              )}
-
-              {activeTab === 'settings' && (
-                <div className="admin-tab-content">
-                  <div className="content-heading-row">
-                    <div>
-                      <h2 className="content-title">Admin Settings & Audio Notification Preferences</h2>
-                      <p className="content-subtitle">
-                        Configure store profile, synthesized real-time audio chimes, volume levels, and warehouse logistics.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="settings-cards-grid">
-                    {/* 1. Strong Audio Alert Configuration */}
-                    <div className="settings-section-card">
-                      <div className="settings-card-header">
-                        <Volume2 size={20} color="#00A3E0" />
-                        <div>
-                          <h3>Real-Time Strong Audio Alerts</h3>
-                          <p>High-impact synthesizer chimes when orders and customer inquiries arrive</p>
-                        </div>
-                      </div>
-
-                      <div className="settings-body-form">
-                        <div className="setting-toggle-row">
-                          <div>
-                            <div className="setting-title">New Order Arrival Chime</div>
-                            <div className="setting-desc">Ascending 4-tone melodic fanfare (E5 &rarr; G#5 &rarr; B5 &rarr; E6) on new order placement</div>
-                          </div>
-                          <label className="switch">
-                            <input
-                              type="checkbox"
-                              checked={soundSettings.orderSoundEnabled}
-                              onChange={(e) => setSoundSettings({ ...soundSettings, orderSoundEnabled: e.target.checked })}
-                            />
-                            <span className="slider round"></span>
-                          </label>
-                        </div>
-
-                        <div className="setting-toggle-row">
-                          <div>
-                            <div className="setting-title">Customer Support Ticket Chime</div>
-                            <div className="setting-desc">Urgent dual-pulse emergency alert (A5 &rarr; D6) when an inquiry is submitted</div>
-                          </div>
-                          <label className="switch">
-                            <input
-                              type="checkbox"
-                              checked={soundSettings.supportSoundEnabled}
-                              onChange={(e) => setSoundSettings({ ...soundSettings, supportSoundEnabled: e.target.checked })}
-                            />
-                            <span className="slider round"></span>
-                          </label>
-                        </div>
-
-                        <div className="setting-field-group">
-                          <label>Chime Volume Level: <strong>{Math.round(soundSettings.volume * 100)}%</strong></label>
-                          <input
-                            type="range"
-                            min="0.1"
-                            max="1.0"
-                            step="0.05"
-                            value={soundSettings.volume}
-                            onChange={(e) => setSoundSettings({ ...soundSettings, volume: parseFloat(e.target.value) })}
-                            className="volume-slider"
-                          />
-                        </div>
-
-                        <div className="test-buttons-row">
-                          <button type="button" className="test-action-btn" onClick={handleTestOrderSound}>
-                            <Volume2 size={15} />
-                            <span>Test Order Sound Now</span>
-                          </button>
-                          <button type="button" className="test-action-btn" onClick={handleTestSupportSound}>
-                            <Headphones size={15} />
-                            <span>Test Support Sound Now</span>
-                          </button>
-                        </div>
-
-                        <div className="setting-field-group" style={{ marginTop: '16px' }}>
-                          <label>Background Auto-Polling Interval</label>
-                          <select
-                            value={soundSettings.pollingIntervalSec}
-                            onChange={(e) => setSoundSettings({ ...soundSettings, pollingIntervalSec: parseInt(e.target.value) })}
-                            className="atomy-dropdown"
-                          >
-                            <option value="5">Every 5 Seconds (Ultra fast)</option>
-                            <option value="10">Every 10 Seconds (Recommended)</option>
-                            <option value="30">Every 30 Seconds</option>
-                            <option value="60">Every 60 Seconds</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 2. Store Profile Configuration */}
-                    <div className="settings-section-card">
-                      <div className="settings-card-header">
-                        <ShieldCheck size={20} color="#00A3E0" />
-                        <div>
-                          <h3>Official Store Profile & Contacts</h3>
-                          <p>Business information displayed on customer order sheets and invoices</p>
-                        </div>
-                      </div>
-
-                      <div className="settings-body-form">
-                        <div className="setting-field-group">
-                          <label>Store Entity Name</label>
-                          <input
-                            type="text"
-                            value={storeSettings.storeName}
-                            onChange={(e) => setStoreSettings({ ...storeSettings, storeName: e.target.value })}
-                            className="atomy-form-input"
-                          />
-                        </div>
-
-                        <div className="setting-field-group">
-                          <label>Toll Free Helpline</label>
-                          <input
-                            type="text"
-                            value={storeSettings.helpline}
-                            onChange={(e) => setStoreSettings({ ...storeSettings, helpline: e.target.value })}
-                            className="atomy-form-input"
-                          />
-                        </div>
-
-                        <div className="setting-field-group">
-                          <label>Support Email Address</label>
-                          <input
-                            type="email"
-                            value={storeSettings.supportEmail}
-                            onChange={(e) => setStoreSettings({ ...storeSettings, supportEmail: e.target.value })}
-                            className="atomy-form-input"
-                          />
-                        </div>
-
-                        <div className="setting-field-group">
-                          <label>Main Fulfillment Center Location</label>
-                          <input
-                            type="text"
-                            value={storeSettings.fulfillmentCenter}
-                            onChange={(e) => setStoreSettings({ ...storeSettings, fulfillmentCenter: e.target.value })}
-                            className="atomy-form-input"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 3. Logistics & Fulfillment Rules */}
-                    <div className="settings-section-card">
-                      <div className="settings-card-header">
-                        <Truck size={20} color="#00A3E0" />
-                        <div>
-                          <h3>Fulfillment & Logistics Rules</h3>
-                          <p>Default couriers and inventory warning thresholds</p>
-                        </div>
-                      </div>
-
-                      <div className="settings-body-form">
-                        <div className="setting-field-group">
-                          <label>Default Courier Partner</label>
-                          <select
-                            value={storeSettings.defaultCourier}
-                            onChange={(e) => setStoreSettings({ ...storeSettings, defaultCourier: e.target.value })}
-                            className="atomy-dropdown"
-                          >
-                            <option value="Blue Dart Express">Blue Dart Express (Priority Partner)</option>
-                            <option value="Delhivery Logistics">Delhivery Logistics</option>
-                            <option value="DTDC Express">DTDC Express</option>
-                          </select>
-                        </div>
-
-                        <div className="setting-field-group">
-                          <label>Free Shipping Minimum Order (₹)</label>
-                          <input
-                            type="number"
-                            value={storeSettings.freeShippingThreshold}
-                            onChange={(e) => setStoreSettings({ ...storeSettings, freeShippingThreshold: parseInt(e.target.value) || 0 })}
-                            className="atomy-form-input"
-                          />
-                        </div>
-
-                        <div className="setting-field-group">
-                          <label>Default Low Stock Warning Limit (units)</label>
-                          <input
-                            type="number"
-                            value={storeSettings.defaultLowStockAlert}
-                            onChange={(e) => setStoreSettings({ ...storeSettings, defaultLowStockAlert: parseInt(e.target.value) || 10 })}
-                            className="atomy-form-input"
-                          />
-                        </div>
-
-                        <button
-                          className="atomy-btn-primary"
-                          style={{ marginTop: '20px' }}
-                          onClick={() => showToast('Preferences and store settings saved successfully!')}
-                        >
-                          Save All Settings
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {/* ========================================================
+              TAB: COUPONS & OFFERS PROMOTION MANAGER
+              ======================================================== */}
+              {activeTab === 'coupons' && !isEditingProductView && (
+                <CouponManager showToast={showToast} />
               )}
 
               {/* ========================================================
-              TAB 7: ADMIN PROFILE & REFUND/REPLACEMENT CENTER
+              TAB: ADS, BANNERS & PROMOTION MANAGER (LANDING, CATEGORY, FLOATING)
               ======================================================== */}
-              {activeTab === 'profile' && !isEditingProductView && (
-                <div className="tab-pane-content">
-                  {/* Profile Hero Card */}
-                  <div className="admin-profile-hero-card">
-                    <div className="profile-hero-left">
-                      <div className="profile-avatar-large">
-                        {adminProfile.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="profile-badge-row">
-                          <span className="profile-role-badge">{adminProfile.role}</span>
-                          <span className="profile-status-badge">● Active Session</span>
-                        </div>
-                        <h2 className="profile-hero-name">{adminProfile.name}</h2>
-                        <p className="profile-hero-meta">
-                          {adminProfile.employeeId} • {adminProfile.department} • {adminProfile.location}
-                        </p>
-                      </div>
+              {activeTab === 'floating-ad' && !isEditingProductView && (
+                <AdPromotionManager showToast={showToast} />
+              )}
+
+              {/* ========================================================
+              TAB: UNIFIED SYSTEM SETTINGS & ADMIN PROFILE CONSOLE (WITH SUBSIDEBAR)
+              ======================================================== */}
+              {activeTab === 'settings' && !isEditingProductView && (
+                <div className="admin-tab-content settings-unified-layout">
+                  {/* Top Bar with Three-Line Menu Icon at the VERY TOP (Marked Position) */}
+                  {!isSettingsSubSidebarOpen && (
+                    <div className="settings-top-dock-bar">
+                      <button
+                        type="button"
+                        className="sub-sidebar-toggle-btn top-docked"
+                        onClick={() => setIsSettingsSubSidebarOpen(true)}
+                        title="Expand Sub-Sidebar Menu"
+                        aria-label="Expand Sub-Sidebar Menu"
+                      >
+                        <Menu size={19} />
+                      </button>
                     </div>
-                    <div className="profile-hero-right">
-                      <div className="profile-stat-box">
-                        <span className="stat-label">Security Protocol</span>
-                        <span className="stat-value" style={{ color: '#16a34a' }}>2FA Protected</span>
-                      </div>
-                      <div className="profile-stat-box">
-                        <span className="stat-label">Last Session Audit</span>
-                        <span className="stat-value">{adminProfile.lastLogin}</span>
-                      </div>
-                      {onLogout && (
-                        <button
-                          type="button"
-                          id="btn-profile-terminate-session"
-                          onClick={onLogout}
-                          style={{
-                            background: '#ef4444',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '8px 16px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <LogOut size={15} />
-                          <span>Sign Out Session</span>
-                        </button>
+                  )}
+
+                  <div className={`settings-split-wrapper ${!isSettingsSubSidebarOpen ? 'sidebar-hidden' : ''}`}>
+                    {/* Left Sub-Sidebar Navigation (Joined with Toggle Icon) */}
+                    {isSettingsSubSidebarOpen && (
+                      <aside className="settings-sub-sidebar expanded">
+                        <div className="sub-sidebar-header">
+                          <div className="sub-sidebar-header-left">
+                            <button
+                              type="button"
+                              className="sub-sidebar-toggle-btn active"
+                              onClick={() => setIsSettingsSubSidebarOpen(false)}
+                              title="Collapse Sub-Sidebar Menu"
+                              aria-label="Collapse Sub-Sidebar Menu"
+                            >
+                              <Menu size={18} />
+                            </button>
+                            <div className="sub-sidebar-header-text">
+                              <span className="sub-sidebar-kicker">SETTINGS &amp; PREFERENCES</span>
+                              <h4 className="sub-sidebar-current-title">
+                                {settingsSubTab === 'profile' && 'Admin Profile & Credentials'}
+                                {settingsSubTab === 'security' && 'Security & Authorization'}
+                                {settingsSubTab === 'audio' && 'Audio & Alerts Configuration'}
+                                {settingsSubTab === 'store' && 'Store Profile & Logistics'}
+                                {settingsSubTab === 'policies' && 'Refunds & Policy Operations'}
+                              </h4>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="sub-sidebar-close-btn"
+                            onClick={() => setIsSettingsSubSidebarOpen(false)}
+                            title="Hide sub-sidebar"
+                            aria-label="Close sub-sidebar"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                        <nav className="sub-sidebar-nav">
+                          <button
+                            type="button"
+                            className={`sub-sidebar-item ${settingsSubTab === 'profile' ? 'active' : ''}`}
+                            onClick={() => setSettingsSubTab('profile')}
+                          >
+                            <div className="sub-sidebar-icon">
+                              <User size={18} />
+                            </div>
+                            <div className="sub-sidebar-text">
+                              <strong>Admin Profile</strong>
+                              <span>Identity & station info</span>
+                            </div>
+                            <ChevronRight size={14} className="sub-sidebar-chevron" />
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`sub-sidebar-item ${settingsSubTab === 'security' ? 'active' : ''}`}
+                            onClick={() => setSettingsSubTab('security')}
+                          >
+                            <div className="sub-sidebar-icon">
+                              <ShieldCheck size={18} />
+                            </div>
+                            <div className="sub-sidebar-text">
+                              <strong>Security & Access</strong>
+                              <span>2FA, IP audit & permissions</span>
+                            </div>
+                            <ChevronRight size={14} className="sub-sidebar-chevron" />
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`sub-sidebar-item ${settingsSubTab === 'audio' ? 'active' : ''}`}
+                            onClick={() => setSettingsSubTab('audio')}
+                          >
+                            <div className="sub-sidebar-icon">
+                              <Volume2 size={18} />
+                            </div>
+                            <div className="sub-sidebar-text">
+                              <strong>Audio & Alerts</strong>
+                              <span>Synthesizer chimes & polling</span>
+                            </div>
+                            <ChevronRight size={14} className="sub-sidebar-chevron" />
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`sub-sidebar-item ${settingsSubTab === 'store' ? 'active' : ''}`}
+                            onClick={() => setSettingsSubTab('store')}
+                          >
+                            <div className="sub-sidebar-icon">
+                              <Truck size={18} />
+                            </div>
+                            <div className="sub-sidebar-text">
+                              <strong>Store & Logistics</strong>
+                              <span>Entity profile, couriers & stock</span>
+                            </div>
+                            <ChevronRight size={14} className="sub-sidebar-chevron" />
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`sub-sidebar-item ${settingsSubTab === 'policies' ? 'active' : ''}`}
+                            onClick={() => setSettingsSubTab('policies')}
+                          >
+                            <div className="sub-sidebar-icon">
+                              <RotateCcw size={18} />
+                            </div>
+                            <div className="sub-sidebar-text">
+                              <strong>Refunds & Policies</strong>
+                              <span>Satisfaction guarantee & workflow</span>
+                            </div>
+                            <ChevronRight size={14} className="sub-sidebar-chevron" />
+                          </button>
+                        </nav>
+                      </aside>
+                    )}
+
+                    {/* Right Sub-Content Area */}
+                    <div className="settings-sub-content">
+                      {/* SUBTAB 1: ADMIN PROFILE */}
+                      {settingsSubTab === 'profile' && (
+                        <>
+                          <div className="admin-profile-hero-card">
+                            <div className="profile-hero-left">
+                              <div className="profile-avatar-large">
+                                {adminProfile.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="profile-badge-row">
+                                  <span className="profile-role-badge">{adminProfile.role}</span>
+                                  <span className="profile-status-badge">● Active Session</span>
+                                </div>
+                                <h2 className="profile-hero-name">{adminProfile.name}</h2>
+                                <p className="profile-hero-meta">
+                                  {adminProfile.employeeId} • {adminProfile.department} • {adminProfile.location}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="profile-hero-right">
+                              <div className="profile-stat-box">
+                                <span className="stat-label">Security Protocol</span>
+                                <span className="stat-value" style={{ color: '#16a34a' }}>2FA Protected</span>
+                              </div>
+                              <div className="profile-stat-box">
+                                <span className="stat-label">Last Session Audit</span>
+                                <span className="stat-value">{adminProfile.lastLogin}</span>
+                              </div>
+                              {onLogout && (
+                                <button
+                                  type="button"
+                                  id="btn-profile-terminate-session"
+                                  onClick={onLogout}
+                                  style={{
+                                    background: '#ef4444',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '8px 16px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                  <LogOut size={15} />
+                                  <span>Sign Out Session</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="settings-section-card">
+                            <div className="settings-card-header">
+                              <User size={20} color="#00A3E0" />
+                              <div>
+                                <h3>Administrator Details</h3>
+                                <p>Personal profile & office station credentials</p>
+                              </div>
+                            </div>
+                            <div className="settings-body-form">
+                              <div className="setting-field-group">
+                                <label>Full Name</label>
+                                <input
+                                  type="text"
+                                  value={adminProfile.name || ''}
+                                  onChange={(e) => setAdminProfile({ ...adminProfile, name: e.target.value })}
+                                  className="atomy-form-input"
+                                  placeholder="Enter full name"
+                                />
+                              </div>
+                              <div className="setting-field-group">
+                                <label>Official Email</label>
+                                <input
+                                  type="email"
+                                  value={adminProfile.email || ''}
+                                  onChange={(e) => setAdminProfile({ ...adminProfile, email: e.target.value })}
+                                  className="atomy-form-input"
+                                  placeholder="admin@atomy.com"
+                                />
+                              </div>
+                              <div className="setting-field-group">
+                                <label>Phone Number</label>
+                                <input
+                                  type="text"
+                                  value={adminProfile.phone || ''}
+                                  onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
+                                  className="atomy-form-input"
+                                  placeholder="+91 98765 43210"
+                                />
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div className="setting-field-group">
+                                  <label>Employee ID</label>
+                                  <input
+                                    type="text"
+                                    value={adminProfile.employeeId || ''}
+                                    onChange={(e) => setAdminProfile({ ...adminProfile, employeeId: e.target.value })}
+                                    className="atomy-form-input"
+                                    placeholder="AT-IN-001"
+                                  />
+                                </div>
+                                <div className="setting-field-group">
+                                  <label>Department</label>
+                                  <input
+                                    type="text"
+                                    value={adminProfile.department || ''}
+                                    onChange={(e) => setAdminProfile({ ...adminProfile, department: e.target.value })}
+                                    className="atomy-form-input"
+                                    placeholder="Operations & Supply Chain"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                className="atomy-btn-primary"
+                                style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                                disabled={isSavingProfile}
+                                onClick={handleSaveAdminProfile}
+                              >
+                                {isSavingProfile ? (
+                                  <>
+                                    <RefreshCw size={16} className="spin" />
+                                    <span>Saving to Database...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check size={16} />
+                                    <span>Save Profile Changes</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </>
                       )}
-                    </div>
-                  </div>
 
-                  {/* Profile Details & Security Grid */}
-                  <div className="profile-grid-cards">
-                    {/* Personal & Station Information */}
-                    <div className="settings-section-card">
-                      <div className="settings-card-header">
-                        <User size={20} color="#00A3E0" />
-                        <div>
-                          <h3>Administrator Details</h3>
-                          <p>Personal profile & office station credentials</p>
-                        </div>
-                      </div>
-                      <div className="settings-body-form">
-                        <div className="setting-field-group">
-                          <label>Full Name</label>
-                          <input
-                            type="text"
-                            value={adminProfile.name || ''}
-                            onChange={(e) => setAdminProfile({ ...adminProfile, name: e.target.value })}
-                            className="atomy-form-input"
-                            placeholder="Enter full name"
-                          />
-                        </div>
-                        <div className="setting-field-group">
-                          <label>Official Email</label>
-                          <input
-                            type="email"
-                            value={adminProfile.email || ''}
-                            onChange={(e) => setAdminProfile({ ...adminProfile, email: e.target.value })}
-                            className="atomy-form-input"
-                            placeholder="admin@atomy.com"
-                          />
-                        </div>
-                        <div className="setting-field-group">
-                          <label>Phone Number</label>
-                          <input
-                            type="text"
-                            value={adminProfile.phone || ''}
-                            onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
-                            className="atomy-form-input"
-                            placeholder="+91 98765 43210"
-                          />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                          <div className="setting-field-group">
-                            <label>Employee ID</label>
-                            <input
-                              type="text"
-                              value={adminProfile.employeeId || ''}
-                              onChange={(e) => setAdminProfile({ ...adminProfile, employeeId: e.target.value })}
-                              className="atomy-form-input"
-                              placeholder="AT-IN-001"
-                            />
-                          </div>
-                          <div className="setting-field-group">
-                            <label>Department</label>
-                            <input
-                              type="text"
-                              value={adminProfile.department || ''}
-                              onChange={(e) => setAdminProfile({ ...adminProfile, department: e.target.value })}
-                              className="atomy-form-input"
-                              placeholder="Operations & Supply Chain"
-                            />
-                          </div>
-                        </div>
-                        <button
-                          className="atomy-btn-primary"
-                          style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                          disabled={isSavingProfile}
-                          onClick={handleSaveAdminProfile}
-                        >
-                          {isSavingProfile ? (
-                            <>
-                              <RefreshCw size={16} className="spin" />
-                              <span>Saving to Database...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Check size={16} />
-                              <span>Save Profile Changes</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Security & Access Level */}
-                    <div className="settings-section-card">
-                      <div className="settings-card-header">
-                        <ShieldCheck size={20} color="#16a34a" />
-                        <div>
-                          <h3>Security & Authorization</h3>
-                          <p>Access privileges and audit compliance</p>
-                        </div>
-                      </div>
-                      <div className="settings-body-form">
-                        <div className="security-item-row">
-                          <div>
-                            <strong>Two-Factor Authentication</strong>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>Authenticator app / SMS OTP active</div>
-                          </div>
-                          <span className="profile-role-badge" style={{ background: '#dcfce7', color: '#15803d' }}>ENABLED</span>
-                        </div>
-
-                        <div className="security-item-row">
-                          <div>
-                            <strong>Terminal Session IP</strong>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>{adminProfile.sessionIp}</div>
-                          </div>
-                          <span className="profile-role-badge">SECURE</span>
-                        </div>
-
-                        <div className="permission-matrix-box" style={{ marginTop: '14px' }}>
-                          <div className="matrix-title">Assigned Super Admin Permissions:</div>
-                          <div className="matrix-items">
-                            <span className="perm-pill">✓ Full Catalog & Inventory Management</span>
-                            <span className="perm-pill">✓ Customer Order Processing & Status Override</span>
-                            <span className="perm-pill">✓ Refund Approvals & Payment Gateway Reversals</span>
-                            <span className="perm-pill">✓ 1-to-1 Replacement Dispatch Authorization</span>
-                            <span className="perm-pill">✓ Live Ads, Banners & Promotion Campaigns</span>
-                            <span className="perm-pill">✓ Audio Chimes & Sound Alert Configuration</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dedicated Section: Refund & Replacement Management and Policy */}
-                  <div className="settings-section-card" style={{ marginTop: '24px' }}>
-                    <div className="settings-card-header">
-                      <RotateCcw size={20} color="#00A3E0" />
-                      <div>
-                        <h3>Atomy India Refund & Replacement Policy and Operations Center</h3>
-                        <p>Official policy standards, return rules, and administrative execution workflows</p>
-                      </div>
-                    </div>
-
-                    <div className="settings-body-form">
-                      {/* Policy Pillars Grid */}
-                      <div className="policy-pillars-grid">
-                        <div className="pillar-card">
-                          <div className="pillar-num">POLICY 01</div>
-                          <h4>30-Day Money-Back Guarantee</h4>
-                          <p>
-                            Atomy India provides a 100% satisfaction guarantee. Customers can return unopened or gently tested products within 30 days of delivery if they are dissatisfied with the quality or results.
-                          </p>
-                        </div>
-
-                        <div className="pillar-card">
-                          <div className="pillar-num">POLICY 02</div>
-                          <h4>Zero-Cost Replacement for Damaged Goods</h4>
-                          <p>
-                            Items received broken, leaked in transit, or defective qualify for an immediate 1-to-1 replacement. Reverse logistics pickup is dispatched through Blue Dart or Delhivery at zero expense to the consumer.
-                          </p>
-                        </div>
-
-                        <div className="pillar-card">
-                          <div className="pillar-num">POLICY 03</div>
-                          <h4>Direct Payment Reversal (UPI / Cards / NetBanking)</h4>
-                          <p>
-                            Approved refunds are credited back to the customer's original payment method within 5 to 7 business days. Point Value (PV) earned on returned items is automatically adjusted from the member ledger.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Operational Step-by-Step Box */}
-                      <div className="refund-workflow-box" style={{ marginTop: '20px' }}>
-                        <h4 style={{ margin: '0 0 12px', color: '#0369a1', fontSize: '14px', fontWeight: '800' }}>
-                          How Admins Process Refunds & Replacements in this Console:
-                        </h4>
-                        <div className="workflow-steps">
-                          <div className="wf-step">
-                            <span className="step-badge">Step 1</span>
+                      {/* SUBTAB 2: SECURITY & AUTHORIZATION */}
+                      {settingsSubTab === 'security' && (
+                        <div className="settings-section-card">
+                          <div className="settings-card-header">
+                            <ShieldCheck size={20} color="#16a34a" />
                             <div>
-                              <strong>Customer Request Received:</strong> Customer submits a ticket via Support Desk (Category: <code>REFUND_REQUEST</code> or <code>DAMAGED_PRODUCT</code>) or requests cancellation on Order details.
+                              <h3>Security & Authorization</h3>
+                              <p>Access privileges and audit compliance</p>
                             </div>
                           </div>
-                          <div className="wf-step">
-                            <span className="step-badge">Step 2</span>
-                            <div>
-                              <strong>Verification & Inspection:</strong> Admin reviews courier tracking status, product invoice, and any unboxing video/photo proof attached to the support ticket.
+                          <div className="settings-body-form">
+                            <div className="security-item-row">
+                              <div>
+                                <strong>Two-Factor Authentication</strong>
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>Authenticator app / SMS OTP active</div>
+                              </div>
+                              <span className="profile-role-badge" style={{ background: '#dcfce7', color: '#15803d' }}>ENABLED</span>
                             </div>
-                          </div>
-                          <div className="wf-step">
-                            <span className="step-badge">Step 3</span>
-                            <div>
-                              <strong>One-Click Execution:</strong> For refunds, click <em>"Process Refund"</em> in the Order Inspector to transition status to <code>REFUNDED</code> / <code>CANCELLED</code>. For replacements, dispatch a fresh shipment note to Blue Dart.
+
+                            <div className="security-item-row">
+                              <div>
+                                <strong>Terminal Session IP</strong>
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>{adminProfile.sessionIp}</div>
+                              </div>
+                              <span className="profile-role-badge">SECURE</span>
+                            </div>
+
+                            <div className="permission-matrix-box" style={{ marginTop: '14px' }}>
+                              <div className="matrix-title">Assigned Super Admin Permissions:</div>
+                              <div className="matrix-items">
+                                <span className="perm-pill">✓ Full Catalog & Inventory Management</span>
+                                <span className="perm-pill">✓ Customer Order Processing & Status Override</span>
+                                <span className="perm-pill">✓ Coupons & Promotional Offers Configuration</span>
+                                <span className="perm-pill">✓ Refund Approvals & Payment Gateway Reversals</span>
+                                <span className="perm-pill">✓ 1-to-1 Replacement Dispatch Authorization</span>
+                                <span className="perm-pill">✓ Live Ads, Banners & Promotion Campaigns</span>
+                                <span className="perm-pill">✓ Audio Chimes & Sound Alert Configuration</span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      )}
 
-                      {/* Quick Action Button to jump to orders or support */}
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '18px' }}>
-                        <button
-                          className="atomy-btn-primary"
-                          onClick={() => {
-                            setActiveTab('orders');
-                            setOrderStatusFilter('ALL');
-                          }}
-                        >
-                          Go to Customer Orders (Process Refunds)
-                        </button>
-                        <button
-                          className="atomy-btn-secondary"
-                          onClick={() => {
-                            setActiveTab('support');
-                            setTicketStatusFilter('ALL');
-                          }}
-                        >
-                          Open Support Desk (Review Tickets)
-                        </button>
-                      </div>
+                      {/* SUBTAB 3: AUDIO & ALERTS */}
+                      {settingsSubTab === 'audio' && (
+                        <div className="settings-section-card">
+                          <div className="settings-card-header">
+                            <Volume2 size={20} color="#00A3E0" />
+                            <div>
+                              <h3>Real-Time Strong Audio Alerts</h3>
+                              <p>High-impact synthesizer chimes when orders and customer inquiries arrive</p>
+                            </div>
+                          </div>
+
+                          <div className="settings-body-form">
+                            <div className="setting-toggle-row">
+                              <div>
+                                <div className="setting-title">New Order Arrival Chime</div>
+                                <div className="setting-desc">Ascending 4-tone melodic fanfare (E5 &rarr; G#5 &rarr; B5 &rarr; E6) on new order placement</div>
+                              </div>
+                              <label className="switch">
+                                <input
+                                  type="checkbox"
+                                  checked={soundSettings.orderSoundEnabled}
+                                  onChange={(e) => setSoundSettings({ ...soundSettings, orderSoundEnabled: e.target.checked })}
+                                />
+                                <span className="slider round"></span>
+                              </label>
+                            </div>
+
+                            <div className="setting-toggle-row">
+                              <div>
+                                <div className="setting-title">Customer Support Ticket Chime</div>
+                                <div className="setting-desc">Urgent dual-pulse emergency alert (A5 &rarr; D6) when an inquiry is submitted</div>
+                              </div>
+                              <label className="switch">
+                                <input
+                                  type="checkbox"
+                                  checked={soundSettings.supportSoundEnabled}
+                                  onChange={(e) => setSoundSettings({ ...soundSettings, supportSoundEnabled: e.target.checked })}
+                                />
+                                <span className="slider round"></span>
+                              </label>
+                            </div>
+
+                            <div className="setting-field-group">
+                              <label>Chime Volume Level: <strong>{Math.round(soundSettings.volume * 100)}%</strong></label>
+                              <input
+                                type="range"
+                                min="0.1"
+                                max="1.0"
+                                step="0.05"
+                                value={soundSettings.volume}
+                                onChange={(e) => setSoundSettings({ ...soundSettings, volume: parseFloat(e.target.value) })}
+                                className="volume-slider"
+                              />
+                            </div>
+
+                            <div className="test-buttons-row">
+                              <button type="button" className="test-action-btn" onClick={handleTestOrderSound}>
+                                <Volume2 size={15} />
+                                <span>Test Order Sound Now</span>
+                              </button>
+                              <button type="button" className="test-action-btn" onClick={handleTestSupportSound}>
+                                <Headphones size={15} />
+                                <span>Test Support Sound Now</span>
+                              </button>
+                            </div>
+
+                            <div className="setting-field-group" style={{ marginTop: '16px' }}>
+                              <label>Background Auto-Polling Interval</label>
+                              <select
+                                value={soundSettings.pollingIntervalSec}
+                                onChange={(e) => setSoundSettings({ ...soundSettings, pollingIntervalSec: parseInt(e.target.value) })}
+                                className="atomy-dropdown"
+                              >
+                                <option value="5">Every 5 Seconds (Ultra fast)</option>
+                                <option value="10">Every 10 Seconds (Recommended)</option>
+                                <option value="30">Every 30 Seconds</option>
+                                <option value="60">Every 60 Seconds</option>
+                              </select>
+                            </div>
+
+                            <button
+                              className="atomy-btn-primary"
+                              style={{ marginTop: '16px', alignSelf: 'flex-start' }}
+                              onClick={() => {
+                                try {
+                                  localStorage.setItem('atomy_admin_sound_settings', JSON.stringify(soundSettings));
+                                } catch {}
+                                showToast('Audio alert preferences saved successfully!', 'success');
+                              }}
+                            >
+                              Save Audio Settings
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUBTAB 4: STORE & LOGISTICS */}
+                      {settingsSubTab === 'store' && (
+                        <div className="settings-cards-grid" style={{ gridTemplateColumns: '1fr' }}>
+                          <div className="settings-section-card">
+                            <div className="settings-card-header">
+                              <ShieldCheck size={20} color="#00A3E0" />
+                              <div>
+                                <h3>Official Store Profile & Contacts</h3>
+                                <p>Business information displayed on customer order sheets and invoices</p>
+                              </div>
+                            </div>
+
+                            <div className="settings-body-form">
+                              <div className="setting-field-group">
+                                <label>Store Entity Name</label>
+                                <input
+                                  type="text"
+                                  value={storeSettings.storeName}
+                                  onChange={(e) => setStoreSettings({ ...storeSettings, storeName: e.target.value })}
+                                  className="atomy-form-input"
+                                />
+                              </div>
+
+                              <div className="setting-field-group">
+                                <label>Toll Free Helpline</label>
+                                <input
+                                  type="text"
+                                  value={storeSettings.helpline}
+                                  onChange={(e) => setStoreSettings({ ...storeSettings, helpline: e.target.value })}
+                                  className="atomy-form-input"
+                                />
+                              </div>
+
+                              <div className="setting-field-group">
+                                <label>Support Email Address</label>
+                                <input
+                                  type="email"
+                                  value={storeSettings.supportEmail}
+                                  onChange={(e) => setStoreSettings({ ...storeSettings, supportEmail: e.target.value })}
+                                  className="atomy-form-input"
+                                />
+                              </div>
+
+                              <div className="setting-field-group">
+                                <label>Main Fulfillment Center Location</label>
+                                <input
+                                  type="text"
+                                  value={storeSettings.fulfillmentCenter}
+                                  onChange={(e) => setStoreSettings({ ...storeSettings, fulfillmentCenter: e.target.value })}
+                                  className="atomy-form-input"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="settings-section-card">
+                            <div className="settings-card-header">
+                              <Truck size={20} color="#00A3E0" />
+                              <div>
+                                <h3>Fulfillment & Logistics Rules</h3>
+                                <p>Default couriers and inventory warning thresholds</p>
+                              </div>
+                            </div>
+
+                            <div className="settings-body-form">
+                              <div className="setting-field-group">
+                                <label>Default Courier Partner</label>
+                                <select
+                                  value={storeSettings.defaultCourier}
+                                  onChange={(e) => setStoreSettings({ ...storeSettings, defaultCourier: e.target.value })}
+                                  className="atomy-dropdown"
+                                >
+                                  <option value="Blue Dart Express">Blue Dart Express (Priority Partner)</option>
+                                  <option value="Delhivery Logistics">Delhivery Logistics</option>
+                                  <option value="DTDC Express">DTDC Express</option>
+                                </select>
+                              </div>
+
+                              <div className="setting-field-group">
+                                <label>Free Shipping Minimum Order (₹)</label>
+                                <input
+                                  type="number"
+                                  value={storeSettings.freeShippingThreshold}
+                                  onChange={(e) => setStoreSettings({ ...storeSettings, freeShippingThreshold: parseInt(e.target.value) || 0 })}
+                                  className="atomy-form-input"
+                                />
+                              </div>
+
+                              <div className="setting-field-group">
+                                <label>Default Low Stock Warning Limit (units)</label>
+                                <input
+                                  type="number"
+                                  value={storeSettings.defaultLowStockAlert}
+                                  onChange={(e) => setStoreSettings({ ...storeSettings, defaultLowStockAlert: parseInt(e.target.value) || 10 })}
+                                  className="atomy-form-input"
+                                />
+                              </div>
+
+                              <button
+                                className="atomy-btn-primary"
+                                style={{ marginTop: '16px', alignSelf: 'flex-start' }}
+                                onClick={() => {
+                                  try {
+                                    localStorage.setItem('atomy_admin_store_settings', JSON.stringify(storeSettings));
+                                  } catch {}
+                                  showToast('Store settings and logistics rules saved successfully!', 'success');
+                                }}
+                              >
+                                Save Store & Logistics Settings
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUBTAB 5: POLICIES */}
+                      {settingsSubTab === 'policies' && (
+                        <div className="settings-section-card">
+                          <div className="settings-card-header">
+                            <RotateCcw size={20} color="#00A3E0" />
+                            <div>
+                              <h3>Atomy India Refund & Replacement Policy and Operations Center</h3>
+                              <p>Official policy standards, return rules, and administrative execution workflows</p>
+                            </div>
+                          </div>
+
+                          <div className="settings-body-form">
+                            <div className="policy-pillars-grid">
+                              <div className="pillar-card">
+                                <div className="pillar-num">POLICY 01</div>
+                                <h4>30-Day Money-Back Guarantee</h4>
+                                <p>
+                                  Atomy India provides a 100% satisfaction guarantee. Customers can return unopened or gently tested products within 30 days of delivery if they are dissatisfied with the quality or results.
+                                </p>
+                              </div>
+
+                              <div className="pillar-card">
+                                <div className="pillar-num">POLICY 02</div>
+                                <h4>Zero-Cost Replacement for Damaged Goods</h4>
+                                <p>
+                                  Items received broken, leaked in transit, or defective qualify for an immediate 1-to-1 replacement. Reverse logistics pickup is dispatched through Blue Dart or Delhivery at zero expense to the consumer.
+                                </p>
+                              </div>
+
+                              <div className="pillar-card">
+                                <div className="pillar-num">POLICY 03</div>
+                                <h4>Direct Payment Reversal (UPI / Cards / NetBanking)</h4>
+                                <p>
+                                  Approved refunds are credited back to the customer's original payment method within 5 to 7 business days. Point Value (PV) earned on returned items is automatically adjusted from the member ledger.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="refund-workflow-box" style={{ marginTop: '20px' }}>
+                              <h4 style={{ margin: '0 0 12px', color: '#0369a1', fontSize: '14px', fontWeight: '800' }}>
+                                How Admins Process Refunds & Replacements in this Console:
+                              </h4>
+                              <div className="workflow-steps">
+                                <div className="wf-step">
+                                  <span className="step-badge">Step 1</span>
+                                  <div>
+                                    <strong>Customer Request Received:</strong> Customer submits a ticket via Support Desk (Category: <code>REFUND_REQUEST</code> or <code>DAMAGED_PRODUCT</code>) or requests cancellation on Order details.
+                                  </div>
+                                </div>
+                                <div className="wf-step">
+                                  <span className="step-badge">Step 2</span>
+                                  <div>
+                                    <strong>Verification & Inspection:</strong> Admin reviews courier tracking status, product invoice, and any unboxing video/photo proof attached to the support ticket.
+                                  </div>
+                                </div>
+                                <div className="wf-step">
+                                  <span className="step-badge">Step 3</span>
+                                  <div>
+                                    <strong>One-Click Execution:</strong> For refunds, click <em>"Process Refund"</em> in the Order Inspector to transition status to <code>REFUNDED</code> / <code>CANCELLED</code>. For replacements, dispatch a fresh shipment note to Blue Dart.
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '18px' }}>
+                              <button
+                                className="atomy-btn-primary"
+                                onClick={() => {
+                                  setActiveTab('orders');
+                                  setOrderStatusFilter('ALL');
+                                }}
+                              >
+                                Go to Customer Orders (Process Refunds)
+                              </button>
+                              <button
+                                className="atomy-btn-secondary"
+                                onClick={() => {
+                                  setActiveTab('support');
+                                  setTicketStatusFilter('ALL');
+                                }}
+                              >
+                                Open Support Desk (Review Tickets)
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

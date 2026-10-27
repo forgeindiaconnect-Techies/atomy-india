@@ -7,8 +7,13 @@
  * - Daily 'Do not show again today' suppression handling
  */
 
-const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
-const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
+export function getApiBase() {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8085/api';
+  }
+  const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
+  return rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
+}
 
 export const DEFAULT_POPUP_ADS = [
   {
@@ -132,9 +137,10 @@ export async function saveAdConfig(updatedConfig) {
     console.error('Local save error:', err);
   }
 
-  // Push to MySQL backend (port 8085)
+  // Push to Spring Boot backend (port 8085)
   try {
-    await fetch(`${API_BASE}/promotions/floating_ad`, {
+    const apiBase = getApiBase();
+    await fetch(`${apiBase}/promotions/floating_ad`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config)
@@ -146,10 +152,11 @@ export async function saveAdConfig(updatedConfig) {
   return config;
 }
 
-// Pull latest ad config from MySQL backend
+// Pull latest ad config from Spring Boot backend
 export async function fetchRemoteAdConfig() {
   try {
-    const res = await fetch(`${API_BASE}/promotions/floating_ad`);
+    const apiBase = getApiBase();
+    const res = await fetch(`${apiBase}/promotions/floating_ad`);
     if (res.ok) {
       const rawText = await res.text();
       if (rawText && rawText.trim() !== '') {
