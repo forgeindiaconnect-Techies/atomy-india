@@ -3,8 +3,11 @@ package com.example.atomy_india.controller.customer;
 import com.example.atomy_india.dto.CustomerLoginRequest;
 import com.example.atomy_india.dto.CustomerRegisterRequest;
 import com.example.atomy_india.model.CustomerUser;
+import com.example.atomy_india.model.PasswordResetToken;
 import com.example.atomy_india.repository.CustomerUserRepository;
 import com.example.atomy_india.repository.MembershipRepository;
+import com.example.atomy_india.repository.PasswordResetTokenRepository;
+import com.example.atomy_india.service.BrevoEmailService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,11 +23,17 @@ public class CustomerAuthController {
 
     private final CustomerUserRepository customerUserRepository;
     private final MembershipRepository membershipRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final BrevoEmailService brevoEmailService;
 
     public CustomerAuthController(CustomerUserRepository customerUserRepository,
-                                  MembershipRepository membershipRepository) {
+                                  MembershipRepository membershipRepository,
+                                  PasswordResetTokenRepository passwordResetTokenRepository,
+                                  BrevoEmailService brevoEmailService) {
         this.customerUserRepository = customerUserRepository;
         this.membershipRepository = membershipRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.brevoEmailService = brevoEmailService;
     }
 
     /**
@@ -212,5 +221,154 @@ public class CustomerAuthController {
     @GetMapping("/customers")
     public ResponseEntity<List<CustomerUser>> getAllRegisteredCustomers() {
         return ResponseEntity.ok(customerUserRepository.findAllByOrderByCreatedAtDesc());
+    }
+
+    /**
+     * POST /api/auth/forgot-password
+     * Generates a 6-digit OTP and dispatches it via Brevo Transactional Email
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String rawEmail = body.get("email");
+        if (rawEmail == null || rawEmail.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Email address is required."));
+        }
+
+        String email = rawEmail.trim().toLowerCase();
+        Optional<CustomerUser> userOpt = customerUserRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            // Also try to find by username
+            userOpt = customerUserRepository.findByUsername(rawEmail.trim());
+        }
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", "No account registered with \"" + rawEmail + "\". Please check your email or sign up."
+            ));
+        }
+
+        CustomerUser customer = userOpt.get();
+        String targetEmail = customer.getEmail();
+        if (targetEmail == null || targetEmail.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Customer account has no associated email address."));
+        }
+
+        // Generate a 6-digit cryptographic numeric OTP
+        int otpNum = 100000 + new Random().nextInt(900000);
+        String otp = String.valueOf(otpNum);
+
+        // Delete any existing unused tokens for this email and save new token with 15-minute expiry
+        try {
+            passwordResetTokenRepository.deleteByEmailIgnoreCase(targetEmail);
+        } catch (Exception e) {}
+
+        PasswordResetToken token = new PasswordResetToken(targetEmail, otp, LocalDateTime.now().plusMinutes(15));
+        passwordResetTokenRepository.save(token);
+
+        // Dispatch OTP email via Brevo asynchronously
+        brevoEmailService.sendPasswordResetOtp(targetEmail, customer.getFullName(), otp);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "A 6-digit verification code has been sent to " + targetEmail + ". Please check your inbox.",
+                "email", targetEmail
+        ));
+    }
+
+    /**
+     * POST /api/auth/verify-otp
+     * Validates whether the provided OTP is correct and unexpired
+     */
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String otp = body.get("otp");
+
+        if (email == null || email.trim().isEmpty() || otp == null || otp.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Email and OTP code are required."));
+        }
+
+        Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository
+                .findFirstByEmailIgnoreCaseAndUsedFalseOrderByCreatedAtDesc(email.trim().toLowerCase());
+
+        if (tokenOpt.isEmpty() || !tokenOpt.get().getOtp().equals(otp.trim())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "success", false,
+                    "message", "Invalid verification code. Please check your email and try again."
+            ));
+        }
+
+        PasswordResetToken token = tokenOpt.get();
+        if (token.isExpired()) {
+            return ResponseEntity.status(HttpStatus.GONE).body(Map.of(
+                    "success", false,
+                    "message", "This verification code has expired (15-minute validity). Please request a new one."
+            ));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Verification code validated successfully."
+        ));
+    }
+
+    /**
+     * POST /api/auth/reset-password
+     * Verifies the OTP, updates the customer's password in MongoDB, and dispatches a confirmation email
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String otp = body.get("otp");
+        String newPassword = body.get("newPassword");
+
+        if (email == null || email.trim().isEmpty() || otp == null || otp.trim().isEmpty() || newPassword == null || newPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Email, OTP, and new password are required."));
+        }
+
+        if (newPassword.trim().length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "New password must be at least 6 characters long."));
+        }
+
+        String cleanEmail = email.trim().toLowerCase();
+        Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository
+                .findFirstByEmailIgnoreCaseAndUsedFalseOrderByCreatedAtDesc(cleanEmail);
+
+        if (tokenOpt.isEmpty() || !tokenOpt.get().getOtp().equals(otp.trim())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "success", false,
+                    "message", "Invalid or expired verification code."
+            ));
+        }
+
+        PasswordResetToken token = tokenOpt.get();
+        if (token.isExpired()) {
+            return ResponseEntity.status(HttpStatus.GONE).body(Map.of(
+                    "success", false,
+                    "message", "This verification code has expired. Please request a new code."
+            ));
+        }
+
+        Optional<CustomerUser> userOpt = customerUserRepository.findByEmail(cleanEmail);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", "Customer account not found."));
+        }
+
+        CustomerUser customer = userOpt.get();
+        customer.setPassword(newPassword.trim());
+        customerUserRepository.save(customer);
+
+        // Mark OTP token as used
+        token.setUsed(true);
+        passwordResetTokenRepository.save(token);
+
+        // Send confirmation email via Brevo
+        brevoEmailService.sendPasswordResetSuccess(cleanEmail, customer.getFullName());
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Password has been successfully updated. You can now sign in with your new password."
+        ));
     }
 }

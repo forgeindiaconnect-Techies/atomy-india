@@ -50,6 +50,7 @@ export default function CustomerProfilePage({
   const [activeTab, setActiveTab] = useState('profile'); // profile, orders, wishlist, reviews, coupons, notifications, giftcards, addresses
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
   const [profileSuccessMessage, setProfileSuccessMessage] = useState('');
   
   // Profile edit form state
@@ -96,6 +97,13 @@ export default function CustomerProfilePage({
     } catch {}
     return [];
   });
+
+  // Persist customer addresses to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('atomy_customer_addresses', JSON.stringify(addresses));
+    } catch {}
+  }, [addresses]);
 
   const [newAddressForm, setNewAddressForm] = useState({
     type: 'Home',
@@ -455,16 +463,76 @@ export default function CustomerProfilePage({
 
 
 
-  // Handle Address Add
-  const handleAddAddress = (e) => {
+  // Handle Address Add, Edit & Delete
+  const handleOpenAddAddress = () => {
+    setEditingAddressId(null);
+    setIsAddingAddress(true);
+    setIsLocationDetected(false);
+    setAvailableAreas([]);
+    setNewAddressForm({
+      type: 'Home',
+      fullName: currentUser?.name || '',
+      phone: currentUser?.phone ? currentUser.phone.replace(/^\+91/, '').trim() : '',
+      street: '',
+      city: '',
+      state: '',
+      pincode: ''
+    });
+  };
+
+  const handleOpenEditAddress = (addr) => {
+    setEditingAddressId(addr.id);
+    setIsAddingAddress(true);
+    setIsLocationDetected(false);
+    setAvailableAreas([]);
+    setNewAddressForm({
+      type: addr.type || addr.tag || 'Home',
+      fullName: addr.fullName || addr.recipientName || '',
+      phone: (addr.phone || addr.recipientPhone || '').replace(/^\+91/, '').trim(),
+      street: addr.street || addr.addressLine1 || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      pincode: addr.pincode || ''
+    });
+    if (addr.pincode && addr.pincode.length === 6) {
+      handleLookupPincodeDetails(addr.pincode);
+    }
+  };
+
+  const handleSaveAddress = (e) => {
     e.preventDefault();
     if (!newAddressForm.street || !newAddressForm.city || !newAddressForm.pincode) return;
-    const newAddr = {
-      id: `addr-${Date.now()}`,
-      ...newAddressForm,
-      isDefault: addresses.length === 0
-    };
-    setAddresses([...addresses, newAddr]);
+
+    if (editingAddressId) {
+      setAddresses(prev => prev.map(a => {
+        if (a.id === editingAddressId) {
+          return {
+            ...a,
+            ...newAddressForm,
+            recipientName: newAddressForm.fullName,
+            recipientPhone: newAddressForm.phone,
+            addressLine1: newAddressForm.street,
+            tag: newAddressForm.type,
+            id: editingAddressId
+          };
+        }
+        return a;
+      }));
+      setEditingAddressId(null);
+    } else {
+      const newId = `addr-${Date.now()}`;
+      const newAddr = {
+        id: newId,
+        ...newAddressForm,
+        recipientName: newAddressForm.fullName,
+        recipientPhone: newAddressForm.phone,
+        addressLine1: newAddressForm.street,
+        tag: newAddressForm.type,
+        isDefault: addresses.length === 0
+      };
+      setAddresses(prev => [...prev, newAddr]);
+    }
+
     setIsAddingAddress(false);
     setIsLocationDetected(false);
     setAvailableAreas([]);
@@ -479,12 +547,23 @@ export default function CustomerProfilePage({
     });
   };
 
+  const handleCancelAddress = () => {
+    setIsAddingAddress(false);
+    setEditingAddressId(null);
+    setIsLocationDetected(false);
+    setAvailableAreas([]);
+  };
+
   const handleSetDefaultAddress = (id) => {
-    setAddresses(addresses.map(a => ({ ...a, isDefault: a.id === id })));
+    setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id })));
   };
 
   const handleDeleteAddress = (id) => {
-    setAddresses(addresses.filter(a => a.id !== id));
+    setAddresses(prev => prev.filter(a => a.id !== id));
+    if (editingAddressId === id) {
+      setEditingAddressId(null);
+      setIsAddingAddress(false);
+    }
   };
 
   // Handle Converting PV to Wallet Balance (SuperCoin style: 10,000 PV = ₹100 Wallet Credit)
@@ -1334,7 +1413,7 @@ export default function CustomerProfilePage({
                   <button
                     type="button"
                     className="profile-action-primary-btn"
-                    onClick={() => setIsAddingAddress(true)}
+                    onClick={handleOpenAddAddress}
                   >
                     <Plus size={15} />
                     <span>Add New Address</span>
@@ -1343,8 +1422,10 @@ export default function CustomerProfilePage({
               </div>
 
               {isAddingAddress && (
-                <form onSubmit={handleAddAddress} className="add-address-form-card">
-                  <h3 className="add-address-title">Add Delivery Address</h3>
+                <form onSubmit={handleSaveAddress} className="add-address-form-card">
+                  <h3 className="add-address-title">
+                    {editingAddressId ? 'Edit Delivery Address' : 'Add Delivery Address'}
+                  </h3>
 
                   {/* Top Location Bar: Use Current Location Button & Feedback */}
                   <div className="modal-current-location-banner" style={{ marginBottom: '16px' }}>
@@ -1508,8 +1589,12 @@ export default function CustomerProfilePage({
                   </div>
 
                   <div className="profile-form-btn-row">
-                    <button type="submit" className="profile-save-btn">Save Address</button>
-                    <button type="button" className="profile-cancel-btn" onClick={() => setIsAddingAddress(false)}>Cancel</button>
+                    <button type="submit" className="profile-save-btn">
+                      {editingAddressId ? 'Update Address' : 'Save Address'}
+                    </button>
+                    <button type="button" className="profile-cancel-btn" onClick={handleCancelAddress}>
+                      Cancel
+                    </button>
                   </div>
                 </form>
               )}
@@ -1525,16 +1610,26 @@ export default function CustomerProfilePage({
                   addresses.map((addr) => (
                   <div key={addr.id} className={`address-card ${addr.isDefault ? 'default' : ''}`}>
                     <div className="address-card-header">
-                      <span className="address-type-tag">{addr.type}</span>
+                      <span className="address-type-tag">{addr.type || addr.tag || 'Home'}</span>
                       {addr.isDefault && (
                         <span className="default-address-pill">Default Delivery Address</span>
                       )}
                     </div>
-                    <h4 className="address-recipient">{addr.fullName}</h4>
-                    <p className="address-line">{addr.street}</p>
+                    <h4 className="address-recipient">{addr.fullName || addr.recipientName}</h4>
+                    <p className="address-line">{addr.street || addr.addressLine1}</p>
                     <p className="address-line">{addr.city}, {addr.state} - {addr.pincode}</p>
-                    <p className="address-phone"><Phone size={12} /> {addr.phone}</p>
+                    <p className="address-phone"><Phone size={12} /> {addr.phone || addr.recipientPhone}</p>
                     <div className="address-card-actions">
+                      <button
+                        type="button"
+                        className="address-action-btn edit"
+                        onClick={() => handleOpenEditAddress(addr)}
+                        title="Edit this address"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#00A3E0', fontWeight: '600' }}
+                      >
+                        <Edit3 size={13} />
+                        <span>Edit</span>
+                      </button>
                       {!addr.isDefault && (
                         <button
                           type="button"

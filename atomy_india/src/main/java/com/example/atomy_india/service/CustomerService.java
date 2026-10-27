@@ -37,6 +37,12 @@ public class CustomerService {
     @Autowired
     private SupportTicketRepository ticketRepository;
 
+    @Autowired
+    private BrevoEmailService brevoEmailService;
+
+    @Autowired
+    private CustomerUserRepository customerUserRepository;
+
     // --- Products & Categories ---
 
     public List<Product> getAllActiveProducts() {
@@ -141,9 +147,21 @@ public class CustomerService {
         BigDecimal shippingFee = (totalAmount.compareTo(new BigDecimal("1500")) >= 0) ? BigDecimal.ZERO : new BigDecimal("100.00");
         BigDecimal finalTotal = totalAmount.add(shippingFee);
 
+        // Ensure the order's customer name is the registered account holder name
+        String effectiveCustomerName = req.getCustomerName();
+        if (req.getCustomerEmail() != null && !req.getCustomerEmail().trim().isEmpty()) {
+            Optional<CustomerUser> userOpt = customerUserRepository.findByEmailIgnoreCase(req.getCustomerEmail().trim());
+            if (userOpt.isPresent() && userOpt.get().getFullName() != null && !userOpt.get().getFullName().trim().isEmpty()) {
+                effectiveCustomerName = userOpt.get().getFullName();
+            }
+        }
+        if (effectiveCustomerName == null || effectiveCustomerName.trim().isEmpty()) {
+            effectiveCustomerName = "Valued Customer";
+        }
+
         CustomerOrder order = new CustomerOrder(
                 orderId,
-                req.getCustomerName(),
+                effectiveCustomerName,
                 req.getCustomerEmail(),
                 req.getCustomerPhone(),
                 req.getShippingAddress(),
@@ -180,6 +198,14 @@ public class CustomerService {
                 initialCheckpoint
         );
         trackingRepository.save(tracking);
+
+        // Dispatch transactional emails asynchronously via Brevo
+        try {
+            brevoEmailService.sendOrderConfirmation(savedOrder);
+            brevoEmailService.sendAdminNewOrderAlert(savedOrder);
+        } catch (Exception e) {
+            // Non-blocking email dispatch failure
+        }
 
         return savedOrder;
     }

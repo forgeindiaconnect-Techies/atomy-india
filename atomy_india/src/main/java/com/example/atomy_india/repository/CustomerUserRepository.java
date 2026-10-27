@@ -12,6 +12,8 @@ public interface CustomerUserRepository extends MongoRepository<CustomerUser, St
 
     Optional<CustomerUser> findByEmail(String email);
 
+    Optional<CustomerUser> findByEmailIgnoreCase(String email);
+
     Optional<CustomerUser> findByUsername(String username);
 
     Optional<CustomerUser> findByCustomerId(String customerId);

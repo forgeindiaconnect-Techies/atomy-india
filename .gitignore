@@ -33,6 +33,7 @@ Thumbs.db
 *.env.local
 *.env.*.local
 *.local
+*application-local.properties
 
 # Firebase & Cloud Secrets
 *firebase-adminsdk*.json

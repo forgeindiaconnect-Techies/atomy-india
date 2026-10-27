@@ -144,6 +144,7 @@ public class CouponController {
         return ResponseEntity.ok(resp);
     }
 
+    @SuppressWarnings("unchecked")
     @PostMapping("/apply")
     public ResponseEntity<Map<String, Object>> applyCoupon(@RequestBody Map<String, Object> body) {
         String code = (String) body.get("code");

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, User, Mail, Eye, EyeOff } from 'lucide-react';
+import { Check, X, User, Mail, Eye, EyeOff, KeyRound, ArrowLeft, RefreshCw, ShieldCheck } from 'lucide-react';
 import { clearAdSuppressionForLogin } from '../../services/adPromotionService';
-import { registerCustomer, loginCustomer, googleAuthCustomer } from '../../services/api';
+import { registerCustomer, loginCustomer, googleAuthCustomer, requestForgotPasswordOtp, resetCustomerPassword } from '../../services/api';
 import './SignInPage.css';
 
 export default function SignInPage({
@@ -21,6 +21,19 @@ export default function SignInPage({
   const [saveId, setSaveId] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Forgot Password state
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1: email, 2: OTP + new pass, 3: success
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Google OAuth Modal state
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
@@ -49,6 +62,66 @@ export default function SignInPage({
       if (errorMessage && digitsOnly.length === 10) {
         setErrorMessage('');
       }
+    }
+  };
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let timer = null;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleRequestOtp = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setForgotError('Please enter your registered email address.');
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError('');
+    setForgotSuccess('');
+    try {
+      const res = await requestForgotPasswordOtp(forgotEmail.trim());
+      setForgotSuccess(res.message || 'Verification code sent to your email.');
+      setForgotStep(2);
+      setResendCooldown(60);
+    } catch (err) {
+      setForgotError(err.message || 'Failed to send verification code. Please check your email.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!forgotOtp.trim() || forgotOtp.trim().length !== 6) {
+      setForgotError('Please enter the 6-digit verification code.');
+      return;
+    }
+    if (!forgotNewPassword || forgotNewPassword.length < 6) {
+      setForgotError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setForgotLoading(true);
+    setForgotError('');
+    try {
+      const res = await resetCustomerPassword(forgotEmail.trim(), forgotOtp.trim(), forgotNewPassword);
+      setForgotSuccess(res.message || 'Password reset successfully!');
+      setForgotStep(3);
+    } catch (err) {
+      setForgotError(err.message || 'Invalid or expired verification code.');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -227,18 +300,203 @@ export default function SignInPage({
         {/* White Card Container */}
         <div className="signin-card">
           {/* Card Header Title - overrides cleanly based on state */}
-          <div className="auth-card-header">
-            <h2 className="signin-title">{isSignUp ? 'Sign Up' : 'Sign In'}</h2>
-            <p className="signin-subtitle">
-              {isSignUp
-                ? 'Create a customer account to shop Atomy products'
-                : 'Welcome back! Enter your email and password to sign in'}
-            </p>
-          </div>
+          {!isForgotPassword ? (
+            <div className="auth-card-header">
+              <h2 className="signin-title">{isSignUp ? 'Sign Up' : 'Sign In'}</h2>
+              <p className="signin-subtitle">
+                {isSignUp
+                  ? 'Create a customer account to shop Atomy products'
+                  : 'Welcome back! Enter your email and password to sign in'}
+              </p>
+            </div>
+          ) : (
+            <div className="auth-card-header">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setForgotError('');
+                  setForgotSuccess('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#00A3E0',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  padding: 0,
+                  marginBottom: '10px'
+                }}
+              >
+                <ArrowLeft size={16} /> Back to Sign In
+              </button>
+              <h2 className="signin-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <KeyRound size={24} color="#00A3E0" />
+                {forgotStep === 3 ? 'Password Updated!' : 'Reset Password'}
+              </h2>
+              <p className="signin-subtitle">
+                {forgotStep === 1
+                  ? 'Enter your registered email address to receive a 6-digit verification code.'
+                  : forgotStep === 2
+                  ? `Enter the 6-digit code sent to ${forgotEmail} and your new password.`
+                  : 'Your account password has been updated. You can now sign in.'}
+              </p>
+            </div>
+          )}
           <div className="signin-divider-line"></div>
 
-          {/* Centered Content Block */}
-          <div className="signin-content-center">
+          {/* Forgot Password Flow */}
+          {isForgotPassword ? (
+            <div className="signin-content-center" style={{ maxWidth: '440px', margin: '0 auto' }}>
+              {forgotError && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: '4px', fontSize: '13px', marginBottom: '14px' }}>
+                  {forgotError}
+                </div>
+              )}
+              {forgotSuccess && forgotStep !== 3 && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', padding: '10px 14px', borderRadius: '4px', fontSize: '13px', marginBottom: '14px' }}>
+                  {forgotSuccess}
+                </div>
+              )}
+
+              {/* Step 1: Request OTP */}
+              {forgotStep === 1 && (
+                <form onSubmit={handleRequestOtp} className="signin-form">
+                  <div className="form-input-group">
+                    <input
+                      type="email"
+                      placeholder="Enter registered email address"
+                      className="signin-input"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className={`signin-submit-btn ${forgotEmail.trim() ? 'active' : ''}`}
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? 'Sending Verification Code...' : 'Send Verification Code'}
+                  </button>
+                </form>
+              )}
+
+              {/* Step 2: Verify OTP and Enter New Password */}
+              {forgotStep === 2 && (
+                <form onSubmit={handleResetPasswordSubmit} className="signin-form">
+                  <div className="form-input-group">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="6-Digit Verification Code (OTP)"
+                      className="signin-input"
+                      value={forgotOtp}
+                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                      style={{ letterSpacing: '6px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center' }}
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="form-input-group password-input-group">
+                    <input
+                      type={showForgotNewPassword ? "text" : "password"}
+                      placeholder="New Password (min 6 characters)"
+                      className="signin-input password-input"
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                      tabIndex={-1}
+                    >
+                      {showForgotNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  <div className="form-input-group password-input-group">
+                    <input
+                      type={showForgotNewPassword ? "text" : "password"}
+                      placeholder="Confirm New Password"
+                      className="signin-input password-input"
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className={`signin-submit-btn ${forgotOtp.length === 6 && forgotNewPassword.length >= 6 ? 'active' : ''}`}
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? 'Resetting Password...' : 'Reset Password'}
+                  </button>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', fontSize: '13px', color: '#64748b' }}>
+                    <button
+                      type="button"
+                      onClick={() => setForgotStep(1)}
+                      style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}
+                    >
+                      Change email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRequestOtp}
+                      disabled={resendCooldown > 0 || forgotLoading}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: resendCooldown > 0 ? '#94a3b8' : '#00A3E0',
+                        fontWeight: '600',
+                        cursor: resendCooldown > 0 ? 'default' : 'pointer',
+                        padding: 0
+                      }}
+                    >
+                      {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend Code'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Step 3: Success State */}
+              {forgotStep === 3 && (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ width: '64px', height: '64px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                    <ShieldCheck size={36} color="#16a34a" />
+                  </div>
+                  <h3 style={{ color: '#0f172a', margin: '0 0 8px', fontSize: '18px' }}>Password Reset Successful!</h3>
+                  <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.6, margin: '0 0 24px' }}>
+                    Your password has been securely updated. A confirmation email has been dispatched via Brevo.
+                  </p>
+                  <button
+                    type="button"
+                    className="signin-submit-btn active"
+                    onClick={() => {
+                      setIsForgotPassword(false);
+                      setIsSignUp(false);
+                      setUsername(forgotEmail);
+                      setPassword('');
+                      setErrorMessage('');
+                    }}
+                  >
+                    Sign In with New Password
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="signin-content-center">
             {errorMessage && (
               <div className="auth-error-banner" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '10px 14px', borderRadius: '4px', fontSize: '13px', marginBottom: '14px' }}>
                 {errorMessage}
@@ -368,14 +626,39 @@ export default function SignInPage({
               </button>
 
               {!isSignUp && (
-                <div
-                  className="save-id-container"
-                  onClick={() => setSaveId(!saveId)}
-                >
-                  <div className={`custom-round-checkbox ${saveId ? 'checked' : ''}`}>
-                    {saveId && <Check size={12} strokeWidth={3} />}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                  <div
+                    className="save-id-container"
+                    style={{ margin: 0 }}
+                    onClick={() => setSaveId(!saveId)}
+                  >
+                    <div className={`custom-round-checkbox ${saveId ? 'checked' : ''}`}>
+                      {saveId && <Check size={12} strokeWidth={3} />}
+                    </div>
+                    <span className="save-id-label">Remember Email</span>
                   </div>
-                  <span className="save-id-label">Remember Email</span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setForgotEmail(username.includes('@') ? username.trim() : '');
+                      setForgotStep(1);
+                      setForgotError('');
+                      setForgotSuccess('');
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#00A3E0',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    Forgot Password?
+                  </button>
                 </div>
               )}
             </form>
@@ -452,12 +735,26 @@ export default function SignInPage({
               <div className="signin-footer-links" style={{ marginTop: '20px' }}>
                 <a href="#find-id" className="sub-link">Find ID</a>
                 <span className="link-divider">|</span>
-                <a href="#find-password" className="sub-link">Forgot Password</a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotPassword(true);
+                    setForgotEmail(username.includes('@') ? username.trim() : '');
+                    setForgotStep(1);
+                    setForgotError('');
+                    setForgotSuccess('');
+                  }}
+                  className="sub-link"
+                  style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }}
+                >
+                  Forgot Password
+                </button>
                 <span className="link-divider">|</span>
                 <a href="#customer-help" className="sub-link">Customer Help</a>
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* Back to Mall Return Link */}

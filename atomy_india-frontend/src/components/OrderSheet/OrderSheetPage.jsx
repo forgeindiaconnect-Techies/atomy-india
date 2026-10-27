@@ -671,8 +671,8 @@ export default function OrderSheetPage({
     setDetectedLocationName('');
     setAddressForm({
       tag: 'Home',
-      recipientName: '',
-      recipientPhone: '',
+      recipientName: currentUser?.name || '',
+      recipientPhone: currentUser?.phone ? currentUser.phone.replace(/^\+91/, '').trim() : '',
       alternatePhone: '',
       pincode: '',
       city: '',
@@ -788,9 +788,11 @@ export default function OrderSheetPage({
     e.preventDefault();
     setIsProcessing(true);
 
-    const fullRecipientName = currentSelectedAddress?.recipientName || currentUser?.name || 'Customer';
-    const fullRecipientPhone = currentSelectedAddress?.recipientPhone || currentUser?.phone || '9876543210';
+    const customerName = currentUser?.name || currentSelectedAddress?.recipientName || 'Customer';
+    const customerPhone = currentUser?.phone || currentSelectedAddress?.recipientPhone || '9876543210';
     const customerEmail = currentUser?.email || 'customer@atomy.com';
+    const fullRecipientName = currentSelectedAddress?.recipientName || customerName;
+    const fullRecipientPhone = currentSelectedAddress?.recipientPhone || customerPhone;
     const fullShippingAddress = currentSelectedAddress 
       ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
       : 'Doorstep Courier Delivery';
@@ -804,10 +806,12 @@ export default function OrderSheetPage({
     else if (paymentMethod === 'COD') springPaymentMethod = 'CASH_ON_DELIVERY';
 
     const orderPayload = {
-      customerName: fullRecipientName,
+      customerName: customerName,
       customerEmail: customerEmail,
-      customerPhone: fullRecipientPhone,
-      shippingAddress: fullShippingAddress,
+      customerPhone: customerPhone,
+      shippingAddress: currentSelectedAddress && fullRecipientName !== customerName
+        ? `[Recipient: ${fullRecipientName}, Ph: ${fullRecipientPhone}] ${fullShippingAddress}`
+        : fullShippingAddress,
       city,
       state,
       pincode,
@@ -849,9 +853,9 @@ export default function OrderSheetPage({
                    : 'Cash on Delivery',
       deliveryType: 'direct',
       recipient: fullRecipientName,
-      customerName: fullRecipientName,
+      customerName: customerName,
       customerEmail: customerEmail,
-      phone: fullRecipientPhone,
+      phone: customerPhone,
       address: {
         recipient: fullRecipientName,
         phone: fullRecipientPhone,

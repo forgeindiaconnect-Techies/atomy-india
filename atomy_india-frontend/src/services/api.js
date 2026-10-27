@@ -1,4 +1,6 @@
-const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const defaultBaseUrl = isLocalhost ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
+const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
 const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 // Customer APIs
@@ -271,6 +273,47 @@ export async function updateAdminProfile(profileData) {
   if (!res.ok) throw new Error('Failed to update admin profile in database');
   return res.json();
 }
+
+// Password Reset APIs via Brevo
+export async function requestForgotPasswordOtp(email) {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to send password reset code.');
+  }
+  return data;
+}
+
+export async function verifyPasswordOtp(email, otp) {
+  const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Invalid or expired verification code.');
+  }
+  return data;
+}
+
+export async function resetCustomerPassword(email, otp, newPassword) {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp, newPassword })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to reset password.');
+  }
+  return data;
+}
+
 
 
 

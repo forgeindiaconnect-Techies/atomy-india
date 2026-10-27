@@ -39,6 +39,9 @@ public class AdminService {
     @Autowired
     private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
+    @Autowired
+    private BrevoEmailService brevoEmailService;
+
     // --- 1. Dashboard Overview Metrics ---
 
     public void clearAllOrders() {
@@ -108,7 +111,17 @@ public class AdminService {
             trackingRepository.save(tracking);
         }
 
-        return orderRepository.save(order);
+        CustomerOrder savedOrder = orderRepository.save(order);
+
+        // If order was transitioned to SHIPPED, notify customer via email
+        if (newStatus == CustomerOrder.OrderStatus.SHIPPED) {
+            try {
+                Optional<OrderTracking> trOpt = trackingRepository.findByOrderId(orderId);
+                brevoEmailService.sendOrderShipped(savedOrder, trOpt.orElse(null));
+            } catch (Exception e) {}
+        }
+
+        return savedOrder;
     }
 
     @Transactional
@@ -143,7 +156,14 @@ public class AdminService {
             tracking.setCheckpointsJson(json.substring(0, json.length() - 1) + "," + newCheckpoint + "]");
         }
 
-        return trackingRepository.save(tracking);
+        OrderTracking savedTracking = trackingRepository.save(tracking);
+
+        // Dispatch Order Shipped email via Brevo
+        try {
+            brevoEmailService.sendOrderShipped(order, savedTracking);
+        } catch (Exception e) {}
+
+        return savedTracking;
     }
 
     @Transactional
