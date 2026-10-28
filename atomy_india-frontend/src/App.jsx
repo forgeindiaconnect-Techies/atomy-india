@@ -685,7 +685,9 @@ export default function App() {
               qty: it.quantity || it.qty || 1,
               pv: Math.round((Number(it.price) || 0) * 4.5)
             })) : [],
+            shippingFee: Number(bo.shippingFee || 0),
             grandTotal: Number(bo.totalAmount) || 0,
+            totalAmount: Number(bo.totalAmount) || 0,
             subtotal: Number(bo.totalAmount) - Number(bo.shippingFee || 0)
           };
         });

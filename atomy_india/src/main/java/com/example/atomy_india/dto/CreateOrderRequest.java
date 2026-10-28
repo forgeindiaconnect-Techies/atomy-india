@@ -13,10 +13,18 @@ public class CreateOrderRequest {
     private String state;
     private String pincode;
     private CustomerOrder.PaymentMethod paymentMethod;
+    private java.math.BigDecimal shippingFee;
+    private java.math.BigDecimal totalAmount;
     private List<OrderItemDto> items;
 
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }
+
+    public java.math.BigDecimal getShippingFee() { return shippingFee; }
+    public void setShippingFee(java.math.BigDecimal shippingFee) { this.shippingFee = shippingFee; }
+
+    public java.math.BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(java.math.BigDecimal totalAmount) { this.totalAmount = totalAmount; }
 
     public static class OrderItemDto {
         private String productId;

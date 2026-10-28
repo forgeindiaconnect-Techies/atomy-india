@@ -66,6 +66,8 @@ export async function syncUnsyncedOrdersToBackend() {
             state: order.state || 'Delhi',
             pincode: order.pincode || '110001',
             paymentMethod: isCod ? 'CASH_ON_DELIVERY' : 'ONLINE_UPI',
+            shippingFee: order.shippingFee !== undefined ? Number(order.shippingFee) : 0,
+            totalAmount: order.grandTotal !== undefined ? Number(order.grandTotal) : Number(order.totalAmount || 0),
             items: (order.items || []).map(it => ({
               productId: it.id || it.productId || '',
               name: it.name || it.productName || '',

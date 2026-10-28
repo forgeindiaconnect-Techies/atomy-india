@@ -895,6 +895,8 @@ export default function OrderSheetPage({
         state,
         pincode,
         paymentMethod: springPaymentMethod,
+        shippingFee: effectiveShippingFee,
+        totalAmount: useWalletBalance ? finalPayableTotal : grandTotal,
         couponCode: appliedCoupon?.code || null,
         couponDiscount: couponDiscount || 0,
         items: (cartItems && cartItems.length > 0 ? cartItems : []).map(it => ({

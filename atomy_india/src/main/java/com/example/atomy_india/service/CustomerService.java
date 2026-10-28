@@ -151,9 +151,15 @@ public class CustomerService {
             totalAmount = totalAmount.add(orderItem.getSubtotal());
         }
 
-        // Free delivery for orders above ₹1,500, else ₹100 standard shipping
-        BigDecimal shippingFee = (totalAmount.compareTo(new BigDecimal("1500")) >= 0) ? BigDecimal.ZERO : new BigDecimal("100.00");
-        BigDecimal finalTotal = totalAmount.add(shippingFee);
+        // Calculate shipping fee and final total: prefer explicit request values if provided
+        BigDecimal shippingFee = req.getShippingFee();
+        if (shippingFee == null) {
+            shippingFee = (totalAmount.compareTo(new BigDecimal("1500")) >= 0) ? BigDecimal.ZERO : new BigDecimal("100.00");
+        }
+        BigDecimal finalTotal = req.getTotalAmount();
+        if (finalTotal == null || finalTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            finalTotal = totalAmount.add(shippingFee);
+        }
 
         // Ensure the order's customer name is the registered account holder name
         String effectiveCustomerName = req.getCustomerName();
