@@ -3,10 +3,12 @@ package com.example.atomy_india.service;
 import com.example.atomy_india.model.CustomerOrder;
 import com.example.atomy_india.model.OrderItem;
 import com.example.atomy_india.model.OrderTracking;
+import com.example.atomy_india.model.Membership;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import java.time.format.DateTimeFormatter;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -322,6 +324,143 @@ public class BrevoEmailService {
                 + "</div>";
 
         sendEmailAsync(order.getCustomerEmail(), customerName, subject, html);
+    }
+
+    // =========================================================================
+    // 7. NEW SIGN UP WELCOME EMAIL (CUSTOMER)
+    // =========================================================================
+    public void sendCustomerWelcomeEmail(String toEmail, String customerName) {
+        if (toEmail == null || toEmail.trim().isEmpty()) {
+            return;
+        }
+
+        String name = (customerName != null && !customerName.trim().isEmpty()) ? customerName.trim() : "Valued Customer";
+        String subject = "Welcome to Atomy India - Absolute Quality at Absolute Price!";
+
+        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
+                + "<div style=\"background:#00A3E0;padding:26px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
+                + "  <h1 style=\"color:#ffffff;margin:0;font-size:24px;letter-spacing:0.5px;\">Welcome to Atomy India!</h1>"
+                + "  <p style=\"color:#e0f2fe;margin:6px 0 0;font-size:14px;\">Forge India Connect (FIC) E-Commerce Platform</p>"
+                + "</div>"
+                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
+                + "  <h2 style=\"color:#0f172a;font-size:19px;margin-top:0;\">Hello " + escapeHtml(name) + ",</h2>"
+                + "  <p style=\"color:#475569;font-size:14.5px;line-height:1.6;\">Thank you for joining <strong>Atomy India</strong>! We are thrilled to welcome you to our community dedicated to <em>Absolute Quality at Absolute Price</em>.</p>"
+                + "  <div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #00A3E0;border-radius:6px;padding:16px 20px;margin:22px 0;\">"
+                + "    <h4 style=\"margin:0 0 10px;color:#0369a1;font-size:14px;\">What You Can Expect:</h4>"
+                + "    <ul style=\"margin:0;padding-left:18px;color:#334155;font-size:13.5px;line-height:1.8;\">"
+                + "      <li><strong>100% Genuine Korean Imports:</strong> Premium healthcare (HemoHIM), skincare, and home essentials.</li>"
+                + "      <li><strong>Fast Doorstep Delivery:</strong> Live milestone tracking across India via Blue Dart Express.</li>"
+                + "      <li><strong>Wholesale Distributor Club:</strong> Optional membership enrollment for DP pricing & PV point rewards.</li>"
+                + "    </ul>"
+                + "  </div>"
+                + "  <div style=\"text-align:center;margin:28px 0 16px;\">"
+                + "    <a href=\"" + storefrontUrl + "\" style=\"background:#00A3E0;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">Start Exploring Atomy Products &rarr;</a>"
+                + "  </div>"
+                + "  <hr style=\"border:none;border-top:1px solid #e2e8f0;margin:24px 0;\">"
+                + "  <p style=\"color:#94a3b8;font-size:12px;margin:0;text-align:center;\">If you have any questions, feel free to reach out to us at <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#00A3E0;\">daggerking7828@gmail.com</a>.</p>"
+                + "</div>"
+                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
+                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Direct-Selling Partner"
+                + "</div>"
+                + "</div>";
+
+        sendEmailAsync(toEmail, name, subject, html);
+    }
+
+    // =========================================================================
+    // 8. MEMBERSHIP PURCHASE WELCOME CONFIRMATION (CUSTOMER)
+    // =========================================================================
+    public void sendMembershipWelcomeEmail(Membership membership) {
+        if (membership == null || membership.getCustomerEmail() == null || membership.getCustomerEmail().trim().isEmpty()) {
+            return;
+        }
+
+        String name = (membership.getCustomerName() != null && !membership.getCustomerName().trim().isEmpty())
+                ? membership.getCustomerName().trim() : "Valued Member";
+        String planName = "MONTHLY".equalsIgnoreCase(membership.getPlan()) ? "Monthly Distributor Pass" : "Annual Elite Distributor Plan";
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+        String expiryFormatted = membership.getExpiryDate() != null ? membership.getExpiryDate().format(dtf) : "Active";
+        String subject = "\uD83C\uDF89 Welcome to Atomy Distributor Club! [Plan: " + membership.getPlan() + "]";
+
+        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
+                + "<div style=\"background:#00A3E0;padding:26px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
+                + "  <h1 style=\"color:#ffffff;margin:0;font-size:23px;letter-spacing:0.5px;\">&#127881; Distributor Membership Activated!</h1>"
+                + "  <p style=\"color:#e0f2fe;margin:6px 0 0;font-size:14px;\">Atomy India &bull; Forge India Connect</p>"
+                + "</div>"
+                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
+                + "  <h2 style=\"color:#0f172a;font-size:19px;margin-top:0;\">Congratulations " + escapeHtml(name) + "!</h2>"
+                + "  <p style=\"color:#475569;font-size:14.5px;line-height:1.6;\">Your <strong>" + escapeHtml(planName) + "</strong> is now officially active. You have unlocked full wholesale distributor access across the entire Atomy catalog.</p>"
+                + "  <div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin:22px 0;\">"
+                + "    <h4 style=\"margin:0 0 12px;color:#0f172a;font-size:14px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;\">Membership Plan Details</h4>"
+                + "    <div style=\"font-size:13px;color:#334155;line-height:1.9;\">"
+                + "      <div><strong>Membership ID:</strong> <span style=\"font-family:monospace;font-weight:bold;color:#00A3E0;\">" + escapeHtml(membership.getId()) + "</span></div>"
+                + "      <div><strong>Selected Plan:</strong> " + escapeHtml(planName) + "</div>"
+                + "      <div><strong>Amount Paid:</strong> &#8377;" + membership.getAmountPaid() + " (" + escapeHtml(membership.getPaymentMethod()) + ")</div>"
+                + "      <div><strong>Valid Until:</strong> <span style=\"color:#059669;font-weight:bold;\">" + escapeHtml(expiryFormatted) + "</span></div>"
+                + "    </div>"
+                + "  </div>"
+                + "  <div style=\"background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;border-radius:6px;padding:14px 18px;margin:20px 0;\">"
+                + "    <h4 style=\"margin:0 0 6px;color:#15803d;font-size:13.5px;\">Your Active Member Benefits:</h4>"
+                + "    <ul style=\"margin:0;padding-left:18px;color:#334155;font-size:13px;line-height:1.8;\">"
+                + "      <li>Instant wholesale <strong>Distributor Price (DP)</strong> discounts on every order.</li>"
+                + "      <li><strong>100% Personal PV Point Accumulation</strong> to build mastership credentials.</li>"
+                + "      <li>Priority order processing & VIP customer assistance.</li>"
+                + "    </ul>"
+                + "  </div>"
+                + "  <div style=\"text-align:center;margin:28px 0 16px;\">"
+                + "    <a href=\"" + storefrontUrl + "/membership\" style=\"background:#00A3E0;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">View Your Member Dashboard &rarr;</a>"
+                + "  </div>"
+                + "</div>"
+                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
+                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Direct-Selling Partner"
+                + "</div>"
+                + "</div>";
+
+        sendEmailAsync(membership.getCustomerEmail(), name, subject, html);
+    }
+
+    // =========================================================================
+    // 9. MEMBERSHIP EXPIRED NOTICE (CUSTOMER)
+    // =========================================================================
+    public void sendMembershipExpiredEmail(Membership membership) {
+        if (membership == null || membership.getCustomerEmail() == null || membership.getCustomerEmail().trim().isEmpty()) {
+            return;
+        }
+
+        String name = (membership.getCustomerName() != null && !membership.getCustomerName().trim().isEmpty())
+                ? membership.getCustomerName().trim() : "Valued Member";
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMMM yyyy");
+        String expiryFormatted = membership.getExpiryDate() != null ? membership.getExpiryDate().format(dtf) : "Recently";
+        String subject = "\u26A0\uFE0F Notice: Your Atomy Distributor Membership Has Expired - Renew Today";
+
+        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
+                + "<div style=\"background:#e11d48;padding:24px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
+                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;\">&#9888; Membership Plan Expired</h1>"
+                + "  <p style=\"color:#ffe4e6;margin:6px 0 0;font-size:13.5px;\">Action Required &bull; Atomy India</p>"
+                + "</div>"
+                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
+                + "  <h2 style=\"color:#0f172a;font-size:19px;margin-top:0;\">Dear " + escapeHtml(name) + ",</h2>"
+                + "  <p style=\"color:#475569;font-size:14.5px;line-height:1.6;\">Your Atomy Distributor Membership (ID: <strong>" + escapeHtml(membership.getId()) + "</strong>) expired on <strong>" + escapeHtml(expiryFormatted) + "</strong>.</p>"
+                + "  <div style=\"background:#fff1f2;border:1px solid #fecdd3;border-left:4px solid #e11d48;border-radius:6px;padding:16px 20px;margin:22px 0;\">"
+                + "    <h4 style=\"margin:0 0 8px;color:#9f1239;font-size:14px;\">Impact on Your Account:</h4>"
+                + "    <ul style=\"margin:0;padding-left:18px;color:#334155;font-size:13px;line-height:1.8;\">"
+                + "      <li>Product pricing has reverted from wholesale Distributor Price (DP) to standard MRP retail.</li>"
+                + "      <li>Personal PV accumulation on new orders is currently paused.</li>"
+                + "    </ul>"
+                + "  </div>"
+                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Don't worry! Your accumulated historical PV points and member profile are safely preserved. Renewing your plan immediately reactivates wholesale DP pricing on all future orders.</p>"
+                + "  <div style=\"text-align:center;margin:28px 0 16px;\">"
+                + "    <a href=\"" + storefrontUrl + "/membership\" style=\"background:#00A3E0;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">Renew Your Distributor Membership &rarr;</a>"
+                + "  </div>"
+                + "  <hr style=\"border:none;border-top:1px solid #e2e8f0;margin:24px 0;\">"
+                + "  <p style=\"color:#94a3b8;font-size:12px;margin:0;text-align:center;\">Need help with renewal? Reply directly or contact <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#00A3E0;\">daggerking7828@gmail.com</a>.</p>"
+                + "</div>"
+                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
+                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Direct-Selling Partner"
+                + "</div>"
+                + "</div>";
+
+        sendEmailAsync(membership.getCustomerEmail(), name, subject, html);
     }
 
     // --- Utility JSON & HTML string escapers ---

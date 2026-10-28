@@ -88,6 +88,11 @@ public class CustomerAuthController {
 
         CustomerUser saved = customerUserRepository.save(customer);
 
+        // Send welcome email to new customer via Brevo
+        try {
+            brevoEmailService.sendCustomerWelcomeEmail(saved.getEmail(), saved.getFullName());
+        } catch (Exception ignored) {}
+
         resp.put("success", true);
         resp.put("message", "Customer account registered successfully!");
         resp.put("customer", saved);

@@ -26,6 +26,9 @@ public class CustomerMembershipController {
     @Autowired
     private CustomerUserRepository customerUserRepository;
 
+    @Autowired
+    private com.example.atomy_india.service.BrevoEmailService brevoEmailService;
+
     private static final String DEFAULT_SETTINGS_JSON = "{"
             + "\"className\":\"Atomy Distributor Membership\","
             + "\"code\":\"DISTRIBUTOR_MEMBER\","
@@ -91,6 +94,7 @@ public class CustomerMembershipController {
                 membership = new Membership(memberId, name, email, phone, plan, amountPaid, paymentMethod, paymentId);
             }
 
+            membership.setWelcomeEmailSent(true);
             Membership saved = membershipRepository.save(membership);
 
             // Synchronize with CustomerUser record in database
@@ -99,6 +103,11 @@ public class CustomerMembershipController {
                 user.setIsMember(true);
                 customerUserRepository.save(user);
             });
+
+            // Send Membership Welcome Confirmation Email via Brevo
+            try {
+                brevoEmailService.sendMembershipWelcomeEmail(saved);
+            } catch (Exception ignored) {}
 
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
@@ -118,9 +127,20 @@ public class CustomerMembershipController {
         if (active.isPresent()) {
             Membership m = active.get();
             // Check if expired
-            if (m.getExpiryDate().isBefore(LocalDateTime.now())) {
+            if (m.getExpiryDate() != null && m.getExpiryDate().isBefore(LocalDateTime.now())) {
                 m.setStatus("EXPIRED");
+                if (!Boolean.TRUE.equals(m.getExpiredEmailSent())) {
+                    m.setExpiredEmailSent(true);
+                    try {
+                        brevoEmailService.sendMembershipExpiredEmail(m);
+                    } catch (Exception ignored) {}
+                }
                 membershipRepository.save(m);
+                // Also update customer user record
+                customerUserRepository.findByEmail(m.getCustomerEmail()).ifPresent(user -> {
+                    user.setIsMember(false);
+                    customerUserRepository.save(user);
+                });
                 return ResponseEntity.ok(Map.of("isMember", false, "status", "EXPIRED"));
             }
             return ResponseEntity.ok(Map.of(

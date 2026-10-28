@@ -176,6 +176,7 @@ export default function SignInPage({
 
         clearAdSuppressionForLogin();
 
+        const signupTime = regRes.customer.createdAt || new Date().toISOString();
         const userData = {
           id: regRes.customer.id,
           customerId: regRes.customer.customerId,
@@ -184,8 +185,14 @@ export default function SignInPage({
           username: regRes.customer.username || phoneNumber.trim(),
           phone: fullPhone,
           isMember: Boolean(regRes.customer.isMember),
-          role: 'customer'
+          role: 'customer',
+          createdAt: signupTime
         };
+
+        try {
+          const userKey = (userData.email || userData.username || 'customer').toLowerCase().trim();
+          localStorage.setItem(`atomy_user_signup_time_${userKey}`, signupTime);
+        } catch {}
 
         onLoginSuccess && onLoginSuccess(userData, true);
       } else {

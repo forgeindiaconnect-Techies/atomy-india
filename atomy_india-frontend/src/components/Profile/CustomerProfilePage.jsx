@@ -29,9 +29,16 @@ import {
   ShieldCheck,
   Navigation,
   Loader2,
-  HelpCircle
+  HelpCircle,
+  BellOff
 } from 'lucide-react';
 import { fetchCouponsFromBackend, applyCouponBackend } from '../../services/couponService';
+import {
+  reconcileCustomerNotifications,
+  markAllCustomerNotificationsAsRead,
+  markSingleNotificationRead,
+  formatRelativeTime
+} from '../../services/customerNotificationService';
 import './CustomerProfilePage.css';
 
 export default function CustomerProfilePage({
@@ -346,33 +353,30 @@ export default function CustomerProfilePage({
     setTimeout(() => setCouponMessage(''), 5000);
   };
 
-  // Notifications state
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'notif-1',
-      title: 'Special Customer Welcome!',
-      message: 'Thank you for joining Atomy India. Explore Absolute Quality at Absolute Price.',
-      time: '10 minutes ago',
-      unread: true,
-      type: 'welcome'
-    },
-    {
-      id: 'notif-2',
-      title: 'New Launch: Adelica Soft Brow Pencil',
-      message: 'Premium Adelica Soft Brow Pencil Gray is now available with 4,000 PV.',
-      time: '2 hours ago',
-      unread: true,
-      type: 'promo'
-    },
-    {
-      id: 'notif-3',
-      title: 'Free Delivery Milestone',
-      message: 'You have unlocked free shipping on orders above ₹3,000 across India.',
-      time: '1 day ago',
-      unread: false,
-      type: 'order'
-    }
-  ]);
+  // Dynamic Real-Time Notifications state reconciled from real activity (Registration, Orders, Membership)
+  const [notifications, setNotifications] = useState(() => {
+    return reconcileCustomerNotifications(currentUser, placedOrders);
+  });
+
+  // Reconcile notifications whenever currentUser or placed orders update
+  useEffect(() => {
+    const list = reconcileCustomerNotifications(currentUser, placedOrders);
+    setNotifications(list);
+  }, [currentUser, placedOrders]);
+
+  // Real-time live timer: Update relative timestamps every 30 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNotifications((prev) =>
+        (prev || []).map((n) => ({
+          ...n,
+          time: formatRelativeTime(n.createdAt)
+        }))
+      );
+    }, 30000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Real Personal PV dynamically calculated from real user placed orders & account
   const personalPV = useMemo(() => {
@@ -609,9 +613,18 @@ export default function CustomerProfilePage({
     setNewReviewForm({ productName: 'Atomy Toothpaste (200g)', rating: 5, title: '', comment: '' });
   };
 
-  // Mark all notifications read
+  // Mark all notifications read in state & localStorage
   const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, unread: false })));
+    const userKey = (currentUser?.email || currentUser?.username || currentUser?.id || 'guest').toLowerCase().trim();
+    const updated = markAllCustomerNotificationsAsRead(userKey, notifications);
+    setNotifications(updated);
+  };
+
+  // Mark single notification read
+  const handleNotificationClick = (notifId) => {
+    const userKey = (currentUser?.email || currentUser?.username || currentUser?.id || 'guest').toLowerCase().trim();
+    const updated = markSingleNotificationRead(userKey, notifId, notifications);
+    setNotifications(updated);
   };
 
   return (
@@ -1283,21 +1296,37 @@ export default function CustomerProfilePage({
               </div>
 
               <div className="notifications-list-wrapper">
-                {notifications.map((notif) => (
-                  <div key={notif.id} className={`notification-item-card ${notif.unread ? 'unread' : ''}`}>
-                    <div className="notification-icon-wrap">
-                      <Bell size={18} />
-                    </div>
-                    <div className="notification-content-wrap">
-                      <div className="notification-header-row">
-                        <h4 className="notification-title">{notif.title}</h4>
-                        <span className="notification-timestamp">{notif.time}</span>
-                      </div>
-                      <p className="notification-msg">{notif.message}</p>
-                    </div>
-                    {notif.unread && <span className="notification-unread-dot"></span>}
+                {notifications.length === 0 ? (
+                  <div className="empty-notifications-card" style={{ padding: '48px 24px', textAlign: 'center', background: '#ffffff', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                    <BellOff size={40} color="#94a3b8" style={{ margin: '0 auto 12px', display: 'block' }} />
+                    <h4 style={{ margin: '0 0 6px', fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>No Notifications Yet</h4>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b', maxWidth: '380px', marginInline: 'auto' }}>
+                      You're all caught up! Real-time alerts regarding your orders, PV bonuses, and official announcements will appear here.
+                    </p>
                   </div>
-                ))}
+                ) : (
+                  notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={`notification-item-card ${notif.unread ? 'unread' : ''}`}
+                      onClick={() => handleNotificationClick(notif.id)}
+                      style={{ cursor: notif.unread ? 'pointer' : 'default' }}
+                      title={notif.unread ? 'Click to mark as read' : undefined}
+                    >
+                      <div className="notification-icon-wrap">
+                        <Bell size={18} />
+                      </div>
+                      <div className="notification-content-wrap">
+                        <div className="notification-header-row">
+                          <h4 className="notification-title">{notif.title}</h4>
+                          <span className="notification-timestamp">{notif.time || formatRelativeTime(notif.createdAt)}</span>
+                        </div>
+                        <p className="notification-msg">{notif.message}</p>
+                      </div>
+                      {notif.unread && <span className="notification-unread-dot"></span>}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

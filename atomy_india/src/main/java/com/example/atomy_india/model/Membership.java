@@ -49,6 +49,12 @@ public class Membership {
     @Field("total_savings")
     private BigDecimal totalSavings;
 
+    @Field("welcome_email_sent")
+    private Boolean welcomeEmailSent = false;
+
+    @Field("expired_email_sent")
+    private Boolean expiredEmailSent = false;
+
     @Field("created_at")
     private LocalDateTime createdAt;
 
@@ -193,6 +199,22 @@ public class Membership {
 
     public void setTotalSavings(BigDecimal totalSavings) {
         this.totalSavings = totalSavings;
+    }
+
+    public Boolean getWelcomeEmailSent() {
+        return welcomeEmailSent;
+    }
+
+    public void setWelcomeEmailSent(Boolean welcomeEmailSent) {
+        this.welcomeEmailSent = welcomeEmailSent;
+    }
+
+    public Boolean getExpiredEmailSent() {
+        return expiredEmailSent;
+    }
+
+    public void setExpiredEmailSent(Boolean expiredEmailSent) {
+        this.expiredEmailSent = expiredEmailSent;
     }
 
     public LocalDateTime getCreatedAt() {
