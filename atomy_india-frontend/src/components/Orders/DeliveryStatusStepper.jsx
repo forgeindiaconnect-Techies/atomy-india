@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CheckCircle2, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, XCircle } from 'lucide-react';
 import './DeliveryStatusStepper.css';
 
 // Compute the exact target stage from the order status set by Admin
 function computeTargetStage(order) {
   if (!order) return 1;
   const raw = (order.orderStatus || order.status || '').toUpperCase().trim();
+  if (raw.includes('CANCEL')) return 3; // Terminal cancelled stage
   if (raw.includes('DELIVERED')) return 5;
   if (raw.includes('OUT') || raw.includes('LOCAL')) return 4;
   if (raw.includes('TRANSIT') || raw.includes('SHIPPED') || raw.includes('DISPATCH')) return 3;
@@ -14,7 +15,14 @@ function computeTargetStage(order) {
 }
 
 export default function DeliveryStatusStepper({ order }) {
-  // Target stage comes directly from the Admin's update (1 to 5)
+  const isCancelled = Boolean(
+    order && (
+      String(order.status || '').toUpperCase().includes('CANCEL') ||
+      String(order.orderStatus || '').toUpperCase().includes('CANCEL')
+    )
+  );
+
+  // Target stage comes directly from the Admin's update (1 to 5, or 3 for Cancelled)
   const targetStage = computeTargetStage(order);
 
   // currentStep starts at 1 and advances one by one to targetStage with 1.5s delay
@@ -64,7 +72,12 @@ export default function DeliveryStatusStepper({ order }) {
     }
   }, [currentStep, targetStage]);
 
-  const stages = [
+  // If order is cancelled, show travelling status from before-state to Cancelled
+  const stages = isCancelled ? [
+    { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
+    { num: 2, label: 'Processing & Check', sub: 'Pre-Dispatch Window' },
+    { num: 3, label: 'Order Cancelled', sub: '100% Refund Initiated', isTerminalCancelled: true }
+  ] : [
     { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
     { num: 2, label: 'Preparing', sub: 'Warehouse Packed' },
     { num: 3, label: 'In Transit', sub: 'Blue Dart Dispatch' },
@@ -73,15 +86,22 @@ export default function DeliveryStatusStepper({ order }) {
   ];
 
   return (
-    <div className="delivery-stepper-wrapper">
+    <div className={`delivery-stepper-wrapper ${isCancelled ? 'stepper-cancelled-mode' : ''}`}>
       {/* Real Live Shipping Status Header - Synced with Admin */}
       <div className="shipping-status-live-header">
         <div className="status-header-left">
-          <span className="live-status-indicator-dot" />
-          <span className="shipping-live-title">LIVE ORDER SHIPPING STATUS</span>
-          <span className="shipping-carrier-pill">{order?.courier || 'Blue Dart Express'}</span>
+          <span className={`live-status-indicator-dot ${isCancelled ? 'cancelled-dot' : ''}`} />
+          <span className="shipping-live-title">
+            {isCancelled ? 'ORDER CANCELLATION & TRANSIT STATUS' : 'LIVE ORDER SHIPPING STATUS'}
+          </span>
+          <span className={`shipping-carrier-pill ${isCancelled ? 'carrier-cancelled' : ''}`}>
+            {isCancelled ? 'Transit Halted' : (order?.courier || 'Blue Dart Express')}
+          </span>
           <span className="shipping-current-step-label">
-            Current Stage: <strong className="stage-highlight">{stages[currentStep - 1].label}</strong>
+            Current Stage:{' '}
+            <strong className={`stage-highlight ${isCancelled && currentStep === 3 ? 'stage-cancelled-text' : ''}`}>
+              {stages[currentStep - 1] ? stages[currentStep - 1].label : 'Order Placed'}
+            </strong>
           </span>
         </div>
 
@@ -89,11 +109,13 @@ export default function DeliveryStatusStepper({ order }) {
           <span className="tracking-awb-badge">
             Tracking ID: <strong>{order?.trackingNumber || (order?.orderId ? `BD-${order.orderId}` : 'BD-942817260IN')}</strong>
           </span>
-          <span className="verified-transit-badge">Express Courier</span>
+          <span className={`verified-transit-badge ${isCancelled ? 'cancelled-badge-pill' : ''}`}>
+            {isCancelled ? '100% Refunded' : 'Express Courier'}
+          </span>
         </div>
       </div>
 
-      {/* 5-Stage Stepper Flow with Animated Moving Objects and DOTTED LINES */}
+      {/* Stepper Flow with Animated Moving Objects and DOTTED LINES */}
       <div className="delivery-stepper-flow">
         {stages.map((stage, idx) => {
           const isCompleted = currentStep > stage.num;
@@ -104,23 +126,33 @@ export default function DeliveryStatusStepper({ order }) {
             <React.Fragment key={stage.num}>
               {/* Circle Node */}
               <div
-                className={`stepper-stage-node ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''} ${isPending ? 'pending' : ''}`}
+                className={`stepper-stage-node ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''} ${isPending ? 'pending' : ''} ${stage.isTerminalCancelled && (isCurrent || isCompleted) ? 'is-cancelled-node' : ''}`}
               >
-                <div className="stage-circle">
-                  {isCompleted ? (
+                <div className={`stage-circle ${stage.isTerminalCancelled && (isCurrent || isCompleted) ? 'cancelled-circle' : ''}`}>
+                  {stage.isTerminalCancelled && (isCurrent || isCompleted) ? (
+                    <XCircle size={22} className="stage-cancel-icon" />
+                  ) : isCompleted ? (
                     <CheckCircle2 size={19} className="stage-check-icon" />
                   ) : (
                     <span className="stage-number">{stage.num}</span>
                   )}
-                  {isCurrent && <div className="stage-glow-ring" />}
+                  {isCurrent && (
+                    <div className={`stage-glow-ring ${stage.isTerminalCancelled ? 'cancel-glow' : ''}`} />
+                  )}
                 </div>
 
                 <div className="stage-text-block">
-                  <div className="stage-title">{stage.label}</div>
+                  <div className={`stage-title ${stage.isTerminalCancelled && (isCurrent || isCompleted) ? 'cancelled-title' : ''}`}>
+                    {stage.label}
+                  </div>
                   <div className="stage-subtitle">{stage.sub}</div>
                   {isCurrent && (
-                    <span className="stage-live-badge">
-                      {stage.num === 5 ? 'DELIVERED 🎉' : 'IN PROGRESS'}
+                    <span className={`stage-live-badge ${stage.isTerminalCancelled ? 'cancel-badge' : ''}`}>
+                      {stage.isTerminalCancelled
+                        ? 'CANCELLED & REFUNDED'
+                        : stage.num === 5
+                        ? 'DELIVERED 🎉'
+                        : 'IN PROGRESS'}
                     </span>
                   )}
                 </div>
@@ -132,7 +164,7 @@ export default function DeliveryStatusStepper({ order }) {
                   {/* Gray Dotted Line Track */}
                   <div className="connector-bg-dots" />
 
-                  {/* Filled Cyan/Green Dotted Line */}
+                  {/* Filled Cyan/Green/Red Dotted Line */}
                   <div
                     className="connector-fill-dots-wrap"
                     style={{
@@ -144,7 +176,7 @@ export default function DeliveryStatusStepper({ order }) {
                           : '0%'
                     }}
                   >
-                    <div className="connector-fill-dots" />
+                    <div className={`connector-fill-dots ${isCancelled && currentStep >= 2 ? 'cancelled-dots-fill' : ''}`} />
                   </div>
 
                   {/* ========================================================
@@ -172,10 +204,28 @@ export default function DeliveryStatusStepper({ order }) {
                   )}
 
                   {/* ========================================================
-                      OBJECT 2: PARCEL CARTON BOX (Stage 2 -> Stage 3)
-                      Moves smoothly along the dotted line
+                      OBJECT 2 FOR CANCELLED: CANCELLATION NOTICE MOVER (Stage 2 -> Stage 3)
                      ======================================================== */}
-                  {idx === 1 && (
+                  {isCancelled && idx === 1 && (
+                    <div
+                      className={`mover-wrapper ${currentStep === 2 ? 'is-active' : currentStep > 2 ? 'is-done' : 'is-hidden'}`}
+                      style={{
+                        left: currentStep === 2 ? `${lineProgress}%` : currentStep > 2 ? '100%' : '0%'
+                      }}
+                    >
+                      <div className="mover-object cancel-mover">
+                        <svg width="34" height="28" viewBox="0 0 34 28" fill="none">
+                          <rect x="3" y="3" width="28" height="22" rx="4" fill="#fee2e2" stroke="#ef4444" strokeWidth="1.6" />
+                          <path d="M12 9L22 19M22 9L12 19" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ========================================================
+                      OBJECT 2 FOR NORMAL: PARCEL CARTON BOX (Stage 2 -> Stage 3)
+                     ======================================================== */}
+                  {!isCancelled && idx === 1 && (
                     <div
                       className={`mover-wrapper ${currentStep === 2 ? 'is-active' : currentStep > 2 ? 'is-done' : 'is-hidden'}`}
                       style={{
@@ -197,9 +247,8 @@ export default function DeliveryStatusStepper({ order }) {
 
                   {/* ========================================================
                       OBJECT 3: BLUE DART TRUCK (Stage 3 -> Stage 4)
-                      Proper tires grounded on dotted line - no flyaway wheels!
                      ======================================================== */}
-                  {idx === 2 && (
+                  {!isCancelled && idx === 2 && (
                     <div
                       className={`mover-wrapper ${currentStep === 3 ? 'is-active' : currentStep > 3 ? 'is-done' : 'is-hidden'}`}
                       style={{
@@ -218,11 +267,9 @@ export default function DeliveryStatusStepper({ order }) {
                           <circle cx="50" cy="19" r="1.5" fill="#fef08a" />
                           <path d="M51 18.5L55 17V21L51 19.5Z" fill="#fef08a" opacity="0.6" />
                           <rect x="4" y="22" width="46" height="1.8" fill="#1e293b" />
-                          {/* Rear Wheel - grounded at base */}
                           <circle cx="13" cy="23.5" r="5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
                           <circle cx="13" cy="23.5" r="2.8" fill="#cbd5e1" />
                           <circle cx="13" cy="23.5" r="1.2" fill="#1e293b" />
-                          {/* Front Wheel - grounded at base */}
                           <circle cx="43" cy="23.5" r="5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
                           <circle cx="43" cy="23.5" r="2.8" fill="#cbd5e1" />
                           <circle cx="43" cy="23.5" r="1.2" fill="#1e293b" />
@@ -233,9 +280,8 @@ export default function DeliveryStatusStepper({ order }) {
 
                   {/* ========================================================
                       OBJECT 4: DELIVERY BOY ON BIKE (Stage 4 -> Stage 5)
-                      Proper tires grounded on dotted line - no flyaway wheels!
                      ======================================================== */}
-                  {idx === 3 && (
+                  {!isCancelled && idx === 3 && (
                     <div
                       className={`mover-wrapper ${currentStep === 4 ? 'is-active' : currentStep > 4 ? 'is-done' : 'is-hidden'}`}
                       style={{
@@ -256,11 +302,9 @@ export default function DeliveryStatusStepper({ order }) {
                           <path d="M14 26L23 23L32 16L34 22L38 26" stroke="#0f172a" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
                           <path d="M23 23H29" stroke="#ef4444" strokeWidth="3.5" strokeLinecap="round" />
                           <path d="M35 19L39 18V21L35 20Z" fill="#fef08a" />
-                          {/* Rear Bike Wheel - grounded at base */}
                           <circle cx="12" cy="26.5" r="5.2" fill="#0f172a" stroke="#334155" strokeWidth="1" />
                           <circle cx="12" cy="26.5" r="2.8" fill="#cbd5e1" />
                           <circle cx="12" cy="26.5" r="1.2" fill="#1e293b" />
-                          {/* Front Bike Wheel - grounded at base */}
                           <circle cx="38" cy="26.5" r="5.2" fill="#0f172a" stroke="#334155" strokeWidth="1" />
                           <circle cx="38" cy="26.5" r="2.8" fill="#cbd5e1" />
                           <circle cx="38" cy="26.5" r="1.2" fill="#1e293b" />
@@ -277,35 +321,60 @@ export default function DeliveryStatusStepper({ order }) {
 
       {/* Stage Live Description Strip */}
       <div className="stepper-stage-status-desc">
-        {currentStep === 1 && (
-          <div className="status-narrative">
-            <span className="narrative-tag">STAGE 1</span>
-            <strong>Order Placed & Payment Confirmed</strong>: Order details verified. Initial dispatch notification sent to warehouse.
-          </div>
-        )}
-        {currentStep === 2 && (
-          <div className="status-narrative orange">
-            <span className="narrative-tag orange">STAGE 2</span>
-            <strong>Preparing & Product Packing</strong>: Items picked, barcode-verified, and sealed in central fulfillment facility.
-          </div>
-        )}
-        {currentStep === 3 && (
-          <div className="status-narrative blue">
-            <span className="narrative-tag blue">STAGE 3</span>
-            <strong>In Transit to Local Hub</strong>: Blue Dart express line-haul vehicle moving on highway towards local delivery hub.
-          </div>
-        )}
-        {currentStep === 4 && (
-          <div className="status-narrative purple">
-            <span className="narrative-tag purple">STAGE 4</span>
-            <strong>Out for Delivery on Bike</strong>: Delivery executive on motorbike is navigating the final route to your doorstep.
-          </div>
-        )}
-        {currentStep === 5 && (
-          <div className="status-narrative green">
-            <span className="narrative-tag green">STAGE 5 • DELIVERED</span>
-            <strong>Package Successfully Delivered!</strong> Shipment handed over to recipient. Thank you for shopping with Atomy India.
-          </div>
+        {isCancelled ? (
+          <>
+            {currentStep === 1 && (
+              <div className="status-narrative">
+                <span className="narrative-tag">STAGE 1</span>
+                <strong>Order Placed & Payment Confirmed</strong>: Order was created and initial verification completed.
+              </div>
+            )}
+            {currentStep === 2 && (
+              <div className="status-narrative orange">
+                <span className="narrative-tag orange">STAGE 2</span>
+                <strong>Pre-Dispatch Verification Halted</strong>: Order cancellation request received and processed before courier handover.
+              </div>
+            )}
+            {currentStep === 3 && (
+              <div className="status-narrative red">
+                <span className="narrative-tag red">STAGE 3 • CANCELLED</span>
+                <strong>Order Cancelled & 100% Refund Initiated!</strong> Package transit stopped. Full amount reversed to your payment method.
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {currentStep === 1 && (
+              <div className="status-narrative">
+                <span className="narrative-tag">STAGE 1</span>
+                <strong>Order Placed & Payment Confirmed</strong>: Order details verified. Initial dispatch notification sent to warehouse.
+              </div>
+            )}
+            {currentStep === 2 && (
+              <div className="status-narrative orange">
+                <span className="narrative-tag orange">STAGE 2</span>
+                <strong>Preparing & Product Packing</strong>: Items picked, barcode-verified, and sealed in central fulfillment facility.
+              </div>
+            )}
+            {currentStep === 3 && (
+              <div className="status-narrative blue">
+                <span className="narrative-tag blue">STAGE 3 • SHIPPED</span>
+                <strong>In Transit via Blue Dart</strong>: Dispatched from central warehouse. <em>(Note: You can still cancel, but after starting transit the amount will not be refunded).</em>
+              </div>
+            )}
+            {currentStep === 4 && (
+              <div className="status-narrative purple">
+                <span className="narrative-tag purple">STAGE 4</span>
+                <strong>Out for Delivery on Bike</strong>: Delivery executive on motorbike is navigating the final route to your doorstep.
+              </div>
+            )}
+            {currentStep === 5 && (
+              <div className="status-narrative green">
+                <span className="narrative-tag green">STAGE 5 • DELIVERED</span>
+                <strong>Package Successfully Delivered!</strong> Covered by 7-Day Free Replacement for transit damage or wrong item received (customer-damaged items strictly ineligible).
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

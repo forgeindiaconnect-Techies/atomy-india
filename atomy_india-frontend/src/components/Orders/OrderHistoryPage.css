@@ -78,17 +78,37 @@
   margin: 0;
 }
 
-.order-header-badge {
+.order-header-policy-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background-color: #e8f7fc;
-  color: #0084b4;
+  gap: 7px;
+  background-color: #f0f9ff;
+  color: #0284c7;
   padding: 8px 16px;
   border-radius: 24px;
   font-size: 13px;
   font-weight: 600;
-  border: 1px solid rgba(0, 163, 224, 0.2);
+  border: 1px solid #bae6fd;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.order-header-policy-link:hover {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+  box-shadow: 0 2px 10px rgba(0, 163, 224, 0.14);
+  transform: translateY(-1px);
+}
+
+.order-header-policy-link svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.order-header-policy-link:hover svg:last-child {
+  transform: translateX(3px);
 }
 
 /* On-Page Live Delivery Tracker Card */
@@ -2352,4 +2372,157 @@
   color: #64748b;
   cursor: pointer;
   padding: 2px;
+}
+
+/* ==========================================================================
+   INLINE EXPANDABLE DELIVERY & CANCELLATION TRACKER (INSIDE ORDER CARD)
+   ========================================================================== */
+.order-inline-tracker-box {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 18px 22px 22px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  animation: slideDownTracker 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDownTracker {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.inline-tracker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.inline-tracker-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.inline-tracker-meta .sep {
+  color: #cbd5e1;
+}
+
+.inline-tracker-meta strong {
+  color: #1e293b;
+}
+
+.inline-tracker-meta .mono {
+  font-family: monospace;
+  font-weight: 700;
+  color: #00A3E0;
+}
+
+.inline-tracker-close-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.inline-tracker-close-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.inline-tracker-destination {
+  margin-top: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.inline-tracker-destination strong {
+  color: #1e293b;
+}
+
+/* ==========================================================================
+   VIEW STATUS BUTTON VARIANTS (DELIVERED, REFUNDED, CANCELLED)
+   ========================================================================== */
+.order-btn-view-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.order-btn-view-status.btn-delivered {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.order-btn-view-status.btn-delivered:hover,
+.order-btn-view-status.btn-delivered.is-active {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.order-btn-view-status.btn-refunded {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
+.order-btn-view-status.btn-refunded:hover,
+.order-btn-view-status.btn-refunded.is-active {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #7c3aed;
+}
+
+.order-btn-view-status.btn-cancelled {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.order-btn-view-status.btn-cancelled:hover,
+.order-btn-view-status.btn-cancelled.is-active {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.order-btn-primary.is-active-btn {
+  background: #0084b4;
+  border-color: #0084b4;
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.25);
 }

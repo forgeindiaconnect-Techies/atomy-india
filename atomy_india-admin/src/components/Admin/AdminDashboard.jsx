@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   LayoutDashboard,
+  ArrowLeft,
   Package,
   Boxes,
   Users,
@@ -285,6 +286,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+  const [isDelayedBannerDismissed, setIsDelayedBannerDismissed] = useState(false);
   const [editingTrackingOrder, setEditingTrackingOrder] = useState(null);
   const [trackingForm, setTrackingForm] = useState({
     courierPartner: 'Blue Dart Express',
@@ -1601,7 +1603,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   };
 
   const handleProcessRefund = async (orderId) => {
-    if (!window.confirm(`Are you sure you want to process a refund for Order ${orderId}? This will reverse payment and update status to REFUNDED / CANCELLED.`)) {
+    const targetOrder = orders.find(o => o.orderId === orderId);
+    const isShipped = targetOrder && (String(targetOrder.orderStatus || '').toUpperCase().includes('SHIPPED') || String(targetOrder.orderStatus || '').toUpperCase().includes('TRANSIT'));
+    const confirmPrompt = isShipped
+      ? `POLICY WARNING: Order ${orderId} has already SHIPPED. Per company policy, post-dispatch cancellations receive 0% refund unless returned in original transit seal. Are you sure you want to authorize this administrative refund?`
+      : `Are you sure you want to process a pre-dispatch refund for Order ${orderId}? This will reverse payment and update status to REFUNDED / CANCELLED.`;
+    if (!window.confirm(confirmPrompt)) {
       return;
     }
     try {
@@ -2359,7 +2366,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   </div>
 
                   {/* Urgent Delayed Deliveries Alert Banner (Shown when orders exceed SLA) */}
-                  {overviewStats.delayedCount > 0 && (
+                  {overviewStats.delayedCount > 0 && !isDelayedBannerDismissed && (
                     <div
                       className="delayed-orders-urgent-banner"
                       onClick={() => { setActiveTab('orders'); setOrderStatusFilter('DELAYED'); }}
@@ -2374,6 +2381,18 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       </div>
                       <button className="delayed-banner-btn" type="button">
                         View Delayed Orders ({overviewStats.delayedCount}) →
+                      </button>
+                      <button
+                        className="delayed-banner-close-btn"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsDelayedBannerDismissed(true);
+                        }}
+                        title="Dismiss notification"
+                        aria-label="Close notification"
+                      >
+                        <X size={16} />
                       </button>
                     </div>
                   )}
@@ -4158,17 +4177,17 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                             <div className="policy-pillars-grid">
                               <div className="pillar-card">
                                 <div className="pillar-num">POLICY 01</div>
-                                <h4>30-Day Money-Back Guarantee</h4>
+                                <h4>Pre-Dispatch Cancellation (Locked Post-Shipping)</h4>
                                 <p>
-                                  Atomy India provides a 100% satisfaction guarantee. Customers can return unopened or gently tested products within 30 days of delivery if they are dissatisfied with the quality or results.
+                                  Orders can only be cancelled with 100% refund before courier dispatch. Once marked SHIPPED or IN TRANSIT, customer cancellation is locked. If cancelled post-shipping, NO REFUND (0% refund) is issued.
                                 </p>
                               </div>
 
                               <div className="pillar-card">
                                 <div className="pillar-num">POLICY 02</div>
-                                <h4>Zero-Cost Replacement for Damaged Goods</h4>
+                                <h4>Zero-Cost Replacement (Transit Damage & Wrong Item Only)</h4>
                                 <p>
-                                  Items received broken, leaked in transit, or defective qualify for an immediate 1-to-1 replacement. Reverse logistics pickup is dispatched through Blue Dart or Delhivery at zero expense to the consumer.
+                                  1-to-1 free replacement is strictly valid for goods damaged in transit before delivery or wrong SKU delivered. Products broken, dropped, or damaged by customer after delivery are strictly void.
                                 </p>
                               </div>
 
@@ -4272,111 +4291,158 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           MODAL: ORDER DETAILS INSPECTOR
           ======================================================== */}
       {/* ========================================================
-          MODAL: ORDER INSPECTION & TIMELINE
+          FULL-PAGE ORDER INSPECTION & TIMELINE (No Popup)
           ======================================================== */}
       {selectedOrderDetail && (
-        <div className="modal-backdrop-overlay" onClick={() => setSelectedOrderDetail(null)}>
-          <div className="atomy-modal-box wide order-inspection-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="atomy-modal-header">
-              <div className="modal-title-cluster">
-                <Package size={22} color="#00A3E0" />
-                <h3>Order Inspection: {selectedOrderDetail.orderId}</h3>
-              </div>
-              <button className="atomy-modal-close" onClick={() => setSelectedOrderDetail(null)}>
-                &times;
+        <div className="order-inspection-fullscreen-page">
+          {/* Top Fullscreen Header Bar */}
+          <div className="inspection-fullscreen-topbar">
+            <div className="inspection-topbar-left">
+              <button 
+                type="button"
+                className="inspection-back-nav-btn" 
+                onClick={() => setSelectedOrderDetail(null)}
+              >
+                <ArrowLeft size={18} />
+                <span>Back to All Orders</span>
               </button>
+              <div className="inspection-topbar-divider" />
+              <div className="inspection-order-headline">
+                <Package size={22} color="#00A3E0" />
+                <h3>Order Inspection: <span className="inspection-order-id">{selectedOrderDetail.orderId}</span></h3>
+                <span className={`inspection-status-pill status-${(selectedOrderDetail.orderStatus || 'placed').toLowerCase()}`}>
+                  {selectedOrderDetail.orderStatus || 'PLACED'}
+                </span>
+              </div>
             </div>
 
-            <div className="atomy-modal-body">
-              {/* Live Animated Delivery Stepper matching Customer Experience */}
+            <div className="inspection-topbar-right">
+              <button
+                type="button"
+                className="inspection-topbar-btn courier-btn"
+                onClick={() => {
+                  const o = selectedOrderDetail;
+                  setSelectedOrderDetail(null);
+                  handleOpenTrackingModal(o);
+                }}
+              >
+                <Truck size={15} />
+                <span>Courier Tracking Details</span>
+              </button>
+              <button
+                type="button"
+                className="inspection-topbar-btn refund-btn"
+                onClick={() => handleProcessRefund(selectedOrderDetail.orderId)}
+                title="Process Refund & Payment Reversal"
+              >
+                <RotateCcw size={15} />
+                <span>Process Refund</span>
+              </button>
+              <button 
+                type="button"
+                className="inspection-topbar-close-btn" 
+                onClick={() => setSelectedOrderDetail(null)}
+                title="Close and return to orders"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Fullscreen Body Content (Covers entire screen) */}
+          <div className="inspection-fullscreen-content">
+            {/* Live Animated Delivery Stepper matching Customer Experience */}
+            <div className="inspection-card stepper-card">
               <DeliveryStatusStepper order={selectedOrderDetail} />
+            </div>
 
-              {/* Customer & Delivery Meta Grid */}
-              <div className="order-meta-info-grid">
-                <div className="meta-info-card">
-                  <div className="meta-card-label">CUSTOMER DETAILS</div>
-                  <div className="meta-card-main">{selectedOrderDetail.customerName}</div>
-                  <div className="meta-card-sub">{selectedOrderDetail.customerPhone}</div>
-                  <div className="meta-card-sub">{selectedOrderDetail.customerEmail}</div>
-                </div>
-
-                <div className="meta-info-card">
-                  <div className="meta-card-label">DELIVERY DESTINATION</div>
-                  <div className="meta-card-main">{selectedOrderDetail.shippingAddress}</div>
-                  <div className="meta-card-sub">{selectedOrderDetail.city}, {selectedOrderDetail.state} - {selectedOrderDetail.pincode}</div>
-                </div>
-
-                <div className="meta-info-card">
-                  <div className="meta-card-label">PAYMENT & STATUS</div>
-                  <div className="meta-card-main">
-                    ₹ {Number(selectedOrderDetail.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div className="meta-card-sub">
-                    Method: {selectedOrderDetail.paymentMethod || 'ONLINE'} • {selectedOrderDetail.paymentStatus || 'PAID'}
-                  </div>
-                </div>
-
-                {(() => {
-                  const sla = getOrderDeliverySLA(selectedOrderDetail);
-                  return (
-                    <div
-                      className="meta-info-card"
-                      style={sla.isDelayed ? { border: '1px solid #fecaca', background: '#fff5f5' } : {}}
-                    >
-                      <div className="meta-card-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>DELIVERY SLA & DEADLINE</span>
-                        {sla.isDelayed && (
-                          <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <AlertTriangle size={12} color="#dc2626" /> OVERDUE ({sla.delayDays}D)
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        className="meta-card-main"
-                        style={{ color: sla.isDelayed ? '#dc2626' : '#00A3E0', fontWeight: 700 }}
-                      >
-                        {sla.targetDateStr ? `Deadline: ${sla.targetDateStr}` : getFormattedEstimatedDelivery(selectedOrderDetail)}
-                      </div>
-                      <div className="meta-card-sub">
-                        Status: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#15803d' }}>{sla.statusText}</strong> ({sla.slaDays}-Day SLA • {sla.isRemote ? 'Remote Mountain/Forest' : 'Nearby Hub Delivery'}) • Carrier: {selectedOrderDetail.courier || selectedOrderDetail.tracking?.courierPartner || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
-                      </div>
-                      {sla.isDelayed && (
-                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                          <div style={{ fontSize: '11.5px', color: selectedOrderDetail.delayEmailSent ? '#16a34a' : '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {selectedOrderDetail.delayEmailSent ? (
-                              <>
-                                <CheckCircle2 size={13} color="#16a34a" />
-                                <span>Apology Dispatched ({selectedOrderDetail.delayEmailSentAt ? new Date(selectedOrderDetail.delayEmailSentAt).toLocaleDateString('en-IN') : 'Sent'})</span>
-                              </>
-                            ) : (
-                              <>
-                                <Mail size={13} color="#b91c1c" />
-                                <span>Customer not yet notified</span>
-                              </>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            className="apology-modal-action-btn"
-                            onClick={() => handleSendDelayApologyEmail(selectedOrderDetail.orderId, selectedOrderDetail.customerEmail)}
-                          >
-                            <Mail size={12} />
-                            <span>{selectedOrderDetail.delayEmailSent ? 'Resend Apology Email' : 'Send Apology Email Now'}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+            {/* Customer & Delivery Meta Grid */}
+            <div className="order-meta-info-grid">
+              <div className="meta-info-card">
+                <div className="meta-card-label">CUSTOMER DETAILS</div>
+                <div className="meta-card-main">{selectedOrderDetail.customerName}</div>
+                <div className="meta-card-sub">{selectedOrderDetail.customerPhone}</div>
+                <div className="meta-card-sub">{selectedOrderDetail.customerEmail}</div>
               </div>
 
-              {/* Items Table */}
-              <div className="order-items-detail-title">Purchased Items Breakdown</div>
-              <div className="atomy-table-responsive" style={{ maxHeight: '250px' }}>
+              <div className="meta-info-card">
+                <div className="meta-card-label">DELIVERY DESTINATION</div>
+                <div className="meta-card-main">{selectedOrderDetail.shippingAddress}</div>
+                <div className="meta-card-sub">{selectedOrderDetail.city}, {selectedOrderDetail.state} - {selectedOrderDetail.pincode}</div>
+              </div>
+
+              <div className="meta-info-card">
+                <div className="meta-card-label">PAYMENT & STATUS</div>
+                <div className="meta-card-main">
+                  ₹ {Number(selectedOrderDetail.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+                <div className="meta-card-sub">
+                  Method: {selectedOrderDetail.paymentMethod || 'ONLINE'} • {selectedOrderDetail.paymentStatus || 'PAID'}
+                </div>
+              </div>
+
+              {(() => {
+                const sla = getOrderDeliverySLA(selectedOrderDetail);
+                return (
+                  <div
+                    className="meta-info-card"
+                    style={sla.isDelayed ? { border: '1px solid #fecaca', background: '#fff5f5' } : {}}
+                  >
+                    <div className="meta-card-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>DELIVERY SLA & DEADLINE</span>
+                      {sla.isDelayed && (
+                        <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <AlertTriangle size={12} color="#dc2626" /> OVERDUE ({sla.delayDays}D)
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className="meta-card-main"
+                      style={{ color: sla.isDelayed ? '#dc2626' : '#00A3E0', fontWeight: 700 }}
+                    >
+                      {sla.targetDateStr ? `Deadline: ${sla.targetDateStr}` : getFormattedEstimatedDelivery(selectedOrderDetail)}
+                    </div>
+                    <div className="meta-card-sub">
+                      Status: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#15803d' }}>{sla.statusText}</strong> ({sla.slaDays}-Day SLA • {sla.isRemote ? 'Remote Mountain/Forest' : 'Nearby Hub Delivery'}) • Carrier: {selectedOrderDetail.courier || selectedOrderDetail.tracking?.courierPartner || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
+                    </div>
+                    {sla.isDelayed && (
+                      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ fontSize: '11.5px', color: selectedOrderDetail.delayEmailSent ? '#16a34a' : '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {selectedOrderDetail.delayEmailSent ? (
+                            <>
+                              <CheckCircle2 size={13} color="#16a34a" />
+                              <span>Apology Dispatched ({selectedOrderDetail.delayEmailSentAt ? new Date(selectedOrderDetail.delayEmailSentAt).toLocaleDateString('en-IN') : 'Sent'})</span>
+                            </>
+                          ) : (
+                            <>
+                              <Mail size={13} color="#b91c1c" />
+                              <span>Customer not yet notified</span>
+                            </>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="apology-modal-action-btn"
+                          onClick={() => handleSendDelayApologyEmail(selectedOrderDetail.orderId, selectedOrderDetail.customerEmail)}
+                        >
+                          <Mail size={12} />
+                          <span>{selectedOrderDetail.delayEmailSent ? 'Resend Apology Email' : 'Send Apology Email Now'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Items Table Card */}
+            <div className="inspection-card items-card">
+              <div className="order-items-detail-title">Purchased Items Breakdown ({resolveOrderItems(selectedOrderDetail).length} Items)</div>
+              <div className="atomy-table-responsive">
                 <table className="atomy-data-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '60px' }}>Item</th>
+                      <th style={{ width: '70px' }}>Item</th>
                       <th>Product Name</th>
                       <th>Product Code</th>
                       <th>Quantity</th>
@@ -4402,7 +4468,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           <strong>{it.name}</strong>
                         </td>
                         <td className="mono-col">{it.code}</td>
-                        <td>{it.quantity}</td>
+                        <td><span className="qty-tag">{it.quantity}</span></td>
                         <td>₹ {Number(it.unitPrice).toLocaleString('en-IN')}</td>
                         <td>{Number(it.pv).toLocaleString('en-IN')} PV</td>
                         <td style={{ textAlign: 'right' }} className="cell-price">
@@ -4413,49 +4479,46 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* Status Update Dropdown & Bottom Actions Alignment */}
-              <div className="order-modal-footer-row">
-                <div className="status-update-control">
-                  <label className="status-update-label">Update Order Status:</label>
-                  <select
-                    value={selectedOrderDetail.orderStatus}
-                    onChange={(e) => handleUpdateOrderStatus(selectedOrderDetail.orderId, e.target.value)}
-                    className="atomy-dropdown status-modal-dropdown"
-                  >
-                    <option value="PLACED">PLACED (New)</option>
-                    <option value="PROCESSING">PROCESSING (Pending)</option>
-                    <option value="SHIPPED">SHIPPED</option>
-                    <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY</option>
-                    <option value="DELIVERED">DELIVERED</option>
-                    <option value="CANCELLED">CANCELLED</option>
-                  </select>
-                </div>
+            {/* Status Update Control Bar */}
+            <div className="inspection-card status-actions-card">
+              <div className="status-update-control">
+                <label className="status-update-label">Update Order Status:</label>
+                <select
+                  value={selectedOrderDetail.orderStatus}
+                  onChange={(e) => handleUpdateOrderStatus(selectedOrderDetail.orderId, e.target.value)}
+                  className="atomy-dropdown status-modal-dropdown"
+                >
+                  <option value="PLACED">PLACED (New Order)</option>
+                  <option value="PROCESSING">PROCESSING (Warehouse Packed)</option>
+                  <option value="SHIPPED">SHIPPED (In Transit)</option>
+                  <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY (Local Hub)</option>
+                  <option value="DELIVERED">DELIVERED (Customer Received)</option>
+                  <option value="CANCELLED">CANCELLED (Cancelled & Refunded)</option>
+                </select>
+              </div>
 
-                <div className="modal-actions-right">
-                  <button
-                    className="order-footer-btn refund-btn"
-                    onClick={() => handleProcessRefund(selectedOrderDetail.orderId)}
-                    title="Process Refund & Payment Reversal"
-                  >
-                    <RotateCcw size={15} />
-                    <span>Process Refund</span>
-                  </button>
-                  <button
-                    className="order-footer-btn courier-btn"
-                    onClick={() => {
-                      const o = selectedOrderDetail;
-                      setSelectedOrderDetail(null);
-                      handleOpenTrackingModal(o);
-                    }}
-                  >
-                    <Truck size={15} />
-                    <span>Courier Tracking Details</span>
-                  </button>
-                  <button className="order-footer-btn done-btn" onClick={() => setSelectedOrderDetail(null)}>
-                    <span>Done</span>
-                  </button>
-                </div>
+              <div className="modal-actions-right">
+                <button
+                  type="button"
+                  className="order-footer-btn courier-btn"
+                  onClick={() => {
+                    const o = selectedOrderDetail;
+                    setSelectedOrderDetail(null);
+                    handleOpenTrackingModal(o);
+                  }}
+                >
+                  <Truck size={15} />
+                  <span>Update Logistics Tracking</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="order-footer-btn done-btn" 
+                  onClick={() => setSelectedOrderDetail(null)}
+                >
+                  <span>Close Inspection</span>
+                </button>
               </div>
             </div>
           </div>

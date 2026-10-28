@@ -411,3 +411,73 @@
     min-width: 80px;
   }
 }
+
+/* ==========================================================================
+   CANCELLED STAGE & TRAVELLING PIPELINE STYLES
+   ========================================================================== */
+.stepper-cancelled-mode {
+  border-color: #fecaca !important;
+  background: #fffafa !important;
+}
+
+.cancelled-dot {
+  background-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2) !important;
+}
+
+.carrier-cancelled {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+  border-color: #fca5a5 !important;
+}
+
+.stage-cancelled-text {
+  color: #dc2626 !important;
+}
+
+.cancelled-badge-pill {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+  font-weight: 700;
+}
+
+.cancelled-circle {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.stage-cancel-icon {
+  color: #ffffff !important;
+}
+
+.cancel-glow {
+  border: 2px solid #ef4444;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
+}
+
+.cancelled-title {
+  color: #dc2626 !important;
+  font-weight: 800;
+}
+
+.cancel-badge {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fca5a5 !important;
+}
+
+.cancelled-dots-fill {
+  background-image: radial-gradient(circle, #ef4444 32%, transparent 34%) !important;
+}
+
+.cancel-mover {
+  animation: shakeAlert 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes shakeAlert {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-2px) rotate(-2deg); }
+  100% { transform: translateY(0px) rotate(2deg); }
+}

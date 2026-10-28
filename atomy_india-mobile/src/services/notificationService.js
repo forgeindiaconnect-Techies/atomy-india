@@ -189,7 +189,10 @@ export const reconcileNotifications = (email, user, orders = [], membershipExpir
     if (status.includes('cancel')) {
       notifType = 'order_cancelled';
       title = `Order #${orderNum} Cancelled`;
-      message = `Order #${orderNum} was cancelled. A refund of ${ord.total || 'the full amount'} has been initiated to your source payment method.`;
+      const isNonRefundable = ord.paymentStatus === 'NON_REFUNDABLE' || (ord.trackStatus || '').toLowerCase().includes('non-refundable');
+      message = isNonRefundable
+        ? `Order #${orderNum} was cancelled while in transit. As transit had commenced, the cancellation amount is non-refundable (₹0 refund).`
+        : `Order #${orderNum} was cancelled. A refund of ${ord.total || 'the full amount'} has been initiated to your source payment method.`;
       isUnread = true;
     } else if (status.includes('deliver') && !status.includes('out')) {
       notifType = 'order_delivered';

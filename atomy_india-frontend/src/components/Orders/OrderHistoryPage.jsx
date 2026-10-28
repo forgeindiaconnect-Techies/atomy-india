@@ -120,8 +120,7 @@ export default function OrderHistoryPage({
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'Payment Completed' | 'Preparing Shipment' | 'In Transit' | 'Delivered' | 'Cancelled'
   const [searchQuery, setSearchQuery] = useState('');
   const [activeInvoiceOrder, setActiveInvoiceOrder] = useState(null);
-  const [activeTrackedOrder, setActiveTrackedOrder] = useState(null);
-  const [trackerSearchInput, setTrackerSearchInput] = useState('');
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   // Local overrides for cancellations, replacements, and returns
   const [localOrderOverrides, setLocalOrderOverrides] = useState({});
@@ -211,26 +210,7 @@ export default function OrderHistoryPage({
     });
   }, [placedOrders, localOrderOverrides]);
 
-  useEffect(() => {
-    if (allOrders.length > 0) {
-      const nonCancelledOrders = allOrders.filter(o => o.status !== 'Cancelled');
-      if (!activeTrackedOrder || !allOrders.some(o => o.orderId === activeTrackedOrder.orderId) || activeTrackedOrder.status === 'Cancelled') {
-        setActiveTrackedOrder(nonCancelledOrders.length > 0 ? nonCancelledOrders[0] : null);
-      } else {
-        // keep active tracked order in sync with latest status
-        const updated = allOrders.find(o => o.orderId === activeTrackedOrder.orderId);
-        if (updated) {
-          if (updated.status === 'Cancelled') {
-            setActiveTrackedOrder(nonCancelledOrders.length > 0 ? nonCancelledOrders[0] : null);
-          } else {
-            setActiveTrackedOrder(updated);
-          }
-        }
-      }
-    } else {
-      setActiveTrackedOrder(null);
-    }
-  }, [allOrders]);
+
 
   // Status counters
   const counters = useMemo(() => {
@@ -277,29 +257,9 @@ export default function OrderHistoryPage({
     });
   }, [allOrders, selectedPeriod, statusFilter, searchQuery]);
 
-  const handleTrackDelivery = (order) => {
-    if (!order || order.status === 'Cancelled') return;
-    setActiveTrackedOrder(order);
-    const element = document.getElementById('active-tracker-section');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  };
-
-  const handleQuickLookup = (e) => {
-    e.preventDefault();
-    if (!trackerSearchInput.trim()) return;
-    const q = trackerSearchInput.trim().toLowerCase();
-    const found = allOrders.find(o => 
-      (o.orderId.toLowerCase().includes(q) ||
-      (o.trackingNumber && o.trackingNumber.toLowerCase().includes(q))) &&
-      o.status !== 'Cancelled'
-    );
-    if (found) {
-      setActiveTrackedOrder(found);
-    } else {
-      setActiveTrackedOrder(null);
-    }
+  const handleToggleTracking = (order) => {
+    if (!order) return;
+    setExpandedOrderId((prev) => (prev === order.orderId ? null : order.orderId));
   };
 
   const handleReorder = (order) => {
@@ -346,15 +306,18 @@ export default function OrderHistoryPage({
         console.warn('Backend sync warning:', err);
       }
 
+      const inTransit = isInTransitOrShipped(cancelModalOrder);
+      const paymentStatusVal = inTransit ? 'NON_REFUNDABLE' : 'REFUNDED';
+
       // 2. Local State update
       setLocalOrderOverrides(prev => ({
         ...prev,
         [oId]: {
           ...prev[oId],
           status: 'Cancelled',
-          paymentStatus: 'REFUNDED',
+          paymentStatus: paymentStatusVal,
           cancelReason: fullReason,
-          cancelNotes: cancelNotes
+          cancelNotes: cancelNotes + (inTransit ? ' [Cancelled In Transit - Non-Refundable]' : '')
         }
       }));
 
@@ -365,7 +328,7 @@ export default function OrderHistoryPage({
           ...o, 
           status: 'Cancelled', 
           orderStatus: 'CANCELLED', 
-          paymentStatus: 'REFUNDED',
+          paymentStatus: paymentStatusVal,
           cancelReason: fullReason,
           cancelNotes: cancelNotes
         } : o);
@@ -375,7 +338,7 @@ export default function OrderHistoryPage({
         const updatedAdmin = adminOrders.map(o => o.orderId === oId ? { 
           ...o, 
           orderStatus: 'CANCELLED', 
-          paymentStatus: 'REFUNDED',
+          paymentStatus: paymentStatusVal,
           cancelReason: fullReason,
           cancelNotes: cancelNotes
         } : o);
@@ -392,7 +355,9 @@ export default function OrderHistoryPage({
           category: 'CANCELLATION',
           orderId: oId,
           status: 'RESOLVED',
-          message: `Customer initiated 100% automated pre-dispatch cancellation.\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\nRefund Amount: ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\nRefund SLA: UPI (24h) / Cards (3-5d).`,
+          message: inTransit
+            ? `Customer cancelled order after transit started. Non-refundable policy applied (₹0 refunded per policy).\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\nOriginal Value: ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+            : `Customer initiated 100% automated pre-dispatch cancellation.\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\nRefund Amount: ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\nRefund SLA: UPI (24h) / Cards (3-5d).`,
           createdAt: new Date().toISOString()
         });
         localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
@@ -401,9 +366,11 @@ export default function OrderHistoryPage({
       } catch {}
 
       setToastMessage({
-        type: 'success',
-        title: 'Order Cancelled & 100% Refund Initiated',
-        desc: `Order #${oId} was cancelled. 100% refund of ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} has been initiated to your source payment method (UPI within 24h, Cards in 3-5 days).`
+        type: inTransit ? 'warning' : 'success',
+        title: inTransit ? 'Order Cancelled (No Refund Applied)' : 'Order Cancelled & 100% Refund Initiated',
+        desc: inTransit
+          ? `Order #${oId} was cancelled while in transit. As warned, after starting transit the cancellation amount will not be refunded (₹0 refund).`
+          : `Order #${oId} was cancelled. 100% refund of ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} has been initiated to your source payment method (UPI within 24h, Cards in 3-5 days).`
       });
       setCancelModalOrder(null);
       setCancelNotes('');
@@ -488,11 +455,21 @@ export default function OrderHistoryPage({
     }
   };
 
-  // Helper check if order is eligible for cancellation (pre-dispatch)
+  // Helper check if order is already in transit or shipped
+  const isInTransitOrShipped = (order) => {
+    if (!order) return false;
+    const st = String(order.status || '').toLowerCase();
+    return st.includes('ship') || st.includes('transit') || st.includes('out for');
+  };
+
+  // Allow customer to cancel any order that is NOT yet Delivered or already Cancelled
   const isCancellable = (order) => {
     if (!order) return false;
     const st = String(order.status || '').toLowerCase();
-    return st.includes('placed') || st.includes('completed') || st.includes('preparing');
+    if (st.includes('deliver') || st.includes('cancel')) {
+      return false;
+    }
+    return true;
   };
 
   // Helper check if order is delivered
@@ -541,218 +518,19 @@ export default function OrderHistoryPage({
               Inspect order details, monitor live package transit checkpoints, request replacements, cancel orders, and review policies.
             </p>
           </div>
-          <div className="order-header-badge">
-            <Package size={18} />
-            <span>Official Atomy India Fulfillment</span>
-          </div>
+          <button 
+            type="button"
+            className="order-header-policy-link"
+            onClick={() => setIsRulesModalOpen(true)}
+            title="Read Official Atomy India Refund, Replacement & Cancellation Rules"
+          >
+            <ShieldCheck size={16} color="#00A3E0" />
+            <span>Refund & Replacement Rules</span>
+            <ChevronRight size={14} />
+          </button>
         </div>
 
-        {/* 2.2 Prominent Customer Cancellation & Replacement Rules Banner */}
-        <div className="rules-quick-banner">
-          <div className="rules-quick-left">
-            <div className="rules-shield-wrap">
-              <ShieldCheck size={26} color="#00A3E0" />
-            </div>
-            <div>
-              <div className="rules-badge-title">Official Atomy India Consumer Protection SOP</div>
-              <h3 className="rules-main-heading">Order Cancellation, Zero-Cost Replacement & 100% Refund Rules</h3>
-              <p className="rules-sub-desc">
-                Learn your rights regarding pre-dispatch order cancellation, 7-day damaged goods replacement, and 30-day satisfaction refunds.
-              </p>
-            </div>
-          </div>
 
-          <div className="rules-quick-pillars">
-            <div className="rules-pillar-item">
-              <div className="pillar-dot blue"></div>
-              <div>
-                <strong>Pre-Dispatch Cancellation</strong>
-                <span>Instant free cancellation before courier dispatch with 100% refund.</span>
-              </div>
-            </div>
-
-            <div className="rules-pillar-item">
-              <div className="pillar-dot indigo"></div>
-              <div>
-                <strong>Zero-Cost Replacement</strong>
-                <span>7-day transit damage window. Free 1-to-1 replacement via Blue Dart.</span>
-              </div>
-            </div>
-
-            <div className="rules-pillar-item">
-              <div className="pillar-dot emerald"></div>
-              <div>
-                <strong>30-Day 100% Refund</strong>
-                <span>Satisfaction guarantee on genuine products. UPI refunded in 24h, Cards in 3-5 days.</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rules-quick-action">
-            <button
-              type="button"
-              className="view-rules-btn"
-              onClick={() => setIsRulesModalOpen(true)}
-            >
-              <span>View Official Rules</span>
-              <ChevronRight size={15} />
-            </button>
-          </div>
-        </div>
-
-        {/* 2.5 Integrated Live Delivery Status Tracker On-Page */}
-        {activeTrackedOrder && activeTrackedOrder.status !== 'Cancelled' ? (
-          <div className="onpage-delivery-tracker-card animate-fade" id="active-tracker-section">
-            <div className="tracker-card-top">
-              <div className="tracker-id-box">
-                <Truck size={22} color="#00A3E0" />
-                <div>
-                  <span className="tracker-eyebrow">Live Delivery Status</span>
-                  <div className="tracker-id-row">
-                    <strong className="current-track-id">{activeTrackedOrder.orderId}</strong>
-                    <span className={`status-pill ${activeTrackedOrder.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                      {activeTrackedOrder.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Tracker Search Input */}
-              <form onSubmit={handleQuickLookup} className="tracker-lookup-form">
-                <input
-                  type="text"
-                  placeholder="Lookup Order No / AWB..."
-                  value={trackerSearchInput}
-                  onChange={(e) => setTrackerSearchInput(e.target.value)}
-                  className="tracker-lookup-input"
-                />
-                <button type="submit" className="tracker-lookup-btn">
-                  Track
-                </button>
-              </form>
-            </div>
-
-            {/* Courier Meta Line */}
-            <div className="tracker-courier-line">
-              <span>Carrier: <strong>{activeTrackedOrder.courier}</strong></span>
-              <span className="sep">•</span>
-              <span>AWB: <strong className="mono">{activeTrackedOrder.trackingNumber || 'Pending Allocation'}</strong></span>
-              <span className="sep">•</span>
-              <span>Order Date: <strong>{activeTrackedOrder.orderDate}</strong></span>
-            </div>
-
-            {/* 5-Step Visual Delivery Stepper with Animations & 1.5s Time-lapse */}
-            <DeliveryStatusStepper order={activeTrackedOrder} />
-
-            {/* Bottom address banner */}
-            <div className="tracker-address-banner">
-              <MapPin size={16} color="#00A3E0" />
-              <span>
-                Shipping to: <strong>{activeTrackedOrder.shippingAddress?.recipient || 'Customer'}</strong>
-                {activeTrackedOrder.shippingAddress?.address ? ` - ${activeTrackedOrder.shippingAddress.address}` : ''}
-              </span>
-            </div>
-
-            {/* Tracker Actions Strip: Direct Cancel, Replacement & Rules Buttons */}
-            <div className="tracker-action-buttons-strip">
-              <div className="tab-left-note">
-                {isCancellable(activeTrackedOrder) && (
-                  <span className="note-cancellable">
-                    <Clock size={14} /> Eligible for instant free cancellation & 100% refund before package ships.
-                  </span>
-                )}
-                {isDelivered(activeTrackedOrder) && (
-                  <span className="note-delivered">
-                    <ShieldCheck size={14} /> Covered by 7-Day Free Replacement & 30-Day Money-Back Guarantee.
-                  </span>
-                )}
-                {activeTrackedOrder.status === 'Cancelled' && (
-                  <span className="note-cancelled">
-                    <RotateCcw size={14} /> Order Cancelled • 100% Refund reversed to payment source.
-                  </span>
-                )}
-              </div>
-
-              <div className="tab-right-actions">
-                {isCancellable(activeTrackedOrder) && (
-                  <button
-                    type="button"
-                    className="tracker-action-btn cancel-btn"
-                    onClick={() => setCancelModalOrder(activeTrackedOrder)}
-                  >
-                    <XCircle size={15} />
-                    <span>Cancel Order</span>
-                  </button>
-                )}
-
-                {isDelivered(activeTrackedOrder) && (
-                  <>
-                    <button
-                      type="button"
-                      className="tracker-action-btn replace-btn"
-                      onClick={() => {
-                        setReplacementModalOrder(activeTrackedOrder);
-                        setResolutionMode('replacement');
-                      }}
-                    >
-                      <Truck size={15} />
-                      <span>Request Replacement</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="tracker-action-btn return-btn"
-                      onClick={() => {
-                        setReplacementModalOrder(activeTrackedOrder);
-                        setResolutionMode('refund');
-                      }}
-                    >
-                      <RotateCcw size={15} />
-                      <span>Return & Refund</span>
-                    </button>
-                  </>
-                )}
-
-                <button
-                  type="button"
-                  className="tracker-action-btn rules-btn"
-                  onClick={() => setIsRulesModalOpen(true)}
-                >
-                  <HelpCircle size={15} />
-                  <span>Rules & Policies</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="onpage-delivery-tracker-card lookup-only animate-fade" id="active-tracker-section">
-            <div className="tracker-card-top">
-              <div className="tracker-id-box">
-                <Truck size={22} color="#00A3E0" />
-                <div>
-                  <span className="tracker-eyebrow">Track Order & Delivery Status</span>
-                  <div className="tracker-id-row">
-                    <span style={{ fontSize: '13px', color: '#555' }}>
-                      Enter your Atomy Order Number or Courier Tracking AWB to check real-time package delivery status.
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <form onSubmit={handleQuickLookup} className="tracker-lookup-form">
-                <input
-                  type="text"
-                  placeholder="e.g. AT-202610... or BD12345678IN"
-                  value={trackerSearchInput}
-                  onChange={(e) => setTrackerSearchInput(e.target.value)}
-                  className="tracker-lookup-input"
-                />
-                <button type="submit" className="tracker-lookup-btn">
-                  Track Delivery
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
 
         {/* 3. Order Status Summary Tracker Cards */}
         <div className="order-status-tracker-strip">
@@ -989,26 +767,60 @@ export default function OrderHistoryPage({
                         <span>Invoice</span>
                       </button>
 
-                      {/* Hide Track button for cancelled orders */}
-                      {!isCanc && (
+                      {/* Status / Tracking Action Button:
+                          - For Cancelled: View Status (expanding travelling cancellation flow)
+                          - For Delivered: View Status
+                          - For Refunded: View Status
+                          - For In-Progress: Track */}
+                      {isCanc ? (
                         <button
                           type="button"
-                          className="order-btn-primary"
-                          onClick={() => handleTrackDelivery(order)}
+                          className={`order-btn-view-status btn-cancelled ${expandedOrderId === order.orderId ? 'is-active' : ''}`}
+                          onClick={() => handleToggleTracking(order)}
+                          title="View Order Cancellation & 100% Refund Status"
+                        >
+                          <XCircle size={15} />
+                          <span>{expandedOrderId === order.orderId ? 'Hide Status' : 'View Status'}</span>
+                        </button>
+                      ) : isDeliv ? (
+                        <button
+                          type="button"
+                          className={`order-btn-view-status btn-delivered ${expandedOrderId === order.orderId ? 'is-active' : ''}`}
+                          onClick={() => handleToggleTracking(order)}
+                          title="View Delivery Completion Status"
+                        >
+                          <CheckCircle2 size={15} />
+                          <span>{expandedOrderId === order.orderId ? 'Hide Status' : 'View Status'}</span>
+                        </button>
+                      ) : (order.paymentStatus === 'REFUNDED' || order.status === 'Refunded' || order.returnRequested) ? (
+                        <button
+                          type="button"
+                          className={`order-btn-view-status btn-refunded ${expandedOrderId === order.orderId ? 'is-active' : ''}`}
+                          onClick={() => handleToggleTracking(order)}
+                          title="View Refund Status"
+                        >
+                          <RotateCcw size={15} />
+                          <span>{expandedOrderId === order.orderId ? 'Hide Status' : 'View Status'}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={`order-btn-primary ${expandedOrderId === order.orderId ? 'is-active-btn' : ''}`}
+                          onClick={() => handleToggleTracking(order)}
                           title="Track Shipment Status"
                         >
                           <Truck size={15} />
-                          <span>Track</span>
+                          <span>{expandedOrderId === order.orderId ? 'Hide Tracking' : 'Track'}</span>
                         </button>
                       )}
 
-                      {/* CANCEL ORDER OPTION (For pre-dispatch orders) */}
+                      {/* CANCEL ORDER OPTION (Allowed with warning if in transit) */}
                       {canCancel && (
                         <button
                           type="button"
                           className="order-btn-cancel"
                           onClick={() => setCancelModalOrder(order)}
-                          title="Cancel Order & Receive 100% Refund"
+                          title={isInTransitOrShipped(order) ? "Cancel Order (Non-Refundable In Transit)" : "Cancel Order & Receive 100% Refund"}
                         >
                           <XCircle size={15} />
                           <span>Cancel Order</span>
@@ -1058,6 +870,48 @@ export default function OrderHistoryPage({
                       </button>
                     </div>
                   </div>
+
+                  {/* Inline Expanded Delivery / Cancellation Tracker Section */}
+                  {expandedOrderId === order.orderId && (
+                    <div className="order-inline-tracker-box animate-fade">
+                      <div className="inline-tracker-header">
+                        <div className="inline-tracker-meta">
+                          <span className="meta-carrier">
+                            Carrier: <strong>{isCanc ? 'Transit Halted' : (order.courier || 'Blue Dart Express')}</strong>
+                          </span>
+                          <span className="sep">•</span>
+                          <span className="meta-awb">
+                            AWB: <strong className="mono">{order.trackingNumber || (order.orderId ? `BD-${order.orderId}` : 'BD-Pending Allocation')}</strong>
+                          </span>
+                          <span className="sep">•</span>
+                          <span className="meta-date">
+                            Order Date: <strong>{order.orderDate}</strong>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="inline-tracker-close-btn"
+                          onClick={() => setExpandedOrderId(null)}
+                          title="Close tracking details"
+                        >
+                          <X size={14} />
+                          <span>Close</span>
+                        </button>
+                      </div>
+
+                      {/* Animated Delivery or Travelling Cancellation Stepper */}
+                      <DeliveryStatusStepper order={order} />
+
+                      {/* Destination Shipping Address Banner */}
+                      <div className="inline-tracker-destination">
+                        <MapPin size={15} color="#00A3E0" />
+                        <span>
+                          Shipping to: <strong>{order.shippingAddress?.recipient || 'Customer'}</strong>
+                          {order.shippingAddress?.address ? ` — ${order.shippingAddress.address}` : ''}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1071,46 +925,73 @@ export default function OrderHistoryPage({
       {cancelModalOrder && (
         <div className="order-modal-backdrop animate-fade" onClick={() => setCancelModalOrder(null)}>
           <div className="order-action-modal animate-scale-up" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header-danger">
-              <div className="danger-icon-wrap">
-                <XCircle size={26} color="#dc2626" />
-              </div>
-              <div>
-                <h3>Cancel Order #{cancelModalOrder.orderId}</h3>
-                <p>Eligible for instant free pre-dispatch cancellation with 100% automated refund.</p>
-              </div>
-              <button className="modal-close-x" onClick={() => setCancelModalOrder(null)} aria-label="Close modal">
-                <X size={18} />
-              </button>
-            </div>
+            {(() => {
+              const inTransit = isInTransitOrShipped(cancelModalOrder);
+              return (
+                <>
+                  <div className="modal-header-danger">
+                    <div className="danger-icon-wrap">
+                      <XCircle size={26} color="#dc2626" />
+                    </div>
+                    <div>
+                      <h3>Cancel Order #{cancelModalOrder.orderId}</h3>
+                      <p>
+                        {inTransit 
+                          ? 'Package is already in transit. You can cancel, but the amount is non-refundable.'
+                          : 'Eligible for instant free pre-dispatch cancellation with 100% automated refund.'}
+                      </p>
+                    </div>
+                    <button className="modal-close-x" onClick={() => setCancelModalOrder(null)} aria-label="Close modal">
+                      <X size={18} />
+                    </button>
+                  </div>
 
-            <div className="modal-body-content">
-              {/* 100% Refund Breakdown Banner */}
-              <div className="refund-summary-banner danger-tone">
-                <div className="rsb-top-row">
-                  <span className="rsb-label">100% Refund Amount</span>
-                  <span className="rsb-amount">
-                    ₹ {getOrderTotal(cancelModalOrder).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="rsb-destination">
-                  Credited directly back to your source payment method with <strong>₹0 cancellation fee</strong>.
-                </div>
-                <div className="refund-sla-grid">
-                  <div className="sla-pill active-fast">
-                    <span className="sla-channel">⚡ UPI (GPay / PhonePe)</span>
-                    <span className="sla-time">Within 24 Hours</span>
-                  </div>
-                  <div className="sla-pill">
-                    <span className="sla-channel">💳 Cards (Debit / Credit)</span>
-                    <span className="sla-time">3 - 5 Business Days</span>
-                  </div>
-                  <div className="sla-pill">
-                    <span className="sla-channel">🏦 Net Banking</span>
-                    <span className="sla-time">5 - 7 Business Days</span>
-                  </div>
-                </div>
-              </div>
+                  <div className="modal-body-content">
+                    {/* Dynamic Warning & Refund Breakdown Banner */}
+                    {inTransit ? (
+                      <div className="refund-summary-banner danger-tone" style={{ background: '#fff1f2', borderColor: '#f43f5e' }}>
+                        <div className="rsb-top-row">
+                          <span className="rsb-label" style={{ color: '#be123c', fontWeight: 700 }}>
+                            Cancellation Refund Amount
+                          </span>
+                          <span className="rsb-amount" style={{ color: '#be123c' }}>
+                            ₹ 0.00
+                          </span>
+                        </div>
+                        <div className="rsb-destination" style={{ color: '#9f1239' }}>
+                          <strong>⚠️ Warning — In Transit Non-Refundable Notice:</strong> After starting transit, the cancellation amount will <strong>NOT be refunded (₹0 refund)</strong> because courier logistics, Blue Dart transit allocations, and shipping fees are already irrevocably committed.
+                        </div>
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: '#64748b' }}>
+                          Original Order Value: <strong>₹ {getOrderTotal(cancelModalOrder).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong> (Forfeited upon transit cancellation)
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="refund-summary-banner danger-tone">
+                        <div className="rsb-top-row">
+                          <span className="rsb-label">100% Refund Amount</span>
+                          <span className="rsb-amount">
+                            ₹ {getOrderTotal(cancelModalOrder).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="rsb-destination">
+                          Credited directly back to your source payment method with <strong>₹0 cancellation fee</strong>.
+                        </div>
+                        <div className="refund-sla-grid">
+                          <div className="sla-pill active-fast">
+                            <span className="sla-channel">⚡ UPI (GPay / PhonePe)</span>
+                            <span className="sla-time">Within 24 Hours</span>
+                          </div>
+                          <div className="sla-pill">
+                            <span className="sla-channel">💳 Cards (Debit / Credit)</span>
+                            <span className="sla-time">3 - 5 Business Days</span>
+                          </div>
+                          <div className="sla-pill">
+                            <span className="sla-channel">🏦 Net Banking</span>
+                            <span className="sla-time">5 - 7 Business Days</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
               {/* Reason Selector (Amazon / Myntra Style Radio Tiles) */}
               <div className="action-form-group">
@@ -1175,34 +1056,37 @@ export default function OrderHistoryPage({
               </div>
             </div>
 
-            <div className="modal-action-footer">
-              <button 
-                type="button" 
-                className="btn-modal-cancel" 
-                onClick={() => setCancelModalOrder(null)}
-                disabled={isSubmittingAction}
-              >
-                Keep My Order
-              </button>
-              <button 
-                type="button" 
-                className="btn-modal-confirm-danger" 
-                onClick={handleConfirmCancelOrder}
-                disabled={isSubmittingAction}
-              >
-                {isSubmittingAction ? (
-                  'Processing Refund...'
-                ) : (
-                  <>
-                    <XCircle size={16} />
-                    <span>Confirm Cancellation & Full Refund</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="modal-action-footer">
+                <button 
+                  type="button" 
+                  className="btn-modal-cancel" 
+                  onClick={() => setCancelModalOrder(null)}
+                  disabled={isSubmittingAction}
+                >
+                  Keep My Order
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-modal-confirm-danger" 
+                  onClick={handleConfirmCancelOrder}
+                  disabled={isSubmittingAction}
+                >
+                  {isSubmittingAction ? (
+                    'Processing Cancellation...'
+                  ) : (
+                    <>
+                      <XCircle size={16} />
+                      <span>{inTransit ? 'Confirm Cancellation (No Refund)' : 'Confirm Cancellation & Full Refund'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          );
+        })()}
+      </div>
+    </div>
+  )}
 
       {/* ========================================================
           MODAL 2 & 3: ZERO-COST REPLACEMENT OR 30-DAY RETURN MODAL
@@ -1276,6 +1160,26 @@ export default function OrderHistoryPage({
                   </div>
                 </div>
 
+                {/* Replacement Eligibility Policy Card */}
+                {isReplacement && (
+                  <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontWeight: '700', fontSize: '13px', color: '#1e293b' }}>
+                      <ShieldCheck size={18} color="#4338ca" />
+                      <span>Replacement Inspection Standards</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', color: '#15803d' }}>
+                        <span>✓</span>
+                        <span><strong>Eligible:</strong> Products damaged in transit <em>before delivery</em> (leaking bottle, broken seal, crushed carton) or wrong product delivered.</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', color: '#b91c1c' }}>
+                        <span>✗</span>
+                        <span><strong>Strictly Void:</strong> Items broken, dropped, or damaged by customer <em>after delivery</em> will NOT be accepted for replacement.</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Structured Reason Selector */}
                 <div className="action-form-group">
                   <label className="form-label">
@@ -1326,7 +1230,7 @@ export default function OrderHistoryPage({
                     onChange={(e) => setConditionConfirmed(e.target.checked)}
                   />
                   <span>
-                    I confirm that the product outer box, bottle, and invoice are retained and will be handed over to Blue Dart Express.
+                    I confirm that damage occurred in transit <strong>before delivery</strong> or wrong item was received, and was <strong>NOT broken or damaged by me after delivery</strong>.
                   </span>
                 </label>
 
@@ -1444,10 +1348,10 @@ export default function OrderHistoryPage({
                       <strong>Zero Cancellation Fee:</strong> Atomy India levies <strong>₹0 cancellation fee</strong>. No deduction is made from your paid invoice amount.
                     </li>
                     <li>
-                      <strong>100% Automated Refund:</strong> Full paid amount is refunded immediately to your original payment channel (UPI within 24 hours, Cards in 3-5 days).
+                      <strong>100% Automated Refund Before Shipping:</strong> Full paid amount is refunded immediately to your original payment channel (UPI within 24 hours, Cards in 3-5 days).
                     </li>
                     <li>
-                      <strong>In-Flight Orders:</strong> Shipments already marked <code>In Transit</code> cannot be cancelled mid-flight. You may decline delivery at your doorstep or initiate a 7-day return upon arrival.
+                      <strong>In-Transit Cancellation Allowed (No Refund):</strong> If you cancel an order after the package has started transit via Blue Dart, cancellation is allowed to halt delivery, but <strong>the cancellation amount will NOT be refunded (₹0 refund)</strong> as logistics and courier costs have already been executed.
                     </li>
                   </ul>
                 </div>
@@ -1456,13 +1360,16 @@ export default function OrderHistoryPage({
               {activeRulesTab === 'replacement' && (
                 <div className="policy-block animate-fade">
                   <div className="policy-badge-num indigo">SOP POLICY 02</div>
-                  <h3>Zero-Cost 1-to-1 Product Replacement (Transit Damage & Defects)</h3>
+                  <h3>Zero-Cost 1-to-1 Product Replacement (Transit Damage & Wrong Product Only)</h3>
                   <ul className="policy-bullets">
                     <li>
-                      <strong>7-Day Claim Window:</strong> If any product arrives damaged in transit, leaking, broken, defective, expired, or incorrect, you have <strong>7 calendar days</strong> from delivery to request a free 1-to-1 replacement.
+                      <strong>Transit Damage Window:</strong> If any product arrives damaged in transit, leaking, or the wrong product is delivered, you have <strong>7 calendar days</strong> from delivery to request a free 1-to-1 replacement.
                     </li>
                     <li>
-                      <strong>₹0 Reverse Logistics Cost:</strong> Free reverse pickup is arranged through Blue Dart Express at your doorstep at ₹0 expense.
+                      <strong>Customer Damage Strictly Void:</strong> Replacement will <strong>NOT be accepted if the customer broke or damaged the product</strong> after delivery. Accidental drops, post-delivery breakage, or misuse are strictly ineligible.
+                    </li>
+                    <li>
+                      <strong>₹0 Reverse Logistics Cost:</strong> Free reverse pickup is arranged through Blue Dart Express at your doorstep at ₹0 expense for verified transit issues.
                     </li>
                     <li>
                       <strong>Zero PV Impact:</strong> Because funds are not reversed, your distributor Point Value (PV) points and bonus calculations remain 100% intact.

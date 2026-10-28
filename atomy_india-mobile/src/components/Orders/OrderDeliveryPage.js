@@ -433,10 +433,10 @@ export const MOBILE_CANCELLATION_REASONS = [
 ];
 
 export const MOBILE_RETURN_REASONS = [
-  { id: 'damaged_transit', title: 'Item arrived damaged or leaking', desc: 'Crushed box, broken bottle, spilled liquid' },
-  { id: 'wrong_item', title: 'Wrong item or variant delivered', desc: 'Different SKU or product received' },
-  { id: 'defective', title: 'Defective pump or packaging issue', desc: 'Spray nozzle broken or dispenser stuck' },
-  { id: 'missing_item', title: 'Missing item in sealed package', desc: 'Partial shipment or item absent from box' },
+  { id: 'damaged_transit', title: 'Damaged in transit before delivery', desc: 'Crushed box, broken bottle, spilled liquid on arrival' },
+  { id: 'wrong_item', title: 'Wrong product or variant delivered', desc: 'Different SKU, item, or quantity received' },
+  { id: 'defective', title: 'Defective pump or dispenser stuck', desc: 'Spray nozzle broken or manufacturing defect' },
+  { id: 'missing_item', title: 'Missing item in sealed package', desc: 'Partial shipment or item absent from invoice' },
   { id: 'quality_dissatisfaction', title: '30-Day Satisfaction Guarantee claim', desc: 'Quality did not meet expectations' },
   { id: 'allergic_reaction', title: 'Skin sensitivity or reaction', desc: 'Adverse reaction to cosmetic formula' },
   { id: 'expired', title: 'Expired or near-expiry product', desc: 'Manufacturing date does not meet criteria' },
@@ -577,17 +577,20 @@ export default function OrderDeliveryPage({
             ...o, 
             status: 'Cancelled', 
             orderStatus: 'CANCELLED', 
-            paymentStatus: 'REFUNDED', 
+            paymentStatus: (cancelModalOrder.status || '').toLowerCase().includes('ship') || (cancelModalOrder.status || '').toLowerCase().includes('transit') ? 'NON_REFUNDABLE' : 'REFUNDED', 
             cancelReason: fullReason, 
             cancelNotes 
           } : o);
           window.localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
 
+          const inTransit = (cancelModalOrder.status || '').toLowerCase().includes('ship') || (cancelModalOrder.status || '').toLowerCase().includes('transit');
+          const paymentStatusVal = inTransit ? 'NON_REFUNDABLE' : 'REFUNDED';
+
           const adminSaved = JSON.parse(window.localStorage.getItem('atomy_admin_orders') || '[]');
           const updatedAdmin = adminSaved.map(o => (o.orderId === id || o.id === id) ? { 
             ...o, 
             orderStatus: 'CANCELLED', 
-            paymentStatus: 'REFUNDED', 
+            paymentStatus: paymentStatusVal, 
             cancelReason: fullReason, 
             cancelNotes 
           } : o);
@@ -603,18 +606,23 @@ export default function OrderDeliveryPage({
             category: 'CANCELLATION',
             orderId: id,
             status: 'RESOLVED',
-            message: `Customer cancelled order #${id} on mobile app.\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\n100% Refund initiated to payment source.`,
+            message: inTransit
+              ? `Customer cancelled order #${id} on mobile app after transit started. Non-refundable policy applied (₹0 refunded).\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}`
+              : `Customer cancelled order #${id} on mobile app.\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\n100% Refund initiated to payment source.`,
             createdAt: new Date().toISOString()
           });
           window.localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
         }
       } catch {}
 
-      const msg = `Order #${id} was cancelled successfully. Full 100% refund of ${cancelModalOrder.total || 'the order amount'} has been initiated to your source payment method (UPI within 24h, Cards in 3-5 days).`;
+      const inTransitAlert = (cancelModalOrder.status || '').toLowerCase().includes('ship') || (cancelModalOrder.status || '').toLowerCase().includes('transit');
+      const msg = inTransitAlert
+        ? `Order #${id} was cancelled while in transit. As warned, after starting transit the cancellation amount will not be refunded (₹0 refund).`
+        : `Order #${id} was cancelled successfully. Full 100% refund of ${cancelModalOrder.total || 'the order amount'} has been initiated to your source payment method (UPI within 24h, Cards in 3-5 days).`;
       if (Platform.OS === 'web') {
         window.alert(msg);
       } else {
-        Alert.alert('Order Cancelled & 100% Refund Initiated', msg);
+        Alert.alert(inTransitAlert ? 'Order Cancelled (No Refund)' : 'Order Cancelled & 100% Refund Initiated', msg);
       }
       setCancelModalOrder(null);
     } finally {
@@ -1198,7 +1206,9 @@ export default function OrderDeliveryPage({
                     const statusLower = (ord.status || '').toLowerCase();
                     const isCancelled = statusLower.includes('cancel');
                     const isReplacement = statusLower.includes('replac');
-                    const canCancel = !isCancelled && !isReplacement && !statusLower.includes('transit') && !statusLower.includes('deliver');
+                    // Allow cancel for orders that are not delivered or already cancelled
+                    const canCancel = !isCancelled && !statusLower.includes('deliver');
+                    const isInTransit = !isCancelled && (statusLower.includes('ship') || statusLower.includes('transit') || statusLower.includes('out for'));
                     const canRequestReplacement = !isCancelled && (statusLower.includes('deliver') || statusLower.includes('transit') || isReplacement);
                     const canRequestReturn = !isCancelled && statusLower.includes('deliver');
 
@@ -1232,7 +1242,9 @@ export default function OrderDeliveryPage({
                             activeOpacity={0.8}
                           >
                             <Ionicons name="close-circle-outline" size={14} color="#DC2626" />
-                            <Text style={styles.cancelActionBtnText}>Cancel Order (100% Refund)</Text>
+                            <Text style={styles.cancelActionBtnText}>
+                              {isInTransit ? 'Cancel Order (No Refund)' : 'Cancel Order (100% Refund)'}
+                            </Text>
                           </TouchableOpacity>
 
                           <TouchableOpacity
@@ -1347,28 +1359,46 @@ export default function OrderDeliveryPage({
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {/* Refund Summary Banner */}
-              <View style={styles.mobileRefundBanner}>
-                <View style={styles.mobileRsbRow}>
-                  <Text style={styles.mobileRsbLabel}>100% REFUND AMOUNT</Text>
-                  <Text style={styles.mobileRsbAmount}>{cancelModalOrder?.total || 'Full Paid Amount'}</Text>
+            {/* Dynamic Refund & Warning Banner */}
+            {(() => {
+              const inTransit = cancelModalOrder && ((cancelModalOrder.status || '').toLowerCase().includes('ship') || (cancelModalOrder.status || '').toLowerCase().includes('transit') || (cancelModalOrder.status || '').toLowerCase().includes('out for'));
+              if (inTransit) {
+                return (
+                  <View style={[styles.mobileRefundBanner, { backgroundColor: '#FFF1F2', borderColor: '#F43F5E' }]}>
+                    <View style={styles.mobileRsbRow}>
+                      <Text style={[styles.mobileRsbLabel, { color: '#BE123C' }]}>CANCELLATION REFUND AMOUNT</Text>
+                      <Text style={[styles.mobileRsbAmount, { color: '#BE123C' }]}>₹ 0.00</Text>
+                    </View>
+                    <Text style={[styles.mobileRsbSub, { color: '#9F1239', fontWeight: '600' }]}>
+                      ⚠️ Warning: Your package has already started transit via Blue Dart. After starting transit, the cancellation amount will NOT be refunded (₹0 refund).
+                    </Text>
+                  </View>
+                );
+              }
+              return (
+                <View style={styles.mobileRefundBanner}>
+                  <View style={styles.mobileRsbRow}>
+                    <Text style={styles.mobileRsbLabel}>100% REFUND AMOUNT</Text>
+                    <Text style={styles.mobileRsbAmount}>{cancelModalOrder?.total || 'Full Paid Amount'}</Text>
+                  </View>
+                  <Text style={styles.mobileRsbSub}>Reversed directly to source payment method (₹0 deductions)</Text>
+                  <View style={styles.mobileSlaRow}>
+                    <View style={[styles.mobileSlaPill, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC' }]}>
+                      <Text style={styles.mobileSlaTextTop}>⚡ UPI</Text>
+                      <Text style={styles.mobileSlaTextBot}>Within 24h</Text>
+                    </View>
+                    <View style={styles.mobileSlaPill}>
+                      <Text style={styles.mobileSlaTextTop}>💳 Cards</Text>
+                      <Text style={styles.mobileSlaTextBot}>3 - 5 Days</Text>
+                    </View>
+                    <View style={styles.mobileSlaPill}>
+                      <Text style={styles.mobileSlaTextTop}>🏦 Net Banking</Text>
+                      <Text style={styles.mobileSlaTextBot}>5 - 7 Days</Text>
+                    </View>
+                  </View>
                 </View>
-                <Text style={styles.mobileRsbSub}>Reversed directly to source payment method (₹0 deductions)</Text>
-                <View style={styles.mobileSlaRow}>
-                  <View style={[styles.mobileSlaPill, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC' }]}>
-                    <Text style={styles.mobileSlaTextTop}>⚡ UPI</Text>
-                    <Text style={styles.mobileSlaTextBot}>Within 24h</Text>
-                  </View>
-                  <View style={styles.mobileSlaPill}>
-                    <Text style={styles.mobileSlaTextTop}>💳 Cards</Text>
-                    <Text style={styles.mobileSlaTextBot}>3 - 5 Days</Text>
-                  </View>
-                  <View style={styles.mobileSlaPill}>
-                    <Text style={styles.mobileSlaTextTop}>🏦 Net Banking</Text>
-                    <Text style={styles.mobileSlaTextBot}>5 - 7 Days</Text>
-                  </View>
-                </View>
-              </View>
+              );
+            })()}
 
               {/* Reason Selector */}
               <Text style={styles.mobileFormSectionTitle}>Reason for Cancellation *</Text>
@@ -1546,7 +1576,7 @@ export default function OrderDeliveryPage({
                   color={conditionConfirmed ? "#00A3E0" : "#94A3B8"}
                 />
                 <Text style={styles.mobileConditionText}>
-                  I confirm that original product bottle, carton, and invoice are retained for Blue Dart courier handover.
+                  I confirm that damage occurred in transit before delivery or wrong item received, and was NOT broken or damaged after delivery by me.
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -1642,10 +1672,10 @@ export default function OrderDeliveryPage({
                     <View style={[styles.modalRulePill, { backgroundColor: '#E0F2FE' }]}>
                       <Text style={[styles.modalRulePillText, { color: '#0284C7' }]}>Rule 01 • Cancellation</Text>
                     </View>
-                    <Text style={styles.modalRuleHeading}>Pre-Dispatch 100% Instant Refund</Text>
+                    <Text style={styles.modalRuleHeading}>Cancellation &amp; Transit Policy</Text>
                   </View>
                   <Text style={styles.modalRuleDescription}>
-                    Orders can be cancelled at any time prior to packaging and dispatch. Instant 100% reversal to original payment method without any convenience deduction or cancellation penalty.
+                    Orders can be cancelled before or after shipping. Before shipping: 100% full refund is issued instantly. After starting transit: You can cancel, but the cancellation amount will NOT be refunded (₹0 refund) as courier costs are executed.
                   </Text>
                 </View>
               )}
@@ -1656,10 +1686,10 @@ export default function OrderDeliveryPage({
                     <View style={[styles.modalRulePill, { backgroundColor: '#EEF2FF' }]}>
                       <Text style={[styles.modalRulePillText, { color: '#4F46E5' }]}>Rule 02 • Replacement</Text>
                     </View>
-                    <Text style={styles.modalRuleHeading}>Zero-Cost Transit Damage Replacement</Text>
+                    <Text style={styles.modalRuleHeading}>Transit Damage &amp; Wrong Product Only</Text>
                   </View>
                   <Text style={styles.modalRuleDescription}>
-                    Within 7 calendar days of delivery, if any sealed Atomy consumable or cosmetic arrives broken, leaked, or damaged, request immediate free replacement. Blue Dart reverse pick-up is completely free (₹0) and Member PV is 100% safeguarded.
+                    Within 7 days of delivery, if items arrived damaged in transit before delivery (leaks, broken seals) or wrong SKU delivered, request free 1-to-1 replacement via Blue Dart. Items broken, dropped, or damaged by customer after delivery will NOT be accepted.
                   </Text>
                 </View>
               )}

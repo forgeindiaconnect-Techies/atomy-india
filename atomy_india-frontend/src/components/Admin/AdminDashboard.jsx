@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   LayoutDashboard,
+  ArrowLeft,
   Package,
   Boxes,
   Users,
@@ -1194,7 +1195,12 @@ export default function AdminDashboard({ onBackToStore }) {
   };
 
   const handleProcessRefund = async (orderId) => {
-    if (!window.confirm(`Are you sure you want to process a refund for Order ${orderId}? This will reverse payment and update status to REFUNDED / CANCELLED.`)) {
+    const targetOrder = orders.find(o => o.orderId === orderId);
+    const isShipped = targetOrder && (String(targetOrder.orderStatus || '').toUpperCase().includes('SHIPPED') || String(targetOrder.orderStatus || '').toUpperCase().includes('TRANSIT'));
+    const confirmPrompt = isShipped
+      ? `POLICY WARNING: Order ${orderId} has already SHIPPED. Per company policy, post-dispatch cancellations receive 0% refund unless returned in original transit seal. Are you sure you want to authorize this administrative refund?`
+      : `Are you sure you want to process a pre-dispatch refund for Order ${orderId}? This will reverse payment and update status to REFUNDED / CANCELLED.`;
+    if (!window.confirm(confirmPrompt)) {
       return;
     }
     try {
@@ -3226,58 +3232,105 @@ export default function AdminDashboard({ onBackToStore }) {
           MODAL: ORDER DETAILS INSPECTOR
           ======================================================== */}
       {/* ========================================================
-          MODAL: ORDER INSPECTION & TIMELINE
+          FULL-PAGE ORDER INSPECTION & TIMELINE (No Popup)
           ======================================================== */}
       {selectedOrderDetail && (
-        <div className="modal-backdrop-overlay" onClick={() => setSelectedOrderDetail(null)}>
-          <div className="atomy-modal-box wide order-inspection-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="atomy-modal-header">
-              <div className="modal-title-cluster">
-                <Package size={22} color="#00A3E0" />
-                <h3>Order Inspection: {selectedOrderDetail.orderId}</h3>
-              </div>
-              <button className="atomy-modal-close" onClick={() => setSelectedOrderDetail(null)}>
-                &times;
+        <div className="order-inspection-fullscreen-page">
+          {/* Top Fullscreen Header Bar */}
+          <div className="inspection-fullscreen-topbar">
+            <div className="inspection-topbar-left">
+              <button 
+                type="button"
+                className="inspection-back-nav-btn" 
+                onClick={() => setSelectedOrderDetail(null)}
+              >
+                <ArrowLeft size={18} />
+                <span>Back to All Orders</span>
               </button>
+              <div className="inspection-topbar-divider" />
+              <div className="inspection-order-headline">
+                <Package size={22} color="#00A3E0" />
+                <h3>Order Inspection: <span className="inspection-order-id">{selectedOrderDetail.orderId}</span></h3>
+                <span className={`inspection-status-pill status-${(selectedOrderDetail.orderStatus || 'placed').toLowerCase()}`}>
+                  {selectedOrderDetail.orderStatus || 'PLACED'}
+                </span>
+              </div>
             </div>
 
-            <div className="atomy-modal-body">
-              {/* Live Animated Delivery Stepper matching Customer Experience */}
+            <div className="inspection-topbar-right">
+              <button
+                type="button"
+                className="inspection-topbar-btn courier-btn"
+                onClick={() => {
+                  const o = selectedOrderDetail;
+                  setSelectedOrderDetail(null);
+                  handleOpenTrackingModal(o);
+                }}
+              >
+                <Truck size={15} />
+                <span>Courier Tracking Details</span>
+              </button>
+              <button
+                type="button"
+                className="inspection-topbar-btn refund-btn"
+                onClick={() => handleProcessRefund(selectedOrderDetail.orderId)}
+                title="Process Refund & Payment Reversal"
+              >
+                <RotateCcw size={15} />
+                <span>Process Refund</span>
+              </button>
+              <button 
+                type="button"
+                className="inspection-topbar-close-btn" 
+                onClick={() => setSelectedOrderDetail(null)}
+                title="Close and return to orders"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Fullscreen Body Content (Covers entire screen) */}
+          <div className="inspection-fullscreen-content">
+            {/* Live Animated Delivery Stepper matching Customer Experience */}
+            <div className="inspection-card stepper-card">
               <DeliveryStatusStepper order={selectedOrderDetail} />
+            </div>
 
-              {/* Customer & Delivery Meta Grid */}
-              <div className="order-meta-info-grid">
-                <div className="meta-info-card">
-                  <div className="meta-card-label">CUSTOMER DETAILS</div>
-                  <div className="meta-card-main">{selectedOrderDetail.customerName}</div>
-                  <div className="meta-card-sub">{selectedOrderDetail.customerPhone}</div>
-                  <div className="meta-card-sub">{selectedOrderDetail.customerEmail}</div>
-                </div>
-
-                <div className="meta-info-card">
-                  <div className="meta-card-label">DELIVERY DESTINATION</div>
-                  <div className="meta-card-main">{selectedOrderDetail.shippingAddress}</div>
-                  <div className="meta-card-sub">{selectedOrderDetail.city}, {selectedOrderDetail.state} - {selectedOrderDetail.pincode}</div>
-                </div>
-
-                <div className="meta-info-card">
-                  <div className="meta-card-label">PAYMENT & STATUS</div>
-                  <div className="meta-card-main">
-                    ₹ {Number(selectedOrderDetail.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div className="meta-card-sub">
-                    Method: {selectedOrderDetail.paymentMethod || 'ONLINE'} • {selectedOrderDetail.paymentStatus || 'PAID'}
-                  </div>
-                </div>
+            {/* Customer & Delivery Meta Grid */}
+            <div className="order-meta-info-grid">
+              <div className="meta-info-card">
+                <div className="meta-card-label">CUSTOMER DETAILS</div>
+                <div className="meta-card-main">{selectedOrderDetail.customerName}</div>
+                <div className="meta-card-sub">{selectedOrderDetail.customerPhone}</div>
+                <div className="meta-card-sub">{selectedOrderDetail.customerEmail}</div>
               </div>
 
-              {/* Items Table */}
-              <div className="order-items-detail-title">Purchased Items Breakdown</div>
-              <div className="atomy-table-responsive" style={{ maxHeight: '250px' }}>
+              <div className="meta-info-card">
+                <div className="meta-card-label">DELIVERY DESTINATION</div>
+                <div className="meta-card-main">{selectedOrderDetail.shippingAddress}</div>
+                <div className="meta-card-sub">{selectedOrderDetail.city}, {selectedOrderDetail.state} - {selectedOrderDetail.pincode}</div>
+              </div>
+
+              <div className="meta-info-card">
+                <div className="meta-card-label">PAYMENT & STATUS</div>
+                <div className="meta-card-main">
+                  ₹ {Number(selectedOrderDetail.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+                <div className="meta-card-sub">
+                  Method: {selectedOrderDetail.paymentMethod || 'ONLINE'} • {selectedOrderDetail.paymentStatus || 'PAID'}
+                </div>
+              </div>
+            </div>
+
+            {/* Items Table Card */}
+            <div className="inspection-card items-card">
+              <div className="order-items-detail-title">Purchased Items Breakdown ({selectedOrderDetail.items?.length || 0} Items)</div>
+              <div className="atomy-table-responsive">
                 <table className="atomy-data-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '60px' }}>Item</th>
+                      <th style={{ width: '70px' }}>Item</th>
                       <th>Product Name</th>
                       <th>Product Code</th>
                       <th>Quantity</th>
@@ -3303,7 +3356,7 @@ export default function AdminDashboard({ onBackToStore }) {
                           <strong>{it.productName}</strong>
                         </td>
                         <td className="mono-col">{it.productId || '-'}</td>
-                        <td>{it.quantity}</td>
+                        <td><span className="qty-tag">{it.quantity}</span></td>
                         <td>₹ {Number(it.unitPrice || it.price).toLocaleString('en-IN')}</td>
                         <td>{(Number(it.pv) || 0).toLocaleString('en-IN')} PV</td>
                         <td style={{ textAlign: 'right' }} className="cell-price">
@@ -3314,49 +3367,46 @@ export default function AdminDashboard({ onBackToStore }) {
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* Status Update Dropdown & Bottom Actions Alignment */}
-              <div className="order-modal-footer-row">
-                <div className="status-update-control">
-                  <label className="status-update-label">Update Order Status:</label>
-                  <select
-                    value={selectedOrderDetail.orderStatus}
-                    onChange={(e) => handleUpdateOrderStatus(selectedOrderDetail.orderId, e.target.value)}
-                    className="atomy-dropdown status-modal-dropdown"
-                  >
-                    <option value="PLACED">PLACED (New)</option>
-                    <option value="PROCESSING">PROCESSING (Pending)</option>
-                    <option value="SHIPPED">SHIPPED</option>
-                    <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY</option>
-                    <option value="DELIVERED">DELIVERED</option>
-                    <option value="CANCELLED">CANCELLED</option>
-                  </select>
-                </div>
+            {/* Status Update Control Bar */}
+            <div className="inspection-card status-actions-card">
+              <div className="status-update-control">
+                <label className="status-update-label">Update Order Status:</label>
+                <select
+                  value={selectedOrderDetail.orderStatus}
+                  onChange={(e) => handleUpdateOrderStatus(selectedOrderDetail.orderId, e.target.value)}
+                  className="atomy-dropdown status-modal-dropdown"
+                >
+                  <option value="PLACED">PLACED (New Order)</option>
+                  <option value="PROCESSING">PROCESSING (Warehouse Packed)</option>
+                  <option value="SHIPPED">SHIPPED (In Transit)</option>
+                  <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY (Local Hub)</option>
+                  <option value="DELIVERED">DELIVERED (Customer Received)</option>
+                  <option value="CANCELLED">CANCELLED (Cancelled & Refunded)</option>
+                </select>
+              </div>
 
-                <div className="modal-actions-right">
-                  <button
-                    className="order-footer-btn refund-btn"
-                    onClick={() => handleProcessRefund(selectedOrderDetail.orderId)}
-                    title="Process Refund & Payment Reversal"
-                  >
-                    <RotateCcw size={15} />
-                    <span>Process Refund</span>
-                  </button>
-                  <button
-                    className="order-footer-btn courier-btn"
-                    onClick={() => {
-                      const o = selectedOrderDetail;
-                      setSelectedOrderDetail(null);
-                      handleOpenTrackingModal(o);
-                    }}
-                  >
-                    <Truck size={15} />
-                    <span>Courier Tracking Details</span>
-                  </button>
-                  <button className="order-footer-btn done-btn" onClick={() => setSelectedOrderDetail(null)}>
-                    <span>Done</span>
-                  </button>
-                </div>
+              <div className="modal-actions-right">
+                <button
+                  type="button"
+                  className="order-footer-btn courier-btn"
+                  onClick={() => {
+                    const o = selectedOrderDetail;
+                    setSelectedOrderDetail(null);
+                    handleOpenTrackingModal(o);
+                  }}
+                >
+                  <Truck size={15} />
+                  <span>Update Logistics Tracking</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="order-footer-btn done-btn" 
+                  onClick={() => setSelectedOrderDetail(null)}
+                >
+                  <span>Close Inspection</span>
+                </button>
               </div>
             </div>
           </div>

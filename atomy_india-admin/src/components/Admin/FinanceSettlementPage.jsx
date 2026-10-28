@@ -757,10 +757,10 @@ export default function FinanceSettlementPage({
                     <strong>Pre-Dispatch Window:</strong> Customers may cancel an order directly from their account at <em>zero fee</em> as long as the status is <code>PLACED</code> or <code>PROCESSING</code>.
                   </li>
                   <li>
-                    <strong>Post-Dispatch In-Flight Policy:</strong> Once an order is handed to Blue Dart or marked <code>SHIPPED</code>, automated cancellation is frozen. The customer must refuse delivery at their doorstep or request a standard 30-day return upon arrival.
+                    <strong>Post-Dispatch Locked Policy (No Refund):</strong> Once an order is handed to Blue Dart or marked <code>SHIPPED</code>, the customer <strong>cannot cancel the order</strong>. If an order is cancelled or refused post-dispatch, <strong>NO REFUND is issued (0% refund)</strong> as logistics commitments are final.
                   </li>
                   <li>
-                    <strong>Instant Automated Reversal:</strong> Pre-dispatch cancellations trigger an automatic refund authorization to the payment gateway without manual intervention.
+                    <strong>Instant Automated Reversal:</strong> Pre-dispatch cancellations trigger an automatic 100% refund authorization to the payment gateway without manual intervention.
                   </li>
                 </ul>
               </div>
@@ -785,13 +785,16 @@ export default function FinanceSettlementPage({
               {/* RULE 3: ZERO-COST PRODUCT REPLACEMENT */}
               <div className="rule-card">
                 <div className="rule-badge badge-indigo">RULE 03: ZERO-COST REPLACEMENT</div>
-                <h4>Damaged, Defective or Incorrect Items</h4>
+                <h4>Transit Damage & Incorrect Items Only</h4>
                 <ul className="rule-list">
                   <li>
-                    <strong>7-Day Transit Damage Window:</strong> If products arrive broken, leaked in transit, expired, or incorrect, customers are entitled to an immediate <strong>1-to-1 brand-new replacement</strong>.
+                    <strong>Transit Damage & Wrong Item Window:</strong> If products arrive damaged in transit before delivery (broken bottle, courier leak, crushed carton) or the wrong SKU is delivered, customers are entitled to an immediate <strong>1-to-1 brand-new replacement</strong>.
                   </li>
                   <li>
-                    <strong>100% Free Reverse Logistics:</strong> Courier pickup (Blue Dart / Delhivery) is dispatched at <em>zero shipping expense</em> to the customer.
+                    <strong>Customer Damage Strictly Void:</strong> If the customer broke, dropped, opened, used, or damaged the item after delivery, replacement is strictly ineligible and will NOT be accepted.
+                  </li>
+                  <li>
+                    <strong>100% Free Reverse Logistics:</strong> Courier pickup (Blue Dart / Delhivery) is dispatched at <em>zero shipping expense</em> to the customer for verified transit defects.
                   </li>
                   <li>
                     <strong>Proof Requirement:</strong> Customers must attach clear unboxing photos or videos when submitting a support ticket under category <code>DAMAGED_PRODUCT</code>.

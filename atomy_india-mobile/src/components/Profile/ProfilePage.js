@@ -253,13 +253,19 @@ export default function ProfilePage({
   };
 
   const handleCancelOrder = (order) => {
+    const s = `${order?.status || ''} ${order?.orderStatus || ''} ${order?.trackStatus || ''}`.toLowerCase();
+    const isInTransit = s.includes('transit') || s.includes('shipped') || s.includes('out for delivery') || s.includes('dispatched');
+
     const doCancel = async () => {
       const updated = orders.map((o) =>
         o.id === order.id
           ? {
               ...o,
               status: 'Cancelled',
-              trackStatus: 'Order cancelled by customer. Full refund initiated.',
+              paymentStatus: isInTransit ? 'NON_REFUNDABLE' : 'REFUNDED',
+              trackStatus: isInTransit
+                ? 'Order cancelled while in transit. Non-refundable (₹0 refund). Package return to warehouse initiated.'
+                : 'Order cancelled by customer. Full refund initiated.',
             }
           : o
       );
@@ -272,30 +278,41 @@ export default function ProfilePage({
         type: 'order_cancelled',
         orderId: String(order.id),
         title: `Order #${order.id} Cancelled`,
-        message: `Order #${order.id} for ${order.title} has been cancelled. A full refund of ${order.total} has been initiated to your source payment method.`,
+        message: isInTransit
+          ? `Order #${order.id} for ${order.title} was cancelled while in transit. Notice: As package already started transit, the cancellation amount will not be refunded.`
+          : `Order #${order.id} for ${order.title} has been cancelled. A full refund of ${order.total} has been initiated to your source payment method.`,
       });
 
       const refreshed = reconcileNotifications(email, currentUser, updated, expiry);
       setNotifications(refreshed);
 
+      const successMsg = isInTransit
+        ? `Order #${order.id} was cancelled to stop transit. Note: As the package already started transit, the amount is not refundable (₹0 refund).`
+        : `Order #${order.id} was cancelled successfully. Full refund initiated.`;
+
       if (Platform.OS === 'web') {
-        window.alert(`Order #${order.id} was cancelled successfully. Full refund initiated.`);
+        window.alert(successMsg);
       } else {
-        Alert.alert('Order Cancelled', `Order #${order.id} was cancelled successfully. Full refund initiated.`);
+        Alert.alert('Order Cancelled', successMsg);
       }
     };
 
+    const confirmTitle = isInTransit ? 'Cancel Order In Transit (No Refund)' : 'Cancel Order';
+    const confirmMsg = isInTransit
+      ? `WARNING: Order #${order.id} has already started transit! You can still cancel this order to halt delivery, but the cancellation amount will NOT be refunded (₹0 refund) as courier transit costs are committed. Do you wish to proceed?`
+      : `Are you sure you want to cancel Order #${order.id}? A full refund of ${order.total} will be processed.`;
+
     if (Platform.OS === 'web') {
-      if (window.confirm(`Are you sure you want to cancel Order #${order.id}? A full refund of ${order.total} will be processed.`)) {
+      if (window.confirm(confirmMsg)) {
         doCancel();
       }
     } else {
       Alert.alert(
-        'Cancel Order',
-        `Are you sure you want to cancel Order #${order.id}? A full refund of ${order.total} will be processed.`,
+        confirmTitle,
+        confirmMsg,
         [
           { text: 'Keep Order', style: 'cancel' },
-          { text: 'Cancel Order', style: 'destructive', onPress: doCancel },
+          { text: isInTransit ? 'Cancel Order (No Refund)' : 'Cancel Order', style: 'destructive', onPress: doCancel },
         ]
       );
     }
@@ -889,7 +906,9 @@ export default function ProfilePage({
                         activeOpacity={0.8}
                       >
                         <Ionicons name="close-circle-outline" size={15} color="#DC2626" />
-                        <Text style={styles.orderCancelBtnText}>Cancel</Text>
+                        <Text style={styles.orderCancelBtnText}>
+                          {((ord.status || '').toLowerCase().includes('transit') || (ord.status || '').toLowerCase().includes('ship')) ? 'Cancel (No Refund)' : 'Cancel'}
+                        </Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -1833,9 +1852,9 @@ export default function ProfilePage({
             <View style={styles.timelineRow}>
               <Ionicons name="close-circle-outline" size={20} color="#E11D48" />
               <View style={styles.timelineDetails}>
-                <Text style={styles.timelineHeading}>Instant Pre-Dispatch Cancellation</Text>
+                <Text style={styles.timelineHeading}>Transit Cancellation Policy</Text>
                 <Text style={styles.timelineBody}>
-                  Cancel orders at zero fee while in Placed or Processing stage. 100% automated refund reversal.
+                  Orders can be cancelled at any point prior to delivery. Pre-dispatch cancellations receive a 100% full refund. Once the package has started transit or is shipped, cancellation is permitted to halt delivery, but the amount will NOT be refunded (₹0 refund) as transit logistics costs are incurred.
                 </Text>
               </View>
             </View>
@@ -1843,9 +1862,9 @@ export default function ProfilePage({
             <View style={styles.timelineRow}>
               <Ionicons name="refresh-circle-outline" size={20} color="#16A34A" />
               <View style={styles.timelineDetails}>
-                <Text style={styles.timelineHeading}>Zero-Cost Replacement for Damaged Goods</Text>
+                <Text style={styles.timelineHeading}>Zero-Cost Replacement (Transit Damage Only)</Text>
                 <Text style={styles.timelineBody}>
-                  Items damaged or leaked in transit receive a free 1-to-1 replacement via Blue Dart with zero shipping charge.
+                  Items damaged in transit before delivery or wrong SKU receive free 1-to-1 replacement. Customer breakage after delivery is strictly void.
                 </Text>
               </View>
             </View>
