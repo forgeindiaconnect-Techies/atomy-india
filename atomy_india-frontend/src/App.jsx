@@ -618,8 +618,8 @@ export default function App() {
             orderDate: bo.createdAt ? bo.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
             status: statusMap[bo.orderStatus] || bo.orderStatus || 'Payment Completed',
             orderStatus: bo.orderStatus || 'PLACED',
-            estimatedDelivery: 'Within 48 Hours (2 - 4 Business Days)',
-            estimatedDeliveryDate: '2 - 4 Business Days',
+            estimatedDelivery: 'Within 2 Days (Dispatched from Nearby Hub)',
+            estimatedDeliveryDate: 'Within 2 Days (Nearby Hub)',
             courier: 'Blue Dart Express (Assigned)',
             trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
             paymentMethod: bo.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)' 

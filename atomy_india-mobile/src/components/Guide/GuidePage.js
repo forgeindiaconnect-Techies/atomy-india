@@ -87,8 +87,8 @@ const DELIVERY_INFO = [
     icon: 'business-outline',
   },
   {
-    title: 'Transit Delivery Speeds',
-    desc: 'Metro Cities: 2 - 3 business days. Tier-2 & Tier-3 Regional Hubs: 3 - 6 business days.',
+    title: 'Transit Delivery Speeds & SLA',
+    desc: 'All Regions (Nationwide): Within 2 days dispatched from nearby regional hubs (within 3 days for remote mountain or forest areas with limited transportation).',
     icon: 'time-outline',
   },
 ];

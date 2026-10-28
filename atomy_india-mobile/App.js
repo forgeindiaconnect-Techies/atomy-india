@@ -1671,10 +1671,16 @@ export default function App() {
                 }
               }}
             >
-              {/* Ad Carousel with fitted banner support */}
               <HeroBannerCarousel
                 slides={HERO_SLIDES}
                 onSlidePress={(slide) => {
+                  if (slide.productId) {
+                    const prod = (allProducts || []).find((p) => p.id === slide.productId) || ALL_PRODUCTS.find((p) => p.id === slide.productId);
+                    if (prod) {
+                      navigateTo('product_detail', { product: prod });
+                      return;
+                    }
+                  }
                   showToast(`Opened: ${slide.title}`);
                 }}
                 onOpenAllSlides={() => {

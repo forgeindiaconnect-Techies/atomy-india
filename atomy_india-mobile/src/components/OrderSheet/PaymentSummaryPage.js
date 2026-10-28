@@ -19,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
 import OrderSuccessCelebration from '../Orders/OrderSuccessCelebration';
+import { createOrderApi } from '../../services/api';
+import { applyCouponBackend } from '../../services/couponService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -72,16 +74,20 @@ function formatInr(val) {
   });
 }
 
-function getEstimatedDelivery() {
+function getEstimatedDelivery(addressText = '') {
+  const isRemote = /forest|mountain|hills?|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur/i.test(addressText);
+  const slaDays = isRemote ? 3 : 2;
   const now = new Date();
   const delivery = new Date(now);
-  delivery.setDate(delivery.getDate() + 2);
-  const startStr = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  delivery.setDate(delivery.getDate() + slaDays);
   const endStr = delivery.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   return {
-    range: `${startStr} – ${endStr}`,
-    carrier: 'Blue Dart Express',
-    timeFrame: '48 Hours (2 Days)',
+    date: endStr,
+    range: `${endStr} (${isRemote ? 'Within 3 Days • Mountain/Forest Area' : 'Within 2 Days • Nearby Hub Fulfillment'})`,
+    carrier: 'Blue Dart Express (Standard)',
+    timeFrame: isRemote ? 'Within 3 Days (Mountain/Forest Area)' : 'Within 2 Days (Nearby Hub)',
+    isRemote,
+    slaDays,
   };
 }
 
@@ -198,12 +204,17 @@ export default function PaymentSummaryPage({
   const [confirmedOrder, setConfirmedOrder] = useState(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [isAmountDropdownOpen, setIsAmountDropdownOpen] = useState(false);
-  const [voucherCode, setVoucherCode] = useState('');
-  const [isVoucherOpen, setIsVoucherOpen] = useState(false);
-  const [isVoucherApplied, setIsVoucherApplied] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
   const [showOtherUpiApps, setShowOtherUpiApps] = useState(false);
 
-  const estimatedDelivery = useMemo(() => getEstimatedDelivery(), []);
+  const destinationAddressString = useMemo(() => {
+    return `${selectedAddress?.addressLine1 || ''} ${selectedAddress?.city || ''} ${selectedAddress?.state || ''} ${selectedAddress?.pincode || ''}`;
+  }, [selectedAddress]);
+
+  const estimatedDelivery = useMemo(() => getEstimatedDelivery(destinationAddressString), [destinationAddressString]);
 
   // Price & calculations
   const totalQty = useMemo(
@@ -230,8 +241,50 @@ export default function PaymentSummaryPage({
   }, [checkoutItems]);
 
   const isFreeDelivery = subtotal >= 4500 || hasFreeDeliveryProduct;
-  const shippingFee = checkoutItems.length > 0 && !isFreeDelivery ? 150 : 0;
-  const grandTotal = subtotal + shippingFee;
+  const rawShippingFee = checkoutItems.length > 0 && !isFreeDelivery ? 150 : 0;
+
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountAmount) return Math.min(subtotal, appliedCoupon.discountAmount);
+    if (appliedCoupon.discountValue && appliedCoupon.discountType === 'PERCENTAGE') {
+      return Math.round(subtotal * (appliedCoupon.discountValue / 100));
+    }
+    if (appliedCoupon.discountValue && appliedCoupon.discountType === 'FIXED') {
+      return Math.min(subtotal, appliedCoupon.discountValue);
+    }
+    return 0;
+  }, [appliedCoupon, subtotal]);
+
+  const shippingFee = appliedCoupon?.isFreeShipping ? 0 : rawShippingFee;
+  const grandTotal = Math.max(0, subtotal - couponDiscount + shippingFee);
+
+  const handleApplyCoupon = async () => {
+    setCouponError('');
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    setCouponLoading(true);
+    try {
+      const res = await applyCouponBackend(couponCode.trim(), subtotal, checkoutItems, true);
+      if (res && res.valid) {
+        setAppliedCoupon(res);
+        setCouponError('');
+      } else {
+        setCouponError(res?.message || 'Invalid or expired coupon code.');
+      }
+    } catch (err) {
+      setCouponError('Could not verify coupon code.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+  };
 
   // Calculate dynamic savings: difference between Retail MRP and active paid price
   const totalSavings = useMemo(() => {
@@ -496,10 +549,10 @@ export default function PaymentSummaryPage({
     }
     setIsProcessing(true);
     setTimeout(() => {
-      const orderId = `ATM-IN-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const assignedOrderId = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
       const now = new Date();
       const orderDetails = {
-        orderId,
+        orderId: assignedOrderId,
         orderDate: now.toLocaleString('en-IN', {
           day: 'numeric',
           month: 'short',
@@ -520,9 +573,38 @@ export default function PaymentSummaryPage({
         recipient: selectedAddress.recipientName,
         phone: selectedAddress.recipientPhone,
         address: `${selectedAddress.addressLine1}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`,
-        trackingNumber: `BLUEDART-${Math.floor(100000000 + Math.random() * 900000000)}`,
+        trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+        estimatedDelivery: estimatedDelivery.timeFrame,
+        estimatedDeliveryDate: estimatedDelivery.range,
         items: checkoutItems,
       };
+
+      // Also dispatch to Spring Boot backend database for admin & live tracking sync
+      const backendPayload = {
+        orderId: assignedOrderId,
+        customerName: selectedAddress.recipientName || user?.name || 'Customer',
+        customerEmail: user?.email || 'customer@atomy.com',
+        customerPhone: selectedAddress.recipientPhone || user?.phone || '+91 98000 00000',
+        shippingAddress: selectedAddress.addressLine1,
+        city: selectedAddress.city,
+        state: selectedAddress.state,
+        pincode: selectedAddress.pincode,
+        totalAmount: grandTotal,
+        shippingFee: shippingFee,
+        paymentMethod: paymentMethod === 'COD' ? 'COD' : 'ONLINE_UPI',
+        orderStatus: 'PLACED',
+        estimatedDeliveryDate: estimatedDelivery.range,
+        estimatedDelivery: estimatedDelivery.timeFrame,
+        items: checkoutItems.map((it) => ({
+          productId: it.id,
+          productName: it.name,
+          productImage: it.image || it.img || '',
+          price: Number(it.price) || 0,
+          quantity: it.qty || 1,
+          pv: Number(it.pv) || 0,
+        })),
+      };
+      createOrderApi(backendPayload).catch((e) => console.warn('Order dispatch to server:', e.message));
 
       setConfirmedOrder(orderDetails);
       setIsProcessing(false);
@@ -1502,6 +1584,57 @@ export default function PaymentSummaryPage({
           </View>
         </View>
 
+        {/* SECTION 3.5: COUPON / PROMO CARD */}
+        <View style={styles.couponCard}>
+          <View style={styles.couponHeaderRow}>
+            <Ionicons name="pricetag-outline" size={16} color="#00A3E0" />
+            <Text style={styles.couponCardTitle}>Apply Coupon / Voucher</Text>
+          </View>
+          {appliedCoupon ? (
+            <View style={styles.appliedCouponRow}>
+              <View style={styles.appliedCouponBadge}>
+                <Ionicons name="checkmark-circle" size={15} color="#16A34A" />
+                <Text style={styles.appliedCouponCode}>{appliedCoupon.code}</Text>
+                <Text style={styles.appliedCouponDesc}>
+                  {appliedCoupon.message || 'Coupon Applied'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleRemoveCoupon} style={styles.removeCouponBtn}>
+                <Text style={styles.removeCouponBtnText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.couponInputRow}>
+              <TextInput
+                style={styles.couponInput}
+                placeholder="Enter Coupon Code (e.g. WELCOME10)"
+                placeholderTextColor="#94A3B8"
+                value={couponCode}
+                onChangeText={(t) => {
+                  setCouponCode(t.toUpperCase());
+                  setCouponError('');
+                }}
+                autoCapitalize="characters"
+              />
+              <TouchableOpacity
+                style={[styles.applyCouponBtn, couponLoading && { opacity: 0.7 }]}
+                onPress={handleApplyCoupon}
+                disabled={couponLoading}
+                activeOpacity={0.85}
+              >
+                {couponLoading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.applyCouponBtnText}>Apply</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+          {couponError ? (
+            <Text style={styles.couponErrorText}>{couponError}</Text>
+          ) : null}
+        </View>
+
         {/* SECTION 4: PAYMENT SUMMARY CARD (Exact replica of website payment-summary-card) */}
         <View style={styles.paymentSummaryCard}>
           <Text style={styles.paymentSummaryTitle}>Payment Summary</Text>
@@ -1543,6 +1676,18 @@ export default function PaymentSummaryPage({
               <Text style={styles.summaryLineLabel}>Accumulated PV Points</Text>
               <Text style={styles.pvPointValue}>+{totalPV.toLocaleString('en-IN')} PV</Text>
             </View>
+
+            {/* Coupon Savings (if applied) */}
+            {couponDiscount > 0 && (
+              <View style={styles.summaryLine}>
+                <Text style={[styles.summaryLineLabel, { color: '#16A34A', fontWeight: '700' }]}>
+                  Coupon Savings ({appliedCoupon?.code})
+                </Text>
+                <Text style={{ fontSize: 13.5, color: '#16A34A', fontWeight: '800' }}>
+                  - ₹ {formatInr(couponDiscount)}
+                </Text>
+              </View>
+            )}
 
             {/* Doorstep Delivery Fee */}
             <View style={styles.summaryLine}>
@@ -3269,5 +3414,96 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#94A3B8',
     textAlign: 'center',
+  },
+
+  // Coupon / Promo Card Styles
+  couponCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 14,
+  },
+  couponHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  couponCardTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  couponInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  couponInput: {
+    flex: 1,
+    height: 42,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    fontSize: 13.5,
+    color: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    fontWeight: '700',
+  },
+  applyCouponBtn: {
+    height: 42,
+    paddingHorizontal: 18,
+    backgroundColor: '#00A3E0',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applyCouponBtnText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  appliedCouponRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 6,
+    padding: 10,
+  },
+  appliedCouponBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  appliedCouponCode: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#16A34A',
+  },
+  appliedCouponDesc: {
+    fontSize: 12,
+    color: '#15803D',
+  },
+  removeCouponBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  removeCouponBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  couponErrorText: {
+    fontSize: 11.5,
+    color: '#DC2626',
+    marginTop: 6,
+    fontWeight: '600',
   },
 });

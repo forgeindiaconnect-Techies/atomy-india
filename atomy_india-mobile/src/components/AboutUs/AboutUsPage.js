@@ -23,7 +23,7 @@ const TOP_5_FAQS = [
   {
     id: 'faq-1',
     q: "Why I still didn't receive the delivery?",
-    a: "Orders in India are dispatched through our certified courier logistics partners (BlueDart / Delhivery / XpressBees). Standard delivery takes 3-7 business days depending on state and PIN code. You can check real-time courier tracking through 'Order / Delivery' in your account or Contact Us."
+    a: "Orders in India are dispatched through our certified courier logistics partners (Blue Dart Express). Standard delivery takes within 2 days dispatched from nearby regional fulfillment hubs (within 3 days for remote mountain or forest areas with limited transportation). You can check real-time courier tracking through 'Order / Delivery' in your account or Contact Us."
   },
   {
     id: 'faq-2',

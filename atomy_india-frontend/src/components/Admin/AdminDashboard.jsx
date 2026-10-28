@@ -68,6 +68,7 @@ import {
 } from '../../services/soundAlerts';
 import ProductEditorPage from './ProductEditorPage';
 import AdPromotionManager from './AdPromotionManager';
+import FinanceSettlementPage from './FinanceSettlementPage';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
 import {
   getAdConfig,
@@ -1620,6 +1621,14 @@ export default function AdminDashboard({ onBackToStore }) {
             </button>
 
             <button
+              className={`sidebar-nav-button ${activeTab === 'finance' && !isEditingProductView ? 'active' : ''}`}
+              onClick={() => { setActiveTab('finance'); setIsEditingProductView(false); }}
+            >
+              <IndianRupee size={20} />
+              <span>Finance & Settlements</span>
+            </button>
+
+            <button
               className={`sidebar-nav-button ${activeTab === 'customers' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('customers'); setIsEditingProductView(false); }}
             >
@@ -1701,9 +1710,14 @@ export default function AdminDashboard({ onBackToStore }) {
                 </div>
               </div>
 
-              {/* 3 Prominent Requested Sales KPI Cards: Today Sale, Today's Order, Overall Sale */}
+              {/* 3 Prominent Requested Sales KPI Cards: Today Sale, Today's Order, Overall Sale (Interactive Links) */}
               <div className="atomy-sales-kpi-grid">
-                <div className="sales-kpi-card highlight-glow">
+                <div 
+                  className="sales-kpi-card highlight-glow interactive-kpi-card" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setActiveTab('finance')}
+                  title="View Today's Financial Settlement & Details"
+                >
                   <div className="kpi-card-header">
                     <span className="kpi-card-badge">TODAY'S METRICS</span>
                     <TrendingUp size={22} className="kpi-icon-blue" />
@@ -1713,11 +1727,16 @@ export default function AdminDashboard({ onBackToStore }) {
                     ₹ {overviewStats.todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </div>
                   <div className="kpi-card-subtext">
-                    From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today
+                    From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today • <span style={{ color: '#0284c7', fontWeight: 600 }}>View Finance →</span>
                   </div>
                 </div>
 
-                <div className="sales-kpi-card">
+                <div 
+                  className="sales-kpi-card interactive-kpi-card"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
+                  title="Inspect Today's Orders & Customer Fulfillment"
+                >
                   <div className="kpi-card-header">
                     <span className="kpi-card-badge">TODAY'S VOLUME</span>
                     <ShoppingBag size={22} className="kpi-icon-green" />
@@ -1727,11 +1746,16 @@ export default function AdminDashboard({ onBackToStore }) {
                     {overviewStats.todayOrdersCount} <span className="kpi-unit">orders</span>
                   </div>
                   <div className="kpi-card-subtext">
-                    Direct public consumer orders received
+                    Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
                   </div>
                 </div>
 
-                <div className="sales-kpi-card highlight-glow">
+                <div 
+                  className="sales-kpi-card highlight-glow interactive-kpi-card"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setActiveTab('finance')}
+                  title="Open Financial Ledger, Refunds & Settlements"
+                >
                   <div className="kpi-card-header">
                     <span className="kpi-card-badge">CUMULATIVE PERFORMANCE</span>
                     <IndianRupee size={22} className="kpi-icon-navy" />
@@ -1741,8 +1765,53 @@ export default function AdminDashboard({ onBackToStore }) {
                     ₹ {overviewStats.overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </div>
                   <div className="kpi-card-subtext">
-                    Total lifetime gross revenue across all non-cancelled orders
+                    Total lifetime gross revenue across all non-cancelled orders • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
                   </div>
+                </div>
+              </div>
+
+              {/* QUICK ACTION COMMAND SHORTCUTS STRIP */}
+              <div className="overview-quick-actions-bar">
+                <span className="quick-actions-label">
+                  <Sparkles size={14} color="#00a3e0" />
+                  <span>QUICK SHORTCUTS:</span>
+                </span>
+                <div className="quick-actions-links-row">
+                  <button 
+                    type="button" 
+                    className="quick-action-pill-btn" 
+                    onClick={() => setActiveTab('finance')}
+                  >
+                    <IndianRupee size={13} color="#0284c7" />
+                    <span>Finance &amp; Settlements</span>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    className="quick-action-pill-btn" 
+                    onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
+                  >
+                    <Package size={13} color="#16a34a" />
+                    <span>All Orders ({orders.length})</span>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    className="quick-action-pill-btn" 
+                    onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}
+                  >
+                    <Clock size={13} color="#d97706" />
+                    <span>Processing Orders</span>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    className="quick-action-pill-btn" 
+                    onClick={() => setActiveTab('support')}
+                  >
+                    <Headphones size={13} color="#dc2626" />
+                    <span>Support Desk ({overviewStats.openTicketsCount || 0})</span>
+                  </button>
                 </div>
               </div>
 
@@ -2082,7 +2151,7 @@ export default function AdminDashboard({ onBackToStore }) {
                 {[
                   { id: 'ALL', label: 'All Orders', count: orders.length },
                   { id: 'PLACED', label: 'New Orders', count: orders.filter(o => o.orderStatus === 'PLACED').length },
-                  { id: 'PROCESSING', label: 'Pending / Processing', count: orders.filter(o => o.orderStatus === 'PROCESSING').length },
+                  { id: 'PROCESSING', label: 'Processing', count: orders.filter(o => o.orderStatus === 'PROCESSING').length },
                   { id: 'SHIPPED', label: 'Shipped & Out for Delivery', count: orders.filter(o => o.orderStatus === 'SHIPPED' || o.orderStatus === 'OUT_FOR_DELIVERY').length },
                   { id: 'DELIVERED', label: 'Delivered', count: orders.filter(o => o.orderStatus === 'DELIVERED').length },
                   { id: 'CANCELLED', label: 'Cancelled', count: orders.filter(o => o.orderStatus === 'CANCELLED').length }
@@ -2233,6 +2302,30 @@ export default function AdminDashboard({ onBackToStore }) {
                 </table>
               </div>
             </div>
+          )}
+
+          {/* ========================================================
+              TAB: FINANCE, SALES & REFUND SETTLEMENTS
+              ======================================================== */}
+          {activeTab === 'finance' && !isEditingProductView && (
+            <FinanceSettlementPage
+              orders={orders}
+              tickets={tickets}
+              products={products}
+              onProcessRefund={handleProcessRefund}
+              onInspectOrder={(order) => {
+                setSelectedOrderDetail(order);
+                setIsOrderInspectOpen(true);
+              }}
+              onNavigateToOrders={() => {
+                setActiveTab('orders');
+                setOrderStatusFilter('ALL');
+              }}
+              onNavigateToSupport={() => {
+                setActiveTab('support');
+                setTicketStatusFilter('ALL');
+              }}
+            />
           )}
 
           {/* ========================================================

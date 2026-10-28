@@ -88,6 +88,33 @@ public class AdminOrderController {
         return ResponseEntity.ok(adminService.syncOrderItems());
     }
 
+    @PostMapping("/{orderId}/send-delay-email")
+    public ResponseEntity<?> sendDelayEmail(@PathVariable String orderId) {
+        try {
+            CustomerOrder order = adminService.sendDelayApologyEmail(orderId);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Apology email sent successfully to " + order.getCustomerEmail(),
+                    "order", order
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/trigger-delayed-emails")
+    public ResponseEntity<?> triggerDelayedEmails() {
+        int count = adminService.processAndSendAutomatedDelayEmails();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "emailsSent", count,
+                "message", count + " delayed order apology email(s) dispatched successfully"
+        ));
+    }
+
     @DeleteMapping("/all")
     public ResponseEntity<?> clearAllOrders() {
         adminService.clearAllOrders();

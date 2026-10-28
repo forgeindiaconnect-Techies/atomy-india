@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { getMembershipExpiryInfo } from '../Membership/MembershipExpiryBanner';
+import { fetchCouponsFromBackend } from '../../services/couponService';
 import {
   fetchNotificationsApi,
   getStoredNotifications,
@@ -323,6 +324,7 @@ export default function ProfilePage({
   }, [addresses]);
 
   const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
   const [newAddr, setNewAddr] = useState({
     type: 'Home',
     name: userData.name || '',
@@ -469,10 +471,18 @@ export default function ProfilePage({
     ifscCode: '',
   });
 
-  // Coupons & Vouchers state (no demo data)
+  // Coupons & Vouchers state (synchronized with MongoDB backend)
   const [coupons, setCoupons] = useState([]);
   const [enteredCoupon, setEnteredCoupon] = useState('');
   const [couponFeedback, setCouponFeedback] = useState('');
+
+  useEffect(() => {
+    fetchCouponsFromBackend().then((list) => {
+      if (Array.isArray(list) && list.length > 0) {
+        setCoupons(list);
+      }
+    });
+  }, []);
 
   // Active Policy / FAQ expansion
   const [activePolicyIdx, setActivePolicyIdx] = useState(0);
@@ -491,18 +501,46 @@ export default function ProfilePage({
     setCurrentSubView('main');
   };
 
-  // Add new address
+  // Edit existing address
+  const handleEditAddress = (addr) => {
+    setEditingAddressId(addr.id);
+    setNewAddr({
+      type: addr.type || 'Home',
+      name: addr.name || '',
+      phone: addr.phone || '',
+      street: addr.street || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      pincode: addr.pincode || '',
+    });
+    setIsAddingAddress(true);
+  };
+
+  // Add or update address
   const handleAddAddress = () => {
     if (!newAddr.street || !newAddr.city || !newAddr.pincode) {
       Alert.alert('Incomplete Address', 'Please fill in street, city/district, and 6-digit pincode.');
       return;
     }
-    const created = {
-      id: `addr-${Date.now()}`,
-      ...newAddr,
-      isDefault: addresses.length === 0,
-    };
-    setAddresses([...addresses, created]);
+
+    if (editingAddressId) {
+      setAddresses(
+        addresses.map((a) =>
+          a.id === editingAddressId ? { ...a, ...newAddr } : a
+        )
+      );
+      setEditingAddressId(null);
+      Alert.alert('Address Updated', 'Delivery address updated successfully.');
+    } else {
+      const created = {
+        id: `addr-${Date.now()}`,
+        ...newAddr,
+        isDefault: addresses.length === 0,
+      };
+      setAddresses([...addresses, created]);
+      Alert.alert('Address Saved', 'New delivery address added successfully.');
+    }
+
     setIsAddingAddress(false);
     setIsLocationDetected(false);
     setAvailableAreas([]);
@@ -515,7 +553,6 @@ export default function ProfilePage({
       state: '',
       pincode: '',
     });
-    Alert.alert('Address Saved', 'New delivery address added successfully.');
   };
 
   // Save Bank Account for PV Commissions & Refunds
@@ -1201,7 +1238,10 @@ export default function ProfilePage({
           </Text>
           <TouchableOpacity
             style={styles.headerAddBtn}
-            onPress={() => setIsAddingAddress(!isAddingAddress)}
+            onPress={() => {
+              if (isAddingAddress) setEditingAddressId(null);
+              setIsAddingAddress(!isAddingAddress);
+            }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
@@ -1217,10 +1257,12 @@ export default function ProfilePage({
           contentContainerStyle={styles.subPageContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Add Address Form Toggle */}
+          {/* Add / Edit Address Form Toggle */}
           {isAddingAddress ? (
             <View style={styles.addAddressFormCard}>
-              <Text style={styles.formSectionTitle}>Add New Delivery Address</Text>
+              <Text style={styles.formSectionTitle}>
+                {editingAddressId ? 'Edit Delivery Address' : 'Add New Delivery Address'}
+              </Text>
 
               {/* Use Current Location Action Button & Status (Matching Website) */}
               <TouchableOpacity
@@ -1417,7 +1459,9 @@ export default function ProfilePage({
                 activeOpacity={0.88}
               >
                 <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                <Text style={styles.saveSubmitBtnText}>Save Address</Text>
+                <Text style={styles.saveSubmitBtnText}>
+                  {editingAddressId ? 'Update Address' : 'Save Address'}
+                </Text>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -1491,6 +1535,14 @@ export default function ProfilePage({
                         <Text style={styles.setAsDefaultBtnText}>Set as Default</Text>
                       </TouchableOpacity>
                     )}
+
+                    <TouchableOpacity
+                      style={styles.editAddressBtn}
+                      onPress={() => handleEditAddress(addr)}
+                    >
+                      <Ionicons name="pencil-outline" size={15} color="#00A3E0" />
+                      <Text style={styles.editAddressBtnText}>Edit</Text>
+                    </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.deleteAddressBtn}
@@ -1632,6 +1684,13 @@ export default function ProfilePage({
           'Your personal identifiers, PAN, GSTIN, bank details, and order transactions are encrypted using 256-bit SSL protocols. Atomy never sells or shares customer personal records with third-party advertisers.',
       },
       {
+        id: 'shipping_delivery',
+        title: 'Nationwide Delivery Policy & SLA',
+        icon: 'cube-outline',
+        content:
+          'Orders across all Indian states and pin codes are fulfilled through nearby regional hubs within 2 business days. Remote mountain and forest areas with restricted transport facilities are delivered within 3 business days via Blue Dart Express. Free doorstep delivery applies to orders above ₹4,500.',
+      },
+      {
         id: 'grievance',
         title: 'Grievance Redressal Mechanism',
         icon: 'person-circle-outline',
@@ -1762,6 +1821,31 @@ export default function ProfilePage({
                 <Text style={styles.timelineHeading}>NEFT / RTGS Bank Transfer</Text>
                 <Text style={styles.timelineBody}>
                   Processed directly to your registered bank account for refunds and PV bonuses.
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Cancellation & Zero-Cost Replacement Card */}
+          <View style={styles.infoSectionCard}>
+            <Text style={styles.infoSectionCardTitle}>Cancellation & Replacement Rules</Text>
+
+            <View style={styles.timelineRow}>
+              <Ionicons name="close-circle-outline" size={20} color="#E11D48" />
+              <View style={styles.timelineDetails}>
+                <Text style={styles.timelineHeading}>Instant Pre-Dispatch Cancellation</Text>
+                <Text style={styles.timelineBody}>
+                  Cancel orders at zero fee while in Placed or Processing stage. 100% automated refund reversal.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.timelineRow}>
+              <Ionicons name="refresh-circle-outline" size={20} color="#16A34A" />
+              <View style={styles.timelineDetails}>
+                <Text style={styles.timelineHeading}>Zero-Cost Replacement for Damaged Goods</Text>
+                <Text style={styles.timelineBody}>
+                  Items damaged or leaked in transit receive a free 1-to-1 replacement via Blue Dart with zero shipping charge.
                 </Text>
               </View>
             </View>
@@ -4636,6 +4720,22 @@ const styles = StyleSheet.create({
     borderColor: '#FCA5A5',
     borderLeftWidth: 3.5,
     borderLeftColor: '#DC2626',
+  },
+  editAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#00A3E0',
+    backgroundColor: '#F0F9FF',
+    gap: 4,
+  },
+  editAddressBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#00A3E0',
   },
 });
 

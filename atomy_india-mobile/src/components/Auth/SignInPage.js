@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,9 @@ import {
   loginCustomerApi,
   registerCustomerApi,
   googleAuthCustomerApi,
+  requestForgotPasswordOtp,
+  verifyPasswordOtp,
+  resetCustomerPassword,
 } from '../../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -67,6 +71,73 @@ export default function SignInPage({
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+
+  // Forgot Password modal state
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState('EMAIL'); // 'EMAIL' | 'OTP' | 'NEW_PASSWORD' | 'SUCCESS'
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+
+  const handleSendOtp = async () => {
+    setForgotError('');
+    if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
+      setForgotError('Please enter a valid email address.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await requestForgotPasswordOtp(forgotEmail.trim());
+      setForgotStep('OTP');
+    } catch (err) {
+      setForgotError(err.message || 'Failed to send verification code. Please check your email.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setForgotError('');
+    if (!forgotOtp.trim() || forgotOtp.trim().length < 6) {
+      setForgotError('Please enter the 6-digit verification code.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await verifyPasswordOtp(forgotEmail.trim(), forgotOtp.trim());
+      setForgotStep('NEW_PASSWORD');
+    } catch (err) {
+      setForgotError(err.message || 'Invalid or expired OTP code.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    setForgotError('');
+    if (!forgotNewPassword.trim() || forgotNewPassword.length < 6) {
+      setForgotError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setForgotError('Passwords do not match. Please re-enter.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await resetCustomerPassword(forgotEmail.trim(), forgotOtp.trim(), forgotNewPassword.trim());
+      setForgotStep('SUCCESS');
+      setPassword(forgotNewPassword.trim());
+      setIdentifier(forgotEmail.trim());
+    } catch (err) {
+      setForgotError(err.message || 'Failed to update password.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   // Submit Handler
   const handleSubmit = async () => {
@@ -334,17 +405,32 @@ export default function SignInPage({
                 )}
               </TouchableOpacity>
 
-              {/* Remember Email Checkbox Row */}
-              <TouchableOpacity
-                style={styles.rememberRow}
-                activeOpacity={0.8}
-                onPress={() => setRememberEmail(!rememberEmail)}
-              >
-                <View style={[styles.checkboxCircle, rememberEmail && styles.checkboxCircleActive]}>
-                  {rememberEmail && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
-                </View>
-                <Text style={styles.rememberText}>Remember Email</Text>
-              </TouchableOpacity>
+              {/* Remember Email & Forgot Password Row */}
+              <View style={styles.rememberAndForgotRow}>
+                <TouchableOpacity
+                  style={styles.rememberRow}
+                  activeOpacity={0.8}
+                  onPress={() => setRememberEmail(!rememberEmail)}
+                >
+                  <View style={[styles.checkboxCircle, rememberEmail && styles.checkboxCircleActive]}>
+                    {rememberEmail && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
+                  </View>
+                  <Text style={styles.rememberText}>Remember Email</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setForgotEmail(identifier.includes('@') ? identifier.trim() : '');
+                    setForgotStep('EMAIL');
+                    setForgotError('');
+                    setIsForgotModalOpen(true);
+                  }}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
+                </TouchableOpacity>
+              </View>
 
               {/* Mode Switcher */}
               <View style={styles.switchRow}>
@@ -501,6 +587,157 @@ export default function SignInPage({
           </View>
         </View>
       </ScrollView>
+
+      {/* Forgot Password OTP Modal */}
+      <Modal
+        visible={isForgotModalOpen}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsForgotModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View style={styles.modalTitleWrap}>
+                <Ionicons name="key-outline" size={20} color="#00A3E0" />
+                <Text style={styles.modalHeaderTitle}>Reset Password</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setIsForgotModalOpen(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close" size={22} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {forgotError ? (
+              <View style={styles.modalErrorBanner}>
+                <Ionicons name="alert-circle" size={16} color="#DC2626" />
+                <Text style={styles.modalErrorText}>{forgotError}</Text>
+              </View>
+            ) : null}
+
+            {forgotStep === 'EMAIL' && (
+              <View style={styles.modalStepContent}>
+                <Text style={styles.modalStepDesc}>
+                  Enter the email address registered with your Atomy account. We will send a secure 6-digit OTP code to verify your identity.
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter your registered email"
+                  placeholderTextColor="#94A3B8"
+                  value={forgotEmail}
+                  onChangeText={setForgotEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                <TouchableOpacity
+                  style={[styles.modalSubmitBtn, forgotLoading && styles.btnDisabled]}
+                  onPress={handleSendOtp}
+                  disabled={forgotLoading}
+                  activeOpacity={0.85}
+                >
+                  {forgotLoading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.modalSubmitBtnText}>Send Verification Code</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {forgotStep === 'OTP' && (
+              <View style={styles.modalStepContent}>
+                <Text style={styles.modalStepDesc}>
+                  We have sent a 6-digit verification code to <Text style={{ fontWeight: '700', color: '#0F172A' }}>{forgotEmail}</Text>. Please enter it below.
+                </Text>
+                <TextInput
+                  style={[styles.modalInput, { textAlign: 'center', fontSize: 20, letterSpacing: 6, fontWeight: '700' }]}
+                  placeholder="------"
+                  placeholderTextColor="#94A3B8"
+                  value={forgotOtp}
+                  onChangeText={(t) => setForgotOtp(t.replace(/\D/g, '').slice(0, 6))}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+                <TouchableOpacity
+                  style={[styles.modalSubmitBtn, forgotLoading && styles.btnDisabled]}
+                  onPress={handleVerifyOtp}
+                  disabled={forgotLoading}
+                  activeOpacity={0.85}
+                >
+                  {forgotLoading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.modalSubmitBtnText}>Verify Code</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setForgotStep('EMAIL')}
+                  style={{ alignSelf: 'center', marginTop: 12 }}
+                >
+                  <Text style={{ fontSize: 13, color: '#64748B' }}>Change Email</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {forgotStep === 'NEW_PASSWORD' && (
+              <View style={styles.modalStepContent}>
+                <Text style={styles.modalStepDesc}>
+                  Create a new secure password for your Atomy India account (minimum 6 characters).
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="New Password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry
+                  value={forgotNewPassword}
+                  onChangeText={setForgotNewPassword}
+                />
+                <TextInput
+                  style={[styles.modalInput, { marginTop: 10 }]}
+                  placeholder="Confirm New Password"
+                  placeholderTextColor="#94A3B8"
+                  secureTextEntry
+                  value={forgotConfirmPassword}
+                  onChangeText={setForgotConfirmPassword}
+                />
+                <TouchableOpacity
+                  style={[styles.modalSubmitBtn, forgotLoading && styles.btnDisabled]}
+                  onPress={handleResetPassword}
+                  disabled={forgotLoading}
+                  activeOpacity={0.85}
+                >
+                  {forgotLoading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.modalSubmitBtnText}>Update Password</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {forgotStep === 'SUCCESS' && (
+              <View style={styles.modalStepContent}>
+                <View style={styles.modalSuccessIconWrap}>
+                  <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
+                </View>
+                <Text style={styles.modalSuccessTitle}>Password Updated!</Text>
+                <Text style={styles.modalStepDesc}>
+                  Your password has been securely reset. You can now sign in with your updated credentials.
+                </Text>
+                <TouchableOpacity
+                  style={styles.modalSubmitBtn}
+                  onPress={() => setIsForgotModalOpen(false)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.modalSubmitBtnText}>Back to Sign In</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -699,10 +936,123 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+  rememberAndForgotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 6,
+    marginBottom: 4,
+  },
   rememberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+  },
+  forgotPasswordLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#00A3E0',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalHeaderTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  modalErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 14,
+    gap: 8,
+  },
+  modalErrorText: {
+    fontSize: 12.5,
+    color: '#DC2626',
+    flex: 1,
+  },
+  modalStepContent: {
+    width: '100%',
+  },
+  modalStepDesc: {
+    fontSize: 13.5,
+    color: '#64748B',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  modalInput: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    fontSize: 14.5,
+    color: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    marginBottom: 16,
+  },
+  modalSubmitBtn: {
+    height: 46,
+    backgroundColor: '#00A3E0',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSubmitBtnText: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  btnDisabled: {
+    opacity: 0.65,
+  },
+  modalSuccessIconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  modalSuccessTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#16A34A',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   checkboxCircle: {
     width: 18,

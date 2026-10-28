@@ -276,6 +276,54 @@ public class BrevoEmailService {
         sendEmailAsync(adminEmail, "Admin", subject, html);
     }
 
+    // =========================================================================
+    // 6. ORDER DELAYED APOLOGY EMAIL (CUSTOMER)
+    // =========================================================================
+    public void sendOrderDelayedApology(CustomerOrder order, int delayDays, String expectedDateStr, String courierPartner, String trackingNumber) {
+        if (order.getCustomerEmail() == null || order.getCustomerEmail().trim().isEmpty()) {
+            return;
+        }
+
+        String customerName = (order.getCustomerName() != null && !order.getCustomerName().trim().isEmpty())
+                ? order.getCustomerName().trim() : "Valued Member";
+        String courier = (courierPartner != null && !courierPartner.trim().isEmpty()) ? courierPartner : "Blue Dart Express";
+        String awb = (trackingNumber != null && !trackingNumber.trim().isEmpty()) ? trackingNumber : ("AWB-IN-" + order.getOrderId());
+        String targetDate = (expectedDateStr != null && !expectedDateStr.trim().isEmpty()) ? expectedDateStr : "Within 24 to 48 Hours";
+
+        String subject = "Delivery Update: Important Notice Regarding Your Atomy Order #" + order.getOrderId();
+
+        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
+                + "<div style=\"background:#00A3E0;padding:24px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
+                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;\">FIC (Atomy India)</h1>"
+                + "  <p style=\"color:#e0f2fe;margin:6px 0 0;font-size:13.5px;font-weight:500;\">Delivery Status Update & Apology</p>"
+                + "</div>"
+                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
+                + "  <div style=\"display:inline-block;background:#fff1f2;border:1px solid #fecdd3;color:#e11d48;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:16px;\">&#9888; Slight Transit Delay</div>"
+                + "  <h2 style=\"color:#0f172a;font-size:19px;margin-top:0;line-height:1.4;\">We sincerely apologize for the delay!</h2>"
+                + "  <p style=\"color:#334155;font-size:14.5px;line-height:1.6;\">Dear <strong>" + escapeHtml(customerName) + "</strong>,</p>"
+                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">We are reaching out with an important delivery update regarding your order <strong>#" + escapeHtml(order.getOrderId()) + "</strong>. We sincerely apologize, as your shipment is experiencing a brief transit delay and is taking slightly longer than our standard delivery window to arrive.</p>"
+                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Please be assured that your 100% authentic Atomy products are safely packed and in active transit. Our logistics team is actively coordinating with <strong>" + escapeHtml(courier) + "</strong> to expedite your delivery so it reaches you as soon as possible.</p>"
+                + "  <div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #00A3E0;border-radius:6px;padding:16px 20px;margin:20px 0;\">"
+                + "    <h3 style=\"margin:0 0 10px;font-size:14px;color:#0369a1;\">Updated Delivery Details</h3>"
+                + "    <div style=\"font-size:13px;color:#334155;line-height:1.9;\">"
+                + "      <div><strong>Order ID:</strong> #" + escapeHtml(order.getOrderId()) + "</div>"
+                + "      <div><strong>Estimated Arrival:</strong> <span style=\"color:#0284c7;font-weight:bold;\">" + escapeHtml(targetDate) + "</span></div>"
+                + "      <div><strong>Carrier Partner:</strong> " + escapeHtml(courier) + "</div>"
+                + "      <div><strong>Airway Bill (AWB):</strong> <span style=\"font-family:monospace;font-weight:bold;color:#0f172a;\">" + escapeHtml(awb) + "</span></div>"
+                + "      <div><strong>Destination:</strong> " + escapeHtml(order.getShippingAddress()) + ", " + escapeHtml(order.getCity()) + ", " + escapeHtml(order.getState()) + " - " + escapeHtml(order.getPincode()) + "</div>"
+                + "    </div>"
+                + "  </div>"
+                + "  <div style=\"text-align:center;margin:26px 0 14px;\">"
+                + "    <a href=\"" + storefrontUrl + "/profile\" style=\"background:#00A3E0;color:#ffffff;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">Track Live Delivery Milestones &rarr;</a>"
+                + "  </div>"
+                + "  <hr style=\"border:none;border-top:1px solid #e2e8f0;margin:24px 0;\">"
+                + "  <p style=\"color:#64748b;font-size:12.5px;line-height:1.6;margin:0;\">We truly value your patience, understanding, and trust in Forge India Connect (Atomy India). If you have any questions or require urgent help, please reply directly to this email or contact customer care at <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#00A3E0;\">daggerking7828@gmail.com</a>.</p>"
+                + "</div>"
+                + "</div>";
+
+        sendEmailAsync(order.getCustomerEmail(), customerName, subject, html);
+    }
+
     // --- Utility JSON & HTML string escapers ---
     private String escapeJson(String s) {
         if (s == null) return "";

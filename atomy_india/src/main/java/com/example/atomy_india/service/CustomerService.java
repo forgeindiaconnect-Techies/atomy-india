@@ -173,6 +173,20 @@ public class CustomerService {
                 req.getPaymentMethod() != null ? req.getPaymentMethod() : CustomerOrder.PaymentMethod.ONLINE_UPI
         );
 
+        // Determine static delivery date: 2 business days for standard nearby hub, 3 days for remote mountain/forest
+        String addressText = (String.valueOf(req.getShippingAddress()) + " "
+                + String.valueOf(req.getCity()) + " "
+                + String.valueOf(req.getState()) + " "
+                + String.valueOf(req.getPincode())).toLowerCase();
+        boolean isRemote = addressText.matches(".*(forest|mountain|hill|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur).*");
+        int slaDays = isRemote ? 3 : 2;
+        LocalDateTime targetDate = LocalDateTime.now().plusDays(slaDays);
+        String staticDeliveryDateStr = targetDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
+        String staticDeliveryTimeFrame = isRemote ? "Within 3 Days (Remote Mountain/Forest Area)" : "Within 2 Days (Nearby Hub)";
+
+        order.setEstimatedDeliveryDate(staticDeliveryDateStr);
+        order.setEstimatedDelivery(staticDeliveryTimeFrame);
+
         for (OrderItem oi : orderItems) {
             if (oi.getId() == null || oi.getId().isEmpty()) {
                 oi.setId("ITEM-" + UUID.randomUUID().toString().substring(0, 8));
@@ -194,7 +208,7 @@ public class CustomerService {
                 "Blue Dart Express (Standard)",
                 "PLACED",
                 "Order Processing Center, Gurugram",
-                "Within 48 Hours (2 Days)",
+                staticDeliveryTimeFrame,
                 initialCheckpoint
         );
         trackingRepository.save(tracking);

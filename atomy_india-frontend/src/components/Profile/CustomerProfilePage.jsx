@@ -1742,7 +1742,7 @@ export default function CustomerProfilePage({
                       Atomy delivers nationwide across India through tier-1 logistics partners including Blue Dart, Delhivery, DTDC, and India Post.
                     </p>
                     <ul className="terms-policy-bullets">
-                      <li>Standard delivery occurs within 3 to 7 business days from dispatch date depending on local regional accessibility.</li>
+                      <li>Orders are dispatched through nearby regional hubs for fast delivery within 2 days across all standard regions (remote mountain, forest, or limited connectivity areas take up to 3 days).</li>
                       <li>Free delivery is automatically applied to all orders with total cart values exceeding ₹3,000.</li>
                       <li>Customers can track live consignment milestones directly through our Customer Portal tracking system.</li>
                     </ul>

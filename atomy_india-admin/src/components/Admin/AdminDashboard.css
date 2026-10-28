@@ -1873,6 +1873,226 @@
   color: #ffffff;
 }
 
+.order-status-tab.delayed-tab {
+  color: #dc2626;
+  border: 1px dashed rgba(220, 38, 38, 0.4);
+  background: #fef2f2;
+}
+
+.order-status-tab.delayed-tab:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+.order-status-tab.delayed-tab.active {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.order-status-tab.delayed-tab .tab-count-badge {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.order-status-tab.delayed-tab.active .tab-count-badge {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+/* SLA Badges in Order Table */
+.sla-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 5px;
+  white-space: nowrap;
+}
+
+.sla-badge.delayed {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.sla-badge.on-schedule {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.sla-badge.delivered {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+/* Urgent SLA Alert Banner */
+.delayed-orders-urgent-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-left: 5px solid #e11d48;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delayed-orders-urgent-banner:hover {
+  background: #ffe4e6;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.12);
+}
+
+.delayed-banner-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffe4e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.delayed-banner-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.delayed-banner-text strong {
+  font-size: 14px;
+  color: #9f1239;
+  font-weight: 700;
+}
+
+.delayed-banner-text span {
+  font-size: 12.5px;
+  color: #be123c;
+  margin-top: 2px;
+}
+
+.delayed-banner-btn {
+  background: #e11d48;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s ease;
+}
+
+.delayed-banner-btn:hover {
+  background: #be123c;
+}
+
+/* Delayed Orders Control & Apology Actions Bar */
+.delayed-orders-management-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #fff8f8;
+  border: 1px solid #fee2e2;
+  border-left: 4px solid #ef4444;
+  padding: 14px 18px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+
+.delayed-mgmt-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.delayed-mgmt-left strong {
+  font-size: 13.5px;
+  color: #991b1b;
+  display: block;
+}
+
+.delayed-mgmt-left p {
+  font-size: 12px;
+  color: #7f1d1d;
+  margin: 2px 0 0;
+  line-height: 1.5;
+}
+
+.trigger-all-delayed-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.trigger-all-delayed-btn:hover {
+  background: #dc2626;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+.action-pill-btn.apology {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.action-pill-btn.apology:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.action-pill-btn.apology.sent {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.action-pill-btn.apology.sent:hover {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.apology-modal-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.apology-modal-action-btn:hover {
+  background: #dc2626;
+}
+
 .orders-filter-row {
   display: flex;
   align-items: center;
@@ -3844,4 +4064,69 @@ input:checked+.slider:before {
   .sub-sidebar-nav {
     grid-template-columns: 1fr;
   }
+}
+
+/* Overview Quick Actions Bar & Interactive KPI Cards */
+.interactive-kpi-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+.interactive-kpi-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08) !important;
+  border-color: #94a3b8 !important;
+}
+
+.overview-quick-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  flex-wrap: wrap;
+}
+
+.quick-actions-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #0369a1;
+  letter-spacing: 0.6px;
+}
+
+.quick-actions-links-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.quick-action-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-action-pill-btn:hover {
+  background: #f0f9ff;
+  border-color: #00a3e0;
+  color: #0284c7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.15);
 }

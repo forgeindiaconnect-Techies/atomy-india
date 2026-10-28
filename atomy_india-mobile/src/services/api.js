@@ -449,3 +449,160 @@ export async function fetchFloatingAdConfigApi() {
   return DEFAULT_AD_CONFIG;
 }
 
+// ---------------------------------------------------------------------------
+// Brevo Transactional Email & Password Reset APIs
+// ---------------------------------------------------------------------------
+
+/**
+ * Step 1: Request 6-digit OTP code to email via Brevo transactional email
+ */
+export async function requestForgotPasswordOtp(email) {
+  const targetUrls = [
+    `${LOCAL_API_BASE}/auth/forgot-password`,
+    `${CLOUD_API_BASE}/auth/forgot-password`,
+  ];
+
+  let lastError = null;
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) return data;
+      lastError = data.message || 'Failed to send reset code';
+    } catch (err) {
+      lastError = err.message;
+    }
+  }
+  throw new Error(lastError || 'Failed to connect to authentication server');
+}
+
+/**
+ * Step 2: Verify the 6-digit OTP code entered by the user
+ */
+export async function verifyPasswordOtp(email, otp) {
+  const targetUrls = [
+    `${LOCAL_API_BASE}/auth/verify-otp`,
+    `${CLOUD_API_BASE}/auth/verify-otp`,
+  ];
+
+  let lastError = null;
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), otp: otp.trim() }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) return data;
+      lastError = data.message || 'Invalid or expired verification code';
+    } catch (err) {
+      lastError = err.message;
+    }
+  }
+  throw new Error(lastError || 'Failed to verify OTP code');
+}
+
+/**
+ * Step 3: Set and securely save the new password
+ */
+export async function resetCustomerPassword(email, otp, newPassword) {
+  const targetUrls = [
+    `${LOCAL_API_BASE}/auth/reset-password`,
+    `${CLOUD_API_BASE}/auth/reset-password`,
+  ];
+
+  let lastError = null;
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          otp: otp.trim(),
+          newPassword: newPassword.trim(),
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) return data;
+      lastError = data.message || 'Failed to reset password';
+    } catch (err) {
+      lastError = err.message;
+    }
+  }
+  throw new Error(lastError || 'Failed to update new password');
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic Coupons APIs (MongoDB Atlas Backend)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch all active promotional coupons
+ */
+export async function fetchCouponsApi() {
+  const targetUrls = [
+    `${LOCAL_API_BASE}/coupons`,
+    `${CLOUD_API_BASE}/coupons`,
+  ];
+
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
+      }
+    } catch (err) {}
+  }
+  return [];
+}
+
+/**
+ * Validate and apply coupon to cart
+ */
+export async function applyCouponApi(code, cartAmount = 0, cartItems = [], isFirstOrder = true) {
+  const targetUrls = [
+    `${LOCAL_API_BASE}/coupons/apply`,
+    `${CLOUD_API_BASE}/coupons/apply`,
+  ];
+
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, cartAmount, cartItems, isFirstOrder }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {}
+  }
+  return { valid: false, message: 'Could not connect to coupon verification server.' };
+}
+

@@ -90,13 +90,15 @@ export const getProductGstRate = (item) => {
   return isProductGstReduced(item) ? 5 : 18;
 };
 
-// Helper: Calculate fast delivery timeline (within 48 hours / 2 days from current ordered date)
-export const getEstimatedDeliveryRange = (baseDate = new Date()) => {
+// Helper: Calculate fast delivery timeline (within 2 days from nearby regional hubs; 3 days for remote mountain/forest terrains)
+export const getEstimatedDeliveryRange = (baseDate = new Date(), addressText = '') => {
   const currentOrderDate = new Date(baseDate);
+  const isRemote = /forest|mountain|hills?|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur/i.test(String(addressText || ''));
+  const days = isRemote ? 3 : 2;
 
-  // Delivery within 48 hours (2 days) from current ordered date
+  // Delivery within 2 days (dispatched from nearby hub) or 3 days for remote terrains
   const deliveryTargetDate = new Date(baseDate);
-  deliveryTargetDate.setDate(deliveryTargetDate.getDate() + 2);
+  deliveryTargetDate.setDate(deliveryTargetDate.getDate() + days);
 
   const startStr = currentOrderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   const endStr = deliveryTargetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -105,9 +107,9 @@ export const getEstimatedDeliveryRange = (baseDate = new Date()) => {
     dateRange: `${startStr} – ${endStr}`,
     startDateFormatted: startStr,
     endDateFormatted: endStr,
-    timeFrame: '48 Hours (2 Days)',
+    timeFrame: isRemote ? 'Within 3 Days (Remote Mountain/Forest Area)' : 'Within 2 Days (Dispatched via Nearby Hub)',
     carrier: 'Blue Dart Express',
-    dispatchTime: 'Dispatched within 24 hours'
+    dispatchTime: 'Dispatched within 24 hours from Nearby Hub'
   };
 };
 
@@ -536,8 +538,11 @@ export default function OrderSheetPage({
     };
   }, [cartItems]);
 
-  // Dynamic estimated delivery date calculation (3 - 5 business days, e.g. Oct 13 – Oct 15, 2026)
-  const estimatedDeliveryInfo = useMemo(() => getEstimatedDeliveryRange(), []);
+  // Dynamic estimated delivery date calculation (Within 2 days for nearby hubs; 3 days for remote mountain/forest areas)
+  const destinationAddressString = currentSelectedAddress 
+    ? `${currentSelectedAddress.addressLine1 || ''} ${currentSelectedAddress.city || ''} ${currentSelectedAddress.state || ''} ${currentSelectedAddress.pincode || ''}`
+    : '';
+  const estimatedDeliveryInfo = useMemo(() => getEstimatedDeliveryRange(new Date(), destinationAddressString), [destinationAddressString]);
 
   // Trigger Live GPS Current Location Detection inside Address Modal
   const handleDetectCurrentLocation = () => {

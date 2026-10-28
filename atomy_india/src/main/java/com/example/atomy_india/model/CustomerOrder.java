@@ -53,6 +53,18 @@ public class CustomerOrder {
     @Field("updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Field("delay_email_sent")
+    private Boolean delayEmailSent = false;
+
+    @Field("delay_email_sent_at")
+    private LocalDateTime delayEmailSentAt;
+
+    @Field("estimated_delivery_date")
+    private String estimatedDeliveryDate;
+
+    @Field("estimated_delivery")
+    private String estimatedDelivery;
+
     private List<OrderItem> items = new ArrayList<>();
 
     public enum PaymentMethod {
@@ -155,4 +167,16 @@ public class CustomerOrder {
 
     public List<OrderItem> getItems() { return items; }
     public void setItems(List<OrderItem> items) { this.items = items; }
+
+    public Boolean getDelayEmailSent() { return delayEmailSent; }
+    public void setDelayEmailSent(Boolean delayEmailSent) { this.delayEmailSent = delayEmailSent; }
+
+    public LocalDateTime getDelayEmailSentAt() { return delayEmailSentAt; }
+    public void setDelayEmailSentAt(LocalDateTime delayEmailSentAt) { this.delayEmailSentAt = delayEmailSentAt; }
+
+    public String getEstimatedDeliveryDate() { return estimatedDeliveryDate; }
+    public void setEstimatedDeliveryDate(String estimatedDeliveryDate) { this.estimatedDeliveryDate = estimatedDeliveryDate; }
+
+    public String getEstimatedDelivery() { return estimatedDelivery; }
+    public void setEstimatedDelivery(String estimatedDelivery) { this.estimatedDelivery = estimatedDelivery; }
 }

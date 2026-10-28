@@ -83,10 +83,35 @@ public class AdminService {
     // --- 2. Order Management & Dispatch ---
 
     public List<CustomerOrder> getAllOrders(CustomerOrder.OrderStatus statusFilter) {
-        if (statusFilter != null) {
-            return orderRepository.findByOrderStatusOrderByCreatedAtDesc(statusFilter);
+        List<CustomerOrder> orders = (statusFilter != null)
+                ? orderRepository.findByOrderStatusOrderByCreatedAtDesc(statusFilter)
+                : orderRepository.findAllByOrderByCreatedAtDesc();
+
+        for (CustomerOrder o : orders) {
+            if (o.getEstimatedDeliveryDate() == null || o.getEstimatedDelivery() == null || o.getEstimatedDelivery().contains("5-8") || o.getEstimatedDelivery().contains("5 - 8")) {
+                LocalDateTime base = (o.getCreatedAt() != null) ? o.getCreatedAt() : LocalDateTime.now();
+                if (o.getOrderId() != null && o.getOrderId().matches("^ORD-\\d{8}.*")) {
+                    try {
+                        String ymd = o.getOrderId().substring(4, 12);
+                        int y = Integer.parseInt(ymd.substring(0, 4));
+                        int m = Integer.parseInt(ymd.substring(4, 6));
+                        int d = Integer.parseInt(ymd.substring(6, 8));
+                        base = LocalDateTime.of(y, m, d, 12, 0);
+                    } catch (Exception ignored) {}
+                }
+                boolean isRemote = isRemoteTerrain(o);
+                int sla = isRemote ? 3 : 2;
+                LocalDateTime target = base.plusDays(sla);
+                String dateStr = target.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
+                String timeFrame = isRemote ? "Within 3 Days (Remote Mountain/Forest Area)" : "Within 2 Days (Nearby Hub)";
+                o.setEstimatedDeliveryDate(dateStr);
+                o.setEstimatedDelivery(timeFrame);
+                try {
+                    orderRepository.save(o);
+                } catch (Exception ignored) {}
+            }
         }
-        return orderRepository.findAllByOrderByCreatedAtDesc();
+        return orders;
     }
 
     public Optional<CustomerOrder> getOrderDetails(String orderId) {
@@ -375,5 +400,69 @@ public class AdminService {
         }
         long afterCount = mongoTemplate.getCollection("order_items").countDocuments();
         return java.util.Map.of("beforeCount", beforeCount, "afterCount", afterCount, "status", "SUCCESS");
+    }
+
+    // Remote terrain detection helper: forest, mountain, ghats, or hill areas where transportation is limited
+    private boolean isRemoteTerrain(CustomerOrder order) {
+        if (order == null) return false;
+        String text = (String.valueOf(order.getShippingAddress()) + " "
+                + String.valueOf(order.getCity()) + " "
+                + String.valueOf(order.getState()) + " "
+                + String.valueOf(order.getPincode())).toLowerCase();
+        return text.matches(".*(forest|mountain|hill|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur).*");
+    }
+
+    @Transactional
+    public CustomerOrder sendDelayApologyEmail(String orderId) {
+        CustomerOrder order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+        Optional<OrderTracking> trackingOpt = trackingRepository.findByOrderId(orderId);
+        String courier = trackingOpt.map(OrderTracking::getCourierPartner).orElse("Blue Dart Express");
+        String awb = trackingOpt.map(OrderTracking::getTrackingNumber).orElse("AWB-IN-" + order.getOrderId());
+        String estDelivery = trackingOpt.map(OrderTracking::getEstimatedDelivery).orElse(null);
+
+        // Nearby hub delivery: 2 business days across all standard regions
+        // Remote mountain / forest areas with limited transportation: 3 days
+        boolean isRemote = isRemoteTerrain(order);
+        int slaDays = isRemote ? 3 : 2;
+
+        LocalDateTime base = (order.getCreatedAt() != null) ? order.getCreatedAt() : LocalDateTime.now();
+        LocalDateTime deadline = base.plusDays(slaDays);
+        long delayDays = java.time.Duration.between(deadline, LocalDateTime.now()).toDays();
+        if (delayDays < 1) delayDays = 1;
+
+        String expectedDateStr = (estDelivery != null && !estDelivery.trim().isEmpty()) ? estDelivery :
+                deadline.plusDays(1).format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
+
+        brevoEmailService.sendOrderDelayedApology(order, (int) delayDays, expectedDateStr, courier, awb);
+
+        order.setDelayEmailSent(true);
+        order.setDelayEmailSentAt(LocalDateTime.now());
+        return orderRepository.save(order);
+    }
+
+    public int processAndSendAutomatedDelayEmails() {
+        List<CustomerOrder> activeOrders = orderRepository.findAll().stream()
+                .filter(o -> o.getOrderStatus() != CustomerOrder.OrderStatus.DELIVERED
+                        && o.getOrderStatus() != CustomerOrder.OrderStatus.CANCELLED)
+                .filter(o -> o.getDelayEmailSent() == null || !o.getDelayEmailSent())
+                .filter(o -> {
+                    boolean isRemote = isRemoteTerrain(o);
+                    int slaDays = isRemote ? 3 : 2;
+                    LocalDateTime base = (o.getCreatedAt() != null) ? o.getCreatedAt() : LocalDateTime.now();
+                    return LocalDateTime.now().isAfter(base.plusDays(slaDays));
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        int count = 0;
+        for (CustomerOrder o : activeOrders) {
+            try {
+                sendDelayApologyEmail(o.getOrderId());
+                count++;
+            } catch (Exception ignored) {
+            }
+        }
+        return count;
     }
 }

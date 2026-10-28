@@ -56,9 +56,9 @@ const OFFICIAL_NOTICES = [
     date: '02-06-2026',
     summary: 'Upgraded delivery speeds across all Tier-1 and Tier-2 pin codes with live dispatch and tracking updates.',
     details: [
-      'Partnered with tier-1 logistics networks (BlueDart, Delhivery, XpressBees).',
-      'Average transit time for Metro cities: 2-3 business days.',
-      'All other regions: 4-6 business days.',
+      'Partnered with certified courier logistics partners (Blue Dart Express).',
+      'Standard delivery nationwide: within 2 days via nearby regional fulfillment hubs.',
+      'Remote mountain & forest areas with limited transportation: within 3 days.',
       'Track your consignment live using your Order ID in Profile > Order History.'
     ]
   },

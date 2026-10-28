@@ -92,6 +92,28 @@ export async function updateAdminOrderTracking(orderId, trackingData) {
   return res.json();
 }
 
+export async function sendDelayApologyEmail(orderId) {
+  const res = await fetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderId)}/send-delay-email`, {
+    method: 'POST'
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to send delay apology email');
+  }
+  return res.json();
+}
+
+export async function triggerAllDelayedEmails() {
+  const res = await fetch(`${API_BASE}/admin/orders/trigger-delayed-emails`, {
+    method: 'POST'
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to trigger delayed emails');
+  }
+  return res.json();
+}
+
 export async function fetchAdminInventory(alertOnly = false) {
   const url = alertOnly ? `${API_BASE}/admin/inventory?alertOnly=true` : `${API_BASE}/admin/inventory`;
   const res = await fetch(url);

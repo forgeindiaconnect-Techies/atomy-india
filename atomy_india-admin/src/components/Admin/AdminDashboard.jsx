@@ -63,7 +63,9 @@ import {
   clearAllAdminTickets,
   fetchAdminCustomers,
   fetchAdminProfile,
-  updateAdminProfile
+  updateAdminProfile,
+  sendDelayApologyEmail,
+  triggerAllDelayedEmails
 } from '../../services/api';
 import {
   playOrderAlertSound,
@@ -74,6 +76,7 @@ import ProductEditorPage from './ProductEditorPage';
 import AdPromotionManager from './AdPromotionManager';
 import MembershipManagementPage from './MembershipManagementPage';
 import CouponManager from './CouponManager';
+import FinanceSettlementPage from './FinanceSettlementPage';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
 import {
   getAdConfig,
@@ -268,8 +271,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           ).map(o => ({
             ...o,
             orderStatus: o.orderStatus || (String(o.status || '').toUpperCase().includes('PAYMENT COMPLETED') ? 'PLACED' : (o.status || 'PLACED')),
-            estimatedDeliveryDate: o.estimatedDeliveryDate && !o.estimatedDeliveryDate.includes('5 - 8') && !o.estimatedDeliveryDate.includes('5-8') ? o.estimatedDeliveryDate : 'Within 48 Hours (2 - 4 Business Days)',
-            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : '2 - 4 Business Days'
+            estimatedDeliveryDate: o.estimatedDeliveryDate && !o.estimatedDeliveryDate.includes('5 - 8') && !o.estimatedDeliveryDate.includes('5-8') ? o.estimatedDeliveryDate : '',
+            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : 'Within 2 Days (Nearby Hub)'
           }));
         }
       }
@@ -288,7 +291,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     trackingNumber: '',
     currentStatus: 'SHIPPED',
     currentLocation: 'Gurugram Hub',
-    estimatedDelivery: '2-3 Business Days'
+    estimatedDelivery: 'Within 2 Days (Nearby Hub)'
   });
 
   // Support State (Clean state from MySQL database or actual customer interactions)
@@ -535,27 +538,92 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     return Array.from(map.values());
   }, [products]);
 
-  // Reliable estimated delivery timeline (2 - 4 business days / 48 hours for Blue Dart Express)
-  const getFormattedEstimatedDelivery = (order) => {
-    if (!order) return '2 - 4 Business Days (Within 48 Hours)';
-    const est = order.estimatedDeliveryDate || order.estimatedDelivery;
-    if (est && typeof est === 'string' && !est.includes('5 - 8') && !est.includes('5-8') && !est.toLowerCase().includes('undefined') && est.trim().length > 0) {
-      return est;
+  // Remote terrain detection helper: forest, mountain, ghats, or hill areas where transportation is limited
+  const isRemoteTerrain = (order) => {
+    if (!order) return false;
+    const text = `${order.shippingAddress || ''} ${order.city || ''} ${order.state || ''} ${order.pincode || ''}`.toLowerCase();
+    return /forest|mountain|hills?|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur/i.test(text);
+  };
+
+  // Extract immutable order creation date (never recalculates or shifts based on admin login time)
+  const getOrderBaseDate = (order) => {
+    if (!order) return new Date();
+    // 1. Try order.createdAt or order.date or order.orderDate
+    const raw = order.createdAt || order.date || order.orderDate;
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d;
     }
-    try {
-      const rawDate = order.createdAt || order.date || order.orderDate;
-      const base = rawDate ? new Date(rawDate) : new Date();
-      if (!isNaN(base.getTime())) {
-        const dStart = new Date(base);
-        dStart.setDate(dStart.getDate() + 2);
-        const dEnd = new Date(base);
-        dEnd.setDate(dEnd.getDate() + 4);
-        const startStr = dStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-        const endStr = dEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-        return `${startStr} – ${endStr} (2 - 4 Business Days)`;
+    // 2. Parse from orderId format: ORD-YYYYMMDD-XXXX (100% immune to clock changes or re-logins)
+    if (order.orderId && /^ORD-(\d{4})(\d{2})(\d{2})/i.test(order.orderId)) {
+      const m = order.orderId.match(/^ORD-(\d{4})(\d{2})(\d{2})/i);
+      if (m) {
+        const y = parseInt(m[1], 10);
+        const mo = parseInt(m[2], 10) - 1;
+        const da = parseInt(m[3], 10);
+        return new Date(y, mo, da, 12, 0, 0);
       }
-    } catch {}
-    return '2 - 4 Business Days (Within 48 Hours)';
+    }
+    return new Date();
+  };
+
+  // Static immutable estimated delivery timeline (Nearby Hub: Within 2 days; Remote Mountain/Forest: 3 days)
+  const getFormattedEstimatedDelivery = (order) => {
+    if (!order) return 'Within 2 Days (Nearby Hub Fulfillment)';
+    const isRemote = isRemoteTerrain(order);
+    const days = isRemote ? 3 : 2;
+    const base = getOrderBaseDate(order);
+    const dTarget = new Date(base);
+    dTarget.setDate(dTarget.getDate() + days);
+    const targetStr = dTarget.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${targetStr} (${isRemote ? 'Within 3 Days • Mountain/Forest' : 'Within 2 Days • Nearby Hub'})`;
+  };
+
+  // Delivery SLA & Delay Tracking:
+  // All normal regions/places: fulfilled via nearby hubs within 2 days (2-Day SLA)
+  // Remote forest/mountain/hill areas with limited transportation: 3 days (3-Day SLA)
+  // Guaranteed static deadline: based strictly on fixed order date, never shifts on login
+  const getOrderDeliverySLA = (order) => {
+    if (!order) return { isDelayed: false, targetDate: null, targetDateStr: '', delayDays: 0, daysLeft: 0, statusText: 'On Schedule' };
+    
+    const isDelivered = order.orderStatus === 'DELIVERED';
+    const isCancelled = order.orderStatus === 'CANCELLED';
+
+    const base = getOrderBaseDate(order);
+    const isRemote = isRemoteTerrain(order);
+    const slaDays = isRemote ? 3 : 2;
+
+    const targetDate = new Date(base);
+    targetDate.setDate(targetDate.getDate() + slaDays);
+
+    const now = new Date();
+    const diffTime = now.getTime() - targetDate.getTime();
+    const delayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    const isDelayed = !isDelivered && !isCancelled && now > targetDate;
+
+    return {
+      isDelayed,
+      isDelivered,
+      isCancelled,
+      isRemote,
+      slaDays,
+      slaLabel: isRemote ? '3-Day SLA (Mountain/Forest)' : '2-Day SLA (Nearby Hub)',
+      targetDate,
+      targetDateStr: targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      delayDays: Math.max(1, delayDays),
+      daysLeft: Math.max(0, daysLeft),
+      statusText: isDelivered 
+        ? 'Delivered' 
+        : isCancelled 
+        ? 'Cancelled' 
+        : isDelayed 
+        ? `Delayed by ${Math.max(1, delayDays)} day${delayDays > 1 ? 's' : ''}` 
+        : daysLeft === 0 
+        ? 'Due Today' 
+        : `${daysLeft} day${daysLeft > 1 ? 's' : ''} left`
+    };
   };
 
   // Robust order items resolver to guarantee product name, code, quantity, PV, unit price, and image
@@ -715,7 +783,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
         const mappedOrders = ordersRes.value.map(bo => ({
           orderId: bo.orderId,
-          createdAt: bo.createdAt || new Date().toISOString(),
+          createdAt: bo.createdAt || (bo.orderId && /^ORD-(\d{4})(\d{2})(\d{2})/i.test(bo.orderId) ? bo.orderId.replace(/^ORD-(\d{4})(\d{2})(\d{2}).*$/, '$1-$2-$3T12:00:00.000') : new Date().toISOString()),
           customerName: bo.customerName || "Customer",
           customerEmail: bo.customerEmail || "customer@atomy.com",
           customerPhone: bo.customerPhone || "+91 98000 00000",
@@ -728,6 +796,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           paymentStatus: bo.paymentStatus || "PAID",
           totalAmount: Number(bo.totalAmount) || 0,
           shippingFee: Number(bo.shippingFee) || 0,
+          delayEmailSent: bo.delayEmailSent || false,
+          delayEmailSentAt: bo.delayEmailSentAt || null,
+          estimatedDeliveryDate: bo.estimatedDeliveryDate || null,
+          estimatedDelivery: bo.estimatedDelivery || null,
           items: Array.isArray(bo.items) ? bo.items.map(it => ({
             id: it.productId,
             name: it.productName || it.name,
@@ -995,7 +1067,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             shippingFee: o.shippingFee || 0,
             items: o.items || data.items || [],
             tracking: null,
-            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : "2 - 4 Business Days",
+            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : "Within 2 Days (Nearby Hub)",
             estimatedDeliveryDate: o.estimatedDeliveryDate && !o.estimatedDeliveryDate.includes('5 - 8') && !o.estimatedDeliveryDate.includes('5-8') ? o.estimatedDeliveryDate : ""
           });
         }
@@ -1032,7 +1104,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             shippingFee: o.shippingFee || 0,
             items: o.items || data.items || [],
             tracking: null,
-            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : "2 - 4 Business Days",
+            estimatedDelivery: o.estimatedDelivery && !o.estimatedDelivery.includes('5 - 8') && !o.estimatedDelivery.includes('5-8') ? o.estimatedDelivery : "Within 2 Days (Nearby Hub)",
             estimatedDeliveryDate: o.estimatedDeliveryDate && !o.estimatedDeliveryDate.includes('5 - 8') && !o.estimatedDeliveryDate.includes('5-8') ? o.estimatedDeliveryDate : ""
           });
         }
@@ -1086,7 +1158,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         if (Array.isArray(backendOrders)) {
           const mappedOrders = backendOrders.map(bo => ({
             orderId: bo.orderId,
-            createdAt: bo.createdAt || new Date().toISOString(),
+            createdAt: bo.createdAt || (bo.orderId && /^ORD-(\d{4})(\d{2})(\d{2})/i.test(bo.orderId) ? bo.orderId.replace(/^ORD-(\d{4})(\d{2})(\d{2}).*$/, '$1-$2-$3T12:00:00.000') : new Date().toISOString()),
             customerName: bo.customerName || "Customer",
             customerEmail: bo.customerEmail || "customer@atomy.com",
             customerPhone: bo.customerPhone || "+91 98000 00000",
@@ -1099,6 +1171,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             paymentStatus: bo.paymentStatus || "PAID",
             totalAmount: Number(bo.totalAmount) || 0,
             shippingFee: Number(bo.shippingFee) || 0,
+            delayEmailSent: bo.delayEmailSent || false,
+            delayEmailSentAt: bo.delayEmailSentAt || null,
+            estimatedDeliveryDate: bo.estimatedDeliveryDate || null,
+            estimatedDelivery: bo.estimatedDelivery || null,
             items: Array.isArray(bo.items) ? bo.items.map(it => ({
               id: it.productId || it.id,
               productId: it.productId || it.id,
@@ -1284,6 +1360,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       return isOpen && isUnread;
     });
 
+    const delayedCount = orders.filter(o => getOrderDeliverySLA(o).isDelayed).length;
+
     return {
       todaySale,
       todayOrdersCount,
@@ -1292,6 +1370,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       processingCount,
       shippedCount,
       deliveredCount,
+      delayedCount,
       totalOrders: orders.length,
       lowStockCount,
       unreadLowStockCount,
@@ -1544,7 +1623,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       trackingNumber: order.tracking?.trackingNumber || order.trackingNumber || `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
       currentStatus: order.orderStatus || 'PLACED',
       currentLocation: order.tracking?.currentLocation || 'Gurugram Hub',
-      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || '2-3 Business Days'
+      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || (isRemoteTerrain(order) ? 'Within 3 Days (Mountain/Forest)' : 'Within 2 Days (Nearby Hub)')
     });
   };
 
@@ -1626,13 +1705,40 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     }
   };
 
+  const handleSendDelayApologyEmail = async (orderId, customerEmail) => {
+    try {
+      showToast(`Sending delay apology email to ${customerEmail || 'customer'}...`);
+      await sendDelayApologyEmail(orderId);
+      showToast(`✓ Apology email successfully sent to ${customerEmail || 'customer'}!`);
+      setOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, delayEmailSent: true, delayEmailSentAt: new Date().toISOString() } : o));
+      if (selectedOrderDetail && selectedOrderDetail.orderId === orderId) {
+        setSelectedOrderDetail(prev => ({ ...prev, delayEmailSent: true, delayEmailSentAt: new Date().toISOString() }));
+      }
+    } catch (err) {
+      showToast(`Failed to send apology email: ${err.message}`);
+    }
+  };
+
+  const handleTriggerAllDelayEmails = async () => {
+    try {
+      showToast('Scanning delayed orders and dispatching apology emails...');
+      const res = await triggerAllDelayedEmails();
+      showToast(`✓ ${res.emailsSent || 0} apology email(s) dispatched to delayed customers!`);
+      setOrders(prev => prev.map(o => getOrderDeliverySLA(o).isDelayed ? { ...o, delayEmailSent: true, delayEmailSentAt: new Date().toISOString() } : o));
+    } catch (err) {
+      showToast(`Error: ${err.message}`);
+    }
+  };
+
   const filteredOrders = useMemo(() => {
     return orders.filter(o => {
       const matchStatus = orderStatusFilter === 'ALL'
         ? true
-        : orderStatusFilter === 'SHIPPED'
-          ? (o.orderStatus === 'SHIPPED' || o.orderStatus === 'OUT_FOR_DELIVERY')
-          : o.orderStatus === orderStatusFilter;
+        : orderStatusFilter === 'DELAYED'
+          ? getOrderDeliverySLA(o).isDelayed
+          : orderStatusFilter === 'SHIPPED'
+            ? (o.orderStatus === 'SHIPPED' || o.orderStatus === 'OUT_FOR_DELIVERY')
+            : o.orderStatus === orderStatusFilter;
 
       const q = orderSearchQuery.toLowerCase().trim();
       const matchQuery = !q ||
@@ -1980,6 +2086,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             </button>
 
             <button
+              className={`sidebar-nav-button ${activeTab === 'finance' && !isEditingProductView ? 'active' : ''}`}
+              onClick={() => { setActiveTab('finance'); setIsEditingProductView(false); }}
+            >
+              <IndianRupee size={20} />
+              <span>Finance & Settlements</span>
+            </button>
+
+            <button
               className={`sidebar-nav-button ${activeTab === 'customers' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('customers'); setIsEditingProductView(false); }}
             >
@@ -2099,8 +2213,13 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
                   {/* Top Sales KPI Cards - Design 1 (Image 1: Curved Wave with Circular Icon Badge) */}
                   <div className="kpi-curve-grid">
-                    {/* Card 1: Today's Total Sale (Dim Soft Cyan Blue Tint) */}
-                    <div className="kpi-curve-card" style={{ '--accent-color': '#0284c7' }}>
+                    {/* Card 1: Today's Total Sale (Dim Soft Cyan Blue Tint - Clickable to Finance) */}
+                    <div 
+                      className="kpi-curve-card interactive-kpi-card" 
+                      style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
+                      onClick={() => setActiveTab('finance')}
+                      title="View Today's Financial Settlement & Details"
+                    >
                       <div className="kpi-curve-corner-accent"></div>
                       <div className="kpi-curve-content">
                         <div className="kpi-curve-tag">TODAY'S TOTAL SALE</div>
@@ -2108,7 +2227,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           ₹ {overviewStats.todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </div>
                         <div className="kpi-curve-sub">
-                          From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today
+                          From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today • <span style={{ color: '#0284c7', fontWeight: 600 }}>View Finance →</span>
                         </div>
                       </div>
                       <div className="kpi-curve-right-wing">
@@ -2121,8 +2240,13 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       </div>
                     </div>
 
-                    {/* Card 2: Today's Orders (Dim Soft Mint Green Tint) */}
-                    <div className="kpi-curve-card" style={{ '--accent-color': '#15803d' }}>
+                    {/* Card 2: Today's Orders (Dim Soft Mint Green Tint - Clickable to Orders) */}
+                    <div 
+                      className="kpi-curve-card interactive-kpi-card" 
+                      style={{ '--accent-color': '#15803d', cursor: 'pointer' }}
+                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
+                      title="Inspect Today's Orders & Customer Fulfillment"
+                    >
                       <div className="kpi-curve-corner-accent"></div>
                       <div className="kpi-curve-content">
                         <div className="kpi-curve-tag">TODAY'S ORDERS</div>
@@ -2130,7 +2254,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           {overviewStats.todayOrdersCount} <span style={{ fontSize: '16px', fontWeight: 600, color: '#64748b' }}>orders</span>
                         </div>
                         <div className="kpi-curve-sub">
-                          Direct public consumer orders received
+                          Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
                         </div>
                       </div>
                       <div className="kpi-curve-right-wing">
@@ -2143,8 +2267,13 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       </div>
                     </div>
 
-                    {/* Card 3: Overall Total Sale (Dim Soft Mist Slate Tint) */}
-                    <div className="kpi-curve-card" style={{ '--accent-color': '#334155' }}>
+                    {/* Card 3: Overall Total Sale (Dim Soft Mist Slate Tint - Clickable to Finance) */}
+                    <div 
+                      className="kpi-curve-card interactive-kpi-card" 
+                      style={{ '--accent-color': '#334155', cursor: 'pointer' }}
+                      onClick={() => setActiveTab('finance')}
+                      title="Open Financial Ledger, Refunds & Settlements"
+                    >
                       <div className="kpi-curve-corner-accent"></div>
                       <div className="kpi-curve-content">
                         <div className="kpi-curve-tag">OVERALL TOTAL SALE</div>
@@ -2152,7 +2281,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           ₹ {overviewStats.overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </div>
                         <div className="kpi-curve-sub">
-                          Total lifetime gross revenue across all orders
+                          Total lifetime gross revenue across all orders • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
                         </div>
                       </div>
                       <div className="kpi-curve-right-wing">
@@ -2165,6 +2294,89 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       </div>
                     </div>
                   </div>
+
+                  {/* QUICK ACTION COMMAND SHORTCUTS STRIP */}
+                  <div className="overview-quick-actions-bar">
+                    <span className="quick-actions-label">
+                      <Sparkles size={14} color="#00a3e0" />
+                      <span>QUICK SHORTCUTS:</span>
+                    </span>
+                    <div className="quick-actions-links-row">
+                      <button 
+                        type="button" 
+                        className="quick-action-pill-btn" 
+                        onClick={() => setActiveTab('finance')}
+                      >
+                        <IndianRupee size={13} color="#0284c7" />
+                        <span>Finance &amp; Settlements</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        className="quick-action-pill-btn" 
+                        onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
+                      >
+                        <Package size={13} color="#16a34a" />
+                        <span>All Orders ({orders.length})</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        className="quick-action-pill-btn" 
+                        onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}
+                      >
+                        <Clock size={13} color="#d97706" />
+                        <span>Processing Orders</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        className="quick-action-pill-btn" 
+                        onClick={() => setActiveTab('coupons')}
+                      >
+                        <Ticket size={13} color="#9333ea" />
+                        <span>Coupons &amp; Offers</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        className="quick-action-pill-btn" 
+                        onClick={() => setActiveTab('membership')}
+                      >
+                        <Crown size={13} color="#f59e0b" />
+                        <span>Distributor Membership</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        className="quick-action-pill-btn" 
+                        onClick={() => setActiveTab('support')}
+                      >
+                        <Headphones size={13} color="#dc2626" />
+                        <span>Support Desk ({overviewStats.openTicketsCount || 0})</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Urgent Delayed Deliveries Alert Banner (Shown when orders exceed SLA) */}
+                  {overviewStats.delayedCount > 0 && (
+                    <div
+                      className="delayed-orders-urgent-banner"
+                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('DELAYED'); }}
+                      style={{ cursor: 'pointer', marginBottom: '16px' }}
+                    >
+                      <div className="delayed-banner-icon">
+                        <AlertTriangle size={20} color="#dc2626" />
+                      </div>
+                      <div className="delayed-banner-text">
+                        <strong>{overviewStats.delayedCount} Customer Order{overviewStats.delayedCount > 1 ? 's' : ''} Exceeded Delivery Window!</strong>
+                        <span>Packages have passed the standard delivery deadline (within 2 days via nearby hubs; 3 days for remote mountain/forest terrains). Review dispatch status or coordinate with Blue Dart logistics.</span>
+                      </div>
+                      <button className="delayed-banner-btn" type="button">
+                        View Delayed Orders ({overviewStats.delayedCount}) →
+                      </button>
+                    </div>
+                  )}
 
                   {/* Order Status Pipeline Grid - Design 2 (Image 2: Vertical Step Card with Wavy Header, Number & Icon) */}
                   <div className="kpi-step-grid">
@@ -2584,14 +2796,15 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     {[
                       { id: 'ALL', label: 'All Orders', count: orders.length },
                       { id: 'PLACED', label: 'New Orders', count: orders.filter(o => o.orderStatus === 'PLACED').length },
-                      { id: 'PROCESSING', label: 'Pending / Processing', count: orders.filter(o => o.orderStatus === 'PROCESSING').length },
+                      { id: 'PROCESSING', label: 'Processing', count: orders.filter(o => o.orderStatus === 'PROCESSING').length },
                       { id: 'SHIPPED', label: 'Shipped & Out for Delivery', count: orders.filter(o => o.orderStatus === 'SHIPPED' || o.orderStatus === 'OUT_FOR_DELIVERY').length },
                       { id: 'DELIVERED', label: 'Delivered', count: orders.filter(o => o.orderStatus === 'DELIVERED').length },
-                      { id: 'CANCELLED', label: 'Cancelled', count: orders.filter(o => o.orderStatus === 'CANCELLED').length }
+                      { id: 'CANCELLED', label: 'Cancelled', count: orders.filter(o => o.orderStatus === 'CANCELLED').length },
+                      { id: 'DELAYED', label: '⚠️ Delayed Deliveries', count: overviewStats.delayedCount, isDelayedTab: true }
                     ].map(tab => (
                       <button
                         key={tab.id}
-                        className={`order-status-tab ${orderStatusFilter === tab.id ? 'active' : ''}`}
+                        className={`order-status-tab ${orderStatusFilter === tab.id ? 'active' : ''} ${tab.isDelayedTab ? 'delayed-tab' : ''}`}
                         onClick={() => setOrderStatusFilter(tab.id)}
                       >
                         <span>{tab.label}</span>
@@ -2622,6 +2835,32 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
                   </div>
 
+                  {/* Delayed Orders Control & Batch Apology Notification Bar */}
+                  {orderStatusFilter === 'DELAYED' && (
+                    <div className="delayed-orders-management-bar">
+                      <div className="delayed-mgmt-left">
+                        <AlertTriangle size={20} color="#dc2626" style={{ marginTop: '2px', flexShrink: 0 }} />
+                        <div>
+                          <strong>Delayed Orders Delivery Window SLA Control</strong>
+                          <p>
+                            Automated background scans trigger every 4 hours to send apology emails to customers whose shipments exceed 2 days (dispatched from nearby regional hubs) or 3 days (remote mountain/forest areas with limited transport). You can also click below to manually trigger or resend apology emails.
+                          </p>
+                        </div>
+                      </div>
+                      {filteredOrders.length > 0 && (
+                        <button
+                          type="button"
+                          className="trigger-all-delayed-btn"
+                          onClick={handleTriggerAllDelayEmails}
+                          title="Send Apology Email to All Delayed Customers"
+                        >
+                          <Mail size={14} />
+                          <span>Dispatch Apology to All ({filteredOrders.length})</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* Orders Data Table */}
                   <div className="atomy-table-responsive orders-table-wrapper">
                     <table className="atomy-data-table orders-data-table">
@@ -2634,7 +2873,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           <th style={{ width: '140px', minWidth: '140px', textAlign: 'right' }}>Total Amount</th>
                           <th style={{ width: '130px', minWidth: '130px', textAlign: 'center' }}>Payment</th>
                           <th style={{ width: '190px', minWidth: '190px', textAlign: 'center' }}>Fulfillment Status</th>
-                          <th style={{ width: '185px', minWidth: '185px', textAlign: 'right' }}>Actions</th>
+                          <th style={{ width: '220px', minWidth: '220px', textAlign: 'right' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2666,6 +2905,29 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                     })}
                                   </span>
                                 </div>
+                                {(() => {
+                                  const sla = getOrderDeliverySLA(o);
+                                  if (sla.isDelivered) {
+                                    return (
+                                      <span className="sla-badge delivered">
+                                        <CheckCircle2 size={11} color="#15803d" /> Delivered
+                                      </span>
+                                    );
+                                  }
+                                  if (sla.isCancelled) return null;
+                                  if (sla.isDelayed) {
+                                    return (
+                                      <span className="sla-badge delayed" title={`Target was ${sla.targetDateStr} (${sla.slaDays}d SLA)`}>
+                                        <AlertTriangle size={11} color="#dc2626" /> Overdue ({sla.delayDays}d)
+                                      </span>
+                                    );
+                                  }
+                                  return (
+                                    <span className="sla-badge on-schedule" title={`Delivery target: ${sla.targetDateStr}`}>
+                                      <Clock size={11} color="#15803d" /> {sla.statusText}
+                                    </span>
+                                  );
+                                })()}
                               </td>
                               <td>
                                 <div className="cell-primary-text">{o.customerName}</div>
@@ -2677,10 +2939,43 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 <div className="address-line-sub">
                                   {o.city}, {o.state} <span className="pincode-pill">{o.pincode}</span>
                                 </div>
-                                  <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <Truck size={12} />
-                                    <span>Est: {getFormattedEstimatedDelivery(o)}</span>
+                                {(() => {
+                                  const sla = getOrderDeliverySLA(o);
+                                  return (
+                                    <div style={{
+                                      fontSize: '11px',
+                                      color: sla.isDelayed ? '#dc2626' : '#0284c7',
+                                      fontWeight: sla.isDelayed ? 700 : 600,
+                                      marginTop: '5px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      {sla.isDelayed ? <AlertTriangle size={12} color="#dc2626" /> : <Truck size={12} />}
+                                      <span>
+                                        {sla.isDelayed ? (
+                                          <><strong>Last Date: {sla.targetDateStr}</strong> ({sla.delayDays}d late)</>
+                                        ) : (
+                                          <>Deadline: {sla.targetDateStr || getFormattedEstimatedDelivery(o)}</>
+                                        )}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
+                                {getOrderDeliverySLA(o).isDelayed && (
+                                  <div style={{
+                                    fontSize: '11px',
+                                    color: o.delayEmailSent ? '#16a34a' : '#ea580c',
+                                    fontWeight: 600,
+                                    marginTop: '3px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}>
+                                    {o.delayEmailSent ? <CheckCircle2 size={11} color="#16a34a" /> : <Mail size={11} color="#ea580c" />}
+                                    <span>{o.delayEmailSent ? 'Apology email dispatched' : 'Apology email pending'}</span>
                                   </div>
+                                )}
                               </td>
                               <td style={{ textAlign: 'center' }}>
                                 <span className="items-count-badge">
@@ -2733,6 +3028,16 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                     <Truck size={13} />
                                     <span>Tracking</span>
                                   </button>
+                                  {getOrderDeliverySLA(o).isDelayed && (
+                                    <button
+                                      className={`action-pill-btn apology ${o.delayEmailSent ? 'sent' : ''}`}
+                                      onClick={() => handleSendDelayApologyEmail(o.orderId, o.customerEmail)}
+                                      title={o.delayEmailSent ? `Apology email sent on ${new Date(o.delayEmailSentAt || Date.now()).toLocaleDateString('en-IN')}. Click to resend.` : 'Send Customer Delay Apology Email'}
+                                    >
+                                      <Mail size={13} />
+                                      <span>{o.delayEmailSent ? 'Resend' : 'Send Apology'}</span>
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -2742,6 +3047,30 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </table>
                   </div>
                 </div>
+              )}
+
+              {/* ========================================================
+              TAB: FINANCE, SALES & REFUND SETTLEMENTS
+              ======================================================== */}
+              {activeTab === 'finance' && !isEditingProductView && (
+                <FinanceSettlementPage
+                  orders={orders}
+                  tickets={tickets}
+                  products={products}
+                  onProcessRefund={handleProcessRefund}
+                  onInspectOrder={(order) => {
+                    setSelectedOrderDetail(order);
+                    setIsOrderInspectOpen(true);
+                  }}
+                  onNavigateToOrders={() => {
+                    setActiveTab('orders');
+                    setOrderStatusFilter('ALL');
+                  }}
+                  onNavigateToSupport={() => {
+                    setActiveTab('support');
+                    setTicketStatusFilter('ALL');
+                  }}
+                />
               )}
 
               {/* ========================================================
@@ -3987,15 +4316,58 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   </div>
                 </div>
 
-                <div className="meta-info-card">
-                  <div className="meta-card-label">ESTIMATED DELIVERY</div>
-                  <div className="meta-card-main" style={{ color: '#00A3E0', fontWeight: 700 }}>
-                    {getFormattedEstimatedDelivery(selectedOrderDetail)}
-                  </div>
-                  <div className="meta-card-sub">
-                    Carrier: {selectedOrderDetail.courier || selectedOrderDetail.tracking?.courierPartner || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
-                  </div>
-                </div>
+                {(() => {
+                  const sla = getOrderDeliverySLA(selectedOrderDetail);
+                  return (
+                    <div
+                      className="meta-info-card"
+                      style={sla.isDelayed ? { border: '1px solid #fecaca', background: '#fff5f5' } : {}}
+                    >
+                      <div className="meta-card-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>DELIVERY SLA & DEADLINE</span>
+                        {sla.isDelayed && (
+                          <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <AlertTriangle size={12} color="#dc2626" /> OVERDUE ({sla.delayDays}D)
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className="meta-card-main"
+                        style={{ color: sla.isDelayed ? '#dc2626' : '#00A3E0', fontWeight: 700 }}
+                      >
+                        {sla.targetDateStr ? `Deadline: ${sla.targetDateStr}` : getFormattedEstimatedDelivery(selectedOrderDetail)}
+                      </div>
+                      <div className="meta-card-sub">
+                        Status: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#15803d' }}>{sla.statusText}</strong> ({sla.slaDays}-Day SLA • {sla.isRemote ? 'Remote Mountain/Forest' : 'Nearby Hub Delivery'}) • Carrier: {selectedOrderDetail.courier || selectedOrderDetail.tracking?.courierPartner || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
+                      </div>
+                      {sla.isDelayed && (
+                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ fontSize: '11.5px', color: selectedOrderDetail.delayEmailSent ? '#16a34a' : '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {selectedOrderDetail.delayEmailSent ? (
+                              <>
+                                <CheckCircle2 size={13} color="#16a34a" />
+                                <span>Apology Dispatched ({selectedOrderDetail.delayEmailSentAt ? new Date(selectedOrderDetail.delayEmailSentAt).toLocaleDateString('en-IN') : 'Sent'})</span>
+                              </>
+                            ) : (
+                              <>
+                                <Mail size={13} color="#b91c1c" />
+                                <span>Customer not yet notified</span>
+                              </>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="apology-modal-action-btn"
+                            onClick={() => handleSendDelayApologyEmail(selectedOrderDetail.orderId, selectedOrderDetail.customerEmail)}
+                          >
+                            <Mail size={12} />
+                            <span>{selectedOrderDetail.delayEmailSent ? 'Resend Apology Email' : 'Send Apology Email Now'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Items Table */}
