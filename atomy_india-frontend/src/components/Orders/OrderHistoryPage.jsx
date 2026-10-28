@@ -213,12 +213,19 @@ export default function OrderHistoryPage({
 
   useEffect(() => {
     if (allOrders.length > 0) {
-      if (!activeTrackedOrder || !allOrders.some(o => o.orderId === activeTrackedOrder.orderId)) {
-        setActiveTrackedOrder(allOrders[0]);
+      const nonCancelledOrders = allOrders.filter(o => o.status !== 'Cancelled');
+      if (!activeTrackedOrder || !allOrders.some(o => o.orderId === activeTrackedOrder.orderId) || activeTrackedOrder.status === 'Cancelled') {
+        setActiveTrackedOrder(nonCancelledOrders.length > 0 ? nonCancelledOrders[0] : null);
       } else {
         // keep active tracked order in sync with latest status
         const updated = allOrders.find(o => o.orderId === activeTrackedOrder.orderId);
-        if (updated) setActiveTrackedOrder(updated);
+        if (updated) {
+          if (updated.status === 'Cancelled') {
+            setActiveTrackedOrder(nonCancelledOrders.length > 0 ? nonCancelledOrders[0] : null);
+          } else {
+            setActiveTrackedOrder(updated);
+          }
+        }
       }
     } else {
       setActiveTrackedOrder(null);
@@ -271,6 +278,7 @@ export default function OrderHistoryPage({
   }, [allOrders, selectedPeriod, statusFilter, searchQuery]);
 
   const handleTrackDelivery = (order) => {
+    if (!order || order.status === 'Cancelled') return;
     setActiveTrackedOrder(order);
     const element = document.getElementById('active-tracker-section');
     if (element) {
@@ -283,8 +291,9 @@ export default function OrderHistoryPage({
     if (!trackerSearchInput.trim()) return;
     const q = trackerSearchInput.trim().toLowerCase();
     const found = allOrders.find(o => 
-      o.orderId.toLowerCase().includes(q) ||
-      (o.trackingNumber && o.trackingNumber.toLowerCase().includes(q))
+      (o.orderId.toLowerCase().includes(q) ||
+      (o.trackingNumber && o.trackingNumber.toLowerCase().includes(q))) &&
+      o.status !== 'Cancelled'
     );
     if (found) {
       setActiveTrackedOrder(found);
@@ -592,7 +601,7 @@ export default function OrderHistoryPage({
         </div>
 
         {/* 2.5 Integrated Live Delivery Status Tracker On-Page */}
-        {activeTrackedOrder ? (
+        {activeTrackedOrder && activeTrackedOrder.status !== 'Cancelled' ? (
           <div className="onpage-delivery-tracker-card animate-fade" id="active-tracker-section">
             <div className="tracker-card-top">
               <div className="tracker-id-box">
@@ -980,15 +989,18 @@ export default function OrderHistoryPage({
                         <span>Invoice</span>
                       </button>
 
-                      <button
-                        type="button"
-                        className="order-btn-primary"
-                        onClick={() => handleTrackDelivery(order)}
-                        title="Track Shipment Status"
-                      >
-                        <Truck size={15} />
-                        <span>Track</span>
-                      </button>
+                      {/* Hide Track button for cancelled orders */}
+                      {!isCanc && (
+                        <button
+                          type="button"
+                          className="order-btn-primary"
+                          onClick={() => handleTrackDelivery(order)}
+                          title="Track Shipment Status"
+                        >
+                          <Truck size={15} />
+                          <span>Track</span>
+                        </button>
+                      )}
 
                       {/* CANCEL ORDER OPTION (For pre-dispatch orders) */}
                       {canCancel && (

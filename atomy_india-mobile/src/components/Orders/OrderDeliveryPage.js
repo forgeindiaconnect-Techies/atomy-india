@@ -513,7 +513,10 @@ export default function OrderDeliveryPage({
     });
   }, [placedOrders, localOrdersOverrides]);
 
-  const activeTrackedOrder = selectedTrackOrder || (orders.length > 0 ? orders[0] : null);
+  const nonCancelledOrders = useMemo(() => orders.filter(o => !String(o.status || '').toLowerCase().includes('cancel')), [orders]);
+  const activeTrackedOrder = (selectedTrackOrder && !String(selectedTrackOrder.status || '').toLowerCase().includes('cancel'))
+    ? selectedTrackOrder
+    : (nonCancelledOrders.length > 0 ? nonCancelledOrders[0] : null);
 
   // Helper to open Cancellation Modal
   const handleCancelOrder = (ord) => {
@@ -562,6 +565,10 @@ export default function OrderDeliveryPage({
           trackStatus: `Order cancelled (${fullReason}). 100% refund initiated.`
         }
       }));
+
+      if (selectedTrackOrder && (selectedTrackOrder.id === id || selectedTrackOrder.orderId === id)) {
+        setSelectedTrackOrder(null);
+      }
 
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
@@ -819,7 +826,7 @@ export default function OrderDeliveryPage({
             </View>
 
             {/* 3. LATEST ORDER LIVE SHIPMENT STATUS (Set directly in page without background box) */}
-            {activeTrackedOrder && (
+            {activeTrackedOrder && !String(activeTrackedOrder.status || '').toLowerCase().includes('cancel') && (
               <View style={styles.latestOrderTrackerCard}>
                 <View style={styles.trackerTopMetaRow}>
                   <View style={styles.trackerIdCol}>
@@ -1062,7 +1069,9 @@ export default function OrderDeliveryPage({
         ) : (
           filteredOrders.map((ord) => {
             const isDelivered = ord.status === 'Delivered';
-            const isCurrentlyTracked = activeTrackedOrder?.id === ord.id;
+            const statusLower = (ord.status || '').toLowerCase();
+            const isCancelled = statusLower.includes('cancel');
+            const isCurrentlyTracked = !isCancelled && activeTrackedOrder?.id === ord.id;
 
             return (
               <View key={ord.id} style={[styles.orderCard, isCurrentlyTracked && styles.orderCardTracked]}>
@@ -1151,23 +1160,25 @@ export default function OrderDeliveryPage({
 
                 {/* Action Buttons: 2-column balanced grid */}
                 <View style={styles.cardActionsRow}>
-                  <TouchableOpacity
-                    style={[styles.trackOrderBtn, isCurrentlyTracked && styles.trackOrderBtnActive]}
-                    onPress={() => setSelectedTrackOrder(ord)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name="location-outline"
-                      size={15}
-                      color={isCurrentlyTracked ? '#FFFFFF' : '#00A3E0'}
-                    />
-                    <Text style={[styles.trackOrderBtnText, isCurrentlyTracked && styles.trackOrderBtnTextActive]}>
-                      {isCurrentlyTracked ? 'Currently Tracking' : 'Track Status'}
-                    </Text>
-                  </TouchableOpacity>
+                  {!isCancelled && (
+                    <TouchableOpacity
+                      style={[styles.trackOrderBtn, isCurrentlyTracked && styles.trackOrderBtnActive]}
+                      onPress={() => setSelectedTrackOrder(ord)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons
+                        name="location-outline"
+                        size={15}
+                        color={isCurrentlyTracked ? '#FFFFFF' : '#00A3E0'}
+                      />
+                      <Text style={[styles.trackOrderBtnText, isCurrentlyTracked && styles.trackOrderBtnTextActive]}>
+                        {isCurrentlyTracked ? 'Currently Tracking' : 'Track Status'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
                   <TouchableOpacity
-                    style={styles.invoiceBtn}
+                    style={[styles.invoiceBtn, isCancelled && { flex: 1 }]}
                     onPress={() => {
                       Alert.alert(
                         'GST Tax Invoice',
