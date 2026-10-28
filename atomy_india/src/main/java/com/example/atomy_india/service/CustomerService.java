@@ -73,10 +73,18 @@ public class CustomerService {
             throw new IllegalArgumentException("Cannot place order with empty cart");
         }
 
-        // Generate Human-friendly Order ID (e.g. ORD-20261003-8472)
+        // Use provided Order ID or generate human-friendly Order ID (e.g. ORD-20261003-8472)
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         int randomCode = 1000 + new Random().nextInt(9000);
-        String orderId = "ORD-" + timestamp + "-" + randomCode;
+        String orderId = (req.getOrderId() != null && !req.getOrderId().trim().isEmpty())
+                ? req.getOrderId().trim()
+                : "ORD-" + timestamp + "-" + randomCode;
+
+        // Idempotency: if order ID already exists in MongoDB, return it directly to avoid duplication
+        Optional<CustomerOrder> existing = orderRepository.findById(orderId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
 
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();

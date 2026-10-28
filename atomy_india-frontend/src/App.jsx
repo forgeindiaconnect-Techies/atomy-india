@@ -628,21 +628,33 @@ export default function App() {
             return `BD${num}IN`;
           };
 
-          const mapped = backendHistory.map(bo => ({
-            orderId: bo.orderId,
-            date: bo.createdAt,
-            orderDate: bo.createdAt ? bo.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
-            status: statusMap[bo.orderStatus] || bo.orderStatus || 'Payment Completed',
-            orderStatus: bo.orderStatus || 'PLACED',
-            estimatedDelivery: 'Within 2 Days (Dispatched from Nearby Hub)',
-            estimatedDeliveryDate: 'Within 2 Days (Nearby Hub)',
-            courier: 'Blue Dart Express (Assigned)',
-            trackingNumber: bo.trackingNumber || bo.tracking?.trackingNumber || getStableAwb(bo.orderId),
-            paymentMethod: bo.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)' 
-                         : bo.paymentMethod === 'CREDIT_DEBIT_CARD' ? 'Credit / Debit Card'
-                         : bo.paymentMethod === 'NET_BANKING' ? 'Net Banking'
-                         : bo.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on Delivery'
-                         : (bo.paymentMethod || 'Online Payment'),
+          const mapped = backendHistory.map(bo => {
+            const isCodOrder = bo.paymentMethod === 'CASH_ON_DELIVERY' || (bo.paymentMethod || '').toLowerCase().includes('cash') || (bo.paymentMethod || '').toLowerCase().includes('cod');
+            const placedStatus = isCodOrder ? 'Cash on Delivery' : 'Payment Completed';
+            const orderStatusMap = {
+              'PLACED': placedStatus,
+              'PROCESSING': 'Preparing Shipment',
+              'SHIPPED': 'In Transit',
+              'OUT_FOR_DELIVERY': 'Out for Delivery',
+              'DELIVERED': 'Delivered',
+              'CANCELLED': 'Cancelled'
+            };
+            return {
+              orderId: bo.orderId,
+              date: bo.createdAt,
+              orderDate: bo.createdAt ? bo.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+              status: orderStatusMap[bo.orderStatus] || bo.orderStatus || placedStatus,
+              paymentStatus: bo.paymentStatus || (isCodOrder ? 'PENDING' : 'PAID'),
+              orderStatus: bo.orderStatus || 'PLACED',
+              estimatedDelivery: 'Within 2 Days (Dispatched from Nearby Hub)',
+              estimatedDeliveryDate: 'Within 2 Days (Nearby Hub)',
+              courier: 'Blue Dart Express (Assigned)',
+              trackingNumber: bo.trackingNumber || bo.tracking?.trackingNumber || getStableAwb(bo.orderId),
+              paymentMethod: bo.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)' 
+                           : bo.paymentMethod === 'CREDIT_DEBIT_CARD' ? 'Credit / Debit Card'
+                           : bo.paymentMethod === 'NET_BANKING' ? 'Net Banking'
+                           : bo.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on Delivery'
+                           : (bo.paymentMethod || 'Online Payment'),
             recipient: bo.customerName || currentUser.name || 'Customer',
             customerName: bo.customerName || currentUser.name || 'Customer',
             customerEmail: bo.customerEmail || currentUser.email,
@@ -663,7 +675,8 @@ export default function App() {
             })) : [],
             grandTotal: Number(bo.totalAmount) || 0,
             subtotal: Number(bo.totalAmount) - Number(bo.shippingFee || 0)
-          }));
+          };
+        });
 
           setPlacedOrders(mapped);
           try {

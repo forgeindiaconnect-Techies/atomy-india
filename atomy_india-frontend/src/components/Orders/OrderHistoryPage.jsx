@@ -22,10 +22,11 @@ import {
   ArrowRight,
   Check,
   IndianRupee,
-  AlertCircle
+  AlertCircle,
+  Banknote
 } from 'lucide-react';
 import DeliveryStatusStepper from './DeliveryStatusStepper';
-import { updateAdminOrderStatus } from '../../services/api';
+import { updateAdminOrderStatus, syncUnsyncedOrdersToBackend } from '../../services/api';
 import './OrderHistoryPage.css';
 
 // Benchmark Reason Catalog (Amazon / Myntra / Flipkart standard)
@@ -172,6 +173,9 @@ export default function OrderHistoryPage({
         setLocalOrderOverrides(overrides);
       }
     } catch {}
+
+    // Auto-sync any locally cached offline orders to backend MongoDB Atlas
+    syncUnsyncedOrdersToBackend();
   }, []);
 
   // Map real customer placed orders without any fake demo data, merged with local overrides
@@ -179,15 +183,21 @@ export default function OrderHistoryPage({
     return (placedOrders || []).map((o) => {
       const oId = o.orderId || `AT-${Date.now().toString().slice(-8)}`;
       const override = localOrderOverrides[oId] || {};
-      const status = override.status || o.status || 'Payment Completed';
+      const isCod = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
+      const defaultStatus = isCod ? 'Cash on Delivery' : 'Payment Completed';
+      let status = override.status || o.status || defaultStatus;
+      if (isCod && status === 'Payment Completed' && (!o.paymentStatus || o.paymentStatus === 'PENDING')) {
+        status = 'Cash on Delivery';
+      }
+      const paymentStatus = override.paymentStatus || o.paymentStatus || (status === 'Cancelled' ? 'REFUNDED' : isCod ? 'PENDING' : 'PAID');
 
       return {
         orderId: oId,
         orderDate: o.date ? o.date.split('T')[0] : (o.orderDate || new Date().toISOString().split('T')[0]),
         status: status,
-        paymentStatus: override.paymentStatus || o.paymentStatus || (status === 'Cancelled' ? 'REFUNDED' : 'PAID'),
+        paymentStatus: paymentStatus,
         statusStep: status === 'Delivered' ? 5 : status === 'In Transit' ? 3 : status === 'Preparing Shipment' ? 2 : status === 'Cancelled' ? 0 : 1,
-        courier: o.courier || (status === 'Payment Completed' ? 'Awaiting Allocation' : 'Blue Dart Express'),
+        courier: o.courier || (status === 'Payment Completed' || status === 'Cash on Delivery' ? 'Awaiting Allocation' : 'Blue Dart Express'),
         trackingNumber: o.trackingNumber || '',
         paymentMethod: o.paymentMethod || 'Online Payment',
         replacementRequested: override.replacementRequested || o.replacementRequested || false,
@@ -216,7 +226,7 @@ export default function OrderHistoryPage({
   const counters = useMemo(() => {
     return {
       all: allOrders.length,
-      paid: allOrders.filter(o => o.status === 'Payment Completed').length,
+      paid: allOrders.filter(o => o.status === 'Payment Completed' || o.status === 'Cash on Delivery' || o.status === 'PLACED').length,
       preparing: allOrders.filter(o => o.status === 'Preparing Shipment').length,
       inTransit: allOrders.filter(o => o.status === 'In Transit').length,
       delivered: allOrders.filter(o => o.status === 'Delivered').length,
@@ -241,8 +251,12 @@ export default function OrderHistoryPage({
       }
 
       // Status filter
-      if (statusFilter !== 'all' && order.status !== statusFilter) {
-        return false;
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'Payment Completed') {
+          if (order.status !== 'Payment Completed' && order.status !== 'Cash on Delivery' && order.status !== 'PLACED') return false;
+        } else if (order.status !== statusFilter) {
+          return false;
+        }
       }
 
       // Search query filter
@@ -545,7 +559,7 @@ export default function OrderHistoryPage({
             className={`status-tracker-card ${statusFilter === 'Payment Completed' ? 'active' : ''}`}
             onClick={() => setStatusFilter('Payment Completed')}
           >
-            <div className="tracker-card-label">Payment Complete</div>
+            <div className="tracker-card-label">Order Confirmed / Paid</div>
             <div className="tracker-card-count">{counters.paid}</div>
           </div>
           <div 
@@ -671,11 +685,12 @@ export default function OrderHistoryPage({
                           Cancelled (Refund Initiated)
                         </span>
                       ) : (
-                        <span className={`status-pill ${order.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                        <span className={`status-pill ${order.status === 'Cash on Delivery' ? 'cash-on-delivery' : order.status.toLowerCase().replace(/\s+/g, '-')}`}>
                           {order.status === 'Delivered' && <CheckCircle2 size={14} />}
                           {order.status === 'In Transit' && <Truck size={14} />}
                           {order.status === 'Preparing Shipment' && <Clock size={14} />}
-                          {order.status}
+                          {order.status === 'Cash on Delivery' && <Banknote size={14} />}
+                          {order.status === 'Cash on Delivery' ? 'Cash on Delivery (Pending Payment)' : order.status}
                         </span>
                       )}
 

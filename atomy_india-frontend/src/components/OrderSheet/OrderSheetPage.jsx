@@ -29,7 +29,9 @@ import {
   Briefcase,
   Clock,
   Ticket,
-  Tag
+  Tag,
+  AlertTriangle,
+  AlertCircle
 } from 'lucide-react';
 import './OrderSheetPage.css';
 import { fetchCouponsFromBackend, applyCouponBackend } from '../../services/couponService';
@@ -220,19 +222,76 @@ export default function OrderSheetPage({
   const [cardCvv, setCardCvv] = useState('');
   const [cardHolder, setCardHolder] = useState('');
   const [selectedBank, setSelectedBank] = useState('HDFC');
-  const [qrTimer, setQrTimer] = useState(272); // 4 minutes 32 seconds as in screenshot (272s)
+  const [qrTimer, setQrTimer] = useState(272); // 4 minutes 32 seconds payment window
+  const [isPaymentExpired, setIsPaymentExpired] = useState(false);
+  const [expiredModalOpen, setExpiredModalOpen] = useState(false);
+  const [expiredAutoRedirectSec, setExpiredAutoRedirectSec] = useState(5);
+  const [paymentExpiredToast, setPaymentExpiredToast] = useState(null);
   const [isFeesOpen, setIsFeesOpen] = useState(true);
   const [saveCardRbi, setSaveCardRbi] = useState(true);
   const [customUpiMode, setCustomUpiMode] = useState(false);
 
-  // Live countdown timer for UPI QR Code
+  const handlePaymentTimeout = () => {
+    setIsProcessing(false);
+    setIsPaymentExpired(true);
+    setExpiredModalOpen(true);
+    setExpiredAutoRedirectSec(5);
+  };
+
+  const handleReturnFromExpiredPayment = () => {
+    setExpiredModalOpen(false);
+    setIsPaymentExpired(false);
+    setIsProcessing(false);
+    setQrTimer(272);
+    setStep('sheet');
+    setPaymentExpiredToast('⚠️ Payment window expired. Any pending transaction was cancelled. Your cart and shipping details are preserved.');
+    setTimeout(() => setPaymentExpiredToast(null), 8000);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRestartPaymentTimer = () => {
+    setExpiredModalOpen(false);
+    setIsPaymentExpired(false);
+    setIsProcessing(false);
+    setQrTimer(272);
+  };
+
+  // Live countdown timer for payment session (UPI QR, Card, Net Banking)
   useEffect(() => {
-    if (step !== 'payment') return;
+    if (step !== 'payment') {
+      setQrTimer(272);
+      setIsPaymentExpired(false);
+      setExpiredModalOpen(false);
+      return;
+    }
     const interval = setInterval(() => {
-      setQrTimer(prev => (prev > 0 ? prev - 1 : 0));
+      setQrTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          handlePaymentTimeout();
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(interval);
   }, [step]);
+
+  // Auto-redirect countdown when expired modal is open
+  useEffect(() => {
+    if (!expiredModalOpen) return;
+    const interval = setInterval(() => {
+      setExpiredAutoRedirectSec(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          handleReturnFromExpiredPayment();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [expiredModalOpen]);
 
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -311,14 +370,15 @@ export default function OrderSheetPage({
     try {
       const placed = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
       const adminOrders = JSON.parse(localStorage.getItem('atomy_admin_orders') || '[]');
-      const userEmail = currentUser?.email?.toLowerCase();
+      const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
       if (userEmail) {
-        const userPast = [...placed, ...adminOrders].filter(o => 
-          (o.customerEmail || o.email || '').toLowerCase() === userEmail
-        );
+        const userPast = [...placed, ...adminOrders].filter(o => {
+          const ordEmail = (o.customerEmail || o.email || o.username || '').toLowerCase().trim();
+          return ordEmail === userEmail && (o.status || '').toLowerCase() !== 'cancelled';
+        });
         return userPast.length === 0;
       }
-      return placed.length === 0;
+      return true;
     } catch {
       return true;
     }
@@ -462,12 +522,12 @@ export default function OrderSheetPage({
       const res = await applyCouponBackend(code, subtotal, cartItems, isFirstOrder);
       if (res && res.valid) {
         setAppliedCoupon({
-          code: res.coupon?.code || code,
-          title: res.coupon?.title,
-          discountDisplay: res.discountDisplay || res.coupon?.discountDisplay,
+          code: res.coupon?.code || res.code || code,
+          title: res.coupon?.title || res.title || `${code} Voucher`,
+          discountDisplay: res.discountDisplay || res.coupon?.discountDisplay || (res.discountAmount ? `₹ ${res.discountAmount} OFF` : 'Discount Applied'),
           discountAmount: Number(res.discountAmount) || 0,
-          discountType: res.coupon?.discountType || 'FLAT',
-          targetProduct: res.coupon?.targetProduct
+          discountType: res.coupon?.discountType || res.discountType || 'PERCENTAGE',
+          targetProduct: res.coupon?.targetProduct || res.targetProduct
         });
         setCouponSuccess(res.message || `Coupon "${code}" applied successfully!`);
         setCouponCodeInput('');
@@ -475,8 +535,8 @@ export default function OrderSheetPage({
       } else {
         setCouponError(res?.message || `Coupon "${code}" is not valid or minimum amount not met.`);
       }
-    } catch {
-      setCouponError('Unable to verify coupon with server. Please try again.');
+    } catch (err) {
+      setCouponError(err?.message || 'Unable to verify coupon. Please try again.');
     } finally {
       setIsApplyingCoupon(false);
     }
@@ -790,161 +850,181 @@ export default function OrderSheetPage({
 
   // Step 2: Submit and Complete Order
   const handlePlaceOrder = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (isProcessing) return;
+
+    // Guard: Cancel and return if session has expired for online payments
+    if (qrTimer <= 0 && paymentMethod !== 'COD') {
+      handlePaymentTimeout();
+      return;
+    }
+
     setIsProcessing(true);
 
-    const customerName = currentUser?.name || currentSelectedAddress?.recipientName || 'Customer';
-    const customerPhone = currentUser?.phone || currentSelectedAddress?.recipientPhone || '9876543210';
-    const customerEmail = currentUser?.email || 'customer@atomy.com';
-    const fullRecipientName = currentSelectedAddress?.recipientName || customerName;
-    const fullRecipientPhone = currentSelectedAddress?.recipientPhone || customerPhone;
-    const fullShippingAddress = currentSelectedAddress 
-      ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
-      : 'Doorstep Courier Delivery';
-    const city = currentSelectedAddress?.city || 'New Delhi';
-    const state = currentSelectedAddress?.state || 'Delhi';
-    const pincode = currentSelectedAddress?.pincode || '110001';
-
-    let springPaymentMethod = 'ONLINE_UPI';
-    if (paymentMethod === 'CARD') springPaymentMethod = 'CREDIT_DEBIT_CARD';
-    else if (paymentMethod === 'NETBANKING') springPaymentMethod = 'NET_BANKING';
-    else if (paymentMethod === 'COD') springPaymentMethod = 'CASH_ON_DELIVERY';
-
-    const orderPayload = {
-      customerName: customerName,
-      customerEmail: customerEmail,
-      customerPhone: customerPhone,
-      shippingAddress: currentSelectedAddress && fullRecipientName !== customerName
-        ? `[Recipient: ${fullRecipientName}, Ph: ${fullRecipientPhone}] ${fullShippingAddress}`
-        : fullShippingAddress,
-      city,
-      state,
-      pincode,
-      paymentMethod: springPaymentMethod,
-      couponCode: appliedCoupon?.code || null,
-      couponDiscount: couponDiscount || 0,
-      items: (cartItems && cartItems.length > 0 ? cartItems : []).map(it => ({
-        productId: it.id || it.productId || '',
-        name: it.name || it.productName || '',
-        productName: it.name || it.productName || '',
-        price: Number(it.price) || 0,
-        image: it.image || it.productImage || '',
-        quantity: it.qty || it.quantity || 1
-      }))
-    };
-
-    let backendOrder = null;
     try {
-      backendOrder = await createCustomerOrder(orderPayload);
-    } catch (err) {
-      console.warn('Backend order placement fallback to local generation:', err);
-    }
+      const customerName = currentUser?.name || currentSelectedAddress?.recipientName || 'Customer';
+      const customerPhone = currentUser?.phone || currentSelectedAddress?.recipientPhone || '9876543210';
+      const customerEmail = currentUser?.email || 'customer@atomy.com';
+      const fullRecipientName = currentSelectedAddress?.recipientName || customerName;
+      const fullRecipientPhone = currentSelectedAddress?.recipientPhone || customerPhone;
+      const fullShippingAddress = currentSelectedAddress 
+        ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
+        : 'Doorstep Courier Delivery';
+      const city = currentSelectedAddress?.city || 'New Delhi';
+      const state = currentSelectedAddress?.state || 'Delhi';
+      const pincode = currentSelectedAddress?.pincode || '110001';
 
-    const assignedOrderId = backendOrder?.orderId || `ORD-${new Date().toISOString().replace(/\D/g, '').slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`;
+      let springPaymentMethod = 'ONLINE_UPI';
+      if (paymentMethod === 'CARD') springPaymentMethod = 'CREDIT_DEBIT_CARD';
+      else if (paymentMethod === 'NETBANKING') springPaymentMethod = 'NET_BANKING';
+      else if (paymentMethod === 'COD') springPaymentMethod = 'CASH_ON_DELIVERY';
 
-    const newOrder = {
-      orderId: assignedOrderId,
-      date: backendOrder?.createdAt || new Date().toISOString(),
-      orderDate: new Date().toISOString().split('T')[0],
-      status: 'Payment Completed',
-      orderStatus: 'PLACED',
-      estimatedDelivery: estimatedDeliveryInfo.timeFrame,
-      estimatedDeliveryDate: estimatedDeliveryInfo.dateRange,
-      courier: 'Blue Dart Express (Assigned)',
-      trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
-      paymentMethod: paymentMethod === 'UPI' ? 'UPI (Google Pay / PhonePe)' 
-                   : paymentMethod === 'CARD' ? 'Credit / Debit Card'
-                   : paymentMethod === 'NETBANKING' ? `Net Banking (${selectedBank})`
-                   : 'Cash on Delivery',
-      deliveryType: 'direct',
-      recipient: fullRecipientName,
-      customerName: customerName,
-      customerEmail: customerEmail,
-      phone: customerPhone,
-      address: {
-        recipient: fullRecipientName,
-        phone: fullRecipientPhone,
-        fullAddress: `${fullShippingAddress}, ${city}, ${state} - ${pincode}`
-      },
-      shippingAddress: `${fullShippingAddress}, ${city}, ${state} - ${pincode}`,
-      city,
-      state,
-      pincode,
-      items: cartItems.map(it => ({ ...it })),
-      subtotal,
-      shippingFee: effectiveShippingFee,
-      couponCode: appliedCoupon?.code || null,
-      couponDiscount: couponDiscount || 0,
-      walletDeduction: useWalletBalance ? walletDeduction : 0,
-      grandTotal: backendOrder?.totalAmount ? Number(backendOrder.totalAmount) : (useWalletBalance ? finalPayableTotal : grandTotal),
-      totalPV,
-      totalPv: totalPV
-    };
+      const orderPayload = {
+        customerName: customerName,
+        customerEmail: customerEmail,
+        customerPhone: customerPhone,
+        shippingAddress: currentSelectedAddress && fullRecipientName !== customerName
+          ? `[Recipient: ${fullRecipientName}, Ph: ${fullRecipientPhone}] ${fullShippingAddress}`
+          : fullShippingAddress,
+        city,
+        state,
+        pincode,
+        paymentMethod: springPaymentMethod,
+        couponCode: appliedCoupon?.code || null,
+        couponDiscount: couponDiscount || 0,
+        items: (cartItems && cartItems.length > 0 ? cartItems : []).map(it => ({
+          productId: it.id || it.productId || '',
+          name: it.name || it.productName || '',
+          productName: it.name || it.productName || '',
+          price: Number(it.price) || 0,
+          image: it.image || it.productImage || '',
+          quantity: it.qty || it.quantity || 1
+        }))
+      };
 
-    // Deduct used wallet balance if applied
-    if (useWalletBalance && walletDeduction > 0) {
-      const remainingWallet = Math.max(0, availableWalletBalance - walletDeduction);
+      const isCod = paymentMethod === 'COD';
+      const generatedOrderId = `ORD-${new Date().toISOString().replace(/\D/g, '').slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`;
+      orderPayload.orderId = generatedOrderId;
+
+      let backendOrder = null;
       try {
-        localStorage.setItem('atomy_wallet_balance', String(remainingWallet));
-      } catch {}
-    }
-
-    // Store in localStorage across both keys
-    try {
-      const existing = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
-      localStorage.setItem('atomy_placed_orders', JSON.stringify([newOrder, ...existing]));
-      localStorage.setItem('atomy_admin_orders', JSON.stringify([newOrder, ...existing]));
-    } catch {}
-
-    // Deduct stock in localStorage atomy_admin_products so Admin reflects immediately
-    try {
-      const savedProds = localStorage.getItem('atomy_admin_products');
-      if (savedProds) {
-        const prodsList = JSON.parse(savedProds);
-        if (Array.isArray(prodsList)) {
-          const updated = prodsList.map(p => {
-            const bought = cartItems.find(it => 
-              String(it.id || it.productId || '').trim().toLowerCase() === String(p.id || '').trim().toLowerCase() ||
-              (it.name && p.name && it.name.trim().toLowerCase() === p.name.trim().toLowerCase())
-            );
-            if (bought) {
-              const qty = Number(bought.qty || bought.quantity || 1) || 1;
-              const cur = Number(p.stockQuantity) || 0;
-              const newQty = Math.max(0, cur - qty);
-              return {
-                ...p,
-                stockQuantity: newQty,
-                status: newQty === 0 ? 'OUT_OF_STOCK' : (newQty <= (p.lowStockThreshold || 10) ? 'LOW_STOCK' : 'IN_STOCK')
-              };
-            }
-            return p;
-          });
-          localStorage.setItem('atomy_admin_products', JSON.stringify(updated));
-        }
+        backendOrder = await createCustomerOrder(orderPayload);
+      } catch (err) {
+        console.warn('Backend order placement fallback to local generation:', err);
       }
-    } catch (err) {}
 
-    // Broadcast in real-time across tabs/ports (to Admin on port 5174!)
-    try {
-      const channel = new BroadcastChannel('atomy_sync_channel');
-      channel.postMessage({ type: 'ORDER_PLACED', order: newOrder, items: cartItems });
-    } catch {}
-    try {
-      const orderChannel = new BroadcastChannel('atomy_order_channel');
-      orderChannel.postMessage({ type: 'NEW_ORDER', order: newOrder, items: cartItems });
-    } catch {}
+      const assignedOrderId = backendOrder?.orderId || generatedOrderId;
 
-    setPlacedOrderDetails(newOrder);
-    setIsProcessing(false);
-    setStep('completed');
+      const newOrder = {
+        orderId: assignedOrderId,
+        date: backendOrder?.createdAt || new Date().toISOString(),
+        orderDate: new Date().toISOString().split('T')[0],
+        status: isCod ? 'Cash on Delivery' : 'Payment Completed',
+        paymentStatus: isCod ? 'PENDING' : 'PAID',
+        orderStatus: 'PLACED',
+        syncedToBackend: Boolean(backendOrder),
+        estimatedDelivery: estimatedDeliveryInfo.timeFrame,
+        estimatedDeliveryDate: estimatedDeliveryInfo.dateRange,
+        courier: 'Blue Dart Express (Assigned)',
+        trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+        paymentMethod: paymentMethod === 'UPI' ? 'UPI (Google Pay / PhonePe)' 
+                     : paymentMethod === 'CARD' ? 'Credit / Debit Card'
+                     : paymentMethod === 'NETBANKING' ? `Net Banking (${selectedBank})`
+                     : 'Cash on Delivery',
+        deliveryType: 'direct',
+        recipient: fullRecipientName,
+        customerName: customerName,
+        customerEmail: customerEmail,
+        phone: customerPhone,
+        address: {
+          recipient: fullRecipientName,
+          phone: fullRecipientPhone,
+          fullAddress: `${fullShippingAddress}, ${city}, ${state} - ${pincode}`
+        },
+        shippingAddress: `${fullShippingAddress}, ${city}, ${state} - ${pincode}`,
+        city,
+        state,
+        pincode,
+        items: cartItems.map(it => ({ ...it })),
+        subtotal,
+        shippingFee: effectiveShippingFee,
+        couponCode: appliedCoupon?.code || null,
+        couponDiscount: couponDiscount || 0,
+        walletDeduction: useWalletBalance ? walletDeduction : 0,
+        grandTotal: backendOrder?.totalAmount ? Number(backendOrder.totalAmount) : (useWalletBalance ? finalPayableTotal : grandTotal),
+        totalPV,
+        totalPv: totalPV
+      };
 
-    if (onOrderSuccess) {
-      onOrderSuccess(newOrder);
+      // Deduct used wallet balance if applied
+      if (useWalletBalance && walletDeduction > 0) {
+        const remainingWallet = Math.max(0, availableWalletBalance - walletDeduction);
+        try {
+          localStorage.setItem('atomy_wallet_balance', String(remainingWallet));
+        } catch {}
+      }
+
+      // Store in localStorage across both keys
+      try {
+        const existing = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
+        localStorage.setItem('atomy_placed_orders', JSON.stringify([newOrder, ...existing]));
+        localStorage.setItem('atomy_admin_orders', JSON.stringify([newOrder, ...existing]));
+      } catch {}
+
+      // Deduct stock in localStorage atomy_admin_products so Admin reflects immediately
+      try {
+        const savedProds = localStorage.getItem('atomy_admin_products');
+        if (savedProds) {
+          const prodsList = JSON.parse(savedProds);
+          if (Array.isArray(prodsList)) {
+            const updated = prodsList.map(p => {
+              const bought = cartItems.find(it => 
+                String(it.id || it.productId || '').trim().toLowerCase() === String(p.id || '').trim().toLowerCase() ||
+                (it.name && p.name && it.name.trim().toLowerCase() === p.name.trim().toLowerCase())
+              );
+              if (bought) {
+                const qty = Number(bought.qty || bought.quantity || 1) || 1;
+                const cur = Number(p.stockQuantity) || 0;
+                const newQty = Math.max(0, cur - qty);
+                return {
+                  ...p,
+                  stockQuantity: newQty,
+                  status: newQty === 0 ? 'OUT_OF_STOCK' : (newQty <= (p.lowStockThreshold || 10) ? 'LOW_STOCK' : 'IN_STOCK')
+                };
+              }
+              return p;
+            });
+            localStorage.setItem('atomy_admin_products', JSON.stringify(updated));
+          }
+        }
+      } catch (err) {}
+
+      // Broadcast in real-time across tabs/ports (to Admin on port 5174!)
+      try {
+        const channel = new BroadcastChannel('atomy_sync_channel');
+        channel.postMessage({ type: 'ORDER_PLACED', order: newOrder, items: cartItems });
+      } catch {}
+      try {
+        const orderChannel = new BroadcastChannel('atomy_order_channel');
+        orderChannel.postMessage({ type: 'NEW_ORDER', order: newOrder, items: cartItems });
+      } catch {}
+
+      setPlacedOrderDetails(newOrder);
+      setStep('completed');
+
+      if (onOrderSuccess) {
+        onOrderSuccess(newOrder);
+      }
+      if (onClearCart) {
+        onClearCart();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (criticalErr) {
+      console.error('Critical order placement fallback error:', criticalErr);
+      setStep('completed');
+    } finally {
+      setIsProcessing(false);
     }
-    if (onClearCart) {
-      onClearCart();
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Quick Add bestseller to cart
@@ -999,6 +1079,22 @@ export default function OrderSheetPage({
              STEP 02: Order Details & Address Selection (Matching Quick Order)
              ========================================================================= */
           <>
+            {paymentExpiredToast && (
+              <div className="payment-expired-top-banner">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <AlertTriangle size={20} color="#dc2626" />
+                  <span>{paymentExpiredToast}</span>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setPaymentExpiredToast(null)} 
+                  className="btn-close-toast"
+                  title="Dismiss notification"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            )}
             <div className="order-sheet-content-grid">
               {/* Left Main Column */}
               <div className="sheet-main-column">
@@ -1623,11 +1719,17 @@ export default function OrderSheetPage({
               <button
                 type="button"
                 className="pg-back-link-btn"
-                onClick={() => { setStep('sheet'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                title="Return to Address and Order Sheet"
+                onClick={() => {
+                  setIsProcessing(false);
+                  setIsPaymentExpired(false);
+                  setExpiredModalOpen(false);
+                  setStep('sheet');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                title="Cancel Payment and Return to Order Sheet"
               >
                 <ArrowLeft size={22} className="pg-back-arrow" />
-                <span className="pg-header-title">Complete Payment</span>
+                <span className="pg-header-title">Cancel & Return</span>
               </button>
 
               <div className="pg-secure-badge-pill">
@@ -1740,12 +1842,35 @@ export default function OrderSheetPage({
                       </div>
 
                       {/* Uploaded Google Pay UPI QR Code */}
-                      <div className="pg-qr-code-graphic">
+                      <div className="pg-qr-code-graphic" style={{ position: 'relative' }}>
                         <img
                           src={customPaymentQr}
                           alt="Naveen 070 Google Pay UPI QR Code"
                           className="pg-custom-qr-image"
+                          style={{
+                            filter: qrTimer <= 0 ? 'blur(3px) grayscale(85%)' : 'none',
+                            opacity: qrTimer <= 0 ? 0.35 : 1,
+                            transition: 'all 0.3s ease'
+                          }}
                         />
+                        {qrTimer <= 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            inset: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'rgba(255, 255, 255, 0.88)',
+                            borderRadius: '12px',
+                            padding: '12px',
+                            textAlign: 'center'
+                          }}>
+                            <AlertTriangle size={34} color="#dc2626" />
+                            <strong style={{ color: '#dc2626', fontSize: '13px', marginTop: '6px' }}>QR Code Expired</strong>
+                            <span style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Session timed out</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* UPI Brand Logos Bar */}
@@ -1793,33 +1918,49 @@ export default function OrderSheetPage({
                     {/* QR Countdown Timer */}
                     <div className="pg-qr-timer-block">
                       <div className="pg-qr-timer-text">
-                        QR valid for <strong>{formatTimer(qrTimer)}</strong> minutes
+                        {qrTimer <= 0 ? (
+                          <strong style={{ color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                            <AlertTriangle size={15} color="#dc2626" /> QR Code Expired (00:00)
+                          </strong>
+                        ) : (
+                          <span>QR valid for <strong style={{ color: qrTimer <= 60 ? '#dc2626' : '#0f172a' }}>{formatTimer(qrTimer)}</strong> minutes</span>
+                        )}
                       </div>
                       <div className="pg-qr-progress-track">
                         <div
                           className="pg-qr-progress-bar"
-                          style={{ width: `${Math.max(0, Math.min(100, (qrTimer / 272) * 100))}%` }}
+                          style={{
+                            width: `${Math.max(0, Math.min(100, (qrTimer / 272) * 100))}%`,
+                            background: qrTimer <= 60 ? '#ef4444' : '#2563eb'
+                          }}
                         ></div>
                       </div>
                     </div>
 
                     {/* Security Notice */}
                     <p className="pg-qr-notice">
-                      Do not hit back or close this screen until the transaction is complete
+                      {qrTimer <= 0 
+                        ? 'This payment session has timed out. Any in-progress transaction has been cancelled.' 
+                        : 'Do not hit back or close this screen until the transaction is complete'}
                     </p>
 
                     {/* Instant Complete / Verify CTA */}
                     <div className="pg-upi-actions-row">
                       <button
                         type="button"
-                        className="pg-btn-verify-pay"
-                        onClick={handlePlaceOrder}
+                        className={`pg-btn-verify-pay ${qrTimer <= 0 ? 'btn-payment-expired' : ''}`}
+                        onClick={qrTimer <= 0 ? handleReturnFromExpiredPayment : handlePlaceOrder}
                         disabled={isProcessing}
                       >
                         {isProcessing ? (
                           <span className="pg-btn-spinner-row">
                             <Loader2 size={18} className="animate-spin" />
                             <span>Verifying UPI Payment...</span>
+                          </span>
+                        ) : qrTimer <= 0 ? (
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            <AlertCircle size={17} />
+                            <span>QR Code Expired — Return to Order Sheet</span>
                           </span>
                         ) : (
                           <span>I Have Completed UPI Payment (₹{(grandTotal > 0 ? grandTotal : 409).toLocaleString('en-IN')})</span>
@@ -1942,8 +2083,8 @@ export default function OrderSheetPage({
 
                       <button
                         type="button"
-                        className="pg-btn-verify-pay"
-                        onClick={handlePlaceOrder}
+                        className={`pg-btn-verify-pay ${qrTimer <= 0 ? 'btn-payment-expired' : ''}`}
+                        onClick={qrTimer <= 0 ? handleReturnFromExpiredPayment : handlePlaceOrder}
                         disabled={isProcessing}
                         style={{ marginTop: '14px' }}
                       >
@@ -1951,6 +2092,11 @@ export default function OrderSheetPage({
                           <span className="pg-btn-spinner-row">
                             <Loader2 size={18} className="animate-spin" />
                             <span>Authorizing Card Payment...</span>
+                          </span>
+                        ) : qrTimer <= 0 ? (
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            <AlertCircle size={17} />
+                            <span>Session Expired — Return to Order Sheet</span>
                           </span>
                         ) : (
                           <span>Pay ₹{(grandTotal > 0 ? grandTotal : 409).toLocaleString('en-IN')}</span>
@@ -2064,8 +2210,8 @@ export default function OrderSheetPage({
 
                       <button
                         type="button"
-                        className="pg-btn-verify-pay"
-                        onClick={handlePlaceOrder}
+                        className={`pg-btn-verify-pay ${qrTimer <= 0 ? 'btn-payment-expired' : ''}`}
+                        onClick={qrTimer <= 0 ? handleReturnFromExpiredPayment : handlePlaceOrder}
                         disabled={isProcessing}
                         style={{ marginTop: '20px' }}
                       >
@@ -2073,6 +2219,11 @@ export default function OrderSheetPage({
                           <span className="pg-btn-spinner-row">
                             <Loader2 size={18} className="animate-spin" />
                             <span>Redirecting to {selectedBank}...</span>
+                          </span>
+                        ) : qrTimer <= 0 ? (
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                            <AlertCircle size={17} />
+                            <span>Session Expired — Return to Order Sheet</span>
                           </span>
                         ) : (
                           <span>Pay via {selectedBank} (₹{(grandTotal > 0 ? grandTotal : 409).toLocaleString('en-IN')})</span>
@@ -2201,6 +2352,40 @@ export default function OrderSheetPage({
                 </div>
               </div>
             </div>
+
+            {/* Payment Session Expired Modal */}
+            {expiredModalOpen && (
+              <div className="pg-expired-modal-overlay">
+                <div className="pg-expired-modal-card animate-fade">
+                  <div className="pg-expired-modal-icon">
+                    <AlertTriangle size={36} color="#dc2626" />
+                  </div>
+                  <h3 className="pg-expired-modal-title">Payment Session Expired</h3>
+                  <p className="pg-expired-modal-desc">
+                    The payment time limit of <strong>4 minutes</strong> has ended without confirmation. To protect your security, any in-progress transaction has been safely cancelled.
+                  </p>
+                  <div className="pg-expired-redirect-countdown">
+                    Auto-returning to Order Sheet in {expiredAutoRedirectSec}s...
+                  </div>
+                  <div className="pg-expired-modal-actions">
+                    <button
+                      type="button"
+                      className="pg-expired-btn-primary"
+                      onClick={handleReturnFromExpiredPayment}
+                    >
+                      Return to Order Sheet Now
+                    </button>
+                    <button
+                      type="button"
+                      className="pg-expired-btn-secondary"
+                      onClick={handleRestartPaymentTimer}
+                    >
+                      <RotateCcw size={15} /> Restart Payment Window
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* =========================================================================
@@ -2212,9 +2397,15 @@ export default function OrderSheetPage({
                 <CheckCircle2 size={68} color="#10b981" />
               </div>
 
-              <h2 className="completion-title">Order Placed Successfully!</h2>
+              <h2 className="completion-title">
+                {(placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cash') || (placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cod')
+                  ? 'Cash on Delivery Order Confirmed!'
+                  : 'Order Placed Successfully!'}
+              </h2>
               <p className="completion-subtitle">
-                Thank you for purchasing with Atomy India. Your order has been placed and is being prepared for doorstep dispatch.
+                {(placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cash') || (placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cod')
+                  ? `Thank you for purchasing with Atomy India. Your order has been placed and is being prepared for doorstep dispatch. Payment of ₹${(placedOrderDetails?.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} will be collected upon parcel delivery.`
+                  : 'Thank you for purchasing with Atomy India. Your order has been placed and is being prepared for doorstep dispatch.'}
               </p>
 
               {/* Order Quick Summary Card */}
@@ -2234,7 +2425,11 @@ export default function OrderSheetPage({
                       <strong className="c-val">{placedOrderDetails.paymentMethod}</strong>
                     </div>
                     <div className="c-meta-col">
-                      <span className="c-label">Total Amount Paid</span>
+                      <span className="c-label">
+                        {(placedOrderDetails.paymentMethod || '').toLowerCase().includes('cash') || (placedOrderDetails.paymentMethod || '').toLowerCase().includes('cod')
+                          ? 'Payable on Delivery'
+                          : 'Total Amount Paid'}
+                      </span>
                       <strong className="c-val price-highlight">
                         ₹ {placedOrderDetails.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </strong>

@@ -5,16 +5,92 @@ const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 // Customer APIs
 export async function createCustomerOrder(orderData) {
-  const res = await fetch(`${API_BASE}/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(orderData)
-  });
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(errorText || 'Failed to place order');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`${API_BASE}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(errorText || 'Failed to place order');
+    }
+    return await res.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+    // If remote endpoint failed/timed out, try localhost backend if available
+    if (!API_BASE.includes('localhost:8085')) {
+      try {
+        const localCtrl = new AbortController();
+        const localTimeout = setTimeout(() => localCtrl.abort(), 3500);
+        const localRes = await fetch('http://localhost:8085/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData),
+          signal: localCtrl.signal
+        });
+        clearTimeout(localTimeout);
+        if (localRes.ok) {
+          return await localRes.json();
+        }
+      } catch (localErr) {}
+    }
+    throw err;
   }
-  return res.json();
+}
+
+export async function syncUnsyncedOrdersToBackend() {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem('atomy_placed_orders');
+    if (!raw) return;
+    const orders = JSON.parse(raw);
+    if (!Array.isArray(orders) || orders.length === 0) return;
+
+    let updated = false;
+    for (const order of orders) {
+      if (!order.syncedToBackend && order.orderId) {
+        try {
+          const isCod = (order.paymentMethod || '').toLowerCase().includes('cash') || (order.paymentMethod || '').toLowerCase().includes('cod');
+          const payload = {
+            orderId: order.orderId,
+            customerName: order.customerName || order.recipient || 'Customer',
+            customerEmail: order.customerEmail || 'customer@atomy.com',
+            customerPhone: order.phone || order.customerPhone || '9876543210',
+            shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : (order.address?.fullAddress || 'Doorstep Delivery'),
+            city: order.city || 'New Delhi',
+            state: order.state || 'Delhi',
+            pincode: order.pincode || '110001',
+            paymentMethod: isCod ? 'CASH_ON_DELIVERY' : 'ONLINE_UPI',
+            items: (order.items || []).map(it => ({
+              productId: it.id || it.productId || '',
+              name: it.name || it.productName || '',
+              productName: it.name || it.productName || '',
+              price: Number(it.price) || 0,
+              image: it.image || it.productImage || '',
+              quantity: it.qty || it.quantity || 1
+            }))
+          };
+          const res = await createCustomerOrder(payload);
+          if (res && res.orderId) {
+            order.syncedToBackend = true;
+            updated = true;
+          }
+        } catch (syncErr) {
+          console.warn('Sync pending order failed for', order.orderId, syncErr.message);
+        }
+      }
+    }
+    if (updated) {
+      localStorage.setItem('atomy_placed_orders', JSON.stringify(orders));
+    }
+  } catch (e) {
+    console.warn('syncUnsyncedOrdersToBackend error:', e);
+  }
 }
 
 export async function getCustomerOrderTracking(orderId) {

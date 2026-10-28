@@ -4,6 +4,7 @@ import com.example.atomy_india.model.CustomerOrder;
 import java.util.List;
 
 public class CreateOrderRequest {
+    private String orderId;
     private String customerName;
     private String customerEmail;
     private String customerPhone;
@@ -13,6 +14,9 @@ public class CreateOrderRequest {
     private String pincode;
     private CustomerOrder.PaymentMethod paymentMethod;
     private List<OrderItemDto> items;
+
+    public String getOrderId() { return orderId; }
+    public void setOrderId(String orderId) { this.orderId = orderId; }
 
     public static class OrderItemDto {
         private String productId;

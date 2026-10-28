@@ -549,6 +549,15 @@
   color: #3730a3;
 }
 
+.status-pill.cash-on-delivery {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 /* Products in order */
 .order-products-table {
   padding: 10px 20px;

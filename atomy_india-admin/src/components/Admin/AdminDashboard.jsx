@@ -795,7 +795,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           pincode: bo.pincode || "110001",
           orderStatus: bo.orderStatus || "PLACED",
           paymentMethod: bo.paymentMethod || "ONLINE_UPI",
-          paymentStatus: bo.paymentStatus || "PAID",
+          paymentStatus: bo.paymentStatus || ((bo.paymentMethod || '').toLowerCase().includes('cash') || (bo.paymentMethod || '').toLowerCase().includes('cod') ? "PENDING" : "PAID"),
           totalAmount: Number(bo.totalAmount) || 0,
           shippingFee: Number(bo.shippingFee) || 0,
           delayEmailSent: bo.delayEmailSent || false,
@@ -1064,7 +1064,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             pincode: o.pincode || "110001",
             orderStatus: o.orderStatus || "PLACED",
             paymentMethod: o.paymentMethod || "ONLINE_UPI",
-            paymentStatus: "PAID",
+            paymentStatus: o.paymentStatus || ((o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod') ? "PENDING" : "PAID"),
             totalAmount: o.grandTotal || o.totalAmount || 0,
             shippingFee: o.shippingFee || 0,
             items: o.items || data.items || [],
@@ -1101,7 +1101,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             pincode: o.pincode || "110001",
             orderStatus: o.orderStatus || "PLACED",
             paymentMethod: o.paymentMethod || "ONLINE_UPI",
-            paymentStatus: "PAID",
+            paymentStatus: o.paymentStatus || ((o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod') ? "PENDING" : "PAID"),
             totalAmount: o.grandTotal || o.totalAmount || 0,
             shippingFee: o.shippingFee || 0,
             items: o.items || data.items || [],
@@ -1170,7 +1170,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             pincode: bo.pincode || "110001",
             orderStatus: bo.orderStatus || "PLACED",
             paymentMethod: bo.paymentMethod || "ONLINE_UPI",
-            paymentStatus: bo.paymentStatus || "PAID",
+            paymentStatus: bo.paymentStatus || ((bo.paymentMethod || '').toLowerCase().includes('cash') || (bo.paymentMethod || '').toLowerCase().includes('cod') ? "PENDING" : "PAID"),
             totalAmount: Number(bo.totalAmount) || 0,
             shippingFee: Number(bo.shippingFee) || 0,
             delayEmailSent: bo.delayEmailSent || false,
@@ -1557,9 +1557,18 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     try {
       await updateAdminOrderStatus(orderId, newStatus).catch(() => { });
-      setOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, orderStatus: newStatus } : o));
+      setOrders(prev => prev.map(o => {
+        if (o.orderId === orderId) {
+          const isCodOrder = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
+          const newPaymentStatus = (newStatus === 'DELIVERED' && isCodOrder) ? 'PAID' : (newStatus === 'CANCELLED' ? 'REFUNDED' : o.paymentStatus);
+          return { ...o, orderStatus: newStatus, paymentStatus: newPaymentStatus };
+        }
+        return o;
+      }));
       if (selectedOrderDetail && selectedOrderDetail.orderId === orderId) {
-        setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newStatus }));
+        const isCodOrder = (selectedOrderDetail.paymentMethod || '').toLowerCase().includes('cash') || (selectedOrderDetail.paymentMethod || '').toLowerCase().includes('cod');
+        const newPaymentStatus = (newStatus === 'DELIVERED' && isCodOrder) ? 'PAID' : (newStatus === 'CANCELLED' ? 'REFUNDED' : selectedOrderDetail.paymentStatus);
+        setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newStatus, paymentStatus: newPaymentStatus }));
       }
 
       // Sync live to customer website orders storage
@@ -1567,20 +1576,24 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
         if (localOrdersRaw) {
           const list = JSON.parse(localOrdersRaw);
-          const statusMap = {
-            'PLACED': 'Payment Completed',
-            'PROCESSING': 'Preparing Shipment',
-            'SHIPPED': 'In Transit',
-            'OUT_FOR_DELIVERY': 'Out for Delivery',
-            'DELIVERED': 'Delivered',
-            'CANCELLED': 'Cancelled'
-          };
           const updated = list.map(o => {
             if (o.orderId === orderId) {
+              const isCodOrder = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
+              const placedStatus = isCodOrder ? 'Cash on Delivery' : 'Payment Completed';
+              const statusMap = {
+                'PLACED': placedStatus,
+                'PROCESSING': 'Preparing Shipment',
+                'SHIPPED': 'In Transit',
+                'OUT_FOR_DELIVERY': 'Out for Delivery',
+                'DELIVERED': 'Delivered',
+                'CANCELLED': 'Cancelled'
+              };
+              const newPaymentStatus = (newStatus === 'DELIVERED' && isCodOrder) ? 'PAID' : (newStatus === 'CANCELLED' ? 'REFUNDED' : o.paymentStatus);
               return {
                 ...o,
                 status: statusMap[newStatus] || newStatus,
-                orderStatus: newStatus
+                orderStatus: newStatus,
+                paymentStatus: newPaymentStatus
               };
             }
             return o;
@@ -3008,7 +3021,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                               </td>
                               <td style={{ textAlign: 'center' }}>
                                 <span className={`payment-pill ${(o.paymentStatus || 'PAID').toLowerCase()}`}>
-                                  {o.paymentMethod ? o.paymentMethod.replace(/_/g, ' ') : 'ONLINE UPI'}
+                                  {o.paymentMethod ? o.paymentMethod.replace(/_/g, ' ') : 'ONLINE UPI'} {o.paymentStatus ? `(${o.paymentStatus})` : ''}
                                 </span>
                               </td>
                               <td style={{ textAlign: 'center' }}>
