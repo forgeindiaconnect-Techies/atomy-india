@@ -612,6 +612,22 @@ export default function App() {
             'DELIVERED': 'Delivered',
             'CANCELLED': 'Cancelled'
           };
+          // Helper to get or preserve deterministic Blue Dart tracking number per order
+          const getStableAwb = (orderId, existingTracking) => {
+            if (existingTracking && typeof existingTracking === 'string' && existingTracking.trim()) {
+              return existingTracking.trim();
+            }
+            if (!orderId) return 'BD942817260IN';
+            let hash = 0;
+            for (let i = 0; i < orderId.length; i++) {
+              hash = ((hash << 5) - hash) + orderId.charCodeAt(i);
+              hash |= 0;
+            }
+            const positive = Math.abs(hash);
+            const num = 100000000 + (positive % 900000000);
+            return `BD${num}IN`;
+          };
+
           const mapped = backendHistory.map(bo => ({
             orderId: bo.orderId,
             date: bo.createdAt,
@@ -621,7 +637,7 @@ export default function App() {
             estimatedDelivery: 'Within 2 Days (Dispatched from Nearby Hub)',
             estimatedDeliveryDate: 'Within 2 Days (Nearby Hub)',
             courier: 'Blue Dart Express (Assigned)',
-            trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+            trackingNumber: bo.trackingNumber || bo.tracking?.trackingNumber || getStableAwb(bo.orderId),
             paymentMethod: bo.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)' 
                          : bo.paymentMethod === 'CREDIT_DEBIT_CARD' ? 'Credit / Debit Card'
                          : bo.paymentMethod === 'NET_BANKING' ? 'Net Banking'
