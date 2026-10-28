@@ -21,11 +21,94 @@ import {
   HelpCircle,
   ArrowRight,
   Check,
-  IndianRupee
+  IndianRupee,
+  AlertCircle
 } from 'lucide-react';
 import DeliveryStatusStepper from './DeliveryStatusStepper';
 import { updateAdminOrderStatus } from '../../services/api';
 import './OrderHistoryPage.css';
+
+// Benchmark Reason Catalog (Amazon / Myntra / Flipkart standard)
+export const CANCELLATION_REASONS = [
+  {
+    id: 'mistake',
+    title: 'Order created by mistake',
+    desc: 'Placed order unintentionally or created a duplicate order'
+  },
+  {
+    id: 'address',
+    title: 'Need to change delivery address or phone number',
+    desc: 'Entered incorrect shipping destination or contact number'
+  },
+  {
+    id: 'delivery_delay',
+    title: 'Expected delivery date is too long',
+    desc: 'Need product urgently or shipping timeframe is longer than anticipated'
+  },
+  {
+    id: 'payment_method',
+    title: 'Want to change payment method / UPI',
+    desc: 'Need to switch to an alternative card, UPI, or corporate account'
+  },
+  {
+    id: 'better_deal',
+    title: 'Found better price or alternative distributor',
+    desc: 'Purchasing through local Atomy education center or changed mind'
+  },
+  {
+    id: 'coupon_missed',
+    title: 'Forgot to apply promotional voucher / discount coupon',
+    desc: 'Wish to cancel and place order again with discount applied'
+  },
+  {
+    id: 'other',
+    title: 'Other reason',
+    desc: 'Distributor or personal circumstance (specify below)'
+  }
+];
+
+export const RETURN_REPLACEMENT_REASONS = [
+  {
+    id: 'damaged_transit',
+    title: 'Item arrived damaged or leaking in transit',
+    desc: 'Crushed box, broken bottle, spilled essence, or torn security seal'
+  },
+  {
+    id: 'wrong_item',
+    title: 'Wrong item or variant delivered',
+    desc: 'Delivered item SKU or shade does not match the order sheet'
+  },
+  {
+    id: 'defective',
+    title: 'Defective product / pump or dispenser not working',
+    desc: 'Spray nozzle stuck, container lid broken, or pump dispenser malfunction'
+  },
+  {
+    id: 'missing_item',
+    title: 'Missing item in package (Partial delivery)',
+    desc: 'Sealed parcel arrived with items missing from the tax invoice'
+  },
+  {
+    id: 'quality_dissatisfaction',
+    title: 'Quality did not meet expectations (30-Day Money-Back Guarantee)',
+    desc: 'Product did not achieve desired results under Atomy satisfaction promise'
+  },
+  {
+    id: 'allergic_reaction',
+    title: 'Skin sensitivity or allergic reaction',
+    desc: 'Experienced adverse skin reaction or formula sensitivity'
+  },
+  {
+    id: 'expired',
+    title: 'Expired or near-expiry date product',
+    desc: 'Shelf life / manufacturing date does not meet freshness standards'
+  },
+  {
+    id: 'other',
+    title: 'Other reason',
+    desc: 'Please describe the issue for our quality assurance desk'
+  }
+];
 
 export default function OrderHistoryPage({ 
   onNavigateHome, 
@@ -45,17 +128,19 @@ export default function OrderHistoryPage({
 
   // Action Modals State
   const [cancelModalOrder, setCancelModalOrder] = useState(null);
-  const [cancelReason, setCancelReason] = useState('Ordered by mistake');
+  const [cancelReasonId, setCancelReasonId] = useState('mistake');
   const [cancelNotes, setCancelNotes] = useState('');
 
   const [replacementModalOrder, setReplacementModalOrder] = useState(null);
-  const [replacementReason, setReplacementReason] = useState('Damaged in transit / Leaking');
+  const [resolutionMode, setResolutionMode] = useState('replacement'); // 'replacement' | 'refund'
+  const [returnReasonId, setReturnReasonId] = useState('damaged_transit');
   const [actionNotes, setActionNotes] = useState('');
+  const [conditionConfirmed, setConditionConfirmed] = useState(true);
 
   const [returnModalOrder, setReturnModalOrder] = useState(null);
-  const [returnReason, setReturnReason] = useState('Product did not meet expectations');
 
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+  const [activeRulesTab, setActiveRulesTab] = useState('cancellation'); // 'cancellation' | 'replacement' | 'refund_guarantee' | 'timelines'
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -216,6 +301,22 @@ export default function OrderHistoryPage({
     }
   };
 
+  // Helper: safely get order items
+  const getOrderItems = (order) => (order && Array.isArray(order.items) ? order.items : []);
+
+  // Helper: safely calculate order total with fallbacks
+  const getOrderTotal = (order) => {
+    if (!order) return 0;
+    if (typeof order.grandTotal === 'number' && order.grandTotal > 0) return order.grandTotal;
+    if (typeof order.totalAmount === 'number' && order.totalAmount > 0) return order.totalAmount;
+    if (typeof order.total === 'number' && order.total > 0) return order.total;
+    const items = getOrderItems(order);
+    if (items.length > 0) {
+      return items.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.qty || it.quantity) || 1)), 0);
+    }
+    return 0;
+  };
+
   // ==========================================
   // ACTION HANDLERS: CANCEL, REPLACE & RETURN
   // ==========================================
@@ -224,7 +325,9 @@ export default function OrderHistoryPage({
     if (!cancelModalOrder) return;
     setIsSubmittingAction(true);
     const oId = cancelModalOrder.orderId;
-    const orderTotal = cancelModalOrder.items.reduce((s, it) => s + (it.price * it.qty), 0);
+    const orderTotal = getOrderTotal(cancelModalOrder);
+    const selectedObj = CANCELLATION_REASONS.find(r => r.id === cancelReasonId) || CANCELLATION_REASONS[0];
+    const fullReason = selectedObj.title;
 
     try {
       // 1. Backend update
@@ -240,27 +343,58 @@ export default function OrderHistoryPage({
         [oId]: {
           ...prev[oId],
           status: 'Cancelled',
-          paymentStatus: 'REFUNDED'
+          paymentStatus: 'REFUNDED',
+          cancelReason: fullReason,
+          cancelNotes: cancelNotes
         }
       }));
 
       // 3. LocalStorage persistence & Broadcast
       try {
         const placed = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
-        const updatedPlaced = placed.map(o => o.orderId === oId ? { ...o, status: 'Cancelled', orderStatus: 'CANCELLED', paymentStatus: 'REFUNDED' } : o);
+        const updatedPlaced = placed.map(o => o.orderId === oId ? { 
+          ...o, 
+          status: 'Cancelled', 
+          orderStatus: 'CANCELLED', 
+          paymentStatus: 'REFUNDED',
+          cancelReason: fullReason,
+          cancelNotes: cancelNotes
+        } : o);
         localStorage.setItem('atomy_placed_orders', JSON.stringify(updatedPlaced));
 
         const adminOrders = JSON.parse(localStorage.getItem('atomy_admin_orders') || '[]');
-        const updatedAdmin = adminOrders.map(o => o.orderId === oId ? { ...o, orderStatus: 'CANCELLED', paymentStatus: 'REFUNDED' } : o);
+        const updatedAdmin = adminOrders.map(o => o.orderId === oId ? { 
+          ...o, 
+          orderStatus: 'CANCELLED', 
+          paymentStatus: 'REFUNDED',
+          cancelReason: fullReason,
+          cancelNotes: cancelNotes
+        } : o);
         localStorage.setItem('atomy_admin_orders', JSON.stringify(updatedAdmin));
+
+        // Create Admin Support Ticket for customer records
+        const adminTickets = JSON.parse(localStorage.getItem('atomy_admin_tickets') || '[]');
+        adminTickets.unshift({
+          ticketId: `TCK-${Date.now().toString().slice(-8)}`,
+          customerName: cancelModalOrder.shippingAddress?.recipient || 'Customer',
+          customerEmail: cancelModalOrder.customerEmail || 'customer@atomy.in',
+          customerPhone: cancelModalOrder.shippingAddress?.phone || '',
+          subject: `Order Cancellation #${oId}: ${fullReason}`,
+          category: 'CANCELLATION',
+          orderId: oId,
+          status: 'RESOLVED',
+          message: `Customer initiated 100% automated pre-dispatch cancellation.\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\nRefund Amount: ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\nRefund SLA: UPI (24h) / Cards (3-5d).`,
+          createdAt: new Date().toISOString()
+        });
+        localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
 
         window.dispatchEvent(new CustomEvent('atomy:order-cancelled', { detail: cancelModalOrder }));
       } catch {}
 
       setToastMessage({
         type: 'success',
-        title: 'Order Cancelled Successfully',
-        desc: `Order #${oId} was cancelled. 100% refund of ₹${orderTotal.toLocaleString('en-IN')} has been initiated to your source payment method (UPI within 24h, Cards in 3-5 days).`
+        title: 'Order Cancelled & 100% Refund Initiated',
+        desc: `Order #${oId} was cancelled. 100% refund of ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} has been initiated to your source payment method (UPI within 24h, Cards in 3-5 days).`
       });
       setCancelModalOrder(null);
       setCancelNotes('');
@@ -269,22 +403,32 @@ export default function OrderHistoryPage({
     }
   };
 
-  const handleConfirmReplacement = async () => {
-    if (!replacementModalOrder) return;
+  const handleConfirmReplacementOrReturn = async () => {
+    const activeOrder = replacementModalOrder || returnModalOrder;
+    if (!activeOrder) return;
     setIsSubmittingAction(true);
-    const oId = replacementModalOrder.orderId;
+    const oId = activeOrder.orderId;
+    const orderTotal = getOrderTotal(activeOrder);
+    const selectedObj = RETURN_REPLACEMENT_REASONS.find(r => r.id === returnReasonId) || RETURN_REPLACEMENT_REASONS[0];
+    const fullReason = selectedObj.title;
 
     try {
+      const isReplacement = resolutionMode === 'replacement';
+      const ticketCategory = isReplacement ? 'DAMAGED_PRODUCT' : 'REFUND_REQUEST';
+      const ticketSubject = isReplacement 
+        ? `Zero-Cost 1-to-1 Replacement Request for Order #${oId}: ${fullReason}`
+        : `30-Day Money-Back Guarantee Return for Order #${oId}: ${fullReason}`;
+
       const newTicket = {
         ticketId: `TCK-${Date.now().toString().slice(-8)}`,
-        customerName: replacementModalOrder.shippingAddress?.recipient || 'Customer',
-        customerEmail: replacementModalOrder.customerEmail || 'customer@atomy.in',
-        customerPhone: replacementModalOrder.shippingAddress?.phone || '',
-        subject: `Zero-Cost Replacement Request for Order #${oId}: ${replacementReason}`,
-        category: 'DAMAGED_PRODUCT',
+        customerName: activeOrder.shippingAddress?.recipient || 'Customer',
+        customerEmail: activeOrder.customerEmail || 'customer@atomy.in',
+        customerPhone: activeOrder.shippingAddress?.phone || '',
+        subject: ticketSubject,
+        category: ticketCategory,
         orderId: oId,
         status: 'OPEN',
-        message: `Customer requested zero-cost 1-to-1 replacement for Order #${oId}.\nReason: ${replacementReason}\nNotes: ${actionNotes || 'None'}\nCourier Pickup: Free Blue Dart Express reverse pickup scheduled at customer address.`,
+        message: `Customer Resolution: ${isReplacement ? 'Zero-Cost 1-to-1 Replacement' : 'Return for 100% Refund'}\nReason: ${fullReason}\nDetails: ${actionNotes || 'None'}\nPackaging Retained: ${conditionConfirmed ? 'Yes (confirmed)' : 'Pending verification'}\nReverse Courier: Free Blue Dart Express pickup scheduled at ${activeOrder.shippingAddress?.address || 'Customer registered address'}.\nAmount: ₹${orderTotal.toLocaleString('en-IN')}`,
         createdAt: new Date().toISOString()
       };
 
@@ -293,67 +437,41 @@ export default function OrderHistoryPage({
         adminTickets.unshift(newTicket);
         localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
         window.dispatchEvent(new CustomEvent('atomy:support-ticket-created', { detail: newTicket }));
+
+        // Store flag in placed orders
+        const placed = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
+        const updatedPlaced = placed.map(o => o.orderId === oId ? {
+          ...o,
+          replacementRequested: isReplacement ? true : o.replacementRequested,
+          returnRequested: !isReplacement ? true : o.returnRequested
+        } : o);
+        localStorage.setItem('atomy_placed_orders', JSON.stringify(updatedPlaced));
       } catch {}
 
       setLocalOrderOverrides(prev => ({
         ...prev,
         [oId]: {
           ...prev[oId],
-          replacementRequested: true
+          replacementRequested: isReplacement ? true : prev[oId]?.replacementRequested,
+          returnRequested: !isReplacement ? true : prev[oId]?.returnRequested
         }
       }));
 
-      setToastMessage({
-        type: 'success',
-        title: 'Replacement Request Registered',
-        desc: `Your replacement for Order #${oId} has been approved. A free 1-to-1 replacement shipment will be dispatched via Blue Dart Express with zero reverse logistics fee.`
-      });
+      if (isReplacement) {
+        setToastMessage({
+          type: 'success',
+          title: 'Zero-Cost Replacement Scheduled',
+          desc: `Your replacement for Order #${oId} has been registered! Blue Dart Express will collect the package from your address with ₹0 shipping fee, and a fresh replacement unit will be dispatched.`
+        });
+      } else {
+        setToastMessage({
+          type: 'success',
+          title: '30-Day Money-Back Return Submitted',
+          desc: `Your return request for Order #${oId} has been registered! Blue Dart reverse pickup has been scheduled. Once inspected, ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })} will be credited back to your original payment channel.`
+        });
+      }
+
       setReplacementModalOrder(null);
-      setActionNotes('');
-    } finally {
-      setIsSubmittingAction(false);
-    }
-  };
-
-  const handleConfirmReturn = async () => {
-    if (!returnModalOrder) return;
-    setIsSubmittingAction(true);
-    const oId = returnModalOrder.orderId;
-
-    try {
-      const newTicket = {
-        ticketId: `TCK-${Date.now().toString().slice(-8)}`,
-        customerName: returnModalOrder.shippingAddress?.recipient || 'Customer',
-        customerEmail: returnModalOrder.customerEmail || 'customer@atomy.in',
-        customerPhone: returnModalOrder.shippingAddress?.phone || '',
-        subject: `30-Day Money-Back Return Request for Order #${oId}: ${returnReason}`,
-        category: 'REFUND_REQUEST',
-        orderId: oId,
-        status: 'OPEN',
-        message: `Customer claimed 30-Day 100% Satisfaction Guarantee on Order #${oId}.\nReason: ${returnReason}\nNotes: ${actionNotes || 'None'}\nRefund Destination: Original payment channel.`,
-        createdAt: new Date().toISOString()
-      };
-
-      try {
-        const adminTickets = JSON.parse(localStorage.getItem('atomy_admin_tickets') || '[]');
-        adminTickets.unshift(newTicket);
-        localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
-        window.dispatchEvent(new CustomEvent('atomy:support-ticket-created', { detail: newTicket }));
-      } catch {}
-
-      setLocalOrderOverrides(prev => ({
-        ...prev,
-        [oId]: {
-          ...prev[oId],
-          returnRequested: true
-        }
-      }));
-
-      setToastMessage({
-        type: 'success',
-        title: 'Return & Refund Claim Submitted',
-        desc: `30-Day satisfaction guarantee return registered for Order #${oId}. Our Gurugram logistics desk will arrange courier pickup and initiate your 100% refund.`
-      });
       setReturnModalOrder(null);
       setActionNotes('');
     } finally {
@@ -563,7 +681,10 @@ export default function OrderHistoryPage({
                     <button
                       type="button"
                       className="tracker-action-btn replace-btn"
-                      onClick={() => setReplacementModalOrder(activeTrackedOrder)}
+                      onClick={() => {
+                        setReplacementModalOrder(activeTrackedOrder);
+                        setResolutionMode('replacement');
+                      }}
                     >
                       <Truck size={15} />
                       <span>Request Replacement</span>
@@ -571,7 +692,10 @@ export default function OrderHistoryPage({
                     <button
                       type="button"
                       className="tracker-action-btn return-btn"
-                      onClick={() => setReturnModalOrder(activeTrackedOrder)}
+                      onClick={() => {
+                        setReplacementModalOrder(activeTrackedOrder);
+                        setResolutionMode('refund');
+                      }}
                     >
                       <RotateCcw size={15} />
                       <span>Return & Refund</span>
@@ -884,7 +1008,10 @@ export default function OrderHistoryPage({
                         <button
                           type="button"
                           className="order-btn-replace"
-                          onClick={() => setReplacementModalOrder(order)}
+                          onClick={() => {
+                            setReplacementModalOrder(order);
+                            setResolutionMode('replacement');
+                          }}
                           title="Free 1-to-1 Replacement for Transit Damage"
                         >
                           <Truck size={15} />
@@ -897,7 +1024,10 @@ export default function OrderHistoryPage({
                         <button
                           type="button"
                           className="order-btn-refund"
-                          onClick={() => setReturnModalOrder(order)}
+                          onClick={() => {
+                            setReplacementModalOrder(order);
+                            setResolutionMode('refund');
+                          }}
                           title="30-Day 100% Satisfaction Guarantee Return"
                         >
                           <RotateCcw size={15} />
@@ -927,54 +1057,97 @@ export default function OrderHistoryPage({
           MODAL 1: ORDER CANCELLATION & INSTANT REFUND MODAL
           ======================================================== */}
       {cancelModalOrder && (
-        <div className="order-modal-backdrop animate-fade">
-          <div className="order-action-modal animate-scale-up">
+        <div className="order-modal-backdrop animate-fade" onClick={() => setCancelModalOrder(null)}>
+          <div className="order-action-modal animate-scale-up" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header-danger">
               <div className="danger-icon-wrap">
-                <XCircle size={24} color="#dc2626" />
+                <XCircle size={26} color="#dc2626" />
               </div>
               <div>
                 <h3>Cancel Order #{cancelModalOrder.orderId}</h3>
                 <p>Eligible for instant free pre-dispatch cancellation with 100% automated refund.</p>
               </div>
-              <button className="modal-close-x" onClick={() => setCancelModalOrder(null)}>
+              <button className="modal-close-x" onClick={() => setCancelModalOrder(null)} aria-label="Close modal">
                 <X size={18} />
               </button>
             </div>
 
             <div className="modal-body-content">
-              {/* Refund Summary Banner */}
-              <div className="refund-summary-banner">
-                <div className="rsb-label">100% Refund Amount</div>
-                <div className="rsb-amount">
-                  ₹ {cancelModalOrder.items.reduce((s, it) => s + (it.price * it.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              {/* 100% Refund Breakdown Banner */}
+              <div className="refund-summary-banner danger-tone">
+                <div className="rsb-top-row">
+                  <span className="rsb-label">100% Refund Amount</span>
+                  <span className="rsb-amount">
+                    ₹ {getOrderTotal(cancelModalOrder).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
                 <div className="rsb-destination">
-                  Credited back to your original payment method (<strong>UPI: within 24 hours</strong>, <strong>Cards: 3-5 business days</strong>, <strong>Net Banking: 5-7 days</strong>).
+                  Credited directly back to your source payment method with <strong>₹0 cancellation fee</strong>.
+                </div>
+                <div className="refund-sla-grid">
+                  <div className="sla-pill active-fast">
+                    <span className="sla-channel">⚡ UPI (GPay / PhonePe)</span>
+                    <span className="sla-time">Within 24 Hours</span>
+                  </div>
+                  <div className="sla-pill">
+                    <span className="sla-channel">💳 Cards (Debit / Credit)</span>
+                    <span className="sla-time">3 - 5 Business Days</span>
+                  </div>
+                  <div className="sla-pill">
+                    <span className="sla-channel">🏦 Net Banking</span>
+                    <span className="sla-time">5 - 7 Business Days</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Cancellation Reason Select */}
+              {/* Reason Selector (Amazon / Myntra Style Radio Tiles) */}
               <div className="action-form-group">
-                <label className="form-label">Reason for Cancellation <span className="req">*</span></label>
-                <select
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  className="form-select-input"
-                >
-                  <option value="Ordered by mistake">Ordered by mistake</option>
-                  <option value="Need to change delivery address">Need to change delivery address</option>
-                  <option value="Found better alternative / change of mind">Found better alternative / change of mind</option>
-                  <option value="Concerned about delivery timeline">Concerned about delivery timeline</option>
-                  <option value="Want to apply different coupon/payment method">Want to apply different coupon/payment method</option>
-                  <option value="Other">Other</option>
-                </select>
+                <label className="form-label">
+                  Please select a reason for cancellation <span className="req">*</span>
+                </label>
+                <div className="reason-radio-list">
+                  {CANCELLATION_REASONS.map((reason) => {
+                    const isSelected = cancelReasonId === reason.id;
+                    return (
+                      <label 
+                        key={reason.id} 
+                        className={`reason-radio-tile ${isSelected ? 'selected danger-tone' : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name="cancellationReason"
+                          value={reason.id}
+                          checked={isSelected}
+                          onChange={() => setCancelReasonId(reason.id)}
+                        />
+                        <div className="reason-tile-text">
+                          <span className="reason-tile-title">{reason.title}</span>
+                          <span className="reason-tile-desc">{reason.desc}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
+              {/* Helpful hint if address change reason is selected */}
+              {cancelReasonId === 'address' && (
+                <div className="reason-tip-banner animate-fade">
+                  <AlertCircle size={18} color="#1d4ed8" />
+                  <div>
+                    <strong>Need to change your shipping address?</strong>
+                    <p style={{ margin: '2px 0 0', fontSize: '11.5px' }}>
+                      If you only need to change your address or phone number, our customer care team can update your delivery destination before dispatch without cancelling your order.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Optional comments box */}
               <div className="action-form-group">
-                <label className="form-label">Additional Comments (Optional)</label>
+                <label className="form-label">Additional Comments / Feedback (Optional)</label>
                 <textarea
-                  placeholder="Tell us how we can improve..."
+                  placeholder="Share any additional details with our support team..."
                   value={cancelNotes}
                   onChange={(e) => setCancelNotes(e.target.value)}
                   className="form-textarea-input"
@@ -983,9 +1156,9 @@ export default function OrderHistoryPage({
               </div>
 
               <div className="policy-reminder-box">
-                <ShieldCheck size={16} color="#0284c7" />
+                <ShieldCheck size={18} color="#00A3E0" />
                 <span>
-                  Atomy India charges <strong>₹0 cancellation fee</strong>. No deductions will be made from your refund.
+                  <strong>Atomy ₹0 Cancellation Guarantee:</strong> No deduction or restocking fee will be levied. 100% of your invoice amount is refunded.
                 </span>
               </div>
             </div>
@@ -997,7 +1170,7 @@ export default function OrderHistoryPage({
                 onClick={() => setCancelModalOrder(null)}
                 disabled={isSubmittingAction}
               >
-                Keep Order
+                Keep My Order
               </button>
               <button 
                 type="button" 
@@ -1005,7 +1178,14 @@ export default function OrderHistoryPage({
                 onClick={handleConfirmCancelOrder}
                 disabled={isSubmittingAction}
               >
-                {isSubmittingAction ? 'Processing...' : 'Confirm Cancellation & Full Refund'}
+                {isSubmittingAction ? (
+                  'Processing Refund...'
+                ) : (
+                  <>
+                    <XCircle size={16} />
+                    <span>Confirm Cancellation & Full Refund</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1013,180 +1193,183 @@ export default function OrderHistoryPage({
       )}
 
       {/* ========================================================
-          MODAL 2: ZERO-COST PRODUCT REPLACEMENT MODAL
+          MODAL 2 & 3: ZERO-COST REPLACEMENT OR 30-DAY RETURN MODAL
           ======================================================== */}
-      {replacementModalOrder && (
-        <div className="order-modal-backdrop animate-fade">
-          <div className="order-action-modal animate-scale-up">
-            <div className="modal-header-indigo">
-              <div className="indigo-icon-wrap">
-                <Truck size={24} color="#4338ca" />
-              </div>
-              <div>
-                <h3>Request Zero-Cost 1-to-1 Replacement</h3>
-                <p>For items received damaged, leaked in transit, expired, or defective.</p>
-              </div>
-              <button className="modal-close-x" onClick={() => setReplacementModalOrder(null)}>
-                <X size={18} />
-              </button>
-            </div>
+      {(replacementModalOrder || returnModalOrder) && (() => {
+        const modalOrder = replacementModalOrder || returnModalOrder;
+        const isReplacement = resolutionMode === 'replacement';
+        const orderTotal = getOrderTotal(modalOrder);
 
-            <div className="modal-body-content">
-              <div className="replacement-perks-box">
-                <div className="perk-row">
-                  <Check size={16} color="#16a34a" />
-                  <span><strong>100% Free Reverse Courier Pickup:</strong> Blue Dart will collect the package from your address with ₹0 shipping fee.</span>
+        return (
+          <div className="order-modal-backdrop animate-fade" onClick={() => { setReplacementModalOrder(null); setReturnModalOrder(null); }}>
+            <div className="order-action-modal animate-scale-up" onClick={(e) => e.stopPropagation()}>
+              <div className={isReplacement ? 'modal-header-indigo' : 'modal-header-emerald'}>
+                <div className={isReplacement ? 'indigo-icon-wrap' : 'emerald-icon-wrap'}>
+                  {isReplacement ? <Truck size={26} color="#4338ca" /> : <RotateCcw size={26} color="#15803d" />}
                 </div>
-                <div className="perk-row">
-                  <Check size={16} color="#16a34a" />
-                  <span><strong>Fresh 1-to-1 Unit:</strong> A brand-new genuine sealed replacement will be dispatched from our Gurugram warehouse.</span>
+                <div>
+                  <h3>
+                    {isReplacement 
+                      ? `Request Zero-Cost 1-to-1 Replacement (#${modalOrder.orderId})` 
+                      : `30-Day Money-Back Guarantee Return (#${modalOrder.orderId})`}
+                  </h3>
+                  <p>
+                    {isReplacement
+                      ? 'Free Blue Dart reverse courier pickup with brand new unit dispatch.'
+                      : 'Protected by Atomy Absolute Quality satisfaction guarantee with 100% refund.'}
+                  </p>
                 </div>
-                <div className="perk-row">
-                  <Check size={16} color="#16a34a" />
-                  <span><strong>PV Intact:</strong> Your Point Value (PV) and distributor bonuses remain 100% active.</span>
-                </div>
+                <button className="modal-close-x" onClick={() => { setReplacementModalOrder(null); setReturnModalOrder(null); }}>
+                  <X size={18} />
+                </button>
               </div>
 
-              <div className="action-form-group">
-                <label className="form-label">Nature of Defect / Damage <span className="req">*</span></label>
-                <select
-                  value={replacementReason}
-                  onChange={(e) => setReplacementReason(e.target.value)}
-                  className="form-select-input"
+              <div className="modal-body-content">
+                {/* Resolution Mode Switcher (Amazon / Myntra Style) */}
+                <div className="resolution-mode-switcher">
+                  <button
+                    type="button"
+                    className={`mode-card-btn ${isReplacement ? 'active indigo-mode' : ''}`}
+                    onClick={() => setResolutionMode('replacement')}
+                  >
+                    <span className="mode-card-badge recom">Recommended</span>
+                    <strong>Zero-Cost 1-to-1 Replacement</strong>
+                    <span>₹0 reverse shipping • Fresh unit • 100% PV kept intact</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-card-btn ${!isReplacement ? 'active emerald-mode' : ''}`}
+                    onClick={() => setResolutionMode('refund')}
+                  >
+                    <span className="mode-card-badge guarantee">Money-Back Guarantee</span>
+                    <strong>Return for 100% Refund</strong>
+                    <span>Full purchase reversal to original payment method</span>
+                  </button>
+                </div>
+
+                {/* Refund / Replacement Value Banner */}
+                <div className={`refund-summary-banner ${!isReplacement ? 'green-banner' : ''}`}>
+                  <div className="rsb-top-row">
+                    <span className="rsb-label">
+                      {isReplacement ? 'Replacement Value' : '100% Refundable Amount'}
+                    </span>
+                    <span className={`rsb-amount ${!isReplacement ? 'text-green' : ''}`} style={isReplacement ? { color: '#4338ca' } : {}}>
+                      ₹ {orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="rsb-destination">
+                    {isReplacement 
+                      ? 'Free doorstep reverse pickup scheduled via Blue Dart Express with ₹0 fee.'
+                      : 'Credited directly back to your payment account once inspection is complete.'}
+                  </div>
+                </div>
+
+                {/* Structured Reason Selector */}
+                <div className="action-form-group">
+                  <label className="form-label">
+                    Select reason for {isReplacement ? 'replacement' : 'return'} <span className="req">*</span>
+                  </label>
+                  <div className="reason-radio-list">
+                    {RETURN_REPLACEMENT_REASONS.map((reason) => {
+                      const isSelected = returnReasonId === reason.id;
+                      return (
+                        <label 
+                          key={reason.id} 
+                          className={`reason-radio-tile ${isSelected ? 'selected' : ''}`}
+                        >
+                          <input
+                            type="radio"
+                            name="returnReplacementReason"
+                            value={reason.id}
+                            checked={isSelected}
+                            onChange={() => setReturnReasonId(reason.id)}
+                          />
+                          <div className="reason-tile-text">
+                            <span className="reason-tile-title">{reason.title}</span>
+                            <span className="reason-tile-desc">{reason.desc}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Additional Description / Comments */}
+                <div className="action-form-group">
+                  <label className="form-label">Details of the issue or feedback (Optional)</label>
+                  <textarea
+                    placeholder="Provide additional details regarding the condition, leak, or damage..."
+                    value={actionNotes}
+                    onChange={(e) => setActionNotes(e.target.value)}
+                    className="form-textarea-input"
+                    rows={2}
+                  />
+                </div>
+
+                {/* Package Condition Confirmation Checkbox */}
+                <label className="condition-check-row">
+                  <input
+                    type="checkbox"
+                    checked={conditionConfirmed}
+                    onChange={(e) => setConditionConfirmed(e.target.checked)}
+                  />
+                  <span>
+                    I confirm that the product outer box, bottle, and invoice are retained and will be handed over to Blue Dart Express.
+                  </span>
+                </label>
+
+                {/* Pickup Address Card */}
+                <div className="pickup-address-reminder">
+                  <MapPin size={18} color="#00A3E0" />
+                  <div>
+                    <strong>Blue Dart Express Reverse Pickup Address:</strong>
+                    <div>{modalOrder.shippingAddress?.recipient || 'Customer'} • {modalOrder.shippingAddress?.phone || 'Contact Phone'}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>{modalOrder.shippingAddress?.address || 'Registered Delivery Address'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-action-footer">
+                <button 
+                  type="button" 
+                  className="btn-modal-cancel" 
+                  onClick={() => { setReplacementModalOrder(null); setReturnModalOrder(null); }}
+                  disabled={isSubmittingAction}
                 >
-                  <option value="Damaged in transit / Outer packaging crushed">Damaged in transit / Outer packaging crushed</option>
-                  <option value="Bottle broken / Liquid leaked inside parcel">Bottle broken / Liquid leaked inside parcel</option>
-                  <option value="Security seal opened / Tampered package">Security seal opened / Tampered package</option>
-                  <option value="Wrong item delivered instead of ordered product">Wrong item delivered instead of ordered product</option>
-                  <option value="Defective dispenser / pump / packaging defect">Defective dispenser / pump / packaging defect</option>
-                </select>
+                  Keep Product
+                </button>
+                <button 
+                  type="button" 
+                  className={isReplacement ? 'btn-modal-confirm-indigo' : 'btn-modal-confirm-green'}
+                  onClick={handleConfirmReplacementOrReturn}
+                  disabled={isSubmittingAction || !conditionConfirmed}
+                >
+                  {isSubmittingAction ? (
+                    'Scheduling...'
+                  ) : isReplacement ? (
+                    <>
+                      <Truck size={16} />
+                      <span>Schedule Free 1-to-1 Replacement</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw size={16} />
+                      <span>Submit Return & 100% Refund</span>
+                    </>
+                  )}
+                </button>
               </div>
-
-              <div className="action-form-group">
-                <label className="form-label">Brief Description of the Damage</label>
-                <textarea
-                  placeholder="Describe the issue with the item..."
-                  value={actionNotes}
-                  onChange={(e) => setActionNotes(e.target.value)}
-                  className="form-textarea-input"
-                  rows={2}
-                />
-              </div>
-
-              <div className="pickup-address-reminder">
-                <MapPin size={16} color="#4338ca" />
-                <span>
-                  Reverse pickup address: <strong>{replacementModalOrder.shippingAddress?.address || 'Registered Address'}</strong>
-                </span>
-              </div>
-            </div>
-
-            <div className="modal-action-footer">
-              <button 
-                type="button" 
-                className="btn-modal-cancel" 
-                onClick={() => setReplacementModalOrder(null)}
-                disabled={isSubmittingAction}
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                className="btn-modal-confirm-indigo" 
-                onClick={handleConfirmReplacement}
-                disabled={isSubmittingAction}
-              >
-                {isSubmittingAction ? 'Scheduling...' : 'Submit Replacement Request'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ========================================================
-          MODAL 3: 30-DAY 100% MONEY-BACK RETURN MODAL
-          ======================================================== */}
-      {returnModalOrder && (
-        <div className="order-modal-backdrop animate-fade">
-          <div className="order-action-modal animate-scale-up">
-            <div className="modal-header-emerald">
-              <div className="emerald-icon-wrap">
-                <RotateCcw size={24} color="#15803d" />
-              </div>
-              <div>
-                <h3>30-Day Satisfaction Return & 100% Refund</h3>
-                <p>Protected by Atomy's Absolute Quality satisfaction guarantee.</p>
-              </div>
-              <button className="modal-close-x" onClick={() => setReturnModalOrder(null)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-body-content">
-              <div className="refund-summary-banner green-banner">
-                <div className="rsb-label">Eligible Refund Amount</div>
-                <div className="rsb-amount text-green">
-                  ₹ {returnModalOrder.items.reduce((s, it) => s + (it.price * it.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </div>
-                <div className="rsb-destination">
-                  Full purchase amount credited directly back to your original payment method once inspection is completed.
-                </div>
-              </div>
-
-              <div className="action-form-group">
-                <label className="form-label">Return Reason <span className="req">*</span></label>
-                <select
-                  value={returnReason}
-                  onChange={(e) => setReturnReason(e.target.value)}
-                  className="form-select-input"
-                >
-                  <option value="Product did not meet expectations">Product did not meet expectations</option>
-                  <option value="Sensitive to formula / skin reaction">Sensitive to formula / skin reaction</option>
-                  <option value="Duplicate purchase / no longer needed">Duplicate purchase / no longer needed</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div className="action-form-group">
-                <label className="form-label">Feedback for our Quality Team</label>
-                <textarea
-                  placeholder="Share details on your experience..."
-                  value={actionNotes}
-                  onChange={(e) => setActionNotes(e.target.value)}
-                  className="form-textarea-input"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            <div className="modal-action-footer">
-              <button 
-                type="button" 
-                className="btn-modal-cancel" 
-                onClick={() => setReturnModalOrder(null)}
-                disabled={isSubmittingAction}
-              >
-                Close
-              </button>
-              <button 
-                type="button" 
-                className="btn-modal-confirm-green" 
-                onClick={handleConfirmReturn}
-                disabled={isSubmittingAction}
-              >
-                {isSubmittingAction ? 'Submitting...' : 'Initiate Return & Refund'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================
           MODAL 4: FULL OFFICIAL CANCELLATION & REPLACEMENT RULES
           ======================================================== */}
       {isRulesModalOpen && (
-        <div className="order-modal-backdrop animate-fade">
-          <div className="order-rules-full-modal animate-scale-up">
+        <div className="order-modal-backdrop animate-fade" onClick={() => setIsRulesModalOpen(false)}>
+          <div className="order-rules-full-modal animate-scale-up" onClick={(e) => e.stopPropagation()}>
             <div className="rules-modal-header">
               <div className="rules-m-icon">
                 <ShieldCheck size={28} color="#00A3E0" />
@@ -1195,94 +1378,143 @@ export default function OrderHistoryPage({
                 <h2>Official Atomy India Cancellation, Replacement & Refund Policy</h2>
                 <p>Standard Operating Procedure (SOP) governing consumer rights and customer protection</p>
               </div>
-              <button className="modal-close-x" onClick={() => setIsRulesModalOpen(false)}>
+              <button className="modal-close-x" onClick={() => setIsRulesModalOpen(false)} aria-label="Close modal">
                 <X size={20} />
               </button>
             </div>
 
+            {/* Interactive Tab Switcher Bar */}
+            <div className="rules-tabs-bar">
+              <button 
+                type="button" 
+                className={`rules-tab-btn ${activeRulesTab === 'cancellation' ? 'active' : ''}`}
+                onClick={() => setActiveRulesTab('cancellation')}
+              >
+                <XCircle size={15} />
+                <span>Pre-Dispatch Cancellation</span>
+              </button>
+              <button 
+                type="button" 
+                className={`rules-tab-btn ${activeRulesTab === 'replacement' ? 'active' : ''}`}
+                onClick={() => setActiveRulesTab('replacement')}
+              >
+                <Truck size={15} />
+                <span>7-Day Free Replacement</span>
+              </button>
+              <button 
+                type="button" 
+                className={`rules-tab-btn ${activeRulesTab === 'refund_guarantee' ? 'active' : ''}`}
+                onClick={() => setActiveRulesTab('refund_guarantee')}
+              >
+                <ShieldCheck size={15} />
+                <span>30-Day Money-Back Guarantee</span>
+              </button>
+              <button 
+                type="button" 
+                className={`rules-tab-btn ${activeRulesTab === 'timelines' ? 'active' : ''}`}
+                onClick={() => setActiveRulesTab('timelines')}
+              >
+                <Clock size={15} />
+                <span>Banking Refund SLA</span>
+              </button>
+            </div>
+
             <div className="rules-modal-scrollable">
-              {/* Pillar 1 */}
-              <div className="policy-block">
-                <div className="policy-badge-num blue">POLICY 01</div>
-                <h3>Order Cancellation Policy (Pre-Dispatch)</h3>
-                <ul className="policy-bullets">
-                  <li>
-                    <strong>Pre-Dispatch Window:</strong> Customers have the right to cancel any order without questions asked as long as the status is <code>Payment Completed</code> or <code>Preparing Shipment</code>.
-                  </li>
-                  <li>
-                    <strong>Zero Cancellation Fee:</strong> Atomy India levies <strong>₹0 cancellation fee</strong>. 100% of the invoice amount is refunded.
-                  </li>
-                  <li>
-                    <strong>Post-Dispatch In-Flight Shipments:</strong> Once handed over to our courier partner (Blue Dart Express) or marked <code>In Transit</code>, an order cannot be cancelled in flight. The customer may decline receipt at their doorstep upon arrival, or request a standard return upon receipt.
-                  </li>
-                </ul>
-              </div>
+              {activeRulesTab === 'cancellation' && (
+                <div className="policy-block animate-fade">
+                  <div className="policy-badge-num blue">SOP POLICY 01</div>
+                  <h3>Pre-Dispatch Order Cancellation Rights</h3>
+                  <ul className="policy-bullets">
+                    <li>
+                      <strong>Immediate Cancellation Window:</strong> You may cancel any order free of charge at any moment while status is <code>Order Placed</code>, <code>Payment Completed</code>, or <code>Preparing Shipment</code> before warehouse handover.
+                    </li>
+                    <li>
+                      <strong>Zero Cancellation Fee:</strong> Atomy India levies <strong>₹0 cancellation fee</strong>. No deduction is made from your paid invoice amount.
+                    </li>
+                    <li>
+                      <strong>100% Automated Refund:</strong> Full paid amount is refunded immediately to your original payment channel (UPI within 24 hours, Cards in 3-5 days).
+                    </li>
+                    <li>
+                      <strong>In-Flight Orders:</strong> Shipments already marked <code>In Transit</code> cannot be cancelled mid-flight. You may decline delivery at your doorstep or initiate a 7-day return upon arrival.
+                    </li>
+                  </ul>
+                </div>
+              )}
 
-              {/* Pillar 2 */}
-              <div className="policy-block">
-                <div className="policy-badge-num indigo">POLICY 02</div>
-                <h3>Zero-Cost 1-to-1 Replacement Policy (Damaged Goods)</h3>
-                <ul className="policy-bullets">
-                  <li>
-                    <strong>7-Calendar-Day Claim Window:</strong> If items arrive damaged in transit, leaking, broken, expired, or incorrect, you are entitled to a <strong>1-to-1 brand-new replacement</strong> within 7 days of delivery.
-                  </li>
-                  <li>
-                    <strong>Free Reverse Logistics:</strong> Courier pickup is arranged through Blue Dart Express or Delhivery at <strong>₹0 additional expense</strong> to you.
-                  </li>
-                  <li>
-                    <strong>No PV Impact:</strong> Because no money is reversed, your earned Point Value (PV) remains completely intact.
-                  </li>
-                </ul>
-              </div>
+              {activeRulesTab === 'replacement' && (
+                <div className="policy-block animate-fade">
+                  <div className="policy-badge-num indigo">SOP POLICY 02</div>
+                  <h3>Zero-Cost 1-to-1 Product Replacement (Transit Damage & Defects)</h3>
+                  <ul className="policy-bullets">
+                    <li>
+                      <strong>7-Day Claim Window:</strong> If any product arrives damaged in transit, leaking, broken, defective, expired, or incorrect, you have <strong>7 calendar days</strong> from delivery to request a free 1-to-1 replacement.
+                    </li>
+                    <li>
+                      <strong>₹0 Reverse Logistics Cost:</strong> Free reverse pickup is arranged through Blue Dart Express at your doorstep at ₹0 expense.
+                    </li>
+                    <li>
+                      <strong>Zero PV Impact:</strong> Because funds are not reversed, your distributor Point Value (PV) points and bonus calculations remain 100% intact.
+                    </li>
+                    <li>
+                      <strong>Direct Warehouse Dispatch:</strong> A brand-new genuine sealed replacement is dispatched from our Gurugram Central Fulfillment Center.
+                    </li>
+                  </ul>
+                </div>
+              )}
 
-              {/* Pillar 3 */}
-              <div className="policy-block">
-                <div className="policy-badge-num emerald">POLICY 03</div>
-                <h3>30-Day 100% Money-Back Satisfaction Guarantee</h3>
-                <ul className="policy-bullets">
-                  <li>
-                    <strong>30 Calendar Days:</strong> In accordance with Atomy's Absolute Quality commitment, you can return unopened or gently tested products within 30 days of delivery if dissatisfied with the results.
-                  </li>
-                  <li>
-                    <strong>100% Refund Payout:</strong> Full product purchase price is returned.
-                  </li>
-                  <li>
-                    <strong>PV Clawback:</strong> PV accrued from refunded orders will be adjusted from distributor account ledgers to maintain commission integrity.
-                  </li>
-                </ul>
-              </div>
+              {activeRulesTab === 'refund_guarantee' && (
+                <div className="policy-block animate-fade">
+                  <div className="policy-badge-num emerald">SOP POLICY 03</div>
+                  <h3>Atomy 30-Day Absolute Quality 100% Satisfaction Guarantee</h3>
+                  <ul className="policy-bullets">
+                    <li>
+                      <strong>30 Calendar Days:</strong> In accordance with Atomy's Absolute Quality promise, you can return gently tested or unopened products within 30 days of delivery if dissatisfied with the results.
+                    </li>
+                    <li>
+                      <strong>100% Purchase Refund:</strong> Full purchase price is refunded to your original payment method.
+                    </li>
+                    <li>
+                      <strong>Distributor PV Ledger Adjustment:</strong> PV accrued on refunded orders will be adjusted on distributor ledgers to ensure compensation plan compliance.
+                    </li>
+                  </ul>
+                </div>
+              )}
 
-              {/* Pillar 4 */}
-              <div className="policy-block">
-                <div className="policy-badge-num amber">POLICY 04</div>
-                <h3>Refund Payout Channels & Timelines</h3>
-                <table className="policy-timeline-table">
-                  <thead>
-                    <tr>
-                      <th>Payment Channel</th>
-                      <th>Refund Timeline</th>
-                      <th>Destination</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><strong>UPI (GPay / PhonePe / Paytm / BHIM)</strong></td>
-                      <td><span className="fast-tag">Within 24 Hours</span></td>
-                      <td>Original Virtual Payment Address (VPA)</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Credit / Debit Cards (Visa / Master / RuPay)</strong></td>
-                      <td>3 to 5 Banking Days</td>
-                      <td>Direct card reversal per RBI banking clearing</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Net Banking / Direct Bank Account</strong></td>
-                      <td>5 to 7 Banking Days</td>
-                      <td>Linked bank account (Account No. + IFSC)</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              {activeRulesTab === 'timelines' && (
+                <div className="policy-block animate-fade">
+                  <div className="policy-badge-num amber">SOP POLICY 04</div>
+                  <h3>RBI Clearing Refund Timelines & Payment Channels</h3>
+                  <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#64748b' }}>
+                    Refunds are processed automatically via bank clearing networks adhering to RBI consumer protection regulations:
+                  </p>
+                  <table className="policy-timeline-table">
+                    <thead>
+                      <tr>
+                        <th>Payment Mode</th>
+                        <th>Settlement SLA</th>
+                        <th>Payout Destination</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>UPI (GPay / PhonePe / Paytm / BHIM)</strong></td>
+                        <td><span className="fast-tag">Within 24 Hours</span></td>
+                        <td>Original Virtual Payment Address (VPA)</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Credit / Debit Cards (Visa / MasterCard / RuPay)</strong></td>
+                        <td>3 to 5 Banking Days</td>
+                        <td>Direct card reversal through acquiring bank</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Net Banking (SBI / HDFC / ICICI / Axis / Others)</strong></td>
+                        <td>5 to 7 Banking Days</td>
+                        <td>Original linked bank account (via NEFT/IMPS)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             <div className="rules-modal-footer">

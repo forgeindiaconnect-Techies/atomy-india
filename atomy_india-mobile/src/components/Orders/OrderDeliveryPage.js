@@ -421,6 +421,28 @@ function VerticalDeliveryStepper({ order }) {
   );
 }
 
+// Standard Reason Catalog matching customer website (Amazon / Myntra benchmark)
+export const MOBILE_CANCELLATION_REASONS = [
+  { id: 'mistake', title: 'Order created by mistake', desc: 'Placed order unintentionally or duplicate' },
+  { id: 'address', title: 'Need to change delivery address or phone', desc: 'Entered incorrect address/phone details' },
+  { id: 'delivery_delay', title: 'Expected delivery date is too long', desc: 'Urgent requirement / delivery too late' },
+  { id: 'payment_method', title: 'Want to change payment method / UPI', desc: 'Switch to another card or UPI account' },
+  { id: 'better_deal', title: 'Found better price or changed mind', desc: 'Purchasing through alternate distributor' },
+  { id: 'coupon_missed', title: 'Forgot to apply coupon discount', desc: 'Re-order with promotional voucher' },
+  { id: 'other', title: 'Other reason', desc: 'Distributor or personal circumstance' },
+];
+
+export const MOBILE_RETURN_REASONS = [
+  { id: 'damaged_transit', title: 'Item arrived damaged or leaking', desc: 'Crushed box, broken bottle, spilled liquid' },
+  { id: 'wrong_item', title: 'Wrong item or variant delivered', desc: 'Different SKU or product received' },
+  { id: 'defective', title: 'Defective pump or packaging issue', desc: 'Spray nozzle broken or dispenser stuck' },
+  { id: 'missing_item', title: 'Missing item in sealed package', desc: 'Partial shipment or item absent from box' },
+  { id: 'quality_dissatisfaction', title: '30-Day Satisfaction Guarantee claim', desc: 'Quality did not meet expectations' },
+  { id: 'allergic_reaction', title: 'Skin sensitivity or reaction', desc: 'Adverse reaction to cosmetic formula' },
+  { id: 'expired', title: 'Expired or near-expiry product', desc: 'Manufacturing date does not meet criteria' },
+  { id: 'other', title: 'Other reason', desc: 'Provide details for quality review' },
+];
+
 export default function OrderDeliveryPage({
   placedOrders = [],
   onNavigateHome,
@@ -433,7 +455,21 @@ export default function OrderDeliveryPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTrackOrder, setSelectedTrackOrder] = useState(null);
   const [localOrdersOverrides, setLocalOrdersOverrides] = useState({});
+
+  // Mobile Modals State
+  const [cancelModalOrder, setCancelModalOrder] = useState(null);
+  const [cancelReasonId, setCancelReasonId] = useState('mistake');
+  const [cancelNotes, setCancelNotes] = useState('');
+
+  const [replacementModalOrder, setReplacementModalOrder] = useState(null);
+  const [resolutionMode, setResolutionMode] = useState('replacement'); // 'replacement' | 'refund'
+  const [returnReasonId, setReturnReasonId] = useState('damaged_transit');
+  const [actionNotes, setActionNotes] = useState('');
+  const [conditionConfirmed, setConditionConfirmed] = useState(true);
+
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+  const [activeRulesTab, setActiveRulesTab] = useState('cancellation'); // 'cancellation' | 'replacement' | 'refund_guarantee' | 'timelines'
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
 
   // Sync with localStorage
   useEffect(() => {
@@ -479,60 +515,122 @@ export default function OrderDeliveryPage({
 
   const activeTrackedOrder = selectedTrackOrder || (orders.length > 0 ? orders[0] : null);
 
+  // Helper to open Cancellation Modal
   const handleCancelOrder = (ord) => {
     if (!ord) return;
-    const id = ord.id || ord.orderId;
-    const doCancel = () => {
+    const target = typeof ord === 'object' && ord !== null ? ord : orders.find(o => (o.id === ord || o.orderId === ord)) || { id: ord, orderId: ord };
+    setCancelModalOrder(target);
+    setCancelReasonId('mistake');
+    setCancelNotes('');
+  };
+
+  // Helper to open Replacement Modal
+  const handleRequestReplacement = (ord) => {
+    if (!ord) return;
+    const target = typeof ord === 'object' && ord !== null ? ord : orders.find(o => (o.id === ord || o.orderId === ord)) || { id: ord, orderId: ord };
+    setReplacementModalOrder(target);
+    setResolutionMode('replacement');
+    setReturnReasonId('damaged_transit');
+    setActionNotes('');
+    setConditionConfirmed(true);
+  };
+
+  // Helper to open Return Modal
+  const handleRequestReturn = (ord) => {
+    if (!ord) return;
+    const target = typeof ord === 'object' && ord !== null ? ord : orders.find(o => (o.id === ord || o.orderId === ord)) || { id: ord, orderId: ord };
+    setReplacementModalOrder(target);
+    setResolutionMode('refund');
+    setReturnReasonId('quality_dissatisfaction');
+    setActionNotes('');
+    setConditionConfirmed(true);
+  };
+
+  // Execute Cancellation
+  const handleConfirmCancelOrderAction = () => {
+    if (!cancelModalOrder) return;
+    setIsSubmittingAction(true);
+    const id = cancelModalOrder.id || cancelModalOrder.orderId;
+    const selectedObj = MOBILE_CANCELLATION_REASONS.find(r => r.id === cancelReasonId) || MOBILE_CANCELLATION_REASONS[0];
+    const fullReason = selectedObj.title;
+
+    try {
       setLocalOrdersOverrides(prev => ({
         ...prev,
         [id]: {
           status: 'Cancelled',
-          trackStatus: 'Order cancelled by customer. Full 100% refund initiated.'
+          trackStatus: `Order cancelled (${fullReason}). 100% refund initiated.`
         }
       }));
 
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
           const saved = JSON.parse(window.localStorage.getItem('atomy_placed_orders') || '[]');
-          const updated = saved.map(o => (o.orderId === id || o.id === id) ? { ...o, status: 'Cancelled', orderStatus: 'CANCELLED', paymentStatus: 'REFUNDED' } : o);
+          const updated = saved.map(o => (o.orderId === id || o.id === id) ? { 
+            ...o, 
+            status: 'Cancelled', 
+            orderStatus: 'CANCELLED', 
+            paymentStatus: 'REFUNDED', 
+            cancelReason: fullReason, 
+            cancelNotes 
+          } : o);
           window.localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
 
           const adminSaved = JSON.parse(window.localStorage.getItem('atomy_admin_orders') || '[]');
-          const updatedAdmin = adminSaved.map(o => (o.orderId === id || o.id === id) ? { ...o, orderStatus: 'CANCELLED', paymentStatus: 'REFUNDED' } : o);
+          const updatedAdmin = adminSaved.map(o => (o.orderId === id || o.id === id) ? { 
+            ...o, 
+            orderStatus: 'CANCELLED', 
+            paymentStatus: 'REFUNDED', 
+            cancelReason: fullReason, 
+            cancelNotes 
+          } : o);
           window.localStorage.setItem('atomy_admin_orders', JSON.stringify(updatedAdmin));
+
+          // Create Admin Support Ticket
+          const adminTickets = JSON.parse(window.localStorage.getItem('atomy_admin_tickets') || '[]');
+          adminTickets.unshift({
+            ticketId: `TCK-${Date.now().toString().slice(-8)}`,
+            customerName: cancelModalOrder.shippingAddress || 'Customer',
+            customerEmail: 'customer@atomy.in',
+            subject: `Mobile App Order Cancellation #${id}: ${fullReason}`,
+            category: 'CANCELLATION',
+            orderId: id,
+            status: 'RESOLVED',
+            message: `Customer cancelled order #${id} on mobile app.\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\n100% Refund initiated to payment source.`,
+            createdAt: new Date().toISOString()
+          });
+          window.localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
         }
       } catch {}
 
-      const msg = `Order #${id} was cancelled successfully. Full 100% refund of ${ord.total || 'the order amount'} has been initiated to your source payment method (UPI within 24h, Cards in 3-5 days).`;
+      const msg = `Order #${id} was cancelled successfully. Full 100% refund of ${cancelModalOrder.total || 'the order amount'} has been initiated to your source payment method (UPI within 24h, Cards in 3-5 days).`;
       if (Platform.OS === 'web') {
         window.alert(msg);
       } else {
-        Alert.alert('Order Cancelled & Refund Initiated', msg);
+        Alert.alert('Order Cancelled & 100% Refund Initiated', msg);
       }
-    };
-
-    const confirmMsg = `Are you sure you want to cancel Order #${id}? A full 100% refund of ${ord.total || 'the order amount'} will be reversed back to your payment source.`;
-    if (Platform.OS === 'web') {
-      if (window.confirm(confirmMsg)) {
-        doCancel();
-      }
-    } else {
-      Alert.alert('Cancel Order', confirmMsg, [
-        { text: 'Keep Order', style: 'cancel' },
-        { text: 'Confirm Cancellation', style: 'destructive', onPress: doCancel }
-      ]);
+      setCancelModalOrder(null);
+    } finally {
+      setIsSubmittingAction(false);
     }
   };
 
-  const handleRequestReplacement = (ord) => {
-    if (!ord) return;
-    const id = ord.id || ord.orderId;
-    const doReplace = () => {
+  // Execute Replacement or Return
+  const handleConfirmReplacementOrReturnAction = () => {
+    if (!replacementModalOrder) return;
+    setIsSubmittingAction(true);
+    const id = replacementModalOrder.id || replacementModalOrder.orderId;
+    const isReplacement = resolutionMode === 'replacement';
+    const selectedObj = MOBILE_RETURN_REASONS.find(r => r.id === returnReasonId) || MOBILE_RETURN_REASONS[0];
+    const fullReason = selectedObj.title;
+
+    try {
       setLocalOrdersOverrides(prev => ({
         ...prev,
         [id]: {
           ...prev[id],
-          replacementRequested: true
+          replacementRequested: isReplacement ? true : prev[id]?.replacementRequested,
+          returnRequested: !isReplacement ? true : prev[id]?.returnRequested
         }
       }));
 
@@ -541,70 +639,33 @@ export default function OrderDeliveryPage({
           const adminTickets = JSON.parse(window.localStorage.getItem('atomy_admin_tickets') || '[]');
           adminTickets.unshift({
             ticketId: `TCK-${Date.now().toString().slice(-8)}`,
-            customerName: ord.shippingAddress || 'Customer',
+            customerName: replacementModalOrder.shippingAddress || 'Customer',
             customerEmail: 'customer@atomy.in',
-            subject: `Zero-Cost Replacement Request for Order #${id}`,
-            category: 'DAMAGED_PRODUCT',
+            subject: isReplacement 
+              ? `Mobile 1-to-1 Replacement Request #${id}: ${fullReason}`
+              : `Mobile 30-Day Satisfaction Return #${id}: ${fullReason}`,
+            category: isReplacement ? 'DAMAGED_PRODUCT' : 'REFUND_REQUEST',
             orderId: id,
             status: 'OPEN',
-            message: `Mobile customer requested zero-cost 1-to-1 replacement for transit damage on Order #${id}. Reverse courier pickup via Blue Dart Express scheduled at zero cost.`,
+            message: `Customer Resolution: ${isReplacement ? 'Zero-Cost Replacement' : 'Return for 100% Refund'}\nReason: ${fullReason}\nNotes: ${actionNotes || 'None'}\nPackaging Intact: ${conditionConfirmed ? 'Confirmed' : 'Unchecked'}\nReverse Courier: Free Blue Dart Express pickup scheduled at ${replacementModalOrder.shippingAddress || 'customer address'}.`,
             createdAt: new Date().toISOString()
           });
           window.localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
         }
       } catch {}
 
-      const msg = `Zero-Cost 1-to-1 Replacement registered for Order #${id}! Blue Dart Express will collect the package from your address with ₹0 reverse shipping charge.`;
+      const msg = isReplacement 
+        ? `Zero-Cost 1-to-1 Replacement registered for Order #${id}! Blue Dart Express will collect the package from your address with ₹0 reverse shipping charge.`
+        : `30-Day Money-Back Guarantee claim submitted for Order #${id}! Blue Dart reverse pickup scheduled; 100% refund will be credited back to your original payment channel.`;
+
       if (Platform.OS === 'web') {
         window.alert(msg);
       } else {
-        Alert.alert('Replacement Scheduled', msg);
+        Alert.alert(isReplacement ? 'Replacement Scheduled' : 'Return Registered', msg);
       }
-    };
-
-    const confirmMsg = `Request Zero-Cost 1-to-1 Replacement for Order #${id}?\n\nIf products arrived damaged, leaked, or broken in transit, Blue Dart Express will collect the package at ₹0 shipping cost, and a fresh replacement will be dispatched.`;
-    if (Platform.OS === 'web') {
-      if (window.confirm(confirmMsg)) {
-        doReplace();
-      }
-    } else {
-      Alert.alert('1-to-1 Free Replacement', confirmMsg, [
-        { text: 'Close', style: 'cancel' },
-        { text: 'Schedule Replacement', onPress: doReplace }
-      ]);
-    }
-  };
-
-  const handleRequestReturn = (ord) => {
-    if (!ord) return;
-    const id = ord.id || ord.orderId;
-    const doReturn = () => {
-      setLocalOrdersOverrides(prev => ({
-        ...prev,
-        [id]: {
-          ...prev[id],
-          returnRequested: true
-        }
-      }));
-
-      const msg = `30-Day Money-Back Guarantee claim submitted for Order #${id}! Our Gurugram logistics center will coordinate return pickup and initiate your 100% refund.`;
-      if (Platform.OS === 'web') {
-        window.alert(msg);
-      } else {
-        Alert.alert('Return Registered', msg);
-      }
-    };
-
-    const confirmMsg = `Claim 30-Day 100% Satisfaction Return for Order #${id}?\n\nFull purchase amount will be refunded to your original payment channel upon inspection.`;
-    if (Platform.OS === 'web') {
-      if (window.confirm(confirmMsg)) {
-        doReturn();
-      }
-    } else {
-      Alert.alert('30-Day Money-Back Guarantee', confirmMsg, [
-        { text: 'Close', style: 'cancel' },
-        { text: 'Initiate Return', onPress: doReturn }
-      ]);
+      setReplacementModalOrder(null);
+    } finally {
+      setIsSubmittingAction(false);
     }
   };
 
@@ -1094,7 +1155,7 @@ export default function OrderDeliveryPage({
                         {canCancel && (
                           <TouchableOpacity
                             style={[styles.customerActionPill, styles.cancelActionPill]}
-                            onPress={() => handleCancelOrder(ord.id)}
+                            onPress={() => handleCancelOrder(ord)}
                             activeOpacity={0.8}
                           >
                             <Ionicons name="close-circle-outline" size={13} color="#DC2626" />
@@ -1105,7 +1166,7 @@ export default function OrderDeliveryPage({
                         {canRequestReplacement && (
                           <TouchableOpacity
                             style={[styles.customerActionPill, styles.replaceActionPill]}
-                            onPress={() => handleRequestReplacement(ord.id)}
+                            onPress={() => handleRequestReplacement(ord)}
                             activeOpacity={0.8}
                           >
                             <Ionicons name="repeat-outline" size={13} color="#4F46E5" />
@@ -1116,7 +1177,7 @@ export default function OrderDeliveryPage({
                         {canRequestReturn && (
                           <TouchableOpacity
                             style={[styles.customerActionPill, styles.returnActionPill]}
-                            onPress={() => handleRequestReturn(ord.id)}
+                            onPress={() => handleRequestReturn(ord)}
                             activeOpacity={0.8}
                           >
                             <Ionicons name="shield-checkmark-outline" size={13} color="#16A34A" />
@@ -1137,7 +1198,267 @@ export default function OrderDeliveryPage({
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* 7. OFFICIAL CONSUMER PROTECTION & REFUND SOP MODAL */}
+      {/* ========================================================
+          MODAL 1: MOBILE PRE-DISPATCH CANCELLATION MODAL
+          ======================================================== */}
+      <Modal
+        visible={!!cancelModalOrder}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setCancelModalOrder(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalHeader, { borderBottomColor: '#FECDD3' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={[styles.modalShieldIcon, { backgroundColor: '#FEE2E2' }]}>
+                  <Ionicons name="close-circle" size={24} color="#DC2626" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalTitle, { color: '#9F1239' }]}>
+                    Cancel Order #{cancelModalOrder?.id || cancelModalOrder?.orderId}
+                  </Text>
+                  <Text style={[styles.modalSubtitle, { color: '#BE123C' }]}>
+                    Pre-dispatch 100% refund • ₹0 cancellation charge
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setCancelModalOrder(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={22} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Refund Summary Banner */}
+              <View style={styles.mobileRefundBanner}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <Text style={styles.mobileRsbLabel}>100% REFUND AMOUNT</Text>
+                  <Text style={styles.mobileRsbAmount}>{cancelModalOrder?.total || 'Full Paid Amount'}</Text>
+                </View>
+                <Text style={styles.mobileRsbSub}>Reversed directly to source payment method (₹0 deductions)</Text>
+                <View style={styles.mobileSlaRow}>
+                  <View style={[styles.mobileSlaPill, { backgroundColor: '#F0FDF4', borderColor: '#86EFAC' }]}>
+                    <Text style={styles.mobileSlaTextTop}>⚡ UPI</Text>
+                    <Text style={styles.mobileSlaTextBot}>Within 24h</Text>
+                  </View>
+                  <View style={styles.mobileSlaPill}>
+                    <Text style={styles.mobileSlaTextTop}>💳 Cards</Text>
+                    <Text style={styles.mobileSlaTextBot}>3 - 5 Days</Text>
+                  </View>
+                  <View style={styles.mobileSlaPill}>
+                    <Text style={styles.mobileSlaTextTop}>🏦 Net Banking</Text>
+                    <Text style={styles.mobileSlaTextBot}>5 - 7 Days</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Reason Selector */}
+              <Text style={styles.mobileFormSectionTitle}>Reason for Cancellation *</Text>
+              <View style={{ gap: 8, marginVertical: 8 }}>
+                {MOBILE_CANCELLATION_REASONS.map(reason => {
+                  const isSelected = cancelReasonId === reason.id;
+                  return (
+                    <TouchableOpacity
+                      key={reason.id}
+                      style={[styles.mobileReasonTile, isSelected && styles.mobileReasonTileSelectedDanger]}
+                      onPress={() => setCancelReasonId(reason.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.mobileRadioCircle, isSelected && { borderColor: '#DC2626' }]}>
+                        {isSelected && <View style={[styles.mobileRadioInner, { backgroundColor: '#DC2626' }]} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.mobileReasonTitle, isSelected && { color: '#9F1239' }]}>{reason.title}</Text>
+                        <Text style={styles.mobileReasonDesc}>{reason.desc}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {cancelReasonId === 'address' && (
+                <View style={styles.mobileTipBanner}>
+                  <Ionicons name="information-circle" size={16} color="#1D4ED8" />
+                  <Text style={styles.mobileTipText}>
+                    Want to change delivery address? Our dispatch team can update your address before courier handover without cancelling.
+                  </Text>
+                </View>
+              )}
+
+              {/* Additional Comments */}
+              <Text style={[styles.mobileFormSectionTitle, { marginTop: 10 }]}>Comments (Optional)</Text>
+              <TextInput
+                style={styles.mobileTextInput}
+                placeholder="Share any comments with our team..."
+                placeholderTextColor="#94A3B8"
+                value={cancelNotes}
+                onChangeText={setCancelNotes}
+                multiline
+                numberOfLines={2}
+              />
+            </ScrollView>
+
+            <View style={styles.mobileModalFooterRow}>
+              <TouchableOpacity
+                style={styles.mobileBtnSecondary}
+                onPress={() => setCancelModalOrder(null)}
+                disabled={isSubmittingAction}
+              >
+                <Text style={styles.mobileBtnSecondaryText}>Keep Order</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.mobileBtnDanger}
+                onPress={handleConfirmCancelOrderAction}
+                disabled={isSubmittingAction}
+              >
+                <Text style={styles.mobileBtnDangerText}>
+                  {isSubmittingAction ? 'Processing...' : 'Confirm Cancellation'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================
+          MODAL 2: MOBILE REPLACEMENT / 30-DAY RETURN MODAL
+          ======================================================== */}
+      <Modal
+        visible={!!replacementModalOrder}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setReplacementModalOrder(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalHeader, { borderBottomColor: resolutionMode === 'replacement' ? '#C7D2FE' : '#BBF7D0' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={[styles.modalShieldIcon, { backgroundColor: resolutionMode === 'replacement' ? '#EEF2FF' : '#DCFCE7' }]}>
+                  <Ionicons 
+                    name={resolutionMode === 'replacement' ? "repeat" : "shield-checkmark"} 
+                    size={22} 
+                    color={resolutionMode === 'replacement' ? "#4F46E5" : "#16A34A"} 
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalTitle, { color: resolutionMode === 'replacement' ? '#312E81' : '#14532D' }]}>
+                    {resolutionMode === 'replacement' ? 'Zero-Cost Replacement' : '30-Day Return & Refund'}
+                  </Text>
+                  <Text style={styles.modalSubtitle}>Order #{replacementModalOrder?.id || replacementModalOrder?.orderId}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setReplacementModalOrder(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={22} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* Resolution Switcher */}
+              <View style={styles.mobileResolutionSwitcher}>
+                <TouchableOpacity
+                  style={[styles.mobileResolutionBtn, resolutionMode === 'replacement' && styles.mobileResolutionBtnActiveIndigo]}
+                  onPress={() => setResolutionMode('replacement')}
+                >
+                  <Text style={[styles.mobileResBadge, { backgroundColor: '#DBEAFE', color: '#1D4ED8' }]}>RECOMMENDED</Text>
+                  <Text style={styles.mobileResTitle}>Free Replacement</Text>
+                  <Text style={styles.mobileResSub}>₹0 pickup • Fresh unit • PV safe</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.mobileResolutionBtn, resolutionMode === 'refund' && styles.mobileResolutionBtnActiveGreen]}
+                  onPress={() => setResolutionMode('refund')}
+                >
+                  <Text style={[styles.mobileResBadge, { backgroundColor: '#DCFCE7', color: '#15803D' }]}>GUARANTEE</Text>
+                  <Text style={styles.mobileResTitle}>100% Refund</Text>
+                  <Text style={styles.mobileResSub}>Reversed to original payment</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Reason Selector */}
+              <Text style={styles.mobileFormSectionTitle}>Reason for {resolutionMode === 'replacement' ? 'Replacement' : 'Return'} *</Text>
+              <View style={{ gap: 8, marginVertical: 8 }}>
+                {MOBILE_RETURN_REASONS.map(reason => {
+                  const isSelected = returnReasonId === reason.id;
+                  return (
+                    <TouchableOpacity
+                      key={reason.id}
+                      style={[styles.mobileReasonTile, isSelected && styles.mobileReasonTileSelectedBlue]}
+                      onPress={() => setReturnReasonId(reason.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.mobileRadioCircle, isSelected && { borderColor: '#00A3E0' }]}>
+                        {isSelected && <View style={[styles.mobileRadioInner, { backgroundColor: '#00A3E0' }]} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.mobileReasonTitle, isSelected && { color: '#0369A1' }]}>{reason.title}</Text>
+                        <Text style={styles.mobileReasonDesc}>{reason.desc}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Comments */}
+              <Text style={[styles.mobileFormSectionTitle, { marginTop: 10 }]}>Details of Defect / Feedback</Text>
+              <TextInput
+                style={styles.mobileTextInput}
+                placeholder="Describe the issue with the item..."
+                placeholderTextColor="#94A3B8"
+                value={actionNotes}
+                onChangeText={setActionNotes}
+                multiline
+                numberOfLines={2}
+              />
+
+              {/* Condition Checkbox */}
+              <TouchableOpacity
+                style={styles.mobileConditionCheckRow}
+                onPress={() => setConditionConfirmed(c => !c)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={conditionConfirmed ? "checkbox" : "square-outline"}
+                  size={20}
+                  color={conditionConfirmed ? "#00A3E0" : "#94A3B8"}
+                />
+                <Text style={styles.mobileConditionText}>
+                  I confirm that original product bottle, carton, and invoice are retained for Blue Dart courier handover.
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+
+            <View style={styles.mobileModalFooterRow}>
+              <TouchableOpacity
+                style={styles.mobileBtnSecondary}
+                onPress={() => setReplacementModalOrder(null)}
+                disabled={isSubmittingAction}
+              >
+                <Text style={styles.mobileBtnSecondaryText}>Keep Product</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.mobileBtnPrimary,
+                  resolutionMode === 'replacement' ? { backgroundColor: '#4F46E5' } : { backgroundColor: '#16A34A' }
+                ]}
+                onPress={handleConfirmReplacementOrReturnAction}
+                disabled={isSubmittingAction || !conditionConfirmed}
+              >
+                <Text style={styles.mobileBtnPrimaryText}>
+                  {isSubmittingAction 
+                    ? 'Submitting...' 
+                    : resolutionMode === 'replacement' 
+                      ? 'Schedule Replacement' 
+                      : 'Initiate Return'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================
+          MODAL 3: TABBED RULES & POLICIES MODAL
+          ======================================================== */}
       <Modal
         visible={isRulesModalOpen}
         transparent={true}
@@ -1161,45 +1482,87 @@ export default function OrderDeliveryPage({
               </TouchableOpacity>
             </View>
 
+            {/* Mobile Tabs Bar */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mobileRulesTabBar}>
+              {[
+                { key: 'cancellation', label: 'Cancellation' },
+                { key: 'replacement', label: '7-Day Replace' },
+                { key: 'refund_guarantee', label: '30-Day Refund' },
+                { key: 'timelines', label: 'Banking SLA' },
+              ].map(tab => {
+                const isActive = activeRulesTab === tab.key;
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
+                    style={[styles.mobileRulesTabBtn, isActive && styles.mobileRulesTabBtnActive]}
+                    onPress={() => setActiveRulesTab(tab.key)}
+                  >
+                    <Text style={[styles.mobileRulesTabText, isActive && styles.mobileRulesTabTextActive]}>
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* Rule 1 */}
-              <View style={styles.modalRuleSection}>
-                <View style={styles.modalRuleHeader}>
-                  <View style={[styles.modalRulePill, { backgroundColor: '#E0F2FE' }]}>
-                    <Text style={[styles.modalRulePillText, { color: '#0284C7' }]}>Rule 01 • Cancellation</Text>
+              {activeRulesTab === 'cancellation' && (
+                <View style={styles.modalRuleSection}>
+                  <View style={styles.modalRuleHeader}>
+                    <View style={[styles.modalRulePill, { backgroundColor: '#E0F2FE' }]}>
+                      <Text style={[styles.modalRulePillText, { color: '#0284C7' }]}>Rule 01 • Cancellation</Text>
+                    </View>
+                    <Text style={styles.modalRuleHeading}>Pre-Dispatch 100% Instant Refund</Text>
                   </View>
-                  <Text style={styles.modalRuleHeading}>Pre-Dispatch 100% Instant Refund</Text>
+                  <Text style={styles.modalRuleDescription}>
+                    Orders can be cancelled at any time prior to packaging and dispatch. Instant 100% reversal to original payment method without any convenience deduction or cancellation penalty.
+                  </Text>
                 </View>
-                <Text style={styles.modalRuleDescription}>
-                  Orders can be cancelled at any time prior to packaging and dispatch. Instant 100% reversal to original payment method without any convenience deduction or cancellation penalty.
-                </Text>
-              </View>
+              )}
 
-              {/* Rule 2 */}
-              <View style={styles.modalRuleSection}>
-                <View style={styles.modalRuleHeader}>
-                  <View style={[styles.modalRulePill, { backgroundColor: '#EEF2FF' }]}>
-                    <Text style={[styles.modalRulePillText, { color: '#4F46E5' }]}>Rule 02 • Replacement</Text>
+              {activeRulesTab === 'replacement' && (
+                <View style={styles.modalRuleSection}>
+                  <View style={styles.modalRuleHeader}>
+                    <View style={[styles.modalRulePill, { backgroundColor: '#EEF2FF' }]}>
+                      <Text style={[styles.modalRulePillText, { color: '#4F46E5' }]}>Rule 02 • Replacement</Text>
+                    </View>
+                    <Text style={styles.modalRuleHeading}>Zero-Cost Transit Damage Replacement</Text>
                   </View>
-                  <Text style={styles.modalRuleHeading}>Zero-Cost Transit Damage Replacement</Text>
+                  <Text style={styles.modalRuleDescription}>
+                    Within 7 calendar days of delivery, if any sealed Atomy consumable or cosmetic arrives broken, leaked, or damaged, request immediate free replacement. Blue Dart reverse pick-up is completely free (₹0) and Member PV is 100% safeguarded.
+                  </Text>
                 </View>
-                <Text style={styles.modalRuleDescription}>
-                  Within 7 calendar days of delivery, if any sealed Atomy consumable or cosmetic arrives broken, leaked, or damaged, request immediate free replacement. Blue Dart reverse pick-up is completely free (₹0) and Member PV is 100% safeguarded.
-                </Text>
-              </View>
+              )}
 
-              {/* Rule 3 */}
-              <View style={styles.modalRuleSection}>
-                <View style={styles.modalRuleHeader}>
-                  <View style={[styles.modalRulePill, { backgroundColor: '#DCFCE7' }]}>
-                    <Text style={[styles.modalRulePillText, { color: '#16A34A' }]}>Rule 03 • 30-Day Refund</Text>
+              {activeRulesTab === 'refund_guarantee' && (
+                <View style={styles.modalRuleSection}>
+                  <View style={styles.modalRuleHeader}>
+                    <View style={[styles.modalRulePill, { backgroundColor: '#DCFCE7' }]}>
+                      <Text style={[styles.modalRulePillText, { color: '#16A34A' }]}>Rule 03 • 30-Day Refund</Text>
+                    </View>
+                    <Text style={styles.modalRuleHeading}>100% Money-Back Guarantee</Text>
                   </View>
-                  <Text style={styles.modalRuleHeading}>100% Money-Back Guarantee</Text>
+                  <Text style={styles.modalRuleDescription}>
+                    If not 100% satisfied with an Atomy purchase, claim full product refund within 30 days of purchase. Payout SLA: UPI within 24 hours, Credit/Debit cards in 3 to 5 business days, Net Banking in 5 to 7 days.
+                  </Text>
                 </View>
-                <Text style={styles.modalRuleDescription}>
-                  If not 100% satisfied with an Atomy purchase, claim full product refund within 30 days of purchase. Payout SLA: UPI within 24 hours, Credit/Debit cards in 3 to 5 business days, Net Banking in 5 to 7 days.
-                </Text>
-              </View>
+              )}
+
+              {activeRulesTab === 'timelines' && (
+                <View style={styles.modalRuleSection}>
+                  <View style={styles.modalRuleHeader}>
+                    <View style={[styles.modalRulePill, { backgroundColor: '#FEF3C7' }]}>
+                      <Text style={[styles.modalRulePillText, { color: '#B45309' }]}>Rule 04 • Banking Timelines</Text>
+                    </View>
+                    <Text style={styles.modalRuleHeading}>RBI Clearing &amp; Payment SLAs</Text>
+                  </View>
+                  <Text style={styles.modalRuleDescription}>
+                    • UPI (GPay/PhonePe/Paytm): Within 24 Hours{'\n'}
+                    • Credit/Debit Cards: 3 to 5 Banking Days{'\n'}
+                    • Net Banking (NEFT/IMPS): 5 to 7 Banking Days
+                  </Text>
+                </View>
+              )}
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -2486,5 +2849,269 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 13,
+  },
+
+  /* Mobile Modal Breakdown, Reason Tiles & Tabs Styles */
+  mobileRefundBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  mobileRsbLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#9F1239',
+    letterSpacing: 0.5,
+  },
+  mobileRsbAmount: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+  mobileRsbSub: {
+    fontSize: 11,
+    color: '#BE123C',
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  mobileSlaRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  mobileSlaPill: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    alignItems: 'center',
+  },
+  mobileSlaTextTop: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  mobileSlaTextBot: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#16A34A',
+    marginTop: 1,
+  },
+  mobileFormSectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  mobileReasonTile: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    padding: 10,
+  },
+  mobileReasonTileSelectedDanger: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FFF5F5',
+  },
+  mobileReasonTileSelectedBlue: {
+    borderColor: '#00A3E0',
+    backgroundColor: '#F0F9FF',
+  },
+  mobileRadioCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  mobileRadioInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  mobileReasonTitle: {
+    fontSize: 12,
+    fontWeight: '750',
+    color: '#0F172A',
+  },
+  mobileReasonDesc: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 1,
+    lineHeight: 14,
+  },
+  mobileTipBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    padding: 10,
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  mobileTipText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 15,
+  },
+  mobileTextInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 12,
+    color: '#0F172A',
+    minHeight: 50,
+    textAlignVertical: 'top',
+    marginBottom: 6,
+  },
+  mobileModalFooterRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  mobileBtnSecondary: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mobileBtnSecondaryText: {
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 12.5,
+  },
+  mobileBtnDanger: {
+    flex: 1.4,
+    backgroundColor: '#DC2626',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mobileBtnDangerText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12.5,
+  },
+  mobileResolutionSwitcher: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  mobileResolutionBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 10,
+  },
+  mobileResolutionBtnActiveIndigo: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#EEF2FF',
+  },
+  mobileResolutionBtnActiveGreen: {
+    borderColor: '#16A34A',
+    backgroundColor: '#F0FDF4',
+  },
+  mobileResBadge: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+  },
+  mobileResTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  mobileResSub: {
+    fontSize: 9.5,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 13,
+  },
+  mobileConditionCheckRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  mobileConditionText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#334155',
+    lineHeight: 15,
+  },
+  mobileBtnPrimary: {
+    flex: 1.4,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mobileBtnPrimaryText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 12.5,
+  },
+  mobileRulesTabBar: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  mobileRulesTabBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    marginRight: 6,
+  },
+  mobileRulesTabBtnActive: {
+    borderBottomColor: '#00A3E0',
+  },
+  mobileRulesTabText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  mobileRulesTabTextActive: {
+    color: '#00A3E0',
+    fontWeight: '800',
   },
 });
