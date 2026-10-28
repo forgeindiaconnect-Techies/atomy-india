@@ -49,8 +49,6 @@ public class AdminService {
         try {
             orderRepository.findAll().stream()
                     .filter(o -> "ORD-20261028-3207".equalsIgnoreCase(o.getOrderId())
-                            || (o.getCustomerEmail() != null && o.getCustomerEmail().toLowerCase().contains("gopal"))
-                            || (o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains("gopal"))
                             || (o.getOrderId() != null && o.getOrderId().toUpperCase().contains("TEST")))
                     .forEach(o -> {
                         orderRepository.delete(o);

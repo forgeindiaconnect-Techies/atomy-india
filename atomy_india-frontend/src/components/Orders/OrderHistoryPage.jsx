@@ -162,7 +162,6 @@ export default function OrderHistoryPage({
           const cleanPlaced = parsed.filter(o => {
             const id = String(o.orderId || '').toUpperCase();
             if (id.includes('3207') || id.includes('DEMO') || id.includes('TEST')) return false;
-            if (String(o.customerName || '').toLowerCase().includes('gopal') || String(o.customerEmail || '').toLowerCase().includes('gopal')) return false;
             return true;
           });
           if (cleanPlaced.length !== parsed.length) {
@@ -194,7 +193,6 @@ export default function OrderHistoryPage({
       .filter(o => {
         const id = String(o.orderId || '').toUpperCase();
         if (id.includes('3207') || id.includes('DEMO') || id.includes('TEST') || id.startsWith('ORD-20261005') || id.startsWith('ORD-20261008-3800') || id.startsWith('ORD-20261008-1863')) return false;
-        if (String(o.customerName || '').toLowerCase().includes('gopal') || String(o.customerEmail || '').toLowerCase().includes('gopal')) return false;
         return true;
       })
       .map((o) => {

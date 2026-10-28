@@ -573,9 +573,6 @@ export default function App() {
             !o.orderId?.includes('3207') &&
             !o.orderId?.toUpperCase().includes('DEMO') &&
             !o.orderId?.toUpperCase().includes('TEST') &&
-            !o.customerName?.toLowerCase().includes('gopal') &&
-            !o.customerEmail?.toLowerCase().includes('gopal') &&
-            !o.recipient?.toLowerCase().includes('gopal') &&
             !o.customerName?.toLowerCase().includes('test') &&
             !o.recipient?.toLowerCase().includes('test') &&
             !o.customerEmail?.toLowerCase().includes('example.com') &&
@@ -637,7 +634,6 @@ export default function App() {
             .filter(bo => {
               const bId = String(bo.orderId || '').toUpperCase();
               if (bId.includes('3207') || bId.includes('DEMO') || bId.includes('TEST')) return false;
-              if (String(bo.customerName || '').toLowerCase().includes('gopal') || String(bo.customerEmail || '').toLowerCase().includes('gopal')) return false;
               return true;
             })
             .map(bo => {
@@ -730,10 +726,6 @@ export default function App() {
       const orderPhone = (o.customerPhone || o.phone || '').trim().replace(/\D/g, '');
       const orderCustName = (o.customerName || '').trim().toLowerCase();
       const orderRecipient = (o.recipient || '').trim().toLowerCase();
-
-      if (orderCustName.includes('gopal') || orderRecipient.includes('gopal') || orderEmail.includes('gopal')) {
-        return false;
-      }
 
       if (email && orderEmail && orderEmail === email) return true;
       if (phone && orderPhone && orderPhone === phone) return true;

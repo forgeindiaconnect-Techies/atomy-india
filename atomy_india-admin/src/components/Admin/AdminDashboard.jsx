@@ -267,8 +267,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             !o.orderId?.startsWith('ORD-20261008-1863') && 
             !o.orderId?.includes('3207') &&
             !o.orderId?.toUpperCase().includes('DEMO') &&
-            !o.customerName?.toLowerCase().includes('gopal') &&
-            !o.customerEmail?.toLowerCase().includes('gopal') &&
             !o.customerName?.toLowerCase().includes('test') &&
             !o.customerEmail?.toLowerCase().includes('example.com')
           ).map(o => {
@@ -842,8 +840,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           !o.orderId?.startsWith('ORD-20261008-1863') && 
           !o.orderId?.includes('3207') &&
           !o.orderId?.toUpperCase().includes('DEMO') &&
-          !o.customerName?.toLowerCase().includes('gopal') &&
-          !o.customerEmail?.toLowerCase().includes('gopal') &&
           !o.customerName?.toLowerCase().includes('test') &&
           !o.customerEmail?.toLowerCase().includes('example.com') &&
           !o.customerEmail?.toLowerCase().includes('test')
