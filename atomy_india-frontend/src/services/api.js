@@ -6,7 +6,7 @@ const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 // Customer APIs
 export async function createCustomerOrder(orderData) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 18000);
   try {
     const res = await fetch(`${API_BASE}/orders`, {
       method: 'POST',
@@ -94,14 +94,38 @@ export async function syncUnsyncedOrdersToBackend() {
 }
 
 export async function getCustomerOrderTracking(orderId) {
-  const res = await fetch(`${API_BASE}/tracking/${encodeURIComponent(orderId)}`);
-  if (!res.ok) {
-    if (res.status === 404) {
-      throw new Error(`Tracking for order "${orderId}" was not found.`);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${API_BASE}/tracking/${encodeURIComponent(orderId)}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) {
+      if (res.status === 404) {
+        throw new Error(`Tracking for order "${orderId}" was not found.`);
+      }
+      throw new Error('Failed to retrieve tracking details');
     }
-    throw new Error('Failed to retrieve tracking details');
+    return await res.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+    // If remote endpoint failed/timed out, try localhost backend if available
+    if (!API_BASE.includes('localhost:8085')) {
+      try {
+        const localCtrl = new AbortController();
+        const localTimeout = setTimeout(() => localCtrl.abort(), 3000);
+        const localRes = await fetch(`http://localhost:8085/api/tracking/${encodeURIComponent(orderId)}`, {
+          signal: localCtrl.signal
+        });
+        clearTimeout(localTimeout);
+        if (localRes.ok) {
+          return await localRes.json();
+        }
+      } catch (localErr) {}
+    }
+    throw err;
   }
-  return res.json();
 }
 
 export async function submitSupportTicket(ticketData) {

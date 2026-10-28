@@ -570,7 +570,12 @@ export default function App() {
             !o.orderId?.startsWith('ORD-20261005') && 
             !o.orderId?.startsWith('ORD-20261008-3800') && 
             !o.orderId?.startsWith('ORD-20261008-1863') && 
+            !o.orderId?.includes('3207') &&
             !o.orderId?.toUpperCase().includes('DEMO') &&
+            !o.orderId?.toUpperCase().includes('TEST') &&
+            !o.customerName?.toLowerCase().includes('gopal') &&
+            !o.customerEmail?.toLowerCase().includes('gopal') &&
+            !o.recipient?.toLowerCase().includes('gopal') &&
             !o.customerName?.toLowerCase().includes('test') &&
             !o.recipient?.toLowerCase().includes('test') &&
             !o.customerEmail?.toLowerCase().includes('example.com') &&
@@ -628,7 +633,14 @@ export default function App() {
             return `BD${num}IN`;
           };
 
-          const mapped = backendHistory.map(bo => {
+          const mapped = backendHistory
+            .filter(bo => {
+              const bId = String(bo.orderId || '').toUpperCase();
+              if (bId.includes('3207') || bId.includes('DEMO') || bId.includes('TEST')) return false;
+              if (String(bo.customerName || '').toLowerCase().includes('gopal') || String(bo.customerEmail || '').toLowerCase().includes('gopal')) return false;
+              return true;
+            })
+            .map(bo => {
             const isCodOrder = bo.paymentMethod === 'CASH_ON_DELIVERY' || (bo.paymentMethod || '').toLowerCase().includes('cash') || (bo.paymentMethod || '').toLowerCase().includes('cod');
             const placedStatus = isCodOrder ? 'Cash on Delivery' : 'Payment Completed';
             const orderStatusMap = {
@@ -678,10 +690,18 @@ export default function App() {
           };
         });
 
-          setPlacedOrders(mapped);
-          try {
-            localStorage.setItem('atomy_placed_orders', JSON.stringify(mapped));
-          } catch {}
+          setPlacedOrders(prevPlaced => {
+            const backendIds = new Set(mapped.map(m => (m.orderId || '').trim().toUpperCase()));
+            const pendingLocalOrders = (Array.isArray(prevPlaced) ? prevPlaced : []).filter(p => {
+              const pId = (p.orderId || '').trim().toUpperCase();
+              return pId && !backendIds.has(pId);
+            });
+            const merged = [...pendingLocalOrders, ...mapped];
+            try {
+              localStorage.setItem('atomy_placed_orders', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
         }
       } catch (err) {}
     };
@@ -700,7 +720,7 @@ export default function App() {
 
     return placedOrders.filter(o => {
       const oId = String(o.orderId || '').toUpperCase();
-      if (oId.includes('DEMO') || oId.startsWith('ORD-20261005') || oId.startsWith('ORD-20261008-3800') || oId.startsWith('ORD-20261008-1863')) {
+      if (oId.includes('DEMO') || oId.startsWith('ORD-20261005') || oId.startsWith('ORD-20261008-3800') || oId.startsWith('ORD-20261008-1863') || oId.includes('3207') || oId.includes('TEST')) {
         return false;
       }
 
@@ -708,6 +728,10 @@ export default function App() {
       const orderPhone = (o.customerPhone || o.phone || '').trim().replace(/\D/g, '');
       const orderCustName = (o.customerName || '').trim().toLowerCase();
       const orderRecipient = (o.recipient || '').trim().toLowerCase();
+
+      if (orderCustName.includes('gopal') || orderRecipient.includes('gopal') || orderEmail.includes('gopal')) {
+        return false;
+      }
 
       if (email && orderEmail && orderEmail === email) return true;
       if (phone && orderPhone && orderPhone === phone) return true;

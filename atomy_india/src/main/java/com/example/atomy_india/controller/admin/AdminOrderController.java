@@ -115,6 +115,12 @@ public class AdminOrderController {
         ));
     }
 
+    @DeleteMapping("/{orderId}")
+    public ResponseEntity<?> deleteOrder(@PathVariable String orderId) {
+        adminService.deleteOrder(orderId);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Order " + orderId + " deleted successfully"));
+    }
+
     @DeleteMapping("/all")
     public ResponseEntity<?> clearAllOrders() {
         adminService.clearAllOrders();

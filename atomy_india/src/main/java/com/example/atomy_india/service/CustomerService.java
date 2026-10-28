@@ -248,11 +248,55 @@ public class CustomerService {
     // --- Public Live Order Tracking ---
 
     public Optional<OrderTracking> getTracking(String orderIdOrTrackingNumber) {
-        Optional<OrderTracking> byOrder = trackingRepository.findByOrderId(orderIdOrTrackingNumber);
+        if (orderIdOrTrackingNumber == null || orderIdOrTrackingNumber.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        String cleanId = orderIdOrTrackingNumber.trim();
+
+        // 1. Check trackingRepository by Order ID
+        Optional<OrderTracking> byOrder = trackingRepository.findByOrderId(cleanId);
         if (byOrder.isPresent()) {
             return byOrder;
         }
-        return trackingRepository.findByTrackingNumber(orderIdOrTrackingNumber);
+
+        // 2. Check trackingRepository by Tracking Number
+        Optional<OrderTracking> byTracking = trackingRepository.findByTrackingNumber(cleanId);
+        if (byTracking.isPresent()) {
+            return byTracking;
+        }
+
+        // 3. Fallback: Check orderRepository. If order exists, auto-generate tracking entity and persist
+        Optional<CustomerOrder> orderOpt = orderRepository.findById(cleanId);
+        if (!orderOpt.isPresent()) {
+            orderOpt = orderRepository.findAll().stream()
+                    .filter(o -> o.getOrderId() != null && o.getOrderId().equalsIgnoreCase(cleanId))
+                    .findFirst();
+        }
+
+        if (orderOpt.isPresent()) {
+            CustomerOrder order = orderOpt.get();
+            String awb = "BD" + (100000000 + Math.abs(order.getOrderId().hashCode() % 900000000)) + "IN";
+            String estDelivery = order.getEstimatedDeliveryDate() != null
+                    ? order.getEstimatedDeliveryDate() + " (" + (order.getEstimatedDelivery() != null ? order.getEstimatedDelivery() : "Within 2 Days") + ")"
+                    : (order.getEstimatedDelivery() != null ? order.getEstimatedDelivery() : "Within 2 - 3 business days");
+            String initialStatus = order.getOrderStatus() != null ? order.getOrderStatus().name() : "PLACED";
+
+            String initCheckpoints = "[{\"timestamp\":\"" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
+                    + "\",\"status\":\"ORDER_PLACED\",\"location\":\"Gurugram Central Fulfillment Center\",\"description\":\"Order received and confirmed. Package is being prepared for dispatch.\"}]";
+
+            OrderTracking newTracking = new OrderTracking(
+                    order.getOrderId(),
+                    awb,
+                    "Blue Dart Express (Standard)",
+                    initialStatus,
+                    "Order Processing Center, Gurugram",
+                    estDelivery,
+                    initCheckpoints
+            );
+            return Optional.of(trackingRepository.save(newTracking));
+        }
+
+        return Optional.empty();
     }
 
     // --- Customer Support Tickets ---

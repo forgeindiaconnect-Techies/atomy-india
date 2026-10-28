@@ -44,6 +44,31 @@ public class AdminService {
 
     // --- 1. Dashboard Overview Metrics ---
 
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    public void cleanUnwantedOrders() {
+        try {
+            orderRepository.findAll().stream()
+                    .filter(o -> "ORD-20261028-3207".equalsIgnoreCase(o.getOrderId())
+                            || (o.getCustomerEmail() != null && o.getCustomerEmail().toLowerCase().contains("gopal"))
+                            || (o.getCustomerName() != null && o.getCustomerName().toLowerCase().contains("gopal"))
+                            || (o.getOrderId() != null && o.getOrderId().toUpperCase().contains("TEST")))
+                    .forEach(o -> {
+                        orderRepository.delete(o);
+                        trackingRepository.findByOrderId(o.getOrderId()).ifPresent(trackingRepository::delete);
+                    });
+        } catch (Exception ignored) {}
+    }
+
+    public void deleteOrder(String orderId) {
+        if (orderId == null || orderId.trim().isEmpty()) return;
+        String cleanId = orderId.trim();
+        orderRepository.deleteById(cleanId);
+        orderItemRepository.findAll().stream()
+                .filter(item -> cleanId.equals(item.getOrderId()))
+                .forEach(orderItemRepository::delete);
+        trackingRepository.findByOrderId(cleanId).ifPresent(trackingRepository::delete);
+    }
+
     public void clearAllOrders() {
         orderRepository.deleteAll();
         orderItemRepository.deleteAll();

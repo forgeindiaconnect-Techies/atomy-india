@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import './OrderSheetPage.css';
 import { fetchCouponsFromBackend, applyCouponBackend } from '../../services/couponService';
-import { createCustomerOrder } from '../../services/api';
+import { createCustomerOrder, syncUnsyncedOrdersToBackend } from '../../services/api';
 import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS, getRelatedProducts, getPopularProducts } from '../../data/mockData';
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
 import { calculateProductPricing } from '../../services/membershipService';
@@ -862,9 +862,14 @@ export default function OrderSheetPage({
     setIsProcessing(true);
 
     try {
-      const customerName = currentUser?.name || currentSelectedAddress?.recipientName || 'Customer';
-      const customerPhone = currentUser?.phone || currentSelectedAddress?.recipientPhone || '9876543210';
-      const customerEmail = currentUser?.email || 'customer@atomy.com';
+      const storedUser = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('atomy_current_user') || '{}');
+        } catch { return {}; }
+      })();
+      const customerName = currentUser?.name || currentUser?.fullName || storedUser?.name || storedUser?.fullName || currentSelectedAddress?.recipientName || 'Valued Customer';
+      const customerPhone = currentUser?.phone || storedUser?.phone || currentSelectedAddress?.recipientPhone || '9876543210';
+      const customerEmail = currentUser?.email || storedUser?.email || currentSelectedAddress?.email || 'naveen.mn7878@gmail.com';
       const fullRecipientName = currentSelectedAddress?.recipientName || customerName;
       const fullRecipientPhone = currentSelectedAddress?.recipientPhone || customerPhone;
       const fullShippingAddress = currentSelectedAddress 
@@ -969,6 +974,9 @@ export default function OrderSheetPage({
         const existing = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
         localStorage.setItem('atomy_placed_orders', JSON.stringify([newOrder, ...existing]));
         localStorage.setItem('atomy_admin_orders', JSON.stringify([newOrder, ...existing]));
+        if (!newOrder.syncedToBackend) {
+          syncUnsyncedOrdersToBackend().catch(() => {});
+        }
       } catch {}
 
       // Deduct stock in localStorage atomy_admin_products so Admin reflects immediately

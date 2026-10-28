@@ -159,7 +159,17 @@ export default function OrderHistoryPage({
         const parsed = JSON.parse(saved);
         const overrides = {};
         if (Array.isArray(parsed)) {
-          parsed.forEach(o => {
+          const cleanPlaced = parsed.filter(o => {
+            const id = String(o.orderId || '').toUpperCase();
+            if (id.includes('3207') || id.includes('DEMO') || id.includes('TEST')) return false;
+            if (String(o.customerName || '').toLowerCase().includes('gopal') || String(o.customerEmail || '').toLowerCase().includes('gopal')) return false;
+            return true;
+          });
+          if (cleanPlaced.length !== parsed.length) {
+            localStorage.setItem('atomy_placed_orders', JSON.stringify(cleanPlaced));
+          }
+
+          cleanPlaced.forEach(o => {
             if (o.orderId && (o.status === 'Cancelled' || o.orderStatus === 'CANCELLED' || o.replacementRequested || o.returnRequested)) {
               overrides[o.orderId] = {
                 status: (o.status === 'Cancelled' || o.orderStatus === 'CANCELLED') ? 'Cancelled' : o.status,
@@ -180,7 +190,14 @@ export default function OrderHistoryPage({
 
   // Map real customer placed orders without any fake demo data, merged with local overrides
   const allOrders = useMemo(() => {
-    return (placedOrders || []).map((o) => {
+    return (placedOrders || [])
+      .filter(o => {
+        const id = String(o.orderId || '').toUpperCase();
+        if (id.includes('3207') || id.includes('DEMO') || id.includes('TEST') || id.startsWith('ORD-20261005') || id.startsWith('ORD-20261008-3800') || id.startsWith('ORD-20261008-1863')) return false;
+        if (String(o.customerName || '').toLowerCase().includes('gopal') || String(o.customerEmail || '').toLowerCase().includes('gopal')) return false;
+        return true;
+      })
+      .map((o) => {
       const oId = o.orderId || `AT-${Date.now().toString().slice(-8)}`;
       const override = localOrderOverrides[oId] || {};
       const isCod = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');

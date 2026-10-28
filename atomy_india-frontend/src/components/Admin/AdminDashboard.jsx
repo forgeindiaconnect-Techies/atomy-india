@@ -196,15 +196,24 @@ export default function AdminDashboard({ onBackToStore }) {
       if (adminOrders) {
         const parsed = JSON.parse(adminOrders);
         if (Array.isArray(parsed)) {
-          return parsed.filter(o => 
+          const cleanOrders = parsed.filter(o => 
             !o.orderId?.startsWith('ORD-20261005') && 
             !o.orderId?.startsWith('ORD-20261008-3800') && 
             !o.orderId?.startsWith('ORD-20261008-1863') && 
+            !o.orderId?.includes('3207') &&
             !o.orderId?.toUpperCase().includes('DEMO') &&
+            !o.orderId?.toUpperCase().includes('TEST') &&
+            !o.customerName?.toLowerCase().includes('gopal') &&
+            !o.customerEmail?.toLowerCase().includes('gopal') &&
+            !o.recipient?.toLowerCase().includes('gopal') &&
             !o.customerName?.toLowerCase().includes('test') &&
             !o.customerEmail?.toLowerCase().includes('example.com') &&
             !o.customerEmail?.toLowerCase().includes('test')
           );
+          if (cleanOrders.length !== parsed.length) {
+            localStorage.setItem('atomy_admin_orders', JSON.stringify(cleanOrders));
+          }
+          return cleanOrders;
         }
       }
       return [];
