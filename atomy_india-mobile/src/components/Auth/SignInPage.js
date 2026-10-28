@@ -218,6 +218,7 @@ export default function SignInPage({
         const res = await registerCustomerApi(payload);
         if (res.success && res.data?.customer) {
           const cust = res.data.customer;
+          const signupTime = cust.createdAt || new Date().toISOString();
           const userSession = {
             name: cust.fullName || cust.name || fullName.trim(),
             email: cust.email || regEmail.trim(),
@@ -228,7 +229,15 @@ export default function SignInPage({
             address: cust.address || '',
             isMember: Boolean(cust.isMember),
             pv: 0,
+            createdAt: signupTime,
           };
+
+          try {
+            if (typeof window !== 'undefined' && window.localStorage && cust.email) {
+              window.localStorage.setItem(`atomy_user_signup_time_${cust.email.toLowerCase().trim()}`, signupTime);
+            }
+          } catch {}
+
           if (onAuthSuccess) {
             onAuthSuccess(userSession);
           }

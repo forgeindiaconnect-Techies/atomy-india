@@ -109,6 +109,7 @@ export const reconcileNotifications = (email, user, orders = [], membershipExpir
     if (membershipExpiry.status === 'EXPIRING_SOON') {
       const remainingDays = membershipExpiry.remainingDays || 2;
       const expiryDate = membershipExpiry.expiryDateStr || 'soon';
+      const notifCreated = new Date().toISOString();
       newNotifications.unshift({
         id: `notif_mem_expiring_${remainingDays}d`,
         type: 'membership_expiring',
@@ -116,12 +117,13 @@ export const reconcileNotifications = (email, user, orders = [], membershipExpir
         message: `Your Atomy Distributor Membership plan expires on ${expiryDate}. Renew your plan today to prevent interruption to wholesale Distributor Price (DP) discounts and personal PV points.`,
         unread: true,
         isMembershipAlert: true,
-        createdAt: new Date().toISOString(),
-        time: 'Expiring Soon',
-        timestamp: 'Expiring Soon',
+        createdAt: notifCreated,
+        time: formatRelativeTime(notifCreated),
+        timestamp: formatRelativeTime(notifCreated),
       });
     } else if (membershipExpiry.status === 'EXPIRED') {
       const expiryDate = membershipExpiry.expiryDateStr || '';
+      const notifCreated = new Date().toISOString();
       newNotifications.unshift({
         id: 'notif_mem_expired',
         type: 'membership_expired',
@@ -129,30 +131,63 @@ export const reconcileNotifications = (email, user, orders = [], membershipExpir
         message: `Your Atomy Distributor plan has expired${expiryDate ? ` on ${expiryDate}` : ''}. Reactivate your plan now to restore wholesale DP pricing and PV point accumulation.`,
         unread: true,
         isMembershipAlert: true,
-        createdAt: new Date().toISOString(),
-        time: 'Action Required',
-        timestamp: 'Action Required',
+        createdAt: notifCreated,
+        time: formatRelativeTime(notifCreated),
+        timestamp: formatRelativeTime(notifCreated),
       });
     }
   }
 
   const existingIds = new Set(newNotifications.map((n) => n.id));
 
-  // 2. Welcome / New Login Notification (if user is signed in)
+  // 2. Real Welcome / Sign Up Notification (with exact signup elapsed time)
   if (email && email !== 'guest' && user?.name && user.name !== 'Guest User') {
     const welcomeId = `welcome_${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    let signupIso = user?.createdAt;
+    if (!signupIso && typeof window !== 'undefined' && window.localStorage) {
+      signupIso = window.localStorage.getItem(`atomy_user_signup_time_${email.toLowerCase()}`);
+    }
+    if (!signupIso) {
+      signupIso = new Date().toISOString();
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.setItem(`atomy_user_signup_time_${email.toLowerCase()}`, signupIso);
+        } catch {}
+      }
+    }
+
     if (!existingIds.has(welcomeId)) {
       newNotifications.unshift({
         id: welcomeId,
         type: 'welcome',
-        title: 'Welcome to Atomy India!',
-        message: `Hello ${user.name}, you are successfully signed in. Enjoy 100% genuine Korean health & skincare essentials at official Member DP prices.`,
-        unread: false,
-        createdAt: new Date().toISOString(),
-        time: 'Active Session',
-        timestamp: 'Active Session',
+        title: 'Special Customer Welcome!',
+        message: `Hello ${user.name}, welcome to Atomy India! Explore 100% genuine Korean health & skincare essentials at Absolute Quality, Absolute Price.`,
+        unread: true,
+        createdAt: signupIso,
+        time: formatRelativeTime(signupIso),
+        timestamp: formatRelativeTime(signupIso),
       });
       existingIds.add(welcomeId);
+    }
+
+    // 2b. Membership Active Welcome notification if user is a member
+    if (user?.isMember) {
+      const memActiveId = `notif_mem_active_${email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+      if (!existingIds.has(memActiveId)) {
+        const memDate = user?.membershipStartDate || signupIso;
+        newNotifications.unshift({
+          id: memActiveId,
+          type: 'membership_active',
+          title: '🎉 Distributor Membership Active',
+          message: 'Your Atomy Distributor Membership is active. You have unlocked official wholesale Distributor Prices (DP) and 100% Personal PV accumulation.',
+          unread: false,
+          isMembershipAlert: true,
+          createdAt: memDate,
+          time: formatRelativeTime(memDate),
+          timestamp: formatRelativeTime(memDate),
+        });
+        existingIds.add(memActiveId);
+      }
     }
   }
 

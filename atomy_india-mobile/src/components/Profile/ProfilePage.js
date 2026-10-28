@@ -213,6 +213,19 @@ export default function ProfilePage({
     });
   }, [currentUser?.email, orders, expiry]);
 
+  // Live 30-second interval timer for real-time timestamp updates without reload
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNotifications((prev) =>
+        (prev || []).map((n) => ({
+          ...n,
+          time: n.createdAt ? formatRelativeTime(n.createdAt) : n.time,
+        }))
+      );
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   const unreadNotifCount = notifications.filter((n) => n.unread).length;
 
   const handleMarkAllRead = async () => {

@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { joinMembershipApi } from '../../services/api';
+import { addNotification } from '../../services/notificationService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -145,6 +146,18 @@ export default function MembershipPaymentModal({
         expiryDate: new Date(Date.now() + (plan === 'ANNUAL' ? 365 : 30) * 86400000).toISOString(),
         status: 'ACTIVE',
       };
+
+      try {
+        addNotification(trimmedEmail.toLowerCase(), {
+          id: `notif_mem_active_${Date.now()}`,
+          type: 'membership_active',
+          title: '🎉 Distributor Membership Activated',
+          message: `Congratulations! Your ${plan === 'MONTHLY' ? 'Monthly' : 'Annual'} Distributor Membership has been activated. Enjoy official DP wholesale discounts & PV accumulation.`,
+          unread: true,
+          isMembershipAlert: true,
+          createdAt: new Date().toISOString(),
+        });
+      } catch {}
 
       setTimeout(() => {
         setIsProcessing(false);
