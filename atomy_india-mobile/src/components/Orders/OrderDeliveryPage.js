@@ -778,29 +778,43 @@ export default function OrderDeliveryPage({
                 </View>
                 <TouchableOpacity
                   style={styles.rulesBannerViewBtn}
-                  onPress={() => setIsRulesModalOpen(true)}
+                  onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.rulesBannerViewBtnText}>Rules &gt;</Text>
+                  <Text style={styles.rulesBannerViewBtnText}>All Rules &gt;</Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.rulesBannerPillarsRow}>
-                <View style={styles.rulesPillarCard}>
+                <TouchableOpacity
+                  style={styles.rulesPillarCard}
+                  onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
+                  activeOpacity={0.75}
+                >
                   <View style={[styles.rulesPillarDot, { backgroundColor: '#0284C7' }]} />
-                  <Text style={styles.rulesPillarTitle}>Pre-Dispatch Cancel</Text>
+                  <Text style={styles.rulesPillarTitle} numberOfLines={1}>Pre-Dispatch Cancel</Text>
                   <Text style={styles.rulesPillarBody}>Instant 100% refund before package ships.</Text>
-                </View>
-                <View style={styles.rulesPillarCard}>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.rulesPillarCard}
+                  onPress={() => { setActiveRulesTab('replacement'); setIsRulesModalOpen(true); }}
+                  activeOpacity={0.75}
+                >
                   <View style={[styles.rulesPillarDot, { backgroundColor: '#4F46E5' }]} />
-                  <Text style={styles.rulesPillarTitle}>Free Replacement</Text>
+                  <Text style={styles.rulesPillarTitle} numberOfLines={1}>Free Replacement</Text>
                   <Text style={styles.rulesPillarBody}>7-day transit damage window via Blue Dart.</Text>
-                </View>
-                <View style={styles.rulesPillarCard}>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.rulesPillarCard}
+                  onPress={() => { setActiveRulesTab('refund_guarantee'); setIsRulesModalOpen(true); }}
+                  activeOpacity={0.75}
+                >
                   <View style={[styles.rulesPillarDot, { backgroundColor: '#16A34A' }]} />
-                  <Text style={styles.rulesPillarTitle}>30-Day Refund</Text>
+                  <Text style={styles.rulesPillarTitle} numberOfLines={1}>30-Day Refund</Text>
                   <Text style={styles.rulesPillarBody}>100% satisfaction refund (UPI: 24h, Cards: 3-5d).</Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -877,57 +891,95 @@ export default function OrderDeliveryPage({
                     const isDelivered = st.includes('delivered');
                     const isCancelled = st.includes('cancel');
 
-                    return (
-                      <>
-                        {isCancellable && (
+                    if (isCancellable) {
+                      return (
+                        <View style={styles.mobileTrackerBtnPair}>
                           <TouchableOpacity
-                            style={[styles.mobileActionBtn, styles.mobileCancelBtn]}
+                            style={[styles.mobileActionBtn, styles.mobileCancelBtn, { flex: 1.4 }]}
                             onPress={() => handleCancelOrder(activeTrackedOrder)}
                             activeOpacity={0.8}
                           >
-                            <Ionicons name="close-circle-outline" size={14} color="#DC2626" />
+                            <Ionicons name="close-circle-outline" size={15} color="#DC2626" />
                             <Text style={styles.mobileCancelBtnText}>Cancel Order</Text>
                           </TouchableOpacity>
-                        )}
 
-                        {isDelivered && (
-                          <>
+                          <TouchableOpacity
+                            style={[styles.mobileActionBtn, styles.mobileRulesBtn, { flex: 1 }]}
+                            onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="shield-checkmark-outline" size={15} color="#0284C7" />
+                            <Text style={styles.mobileRulesBtnText}>Rules &amp; SOP</Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    }
+
+                    if (isDelivered) {
+                      return (
+                        <View style={{ gap: 8, width: '100%' }}>
+                          <View style={styles.mobileTrackerBtnPair}>
                             <TouchableOpacity
-                              style={[styles.mobileActionBtn, styles.mobileReplaceBtn]}
+                              style={[styles.mobileActionBtn, styles.mobileReplaceBtn, { flex: 1 }]}
                               onPress={() => handleRequestReplacement(activeTrackedOrder)}
                               activeOpacity={0.8}
                             >
-                              <Ionicons name="refresh-circle-outline" size={14} color="#4338CA" />
-                              <Text style={styles.mobileReplaceBtnText}>Replacement</Text>
+                              <Ionicons name="refresh-circle-outline" size={15} color="#4338CA" />
+                              <Text style={styles.mobileReplaceBtnText}>Free Replacement</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                              style={[styles.mobileActionBtn, styles.mobileReturnBtn]}
+                              style={[styles.mobileActionBtn, styles.mobileReturnBtn, { flex: 1 }]}
                               onPress={() => handleRequestReturn(activeTrackedOrder)}
                               activeOpacity={0.8}
                             >
-                              <Ionicons name="return-down-back-outline" size={14} color="#15803D" />
-                              <Text style={styles.mobileReturnBtnText}>Return</Text>
+                              <Ionicons name="return-down-back-outline" size={15} color="#15803D" />
+                              <Text style={styles.mobileReturnBtnText}>30-Day Return</Text>
                             </TouchableOpacity>
-                          </>
-                        )}
-
-                        {isCancelled && (
-                          <View style={styles.mobileCancelledNotice}>
-                            <Ionicons name="information-circle" size={14} color="#64748B" />
-                            <Text style={styles.mobileCancelledNoticeText}>Cancelled • Full Refund Reversed</Text>
                           </View>
-                        )}
 
+                          <TouchableOpacity
+                            style={[styles.mobileActionBtn, styles.mobileRulesBtn, { width: '100%' }]}
+                            onPress={() => { setActiveRulesTab('refund_guarantee'); setIsRulesModalOpen(true); }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="shield-checkmark-outline" size={15} color="#0284C7" />
+                            <Text style={styles.mobileRulesBtnText}>View Consumer Protection SOP &amp; Timelines</Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    }
+
+                    if (isCancelled) {
+                      return (
+                        <View style={styles.mobileTrackerBtnPair}>
+                          <View style={[styles.mobileCancelledNotice, { flex: 1.5 }]}>
+                            <Ionicons name="close-circle" size={15} color="#DC2626" />
+                            <Text style={styles.mobileCancelledNoticeText}>Cancelled • 100% Refund</Text>
+                          </View>
+                          <TouchableOpacity
+                            style={[styles.mobileActionBtn, styles.mobileRulesBtn, { flex: 1 }]}
+                            onPress={() => { setActiveRulesTab('timelines'); setIsRulesModalOpen(true); }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="shield-checkmark-outline" size={15} color="#0284C7" />
+                            <Text style={styles.mobileRulesBtnText}>Refund SLA</Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    }
+
+                    return (
+                      <View style={styles.mobileTrackerBtnPair}>
                         <TouchableOpacity
-                          style={[styles.mobileActionBtn, styles.mobileRulesBtn]}
-                          onPress={() => setIsRulesModalOpen(true)}
+                          style={[styles.mobileActionBtn, styles.mobileRulesBtn, { flex: 1 }]}
+                          onPress={() => { setActiveRulesTab('timelines'); setIsRulesModalOpen(true); }}
                           activeOpacity={0.8}
                         >
-                          <Ionicons name="shield-checkmark-outline" size={14} color="#0284C7" />
-                          <Text style={styles.mobileRulesBtnText}>Rules &amp; SOP</Text>
+                          <Ionicons name="shield-checkmark-outline" size={15} color="#0284C7" />
+                          <Text style={styles.mobileRulesBtnText}>View Protection Rules &amp; Delivery SLA</Text>
                         </TouchableOpacity>
-                      </>
+                      </View>
                     );
                   })()}
                 </View>
@@ -1097,7 +1149,7 @@ export default function OrderDeliveryPage({
                   )}
                 </View>
 
-                {/* Action Buttons */}
+                {/* Action Buttons: 2-column balanced grid */}
                 <View style={styles.cardActionsRow}>
                   <TouchableOpacity
                     style={[styles.trackOrderBtn, isCurrentlyTracked && styles.trackOrderBtnActive]}
@@ -1106,7 +1158,7 @@ export default function OrderDeliveryPage({
                   >
                     <Ionicons
                       name="location-outline"
-                      size={14}
+                      size={15}
                       color={isCurrentlyTracked ? '#FFFFFF' : '#00A3E0'}
                     />
                     <Text style={[styles.trackOrderBtnText, isCurrentlyTracked && styles.trackOrderBtnTextActive]}>
@@ -1124,12 +1176,12 @@ export default function OrderDeliveryPage({
                     }}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="document-text-outline" size={14} color="#475569" />
+                    <Ionicons name="document-text-outline" size={15} color="#00A3E0" />
                     <Text style={styles.invoiceBtnText}>View GST Invoice</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* Customer Section: Pre-Dispatch Cancellation, Zero-Cost Replacement & Return */}
+                {/* Customer Section: Pre-Dispatch Cancellation, Zero-Cost Replacement, Return & Policy Rules */}
                 <View style={styles.cardCustomerActionsRow}>
                   {(() => {
                     const statusLower = (ord.status || '').toLowerCase();
@@ -1141,49 +1193,98 @@ export default function OrderDeliveryPage({
 
                     if (isCancelled) {
                       return (
-                        <View style={styles.cancelledStatusBadge}>
-                          <Ionicons name="close-circle" size={14} color="#DC2626" />
-                          <Text style={styles.cancelledStatusText}>
-                            Cancelled • Full Refund Processing (UPI: 24h, Cards: 3-5d)
-                          </Text>
+                        <View style={styles.cancelledStatusCard}>
+                          <View style={styles.cancelledStatusLeft}>
+                            <Ionicons name="close-circle" size={18} color="#DC2626" />
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.cancelledStatusTitle}>Order Cancelled • 100% Refund</Text>
+                              <Text style={styles.cancelledStatusSub}>Reversed to source payment (UPI: 24h, Cards: 3-5d)</Text>
+                            </View>
+                          </View>
+                          <TouchableOpacity
+                            style={styles.cancelledRulesBtn}
+                            onPress={() => { setActiveRulesTab('timelines'); setIsRulesModalOpen(true); }}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={styles.cancelledRulesBtnText}>SLA &gt;</Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    }
+
+                    if (canCancel) {
+                      return (
+                        <View style={styles.cardCustomerBtnRow}>
+                          <TouchableOpacity
+                            style={[styles.customerActionBtn, styles.cancelActionBtn]}
+                            onPress={() => handleCancelOrder(ord)}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="close-circle-outline" size={14} color="#DC2626" />
+                            <Text style={styles.cancelActionBtnText}>Cancel Order (100% Refund)</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[styles.customerActionBtn, styles.rulesActionBtn]}
+                            onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="shield-checkmark-outline" size={14} color="#0284C7" />
+                            <Text style={styles.rulesActionBtnText}>Rules &amp; SOP</Text>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    }
+
+                    if (canRequestReplacement || canRequestReturn) {
+                      return (
+                        <View style={{ gap: 6, width: '100%' }}>
+                          <View style={styles.cardCustomerBtnRow}>
+                            {canRequestReplacement && (
+                              <TouchableOpacity
+                                style={[styles.customerActionBtn, styles.replaceActionBtn]}
+                                onPress={() => handleRequestReplacement(ord)}
+                                activeOpacity={0.8}
+                              >
+                                <Ionicons name="repeat-outline" size={14} color="#4F46E5" />
+                                <Text style={styles.replaceActionBtnText}>Replace Item (₹0)</Text>
+                              </TouchableOpacity>
+                            )}
+
+                            {canRequestReturn && (
+                              <TouchableOpacity
+                                style={[styles.customerActionBtn, styles.returnActionBtn]}
+                                onPress={() => handleRequestReturn(ord)}
+                                activeOpacity={0.8}
+                              >
+                                <Ionicons name="shield-checkmark-outline" size={14} color="#16A34A" />
+                                <Text style={styles.returnActionBtnText}>30-Day Return</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+
+                          <TouchableOpacity
+                            style={styles.policyLinkRow}
+                            onPress={() => { setActiveRulesTab('refund_guarantee'); setIsRulesModalOpen(true); }}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="information-circle-outline" size={13} color="#0284C7" />
+                            <Text style={styles.policyLinkText}>View 30-Day Money-Back &amp; Free Replacement Policy &gt;</Text>
+                          </TouchableOpacity>
                         </View>
                       );
                     }
 
                     return (
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8, width: '100%' }}>
-                        {canCancel && (
-                          <TouchableOpacity
-                            style={[styles.customerActionPill, styles.cancelActionPill]}
-                            onPress={() => handleCancelOrder(ord)}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="close-circle-outline" size={13} color="#DC2626" />
-                            <Text style={styles.cancelActionText}>Cancel Order (100% Refund)</Text>
-                          </TouchableOpacity>
-                        )}
-
-                        {canRequestReplacement && (
-                          <TouchableOpacity
-                            style={[styles.customerActionPill, styles.replaceActionPill]}
-                            onPress={() => handleRequestReplacement(ord)}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="repeat-outline" size={13} color="#4F46E5" />
-                            <Text style={styles.replaceActionText}>Replace Damaged Item (₹0)</Text>
-                          </TouchableOpacity>
-                        )}
-
-                        {canRequestReturn && (
-                          <TouchableOpacity
-                            style={[styles.customerActionPill, styles.returnActionPill]}
-                            onPress={() => handleRequestReturn(ord)}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="shield-checkmark-outline" size={13} color="#16A34A" />
-                            <Text style={styles.returnActionText}>Claim 30-Day Return</Text>
-                          </TouchableOpacity>
-                        )}
+                      <View style={styles.cardCustomerBtnRow}>
+                        <TouchableOpacity
+                          style={[styles.customerActionBtn, styles.rulesActionBtn, { flex: 1 }]}
+                          onPress={() => { setActiveRulesTab('timelines'); setIsRulesModalOpen(true); }}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="shield-checkmark-outline" size={14} color="#0284C7" />
+                          <Text style={styles.rulesActionBtnText}>View Consumer Protection SOP &amp; Timelines</Text>
+                        </TouchableOpacity>
                       </View>
                     );
                   })()}
@@ -1209,13 +1310,15 @@ export default function OrderDeliveryPage({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            <View style={styles.modalDragHandle} />
+
             <View style={[styles.modalHeader, { borderBottomColor: '#FECDD3' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                 <View style={[styles.modalShieldIcon, { backgroundColor: '#FEE2E2' }]}>
                   <Ionicons name="close-circle" size={24} color="#DC2626" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.modalTitle, { color: '#9F1239' }]}>
+                  <Text style={[styles.modalTitle, { color: '#9F1239' }]} numberOfLines={1}>
                     Cancel Order #{cancelModalOrder?.id || cancelModalOrder?.orderId}
                   </Text>
                   <Text style={[styles.modalSubtitle, { color: '#BE123C' }]}>
@@ -1223,15 +1326,19 @@ export default function OrderDeliveryPage({
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setCancelModalOrder(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={22} color="#64748B" />
+              <TouchableOpacity 
+                style={styles.modalCloseCircle}
+                onPress={() => setCancelModalOrder(null)} 
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Refund Summary Banner */}
               <View style={styles.mobileRefundBanner}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <View style={styles.mobileRsbRow}>
                   <Text style={styles.mobileRsbLabel}>100% REFUND AMOUNT</Text>
                   <Text style={styles.mobileRsbAmount}>{cancelModalOrder?.total || 'Full Paid Amount'}</Text>
                 </View>
@@ -1267,7 +1374,7 @@ export default function OrderDeliveryPage({
                       <View style={[styles.mobileRadioCircle, isSelected && { borderColor: '#DC2626' }]}>
                         {isSelected && <View style={[styles.mobileRadioInner, { backgroundColor: '#DC2626' }]} />}
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={styles.mobileReasonTextCol}>
                         <Text style={[styles.mobileReasonTitle, isSelected && { color: '#9F1239' }]}>{reason.title}</Text>
                         <Text style={styles.mobileReasonDesc}>{reason.desc}</Text>
                       </View>
@@ -1331,6 +1438,8 @@ export default function OrderDeliveryPage({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            <View style={styles.modalDragHandle} />
+
             <View style={[styles.modalHeader, { borderBottomColor: resolutionMode === 'replacement' ? '#C7D2FE' : '#BBF7D0' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                 <View style={[styles.modalShieldIcon, { backgroundColor: resolutionMode === 'replacement' ? '#EEF2FF' : '#DCFCE7' }]}>
@@ -1341,18 +1450,22 @@ export default function OrderDeliveryPage({
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.modalTitle, { color: resolutionMode === 'replacement' ? '#312E81' : '#14532D' }]}>
+                  <Text style={[styles.modalTitle, { color: resolutionMode === 'replacement' ? '#312E81' : '#14532D' }]} numberOfLines={1}>
                     {resolutionMode === 'replacement' ? 'Zero-Cost Replacement' : '30-Day Return & Refund'}
                   </Text>
                   <Text style={styles.modalSubtitle}>Order #{replacementModalOrder?.id || replacementModalOrder?.orderId}</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setReplacementModalOrder(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={22} color="#64748B" />
+              <TouchableOpacity 
+                style={styles.modalCloseCircle}
+                onPress={() => setReplacementModalOrder(null)} 
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {/* Resolution Switcher */}
               <View style={styles.mobileResolutionSwitcher}>
                 <TouchableOpacity
@@ -1389,7 +1502,7 @@ export default function OrderDeliveryPage({
                       <View style={[styles.mobileRadioCircle, isSelected && { borderColor: '#00A3E0' }]}>
                         {isSelected && <View style={[styles.mobileRadioInner, { backgroundColor: '#00A3E0' }]} />}
                       </View>
-                      <View style={{ flex: 1 }}>
+                      <View style={styles.mobileReasonTextCol}>
                         <Text style={[styles.mobileReasonTitle, isSelected && { color: '#0369A1' }]}>{reason.title}</Text>
                         <Text style={styles.mobileReasonDesc}>{reason.desc}</Text>
                       </View>
@@ -1467,18 +1580,24 @@ export default function OrderDeliveryPage({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
+            <View style={styles.modalDragHandle} />
+
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                 <View style={styles.modalShieldIcon}>
                   <Ionicons name="shield-checkmark" size={22} color="#00A3E0" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.modalTitle}>Official Consumer SOP</Text>
+                  <Text style={styles.modalTitle} numberOfLines={1}>Official Consumer SOP</Text>
                   <Text style={styles.modalSubtitle}>Cancellation, Replacement &amp; 100% Refund Rules</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setIsRulesModalOpen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={22} color="#64748B" />
+              <TouchableOpacity 
+                style={styles.modalCloseCircle}
+                onPress={() => setIsRulesModalOpen(false)} 
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={20} color="#64748B" />
               </TouchableOpacity>
             </View>
 
@@ -1908,13 +2027,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F9FF',
     borderWidth: 1,
     borderColor: '#BAE6FD',
-    paddingVertical: 9,
+    height: 40,
     borderRadius: 8,
     gap: 6,
   },
   invoiceBtnText: {
     color: '#00A3E0',
-    fontSize: 12.5,
+    fontSize: 12,
     fontWeight: '700',
   },
   detailsBtn: {
@@ -2184,23 +2303,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F9FF',
   },
   trackOrderBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#E0F2FE',
     borderWidth: 1,
     borderColor: '#BAE6FD',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    gap: 4,
+    height: 40,
+    borderRadius: 8,
+    gap: 5,
   },
   trackOrderBtnActive: {
     backgroundColor: '#00A3E0',
     borderColor: '#0284C7',
   },
   trackOrderBtnText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '700',
     color: '#0284C7',
   },
@@ -2635,20 +2754,24 @@ const styles = StyleSheet.create({
 
   /* Tracker Live Card Actions Row */
   mobileTrackerActionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
+  mobileTrackerBtnPair: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    width: '100%',
+  },
   mobileActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    height: 38,
+    paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
   },
@@ -2657,7 +2780,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   mobileCancelBtnText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#DC2626',
   },
@@ -2666,7 +2789,7 @@ const styles = StyleSheet.create({
     borderColor: '#C7D2FE',
   },
   mobileReplaceBtnText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#4F46E5',
   },
@@ -2675,7 +2798,7 @@ const styles = StyleSheet.create({
     borderColor: '#BBF7D0',
   },
   mobileReturnBtnText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#16A34A',
   },
@@ -2684,92 +2807,175 @@ const styles = StyleSheet.create({
     borderColor: '#BAE6FD',
   },
   mobileRulesBtnText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#0284C7',
   },
-
-  /* Card Customer Actions Row (inside past order card) */
-  cardCustomerActionsRow: {
-    marginTop: 6,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F8FAFC',
-  },
-  cancelledStatusBadge: {
+  mobileCancelledNotice: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#FEF2F2',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    height: 38,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#FEE2E2',
-    marginTop: 4,
   },
-  cancelledStatusText: {
+  mobileCancelledNoticeText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#DC2626',
-    flexShrink: 1,
   },
-  customerActionPill: {
+
+  /* Card Customer Actions Row (inside past order card) */
+  cardCustomerActionsRow: {
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+  },
+  cardCustomerBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+    alignItems: 'center',
+  },
+  customerActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 7,
+    justifyContent: 'center',
+    gap: 6,
+    height: 38,
+    paddingHorizontal: 10,
+    borderRadius: 8,
     borderWidth: 1,
   },
-  cancelActionPill: {
+  cancelActionBtn: {
     backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
+    borderColor: '#FECACA',
+    flex: 1.4,
   },
-  cancelActionText: {
-    fontSize: 11,
+  cancelActionBtnText: {
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#DC2626',
   },
-  replaceActionPill: {
+  rulesActionBtn: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#BAE6FD',
+    flex: 1,
+  },
+  rulesActionBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#0284C7',
+  },
+  replaceActionBtn: {
     backgroundColor: '#EEF2FF',
     borderColor: '#C7D2FE',
+    flex: 1,
   },
-  replaceActionText: {
-    fontSize: 11,
+  replaceActionBtnText: {
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#4F46E5',
   },
-  returnActionPill: {
+  returnActionBtn: {
     backgroundColor: '#F0FDF4',
     borderColor: '#BBF7D0',
+    flex: 1,
   },
-  returnActionText: {
-    fontSize: 11,
+  returnActionBtnText: {
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#16A34A',
   },
+  policyLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 5,
+    marginTop: 2,
+  },
+  policyLinkText: {
+    fontSize: 11,
+    color: '#0284C7',
+    fontWeight: '600',
+  },
+  cancelledStatusCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    padding: 8,
+    gap: 8,
+  },
+  cancelledStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  cancelledStatusTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  cancelledStatusSub: {
+    fontSize: 10,
+    color: '#991B1B',
+    marginTop: 1,
+  },
+  cancelledRulesBtn: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  cancelledRulesBtnText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
 
-  /* Rules & SOP Modal Styles */
+  /* Modern Mobile Bottom-Sheet Modal Styles */
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
+    justifyContent: 'flex-end',
   },
   modalCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     width: '100%',
-    maxHeight: '85%',
-    padding: 16,
+    maxHeight: '92%',
+    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 18,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalDragHandle: {
+    width: 44,
+    height: 4.5,
+    borderRadius: 3,
+    backgroundColor: '#CBD5E1',
+    alignSelf: 'center',
+    marginBottom: 10,
+    marginTop: 2,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -2788,14 +2994,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalTitle: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '800',
     color: '#0F172A',
   },
   modalSubtitle: {
     fontSize: 11,
     color: '#64748B',
-    marginTop: 1,
+    marginTop: 1.5,
+  },
+  modalCloseCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalBody: {
     marginVertical: 12,
@@ -2840,15 +3054,15 @@ const styles = StyleSheet.create({
   },
   modalCloseBtn: {
     backgroundColor: '#00A3E0',
-    paddingVertical: 11,
-    borderRadius: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalCloseBtnText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 13.5,
   },
 
   /* Mobile Modal Breakdown, Reason Tiles & Tabs Styles */
@@ -2856,9 +3070,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECDD3',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  mobileRsbRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   mobileRsbLabel: {
     fontSize: 11,
@@ -2867,15 +3087,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   mobileRsbAmount: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '900',
     color: '#DC2626',
   },
   mobileRsbSub: {
     fontSize: 11,
     color: '#BE123C',
-    marginTop: 2,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   mobileSlaRow: {
     flexDirection: 'row',
@@ -2885,38 +3104,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    paddingVertical: 6,
+    paddingVertical: 7,
     paddingHorizontal: 4,
     borderWidth: 1,
     borderColor: '#FEE2E2',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   mobileSlaTextTop: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '700',
     color: '#1E293B',
   },
   mobileSlaTextBot: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '800',
     color: '#16A34A',
-    marginTop: 1,
+    marginTop: 2,
   },
   mobileFormSectionTitle: {
     fontSize: 12,
     fontWeight: '800',
     color: '#1E293B',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   mobileReasonTile: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    padding: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
   },
   mobileReasonTileSelectedDanger: {
     borderColor: '#DC2626',
@@ -2927,29 +3148,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F9FF',
   },
   mobileRadioCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 1.5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
     borderColor: '#94A3B8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
   },
   mobileRadioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  mobileReasonTextCol: {
+    flex: 1,
   },
   mobileReasonTitle: {
-    fontSize: 12,
-    fontWeight: '750',
+    fontSize: 12.5,
+    fontWeight: '700',
     color: '#0F172A',
   },
   mobileReasonDesc: {
     fontSize: 10.5,
     color: '#64748B',
-    marginTop: 1,
+    marginTop: 1.5,
     lineHeight: 14,
   },
   mobileTipBanner: {
@@ -2957,7 +3180,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8,
     backgroundColor: '#EFF6FF',
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#BFDBFE',
     padding: 10,
@@ -2974,11 +3197,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 10,
     fontSize: 12,
     color: '#0F172A',
-    minHeight: 50,
+    minHeight: 56,
     textAlignVertical: 'top',
     marginBottom: 6,
   },
@@ -2994,41 +3217,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: 12,
+    height: 46,
     alignItems: 'center',
     justifyContent: 'center',
   },
   mobileBtnSecondaryText: {
     color: '#475569',
     fontWeight: '700',
-    fontSize: 12.5,
+    fontSize: 13,
   },
   mobileBtnDanger: {
     flex: 1.4,
     backgroundColor: '#DC2626',
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: 12,
+    height: 46,
     alignItems: 'center',
     justifyContent: 'center',
   },
   mobileBtnDangerText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 12.5,
+    fontSize: 13,
   },
   mobileResolutionSwitcher: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    gap: 10,
+    marginBottom: 14,
   },
   mobileResolutionBtn: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
   },
   mobileResolutionBtnActiveIndigo: {
     borderColor: '#4F46E5',
@@ -3048,26 +3271,26 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   mobileResTitle: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '800',
     color: '#0F172A',
   },
   mobileResSub: {
-    fontSize: 9.5,
+    fontSize: 10,
     color: '#64748B',
     marginTop: 2,
-    lineHeight: 13,
+    lineHeight: 14,
   },
   mobileConditionCheckRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 6,
+    borderRadius: 10,
+    padding: 11,
+    marginTop: 8,
     marginBottom: 8,
   },
   mobileConditionText: {
@@ -3078,35 +3301,35 @@ const styles = StyleSheet.create({
   },
   mobileBtnPrimary: {
     flex: 1.4,
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: 12,
+    height: 46,
     alignItems: 'center',
     justifyContent: 'center',
   },
   mobileBtnPrimaryText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 12.5,
+    fontSize: 13,
   },
   mobileRulesTabBar: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-    marginBottom: 10,
-    paddingHorizontal: 4,
+    marginBottom: 12,
+    paddingHorizontal: 2,
   },
   mobileRulesTabBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderBottomWidth: 2,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: 2.5,
     borderBottomColor: 'transparent',
-    marginRight: 6,
+    marginRight: 4,
   },
   mobileRulesTabBtnActive: {
     borderBottomColor: '#00A3E0',
   },
   mobileRulesTabText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '600',
     color: '#64748B',
   },
