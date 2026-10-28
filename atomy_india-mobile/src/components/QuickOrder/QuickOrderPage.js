@@ -18,6 +18,129 @@ import { getHighResImageUrl } from '../../utils/imageUtils';
 
 const phoenixLogo = require('../../../assets/fic-symbol.png');
 
+// Curated authentic popular & fast-selling Atomy India products
+const POPULAR_FAST_SELLING_METADATA = [
+  {
+    id: 'D00101',
+    tag: '🔥 #1 BESTSELLER',
+    tagColor: '#DC2626',
+    tagBg: '#FEE2E2',
+    subtitle: 'Immunity Up! Patented Herbal Complex',
+    category: 'health',
+  },
+  {
+    id: 'D00207',
+    tag: '⭐ HIGHEST PV',
+    tagColor: '#7C3AED',
+    tagBg: '#EDE9FE',
+    subtitle: 'Absolute CellActive Luxury Skincare Set',
+    category: 'beauty',
+  },
+  {
+    id: 'D00003',
+    tag: '🏆 TOP SELLER',
+    tagColor: '#0284C7',
+    tagBg: '#E0F2FE',
+    subtitle: 'The Fame 5-Piece Hydrating Daily Care',
+    category: 'beauty',
+  },
+  {
+    id: 'D00351',
+    tag: '✨ HOME SPA',
+    tagColor: '#D97706',
+    tagBg: '#FEF3C7',
+    subtitle: 'Evening Care 4-Step Deep Cleansing',
+    category: 'beauty',
+  },
+  {
+    id: 'D00510',
+    tag: '⭐ DAILY ESSENTIAL',
+    tagColor: '#16A34A',
+    tagBg: '#DCFCE7',
+    subtitle: 'Super Slim 99.9% Gold Nano Bristles (8N)',
+    category: 'personal',
+  },
+  {
+    id: 'D00170',
+    tag: '🌿 SUPERFOOD',
+    tagColor: '#059669',
+    tagBg: '#D1FAE5',
+    subtitle: 'Organic Fermented Noni Concentrate',
+    category: 'health',
+  },
+  {
+    id: 'D00111',
+    tag: '❤️ HEART HEALTH',
+    tagColor: '#DC2626',
+    tagBg: '#FEE2E2',
+    subtitle: 'Alaska E-Omega 3 High Purity EPA & DHA',
+    category: 'health',
+  },
+  {
+    id: 'D00160',
+    tag: '🦠 GUT HEALTH',
+    tagColor: '#6D28D9',
+    tagBg: '#F3E8FF',
+    subtitle: 'Nutraceutical Mix (12 Probiotics Complex)',
+    category: 'health',
+  },
+  {
+    id: 'D00281',
+    tag: '☀️ SUN DEFENSE',
+    tagColor: '#EA580C',
+    tagBg: '#FFEDD5',
+    subtitle: 'Broad Spectrum SPF50+ PA+++ Sunscreen',
+    category: 'beauty',
+  },
+  {
+    id: 'D90178',
+    tag: '🌱 100% PURE',
+    tagColor: '#15803D',
+    tagBg: '#DCFCE7',
+    subtitle: 'Pure Spirulina Nutrient Booster (India)',
+    category: 'health',
+  },
+  {
+    id: 'D94085',
+    tag: '⚡ VITALITY',
+    tagColor: '#B45309',
+    tagBg: '#FEF3C7',
+    subtitle: 'Pure Shilajit Herbal Capsules',
+    category: 'health',
+  },
+  {
+    id: 'D00693',
+    tag: '💆 SCALP & HAIR',
+    tagColor: '#0284C7',
+    tagBg: '#E0F2FE',
+    subtitle: 'Scalpcare 2 Set (Shampoo & Treatment)',
+    category: 'personal',
+  },
+  {
+    id: 'D00757',
+    tag: '💧 MOISTURE',
+    tagColor: '#2563EB',
+    tagBg: '#DBEAFE',
+    subtitle: 'Hydra Brightening Care 2-Set',
+    category: 'beauty',
+  },
+  {
+    id: 'D00975',
+    tag: '☕ 100% ARABICA',
+    tagColor: '#78350F',
+    tagBg: '#F5EBE6',
+    subtitle: 'Cafe Arabica Black Premium Coffee (50pk)',
+    category: 'personal',
+  },
+];
+
+const POPULAR_TABS = [
+  { id: 'all', label: 'All Popular' },
+  { id: 'health', label: 'Health & Immunity' },
+  { id: 'beauty', label: 'Skincare & Beauty' },
+  { id: 'personal', label: 'Personal & Home' },
+];
+
 export default function QuickOrderPage({
   onNavigateHome,
   onNavigateBack,
@@ -29,16 +152,9 @@ export default function QuickOrderPage({
   isMember = false,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [orderRows, setOrderRows] = useState([
-    {
-      product: ALL_PRODUCTS[0], // HemoHIM
-      qty: 1,
-    },
-    {
-      product: ALL_PRODUCTS[1], // Absolute Skincare
-      qty: 1,
-    },
-  ]);
+  // Order sheet starts empty - no hardcoded demo products
+  const [orderRows, setOrderRows] = useState([]);
+  const [activePopularTab, setActivePopularTab] = useState('all');
 
   // Autocomplete search suggestions from ALL_PRODUCTS
   const searchSuggestions = useMemo(() => {
@@ -46,10 +162,35 @@ export default function QuickOrderPage({
     const q = searchQuery.toLowerCase().trim();
     return ALL_PRODUCTS.filter(
       (p) =>
-        p.id.toLowerCase().includes(q) ||
-        p.name.toLowerCase().includes(q)
+        p &&
+        (p.id.toLowerCase().includes(q) ||
+          p.name.toLowerCase().includes(q))
     ).slice(0, 6);
   }, [searchQuery]);
+
+  // Price & PV calculation helpers
+  const getItemPrice = (product) => {
+    if (!product) return { price: 0, mrp: 0, isDiscounted: false };
+    const official = product.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
+    const rawPrice = Number(product.price) || (official ? official.mrp || official.dpPrice : 1000);
+    let dpPrice = Number(product.dpPrice || (official ? official.dpPrice : 0));
+    if (!dpPrice || dpPrice >= rawPrice) {
+      dpPrice = Math.round(rawPrice * 0.85);
+    }
+    const finalPrice = isMember ? dpPrice : rawPrice;
+    const mrp = Number(product.mrp || (official ? official.mrp : rawPrice));
+    return {
+      price: finalPrice,
+      mrp,
+      isDiscounted: isMember && dpPrice < mrp,
+    };
+  };
+
+  const getItemPv = (product) => {
+    if (!product) return 0;
+    const official = product.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
+    return Number(product.pv || (official ? official.pv : 0)) || Math.round((product.price || 1000) * 4.5);
+  };
 
   // Add product to quick order rows
   const handleAddProduct = (prod) => {
@@ -84,29 +225,46 @@ export default function QuickOrderPage({
     setOrderRows((prev) => prev.filter((item) => item.product.id !== prodId));
   };
 
-  // Helper for row price
-  const getRowPrice = (product) => {
-    const official = product?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
-    const rawPrice = Number(product.price) || (official ? official.dpPrice : 1000);
-    let dpPrice = Number(product.dpPrice || (official ? official.dpPrice : 0));
-    if (!dpPrice || dpPrice >= rawPrice) {
-      dpPrice = Math.round(rawPrice * 0.85);
-    }
-    return isMember ? dpPrice : rawPrice;
+  // Check how many of a product are currently in the order rows
+  const getProductRowQty = (prodId) => {
+    const existing = orderRows.find((item) => item.product.id === prodId);
+    return existing ? existing.qty : 0;
   };
 
-  // Calculations
+  // Curated Popular & Fast Selling Products list
+  const popularFastSellingProducts = useMemo(() => {
+    return POPULAR_FAST_SELLING_METADATA.map((meta) => {
+      const prod = ALL_PRODUCTS.find(
+        (p) => p && String(p.id).toUpperCase() === meta.id.toUpperCase()
+      );
+      if (!prod) return null;
+      return {
+        ...prod,
+        popularTag: meta.tag,
+        popularTagColor: meta.tagColor,
+        popularTagBg: meta.tagBg,
+        popularSubtitle: meta.subtitle,
+        popularCategory: meta.category,
+      };
+    }).filter(Boolean);
+  }, []);
+
+  // Filtered list based on active tab
+  const filteredPopularProducts = useMemo(() => {
+    if (activePopularTab === 'all') return popularFastSellingProducts;
+    return popularFastSellingProducts.filter(
+      (p) => p.popularCategory === activePopularTab
+    );
+  }, [popularFastSellingProducts, activePopularTab]);
+
+  // Calculations for summary bar
   const totalItemsCount = orderRows.reduce((sum, r) => sum + r.qty, 0);
   const totalPrice = orderRows.reduce(
-    (sum, r) => sum + getRowPrice(r.product) * r.qty,
+    (sum, r) => sum + getItemPrice(r.product).price * r.qty,
     0
   );
   const totalPv = orderRows.reduce(
-    (sum, r) => {
-      const official = r.product?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[r.product.id] : null;
-      const pv = Number(r.product.pv || (official ? official.pv : 0)) || Math.round((r.product.price || 1000) * 4.5);
-      return sum + pv * r.qty;
-    },
+    (sum, r) => sum + getItemPv(r.product) * r.qty,
     0
   );
 
@@ -133,17 +291,13 @@ export default function QuickOrderPage({
       return;
     }
     const items = orderRows.map((r) => {
-      const official = r.product?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[r.product.id] : null;
-      const rawPrice = Number(r.product.price) || (official ? official.dpPrice : 1000);
-      let dpPrice = Number(r.product.dpPrice || (official ? official.dpPrice : 0));
-      if (!dpPrice || dpPrice >= rawPrice) {
-        dpPrice = Math.round(rawPrice * 0.85);
-      }
+      const priceInfo = getItemPrice(r.product);
+      const pv = getItemPv(r.product);
       return {
         ...r.product,
-        price: rawPrice,
-        dpPrice,
-        pv: Number(r.product.pv || (official ? official.pv : 0)) || Math.round(rawPrice * 4.5),
+        price: priceInfo.price,
+        dpPrice: priceInfo.price,
+        pv,
         image: r.product.image || r.product.img,
         qty: r.qty,
       };
@@ -171,7 +325,7 @@ export default function QuickOrderPage({
             <Text style={styles.brandingTitle} numberOfLines={1}>
               QUICK ORDER
             </Text>
-            <Text style={styles.brandingSubtitle}>Fast Catalog Entry Sheet</Text>
+            <Text style={styles.brandingSubtitle}>Fast Catalog Entry & Fast Selling</Text>
           </View>
         </View>
 
@@ -191,7 +345,7 @@ export default function QuickOrderPage({
         </TouchableOpacity>
       </View>
 
-      {/* Logged in member delivery address bar matching website */}
+      {/* Logged in member delivery address bar */}
       <View style={styles.memberAddressCard}>
         <View style={styles.memberBadgeRow}>
           <View style={styles.memberGreetingBadge}>
@@ -240,136 +394,300 @@ export default function QuickOrderPage({
         {/* Search Suggestions Dropdown */}
         {searchSuggestions.length > 0 && (
           <View style={styles.suggestionsBox}>
-            {searchSuggestions.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.suggestionItem}
-                onPress={() => handleAddProduct(item)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.suggestionCodeBadge}>
-                  <Text style={styles.suggestionCodeText}>{item.id}</Text>
-                </View>
-                <Text style={styles.suggestionName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.suggestionPrice}>₹{item.price}</Text>
-                <Ionicons name="add-circle" size={20} color="#00A3E0" />
-              </TouchableOpacity>
-            ))}
+            {searchSuggestions.map((item) => {
+              const priceInfo = getItemPrice(item);
+              const pv = getItemPv(item);
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.suggestionItem}
+                  onPress={() => handleAddProduct(item)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.suggestionCodeBadge}>
+                    <Text style={styles.suggestionCodeText}>{item.id}</Text>
+                  </View>
+                  <Text style={styles.suggestionName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.suggestionPrice}>₹{priceInfo.price.toLocaleString('en-IN')}</Text>
+                  <View style={styles.suggestionPvBadge}>
+                    <Text style={styles.suggestionPvText}>+{pv.toLocaleString('en-IN')} PV</Text>
+                  </View>
+                  <Ionicons name="add-circle" size={22} color="#00A3E0" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </View>
 
-      {/* 3. QUICK-ADD BESTSELLER SHORTCUTS */}
-      <View style={styles.quickAddStrip}>
-        <Text style={styles.quickAddStripTitle}>Popular:</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.quickAddScroll}
-        >
-          {ALL_PRODUCTS.slice(0, 6).map((prod) => (
-            <TouchableOpacity
-              key={prod.id}
-              style={styles.quickAddPill}
-              onPress={() => handleAddProduct(prod)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.quickAddPillText}>+ {prod.id}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* 4. ORDER ROWS LIST */}
+      {/* 3. MAIN SCROLLABLE CONTENT */}
       <ScrollView
         style={styles.scrollList}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          orderRows.length > 0 && styles.scrollContentWithBottomBar,
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.listHeaderRow}>
-          <Text style={styles.listHeaderTitle}>
-            Order Sheet Items ({orderRows.length})
-          </Text>
-          {orderRows.length > 0 && (
-            <TouchableOpacity onPress={() => setOrderRows([])}>
-              <Text style={styles.clearAllText}>Clear All</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* SECTION A: ORDER SHEET ITEMS (If populated) */}
+        {orderRows.length > 0 && (
+          <View style={styles.orderSheetSection}>
+            <View style={styles.listHeaderRow}>
+              <View style={styles.listHeaderTitleGroup}>
+                <Ionicons name="receipt-outline" size={18} color="#00A3E0" />
+                <Text style={styles.listHeaderTitle}>
+                  Order Sheet Items ({orderRows.length})
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setOrderRows([])} activeOpacity={0.7}>
+                <Text style={styles.clearAllText}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
 
-        {orderRows.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cart-outline" size={48} color="#94A3B8" />
-            <Text style={styles.emptyTitle}>Your Quick Order Sheet is Empty</Text>
-            <Text style={styles.emptySub}>
-              Type product codes or tap a quick-add button above to populate your order rows.
-            </Text>
-          </View>
-        ) : (
-          orderRows.map((row) => {
-            const rowPrice = (row.product.price || 0) * row.qty;
-            const rowPv = (row.product.pv || 0) * row.qty;
+            {orderRows.map((row) => {
+              const priceInfo = getItemPrice(row.product);
+              const rowPrice = priceInfo.price * row.qty;
+              const rowPv = getItemPv(row.product) * row.qty;
 
-            return (
-              <View key={row.product.id} style={styles.rowCard}>
-                <Image
-                  source={{ uri: getHighResImageUrl(row.product.image || row.product.img) }}
-                  style={styles.rowThumbnail}
-                  resizeMode="contain"
-                />
+              return (
+                <View key={row.product.id} style={styles.rowCard}>
+                  <Image
+                    source={{ uri: getHighResImageUrl(row.product.image || row.product.img) }}
+                    style={styles.rowThumbnail}
+                    resizeMode="contain"
+                  />
 
-                <View style={styles.rowInfoCol}>
-                  <View style={styles.codeRow}>
-                    <Text style={styles.productCodeBadge}>{row.product.id}</Text>
-                    <TouchableOpacity
-                      onPress={() => handleRemoveRow(row.product.id)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Ionicons name="trash-outline" size={17} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <Text style={styles.rowProductName} numberOfLines={2}>
-                    {row.product.name}
-                  </Text>
-
-                  <View style={styles.priceAndControlsRow}>
-                    <View>
-                      <Text style={styles.rowPriceText}>₹ {rowPrice.toLocaleString('en-IN')}</Text>
-                      <Text style={styles.rowPvText}>+{rowPv.toLocaleString('en-IN')} PV</Text>
+                  <View style={styles.rowInfoCol}>
+                    <View style={styles.codeRow}>
+                      <Text style={styles.productCodeBadge}>{row.product.id}</Text>
+                      <TouchableOpacity
+                        onPress={() => handleRemoveRow(row.product.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="trash-outline" size={17} color="#EF4444" />
+                      </TouchableOpacity>
                     </View>
 
-                    {/* Quantity Selector */}
-                    <View style={styles.qtyControlGroup}>
-                      <TouchableOpacity
-                        style={styles.qtyBtn}
-                        onPress={() => handleUpdateQty(row.product.id, row.qty - 1)}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="remove" size={14} color="#0F172A" />
-                      </TouchableOpacity>
-                      <Text style={styles.qtyNumber}>{row.qty}</Text>
-                      <TouchableOpacity
-                        style={styles.qtyBtn}
-                        onPress={() => handleUpdateQty(row.product.id, row.qty + 1)}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="add" size={14} color="#0F172A" />
-                      </TouchableOpacity>
+                    <Text style={styles.rowProductName} numberOfLines={2}>
+                      {row.product.name}
+                    </Text>
+
+                    <View style={styles.priceAndControlsRow}>
+                      <View>
+                        <Text style={styles.rowPriceText}>
+                          ₹ {rowPrice.toLocaleString('en-IN')}
+                        </Text>
+                        <Text style={styles.rowPvText}>
+                          +{rowPv.toLocaleString('en-IN')} PV
+                        </Text>
+                      </View>
+
+                      {/* Quantity Selector */}
+                      <View style={styles.qtyControlGroup}>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          onPress={() => handleUpdateQty(row.product.id, row.qty - 1)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="remove" size={14} color="#0F172A" />
+                        </TouchableOpacity>
+                        <Text style={styles.qtyNumber}>{row.qty}</Text>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          onPress={() => handleUpdateQty(row.product.id, row.qty + 1)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="add" size={14} color="#0F172A" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 </View>
-              </View>
-            );
-          })
+              );
+            })}
+          </View>
         )}
 
-        <View style={{ height: 100 }} />
+        {/* SECTION B: ORDER SHEET EMPTY HELPER BANNER (When 0 items) */}
+        {orderRows.length === 0 && (
+          <View style={styles.sheetEmptyPrompt}>
+            <View style={styles.sheetEmptyIconCircle}>
+              <Ionicons name="flash" size={20} color="#00A3E0" />
+            </View>
+            <View style={styles.sheetEmptyTextWrap}>
+              <Text style={styles.sheetEmptyTitle}>Quick Order Sheet Ready</Text>
+              <Text style={styles.sheetEmptySubtitle}>
+                Type a product code above or tap <Text style={styles.sheetEmptyHighlight}>[+ Add]</Text> on popular fast-selling products below.
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* SECTION C: POPULAR & FAST SELLING PRODUCTS LIST */}
+        <View style={styles.popularSection}>
+          <View style={styles.popularSectionHeader}>
+            <View style={styles.popularTitleRow}>
+              <View style={styles.popularFireBadge}>
+                <Ionicons name="flame" size={16} color="#DC2626" />
+                <Text style={styles.popularFireText}>HOT</Text>
+              </View>
+              <Text style={styles.popularSectionTitle}>Popular Fast-Selling Products</Text>
+            </View>
+            <Text style={styles.popularSectionSub}>
+              Top Atomy bestsellers with high PV • 1-Tap Quick Add
+            </Text>
+          </View>
+
+          {/* Category Filter Tabs */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.popularTabsRow}
+          >
+            {POPULAR_TABS.map((tab) => {
+              const isActive = activePopularTab === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[styles.popularTabChip, isActive && styles.popularTabChipActive]}
+                  onPress={() => setActivePopularTab(tab.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.popularTabChipText,
+                      isActive && styles.popularTabChipTextActive,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Popular Products Cards List */}
+          <View style={styles.popularProductsList}>
+            {filteredPopularProducts.map((item) => {
+              const priceInfo = getItemPrice(item);
+              const pv = getItemPv(item);
+              const qtyInSheet = getProductRowQty(item.id);
+
+              return (
+                <View key={`pop-${item.id}`} style={styles.popularCard}>
+                  {/* Product Thumbnail */}
+                  <Image
+                    source={{ uri: getHighResImageUrl(item.image || item.img) }}
+                    style={styles.popularThumbnail}
+                    resizeMode="contain"
+                  />
+
+                  {/* Middle Details */}
+                  <View style={styles.popularInfoCol}>
+                    {/* Badge Row: Code + Fast Selling Pill */}
+                    <View style={styles.popularBadgeRow}>
+                      <View style={styles.popularCodeBadge}>
+                        <Text style={styles.popularCodeText}>{item.id}</Text>
+                      </View>
+                      {item.popularTag && (
+                        <View
+                          style={[
+                            styles.popularTagPill,
+                            { backgroundColor: item.popularTagBg || '#FEE2E2' },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.popularTagText,
+                              { color: item.popularTagColor || '#DC2626' },
+                            ]}
+                          >
+                            {item.popularTag}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Product Name */}
+                    <Text style={styles.popularProductName} numberOfLines={2}>
+                      {item.name}
+                    </Text>
+
+                    {/* Subtitle / Key benefit */}
+                    {item.popularSubtitle && (
+                      <Text style={styles.popularProductSub} numberOfLines={1}>
+                        {item.popularSubtitle}
+                      </Text>
+                    )}
+
+                    {/* Price and PV */}
+                    <View style={styles.popularPriceRow}>
+                      <View style={styles.popularPriceCol}>
+                        <Text style={styles.popularPriceText}>
+                          ₹ {priceInfo.price.toLocaleString('en-IN')}
+                        </Text>
+                        {priceInfo.isDiscounted && (
+                          <Text style={styles.popularMrpText}>
+                            MRP ₹{priceInfo.mrp.toLocaleString('en-IN')}
+                          </Text>
+                        )}
+                      </View>
+
+                      <View style={styles.popularPvBadge}>
+                        <Ionicons name="sparkles" size={11} color="#00A3E0" />
+                        <Text style={styles.popularPvText}>
+                          +{pv.toLocaleString('en-IN')} PV
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Right Action: + Add or In-Sheet Stepper */}
+                  <View style={styles.popularActionCol}>
+                    {qtyInSheet > 0 ? (
+                      <View style={styles.popularInSheetControls}>
+                        <Text style={styles.popularInSheetLabel}>In Sheet</Text>
+                        <View style={styles.popularQtyStepper}>
+                          <TouchableOpacity
+                            style={styles.popularQtyStepperBtn}
+                            onPress={() => handleUpdateQty(item.id, qtyInSheet - 1)}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="remove" size={13} color="#0F172A" />
+                          </TouchableOpacity>
+                          <Text style={styles.popularQtyStepperNumber}>{qtyInSheet}</Text>
+                          <TouchableOpacity
+                            style={styles.popularQtyStepperBtn}
+                            onPress={() => handleUpdateQty(item.id, qtyInSheet + 1)}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="add" size={13} color="#0F172A" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.popularAddBtn}
+                        onPress={() => handleAddProduct(item)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="add" size={16} color="#FFFFFF" />
+                        <Text style={styles.popularAddBtnText}>Add</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={{ height: 20 }} />
       </ScrollView>
 
-      {/* 5. STICKY BOTTOM SUMMARY BAR */}
+      {/* 4. STICKY BOTTOM SUMMARY BAR (Only visible when items in sheet) */}
       {orderRows.length > 0 && (
         <View style={styles.bottomBar}>
           <View style={styles.bottomSummaryInfo}>
@@ -478,13 +796,64 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
+  memberAddressCard: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    gap: 6,
+  },
+  memberBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  memberGreetingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  memberGreetingText: {
+    color: '#00A3E0',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  freeShippingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  freeShippingPillText: {
+    color: '#16A34A',
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  addressInlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  addressInlineText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#64748B',
+  },
   searchSection: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 10,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#E2E8F0',
   },
   inputPromptText: {
     fontSize: 12,
@@ -545,36 +914,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0F172A',
   },
-  quickAddStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    gap: 8,
+  suggestionPvBadge: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  quickAddStripTitle: {
-    fontSize: 12,
+  suggestionPvText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
-  },
-  quickAddScroll: {
-    gap: 6,
-  },
-  quickAddPill: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  quickAddPillText: {
-    fontSize: 12,
-    color: '#00A3E0',
-    fontWeight: '700',
+    color: '#16A34A',
   },
   scrollList: {
     flex: 1,
@@ -582,13 +931,62 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 14,
     paddingTop: 14,
+    gap: 16,
+  },
+  scrollContentWithBottomBar: {
+    paddingBottom: 130,
+  },
+  sheetEmptyPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
+    borderLeftWidth: 4,
+    borderLeftColor: '#00A3E0',
     gap: 12,
+  },
+  sheetEmptyIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetEmptyTextWrap: {
+    flex: 1,
+  },
+  sheetEmptyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  sheetEmptySubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  sheetEmptyHighlight: {
+    color: '#00A3E0',
+    fontWeight: '700',
+  },
+  orderSheetSection: {
+    gap: 10,
   },
   listHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  listHeaderTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   listHeaderTitle: {
     fontSize: 14,
@@ -675,24 +1073,218 @@ const styles = StyleSheet.create({
     minWidth: 20,
     textAlign: 'center',
   },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
+  popularSection: {
+    gap: 10,
   },
-  emptyTitle: {
-    fontSize: 16,
+  popularSectionHeader: {
+    marginBottom: 2,
+  },
+  popularTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  popularFireBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 2,
+  },
+  popularFireText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  popularSectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  popularSectionSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  popularTabsRow: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  popularTabChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  popularTabChipActive: {
+    backgroundColor: '#00A3E0',
+    borderColor: '#00A3E0',
+  },
+  popularTabChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  popularTabChipTextActive: {
+    color: '#FFFFFF',
     fontWeight: '700',
-    color: '#1E293B',
-    marginTop: 12,
+  },
+  popularProductsList: {
+    gap: 10,
+  },
+  popularCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  popularThumbnail: {
+    width: 68,
+    height: 68,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  popularInfoCol: {
+    flex: 1,
+  },
+  popularBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+    flexWrap: 'wrap',
+  },
+  popularCodeBadge: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  popularCodeText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#00A3E0',
+  },
+  popularTagPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  popularTagText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  popularProductName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  popularProductSub: {
+    fontSize: 11,
+    color: '#64748B',
     marginBottom: 6,
   },
-  emptySub: {
-    fontSize: 13,
-    color: '#64748B',
+  popularPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  popularPriceCol: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+  },
+  popularPriceText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  popularMrpText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  popularPvBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 3,
+  },
+  popularPvText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#00A3E0',
+  },
+  popularActionCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  popularAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#00A3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
+    minWidth: 64,
+    justifyContent: 'center',
+  },
+  popularAddBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  popularInSheetControls: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  popularInSheetLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#16A34A',
+  },
+  popularQtyStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  popularQtyStepperBtn: {
+    paddingHorizontal: 7,
+    paddingVertical: 5,
+  },
+  popularQtyStepperNumber: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0F172A',
+    minWidth: 18,
     textAlign: 'center',
-    lineHeight: 18,
   },
   bottomBar: {
     position: 'absolute',
@@ -773,56 +1365,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
-  },
-  memberAddressCard: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    gap: 6,
-  },
-  memberBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  memberGreetingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  memberGreetingText: {
-    color: '#00A3E0',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  freeShippingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  freeShippingPillText: {
-    color: '#16A34A',
-    fontSize: 10.5,
-    fontWeight: '700',
-  },
-  addressInlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  addressInlineText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#64748B',
   },
 });
