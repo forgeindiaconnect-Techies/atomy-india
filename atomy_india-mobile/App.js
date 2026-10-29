@@ -1020,42 +1020,30 @@ export default function App() {
                 handleNavigateBack();
               }
             }}
-            onOrderSuccess={async (orderDetails) => {
-              const purchasedIds = checkoutItems.map((i) => i.id);
+            onOrderSuccess={(orderDetails) => {
+              const purchasedIds = (orderDetails?.items || checkoutItems).map((i) => i.id);
               setCart((prev) => prev.filter((i) => !purchasedIds.includes(i.id)));
 
-              // Prepare database order payload
-              const orderPayload = {
-                customerName: currentUser.name,
-                customerEmail: currentUser.email,
-                customerPhone: currentUser.phone,
-                shippingAddress: currentUser.address,
-                city: 'Gurugram',
-                state: 'Haryana',
-                pincode: '122003',
-                paymentMethod: 'ONLINE_UPI',
-                items: checkoutItems.map((item) => ({
-                  productId: item.id,
-                  quantity: item.qty || 1,
-                })),
-              };
-
-              // Send order to live Spring Boot backend & MySQL database
-              const res = await createOrderApi(orderPayload);
-              const realOrderId = res.success ? res.order.orderId : `AT-${Math.floor(10000 + Math.random() * 90000)}`;
+              const realOrderId = orderDetails?.orderId || `ORD-${Date.now()}`;
+              const formattedTotal = typeof orderDetails?.grandTotal === 'number'
+                ? `₹ ${orderDetails.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                : orderDetails?.totalFormatted || '₹ 0.00';
+              const formattedPv = typeof orderDetails?.totalPV === 'number'
+                ? `${orderDetails.totalPV.toLocaleString('en-IN')} PV`
+                : orderDetails?.pvFormatted || '0 PV';
 
               const newOrder = {
                 id: realOrderId,
-                date: new Date().toLocaleDateString('en-IN', {
+                date: orderDetails?.orderDate || new Date().toLocaleDateString('en-IN', {
                   day: '2-digit',
                   month: 'short',
                   year: 'numeric',
                 }),
                 status: 'Processing',
-                itemsCount: checkoutItems.length,
-                total: orderDetails?.totalFormatted || '₹ 0.00',
-                pv: orderDetails?.pvFormatted || '0 PV',
-                title: checkoutItems.map((i) => i.name).join(' + '),
+                itemsCount: (orderDetails?.items || checkoutItems).length,
+                total: formattedTotal,
+                pv: formattedPv,
+                title: (orderDetails?.items || checkoutItems).map((i) => i.name).join(' + '),
                 trackStatus: 'Order confirmed • Synced with Admin Database',
               };
               setPlacedOrders((prev) => [newOrder, ...prev]);
@@ -1064,7 +1052,7 @@ export default function App() {
               // Trigger system notification (pops up in device notification tray outside the app)
               scheduleLocalNotificationAsync({
                 title: 'Order Confirmed! 📦 Atomy India',
-                body: `Your order #${realOrderId} for ${orderDetails?.totalFormatted || '₹ 0.00'} (${orderDetails?.pvFormatted || '0 PV'}) has been synced with the database.`,
+                body: `Your order #${realOrderId} for ${formattedTotal} (${formattedPv}) has been placed.`,
                 data: { orderId: realOrderId },
               });
             }}
