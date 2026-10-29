@@ -329,16 +329,26 @@ export async function registerCustomer(customerData) {
 }
 
 export async function loginCustomer(credentials) {
-  const res = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(credentials)
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || 'Sign in failed');
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials)
+    });
+    if (res.status === 503) {
+      throw new Error('Backend server is suspended on Render (503 Service Unavailable).');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.message || 'Sign in failed');
+    }
+    return data;
+  } catch (err) {
+    if (err.message && err.message.toLowerCase().includes('failed to fetch')) {
+      throw new Error('Backend server is suspended or sleeping on Render. Please resume it on Render dashboard.');
+    }
+    throw err;
   }
-  return data;
 }
 
 export async function googleAuthCustomer(googleData) {
