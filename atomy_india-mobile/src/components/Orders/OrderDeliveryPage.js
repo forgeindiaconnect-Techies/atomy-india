@@ -1723,29 +1723,40 @@ export default function OrderDeliveryPage({
                   })}
                 </View>
 
-                {/* Totals Summary */}
+                {/* Totals Summary: Taxable Amount, GST, Delivery Amount, Total Paid */}
                 {(() => {
                   const rawTotal = typeof activeInvoiceOrder.total === 'string'
                     ? parseFloat(activeInvoiceOrder.total.replace(/[^0-9.]/g, '')) || 0
                     : activeInvoiceOrder.total || 0;
+                  const shippingFee = Number(activeInvoiceOrder.shippingFee || activeInvoiceOrder.deliveryFee || 0);
+                  const deliveryDisplay = shippingFee > 0 ? `₹ ${shippingFee.toFixed(2)}` : 'FREE';
+                  const productPortion = Math.max(0, rawTotal - shippingFee);
+                  const taxable = (productPortion / 1.18).toFixed(2);
+                  const gst = (productPortion - Number(taxable)).toFixed(2);
                   return (
                     <View style={styles.invoiceTotalsSummary}>
                       <View style={styles.invoiceSummaryRow}>
-                        <Text style={styles.invoiceSummaryLabel}>Subtotal:</Text>
-                        <Text style={styles.invoiceSummaryValue}>₹ {rawTotal.toLocaleString('en-IN')}</Text>
+                        <Text style={styles.invoiceSummaryLabel}>Taxable Amount:</Text>
+                        <Text style={styles.invoiceSummaryValue}>₹ {Number(taxable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text>
                       </View>
                       <View style={styles.invoiceSummaryRow}>
-                        <Text style={styles.invoiceSummaryLabel}>Shipping Fee:</Text>
-                        <Text style={styles.invoiceFreeShipping}>FREE (Standard Atomy Delivery)</Text>
+                        <Text style={styles.invoiceSummaryLabel}>Integrated GST (IGST 18%):</Text>
+                        <Text style={styles.invoiceSummaryValue}>₹ {Number(gst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text>
                       </View>
-                      {activeInvoiceOrder.pv && (
+                      <View style={styles.invoiceSummaryRow}>
+                        <Text style={styles.invoiceSummaryLabel}>Shipping / Delivery:</Text>
+                        <Text style={shippingFee > 0 ? styles.invoiceSummaryValue : styles.invoiceFreeShipping}>
+                          {deliveryDisplay}
+                        </Text>
+                      </View>
+                      {activeInvoiceOrder.pv ? (
                         <View style={styles.invoiceSummaryRow}>
                           <Text style={styles.invoiceSummaryLabel}>Accumulated PV:</Text>
                           <Text style={styles.invoicePvHighlight}>{activeInvoiceOrder.pv}</Text>
                         </View>
-                      )}
+                      ) : null}
                       <View style={[styles.invoiceSummaryRow, styles.invoiceGrandTotalRow]}>
-                        <Text style={styles.invoiceGrandTotalLabel}>Grand Total (incl. GST):</Text>
+                        <Text style={styles.invoiceGrandTotalLabel}>Total Paid (INR):</Text>
                         <Text style={styles.invoiceGrandTotalValue}>₹ {rawTotal.toLocaleString('en-IN')}</Text>
                       </View>
                     </View>

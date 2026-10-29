@@ -50,12 +50,15 @@ const TRACKING_STEPS = [
 ];
 
 function getInvoiceBreakdown(order) {
-  if (!order) return { taxable: '0.00', gst: '0.00', total: '0.00' };
+  if (!order) return { taxable: '0.00', gst: '0.00', delivery: 'FREE', shippingFee: 0, total: '0.00' };
   const rawNum = Number(String(order.total || '').replace(/[^0-9.]/g, '')) || 0;
-  const taxable = (rawNum / 1.18).toFixed(2);
-  const gst = (rawNum - Number(taxable)).toFixed(2);
+  const shippingFee = Number(order.shippingFee || order.deliveryFee || 0);
+  const delivery = shippingFee > 0 ? `₹ ${shippingFee.toFixed(2)}` : 'FREE';
+  const productPortion = Math.max(0, rawNum - shippingFee);
+  const taxable = (productPortion / 1.18).toFixed(2);
+  const gst = (productPortion - Number(taxable)).toFixed(2);
   const total = rawNum.toFixed(2);
-  return { taxable, gst, total };
+  return { taxable, gst, delivery, shippingFee, total };
 }
 
 export default function ProfilePage({
@@ -1154,15 +1157,7 @@ export default function ProfilePage({
                 contentContainerStyle={styles.modalScrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                <View style={styles.invoiceCompanyBox}>
-                  <Text style={styles.invoiceCompanyName}>Atomy Enterprise India Pvt. Ltd.</Text>
-                  <Text style={styles.invoiceCompanyMeta}>
-                    Magnum Tower 2, Sector 58, Gurugram 122011, Haryana{'\n'}
-                    GSTIN: 06AAACA0000A1Z5 | PAN: AAACA0000A{'\n'}
-                    Email: atomy_in@atomypark.com | Tel: +91-124-695-9000
-                  </Text>
-                </View>
-
+                {/* 1. Customer & Invoice Meta Details */}
                 <View style={styles.invoiceMetaCard}>
                   <View style={styles.invoiceMetaRow}>
                     <View style={styles.invoiceMetaCol}>
@@ -1173,30 +1168,43 @@ export default function ProfilePage({
                     </View>
                     <View style={styles.invoiceMetaCol}>
                       <Text style={styles.invoiceMetaLbl}>Invoice Date</Text>
-                      <Text style={styles.invoiceMetaVal}>{selectedInvoiceOrder?.date || '15 Oct 2026'}</Text>
+                      <Text style={styles.invoiceMetaVal}>
+                        {selectedInvoiceOrder?.date || selectedInvoiceOrder?.orderDate || '15 Oct 2026'}
+                      </Text>
                     </View>
                   </View>
 
                   <View style={styles.invoiceMetaRow}>
                     <View style={styles.invoiceMetaCol}>
                       <Text style={styles.invoiceMetaLbl}>Billed To</Text>
-                      <Text style={styles.invoiceMetaVal}>{userData.name || 'Customer'}</Text>
-                      {userData.phone ? <Text style={styles.invoiceSubMetaVal}>{userData.phone}</Text> : null}
+                      <Text style={styles.invoiceMetaVal}>
+                        {selectedInvoiceOrder?.recipient || selectedInvoiceOrder?.customerName || userData.name || 'Customer'}
+                      </Text>
+                      {(selectedInvoiceOrder?.phone || selectedInvoiceOrder?.customerPhone || userData.phone) ? (
+                        <Text style={styles.invoiceSubMetaVal}>
+                          {selectedInvoiceOrder?.phone || selectedInvoiceOrder?.customerPhone || userData.phone}
+                        </Text>
+                      ) : null}
                     </View>
                     <View style={styles.invoiceMetaCol}>
                       <Text style={styles.invoiceMetaLbl}>Payment Mode</Text>
-                      <Text style={styles.invoiceMetaVal}>Prepaid (UPI / NetBanking)</Text>
+                      <Text style={styles.invoiceMetaVal}>
+                        {selectedInvoiceOrder?.paymentMethod || 'Prepaid (UPI / NetBanking)'}
+                      </Text>
                     </View>
                   </View>
 
-                  {selectedInvoiceOrder?.shippingAddress && (
+                  {(selectedInvoiceOrder?.shippingAddress || selectedInvoiceOrder?.address) && (
                     <View style={styles.invoiceAddressSection}>
                       <Text style={styles.invoiceMetaLbl}>Shipping Address</Text>
-                      <Text style={styles.invoiceAddressVal}>{selectedInvoiceOrder.shippingAddress}</Text>
+                      <Text style={styles.invoiceAddressVal}>
+                        {selectedInvoiceOrder.shippingAddress || selectedInvoiceOrder.address}
+                      </Text>
                     </View>
                   )}
                 </View>
 
+                {/* 2. Product Details */}
                 <View style={styles.invoiceItemsCard}>
                   <View style={styles.invoiceItemsHeader}>
                     <Text style={[styles.invoiceItemTh, { flex: 3 }]}>Product Description</Text>
@@ -1227,6 +1235,7 @@ export default function ProfilePage({
                   )}
                 </View>
 
+                {/* 3. Financial Summary: Taxable Amount, GST, Delivery Amount, Total Paid */}
                 {(() => {
                   const bd = getInvoiceBreakdown(selectedInvoiceOrder);
                   return (
@@ -1241,19 +1250,28 @@ export default function ProfilePage({
                       </View>
                       <View style={styles.invoiceSummaryRow}>
                         <Text style={styles.invoiceSummaryLbl}>Shipping / Delivery</Text>
-                        <Text style={[styles.invoiceSummaryVal, { color: '#16A34A' }]}>FREE</Text>
+                        <Text
+                          style={[
+                            styles.invoiceSummaryVal,
+                            bd.shippingFee > 0 ? { color: '#0F172A' } : { color: '#16A34A', fontWeight: '800' },
+                          ]}
+                        >
+                          {bd.delivery}
+                        </Text>
                       </View>
                       <View style={styles.invoiceDivider} />
                       <View style={styles.invoiceSummaryRow}>
                         <Text style={styles.invoiceGrandTotalLbl}>Total Paid (INR)</Text>
-                        <Text style={styles.invoiceGrandTotalVal}>{selectedInvoiceOrder?.total || ('₹ ' + bd.total)}</Text>
+                        <Text style={styles.invoiceGrandTotalVal}>
+                          {selectedInvoiceOrder?.total || ('₹ ' + bd.total)}
+                        </Text>
                       </View>
-                      {selectedInvoiceOrder?.pv && (
+                      {selectedInvoiceOrder?.pv ? (
                         <View style={styles.invoicePvRow}>
                           <Ionicons name="sparkles" size={13} color="#00A3E0" />
                           <Text style={styles.invoicePvText}>PV Credited to Member: +{selectedInvoiceOrder.pv}</Text>
                         </View>
-                      )}
+                      ) : null}
                     </View>
                   );
                 })()}
@@ -1261,7 +1279,7 @@ export default function ProfilePage({
                 <View style={styles.invoiceStampCard}>
                   <Ionicons name="shield-checkmark" size={18} color="#15803D" />
                   <Text style={styles.invoiceStampText}>
-                    This is an authentic computer-generated GST tax invoice issued by Atomy Enterprise India Pvt. Ltd. No physical signature is required.
+                    This is an authentic computer-generated GST tax invoice. No physical signature is required.
                   </Text>
                 </View>
               </ScrollView>
