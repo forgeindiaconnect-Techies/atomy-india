@@ -2,7 +2,7 @@ import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
 
 // Live Production / Cloud Server API Base
-export const CLOUD_API_BASE = 'https://atomy-india-lqsy.onrender.com/api';
+export const CLOUD_API_BASE = 'https://atomy-india.onrender.com/api';
 
 // Dynamic Localhost / LAN Machine API Base (for local testing)
 const getLocalApiBase = () => {

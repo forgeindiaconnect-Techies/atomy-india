@@ -597,7 +597,7 @@ export default function App() {
     if (!currentUser?.email && !currentUser?.phone) return;
     const fetchUserOrders = async () => {
       try {
-        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
+        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
         const queryParam = currentUser.email 
           ? `email=${encodeURIComponent(currentUser.email.trim())}` 
@@ -768,7 +768,7 @@ export default function App() {
     // Polling Spring Boot backend every 3.5 seconds for live order status changes
     const pollInterval = setInterval(async () => {
       try {
-        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
+        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
         const res = await fetch(`${apiBase}/admin/orders`);
         if (!res.ok) return;

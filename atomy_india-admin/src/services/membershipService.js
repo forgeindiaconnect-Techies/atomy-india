@@ -3,11 +3,11 @@
 // Synced with Spring Boot Backend on Cloud Server & Localhost
 
 const rawBase = (typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost'
-  ? 'https://atomy-india-lqsy.onrender.com/api'
-  : (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api')
-).trim().replace(/\/+$/, '').replace(/atomy[-_]india(\.onrender\.com)/i, 'atomy-india-lqsy$1');
+  ? 'https://atomy-india.onrender.com/api'
+  : (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api')
+).trim().replace(/\/+$/, '');
 
-const CLOUD_ADMIN_API_BASE = 'https://atomy-india-lqsy.onrender.com/api/admin/membership';
+const CLOUD_ADMIN_API_BASE = 'https://atomy-india.onrender.com/api/admin/membership';
 const LOCAL_ADMIN_API_BASE = 'http://localhost:8085/api/admin/membership';
 const ADMIN_API_BASE = rawBase.endsWith('/api') ? `${rawBase}/admin/membership` : `${rawBase}/api/admin/membership`;
 
