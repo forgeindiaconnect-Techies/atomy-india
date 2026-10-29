@@ -534,6 +534,7 @@ export default function PaymentSummaryPage({
 
   // Complete Order
   const handleCompleteOrder = () => {
+    const user = currentUser;
     if (!checkUserLoggedIn()) {
       Alert.alert(
         'Sign In Required to Place Order',
@@ -586,9 +587,9 @@ export default function PaymentSummaryPage({
       // Also dispatch to Spring Boot backend database for admin & live tracking sync
       const backendPayload = {
         orderId: assignedOrderId,
-        customerName: selectedAddress.recipientName || user?.name || 'Customer',
-        customerEmail: user?.email || 'customer@atomy.com',
-        customerPhone: selectedAddress.recipientPhone || user?.phone || '+91 98000 00000',
+        customerName: selectedAddress.recipientName || currentUser?.name || 'Customer',
+        customerEmail: currentUser?.email || 'customer@atomy.com',
+        customerPhone: selectedAddress.recipientPhone || currentUser?.phone || '+91 98000 00000',
         shippingAddress: selectedAddress.addressLine1,
         city: selectedAddress.city,
         state: selectedAddress.state,
