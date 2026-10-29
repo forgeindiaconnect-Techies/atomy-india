@@ -20,7 +20,7 @@ import { COLORS } from '../../constants/theme';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
 import OrderSuccessCelebration from '../Orders/OrderSuccessCelebration';
 import { createOrderApi } from '../../services/api';
-import { applyCouponBackend } from '../../services/couponService';
+import { applyCouponBackend, fetchCouponsFromBackend, DEFAULT_STORE_COUPONS } from '../../services/couponService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -52,20 +52,71 @@ const PIN_CODE_MAP = {
   '796001': { city: 'Aizawl', state: 'Mizoram' },
 };
 
-const DEFAULT_ADDRESS = {
-  id: 'addr-default-1',
+const EMPTY_ADDRESS_FORM = {
+  id: '',
   tag: 'Home',
-  recipientName: 'Customer Name',
-  recipientPhone: '9876543210',
-  pincode: '122003',
-  city: 'Gurugram',
-  state: 'Haryana',
-  addressLine1: 'Flat 402, Tower B, Cyber City Apartments',
-  addressLine2: 'Sector 39, Near Unitech Cyber Park',
-  landmark: 'Near Metro Station',
-  deliveryMessage: 'Please call before delivery',
+  recipientName: '',
+  recipientPhone: '',
+  pincode: '',
+  city: '',
+  state: '',
+  addressLine1: '',
+  addressLine2: '',
+  landmark: '',
+  deliveryMessage: '',
   isDefault: true,
 };
+
+function getInitialAddress(currentUser) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const storedSelected = window.localStorage.getItem('atomy_mobile_selected_address');
+      if (storedSelected) {
+        const parsed = JSON.parse(storedSelected);
+        if (parsed && (parsed.addressLine1 || parsed.street) && parsed.pincode) {
+          return {
+            id: parsed.id || `addr-${Date.now()}`,
+            tag: parsed.tag || parsed.type || 'Home',
+            recipientName: parsed.recipientName || parsed.name || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : ''),
+            recipientPhone: parsed.recipientPhone || parsed.phone || currentUser?.phone || '',
+            pincode: parsed.pincode || '',
+            city: parsed.city || '',
+            state: parsed.state || '',
+            addressLine1: parsed.addressLine1 || parsed.street || '',
+            addressLine2: parsed.addressLine2 || '',
+            landmark: parsed.landmark || '',
+            deliveryMessage: parsed.deliveryMessage || '',
+            isDefault: true,
+          };
+        }
+      }
+      const savedList = window.localStorage.getItem('atomy_mobile_saved_addresses');
+      if (savedList) {
+        const list = JSON.parse(savedList);
+        if (Array.isArray(list) && list.length > 0) {
+          const def = list.find((a) => a.isDefault) || list[0];
+          if (def && (def.street || def.addressLine1) && def.pincode) {
+            return {
+              id: def.id || `addr-${Date.now()}`,
+              tag: def.type || def.tag || 'Home',
+              recipientName: def.name || def.recipientName || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : ''),
+              recipientPhone: def.phone || def.recipientPhone || currentUser?.phone || '',
+              pincode: def.pincode || '',
+              city: def.city || '',
+              state: def.state || '',
+              addressLine1: def.street || def.addressLine1 || '',
+              addressLine2: def.addressLine2 || '',
+              landmark: def.landmark || '',
+              deliveryMessage: def.deliveryMessage || '',
+              isDefault: true,
+            };
+          }
+        }
+      }
+    }
+  } catch (e) {}
+  return null;
+}
 
 function formatInr(val) {
   return Number(val || 0).toLocaleString('en-IN', {
@@ -115,6 +166,7 @@ export default function PaymentSummaryPage({
   checkoutItems = [],
   isMember = false,
   currentUser = null,
+  placedOrders = [],
   onRequestSignIn,
   onNavigateBack,
   onNavigateHome,
@@ -176,10 +228,82 @@ export default function PaymentSummaryPage({
   const [voucherCode, setVoucherCode] = useState('');
   const [isVoucherApplied, setIsVoucherApplied] = useState(false);
 
-  // Address state
-  const [selectedAddress, setSelectedAddress] = useState(DEFAULT_ADDRESS);
+  // Address state (Dynamic from user profile / local storage, without hardcoding)
+  const [selectedAddress, setSelectedAddress] = useState(() => getInitialAddress(currentUser));
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [addressForm, setAddressForm] = useState(DEFAULT_ADDRESS);
+  const [addressForm, setAddressForm] = useState(() => {
+    const init = getInitialAddress(currentUser);
+    return (
+      init || {
+        ...EMPTY_ADDRESS_FORM,
+        recipientName: currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : '',
+        recipientPhone: currentUser?.phone || '',
+      }
+    );
+  });
+
+  // Re-sync address when currentUser updates if no address was previously set
+  useEffect(() => {
+    if (!selectedAddress) {
+      const dynamicAddr = getInitialAddress(currentUser);
+      if (dynamicAddr) {
+        setSelectedAddress(dynamicAddr);
+        setAddressForm(dynamicAddr);
+      } else if (currentUser?.name && currentUser?.name !== 'Customer Account') {
+        setAddressForm((prev) => ({
+          ...prev,
+          recipientName: prev.recipientName || currentUser.name,
+          recipientPhone: prev.recipientPhone || currentUser.phone || '',
+        }));
+      }
+    }
+  }, [currentUser]);
+
+  const hasValidAddress = useMemo(() => {
+    return Boolean(
+      selectedAddress &&
+        selectedAddress.recipientName?.trim() &&
+        selectedAddress.recipientPhone?.trim() &&
+        selectedAddress.pincode?.trim() &&
+        (selectedAddress.addressLine1?.trim() || selectedAddress.street?.trim())
+    );
+  }, [selectedAddress]);
+
+  const isFirstOrder = useMemo(() => {
+    if (Array.isArray(placedOrders) && placedOrders.length > 0) return false;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = window.localStorage.getItem('atomy_mobile_orders') || window.localStorage.getItem('atomy_orders');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return false;
+        }
+      }
+    } catch (e) {}
+    return true;
+  }, [placedOrders]);
+
+  const hasHemohimInCart = useMemo(() => {
+    return (
+      Array.isArray(checkoutItems) &&
+      checkoutItems.some((it) => {
+        const n = (it.name || it.title || '').toLowerCase();
+        const t = (it.tags || '').toLowerCase();
+        const c = (it.category || '').toLowerCase();
+        return n.includes('hemohim') || n.includes('hemo him') || t.includes('hemohim') || c.includes('hemohim');
+      })
+    );
+  }, [checkoutItems]);
+
+  const [availableCoupons, setAvailableCoupons] = useState(DEFAULT_STORE_COUPONS);
+
+  useEffect(() => {
+    fetchCouponsFromBackend().then((list) => {
+      if (Array.isArray(list) && list.length > 0) {
+        setAvailableCoupons(list);
+      }
+    });
+  }, []);
   const [isLookingUpPin, setIsLookingUpPin] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [isLocationDetected, setIsLocationDetected] = useState(false);
@@ -262,17 +386,19 @@ export default function PaymentSummaryPage({
   const voucherDiscount = isVoucherApplied ? Math.min(subtotal, 500) : 0;
   const grandTotal = Math.max(0, subtotal - couponDiscount - voucherDiscount + shippingFee);
 
-  const handleApplyCoupon = async () => {
+  const handleApplyCoupon = async (codeOverride) => {
+    const codeToApply = (typeof codeOverride === 'string' ? codeOverride : couponCode).trim();
     setCouponError('');
-    if (!couponCode.trim()) {
+    if (!codeToApply) {
       setCouponError('Please enter a coupon code.');
       return;
     }
     setCouponLoading(true);
     try {
-      const res = await applyCouponBackend(couponCode.trim(), subtotal, checkoutItems, true);
+      const res = await applyCouponBackend(codeToApply, subtotal, checkoutItems, isFirstOrder);
       if (res && res.valid) {
         setAppliedCoupon(res);
+        setCouponCode(res.code || codeToApply);
         setCouponError('');
       } else {
         setCouponError(res?.message || 'Invalid or expired coupon code.');
@@ -444,12 +570,77 @@ export default function PaymentSummaryPage({
   };
 
   const handleSaveAddress = () => {
-    if (!addressForm.recipientName.trim() || !addressForm.recipientPhone.trim() || !addressForm.pincode.trim() || !addressForm.addressLine1.trim()) {
+    const name = addressForm.recipientName?.trim();
+    const phone = addressForm.recipientPhone?.trim();
+    const pin = addressForm.pincode?.trim();
+    const addr1 = addressForm.addressLine1?.trim();
+
+    if (!name || !phone || !pin || !addr1) {
       Alert.alert('Required Fields', 'Please fill in Name, Phone, PIN code, and Address Line 1.');
       return;
     }
-    setSelectedAddress({ ...addressForm });
+
+    if (phone.length < 10) {
+      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    if (pin.length !== 6) {
+      Alert.alert('Invalid PIN', 'Please enter a 6-digit postal PIN code.');
+      return;
+    }
+
+    const normalizedAddress = {
+      id: addressForm.id || `addr-${Date.now()}`,
+      tag: addressForm.tag || 'Home',
+      recipientName: name,
+      recipientPhone: phone,
+      pincode: pin,
+      city: addressForm.city || '',
+      state: addressForm.state || '',
+      addressLine1: addr1,
+      addressLine2: addressForm.addressLine2 || '',
+      landmark: addressForm.landmark || '',
+      deliveryMessage: addressForm.deliveryMessage || '',
+      isDefault: true,
+    };
+
+    setSelectedAddress(normalizedAddress);
     setIsAddressModalOpen(false);
+
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(normalizedAddress));
+
+        // Also sync to saved addresses list
+        const existingSaved = window.localStorage.getItem('atomy_mobile_saved_addresses');
+        let list = [];
+        if (existingSaved) {
+          try {
+            list = JSON.parse(existingSaved) || [];
+          } catch (e) {}
+        }
+        const profileFormat = {
+          id: normalizedAddress.id,
+          type: normalizedAddress.tag || 'Home',
+          name: normalizedAddress.recipientName,
+          phone: normalizedAddress.recipientPhone,
+          street: normalizedAddress.addressLine1 + (normalizedAddress.addressLine2 ? `, ${normalizedAddress.addressLine2}` : ''),
+          city: normalizedAddress.city,
+          state: normalizedAddress.state,
+          pincode: normalizedAddress.pincode,
+          isDefault: true,
+        };
+        list = list.map((a) => ({ ...a, isDefault: false }));
+        const existingIdx = list.findIndex((a) => a.id === normalizedAddress.id);
+        if (existingIdx >= 0) {
+          list[existingIdx] = profileFormat;
+        } else {
+          list.unshift(profileFormat);
+        }
+        window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(list));
+      }
+    } catch (e) {}
   };
 
   // Direct mobile redirect to installed UPI apps
@@ -529,6 +720,30 @@ export default function PaymentSummaryPage({
       if (onRequestSignIn) onRequestSignIn();
       return;
     }
+
+    if (!hasValidAddress) {
+      Alert.alert(
+        'Delivery Address Required',
+        'Please enter and save your delivery address before proceeding to payment.',
+        [
+          {
+            text: 'Add Address',
+            onPress: () => {
+              setAddressForm((prev) => ({
+                ...prev,
+                recipientName: prev.recipientName || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : ''),
+                recipientPhone: prev.recipientPhone || currentUser?.phone || '',
+              }));
+              setIsAddressModalOpen(true);
+            },
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      setIsAddressModalOpen(true);
+      return;
+    }
+
     setStep('payment');
   };
 
@@ -552,6 +767,14 @@ export default function PaymentSummaryPage({
       if (onRequestSignIn) onRequestSignIn();
       return;
     }
+
+    if (!hasValidAddress) {
+      Alert.alert('Delivery Address Required', 'Please enter your shipping address to complete the order.');
+      setStep('sheet');
+      setIsAddressModalOpen(true);
+      return;
+    }
+
     setIsProcessing(true);
     setTimeout(() => {
       const assignedOrderId = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -575,9 +798,11 @@ export default function PaymentSummaryPage({
             : 'Credit / Debit Card',
         grandTotal,
         totalPV,
-        recipient: selectedAddress.recipientName,
-        phone: selectedAddress.recipientPhone,
-        address: `${selectedAddress.addressLine1}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`,
+        recipient: selectedAddress?.recipientName || currentUser?.name || 'Customer',
+        phone: selectedAddress?.recipientPhone || currentUser?.phone || '',
+        address: selectedAddress
+          ? `${selectedAddress.addressLine1}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`
+          : 'Pending Address',
         trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
         estimatedDelivery: estimatedDelivery.timeFrame,
         estimatedDeliveryDate: estimatedDelivery.range,
@@ -1360,14 +1585,22 @@ export default function PaymentSummaryPage({
           <View style={styles.miniDestinationCard}>
             <View style={styles.miniDestHeader}>
               <Ionicons name="cube-outline" size={15} color="#00A3E0" />
-              <Text style={styles.miniDestHeaderText}>Shipping to: {selectedAddress.recipientName}</Text>
+              <Text style={styles.miniDestHeaderText}>
+                {hasValidAddress
+                  ? `Shipping to: ${selectedAddress.recipientName}`
+                  : 'Shipping Address Needed'}
+              </Text>
             </View>
             <Text style={styles.miniDestAddress}>
-              {selectedAddress.addressLine1}, {selectedAddress.city} - {selectedAddress.pincode}
+              {hasValidAddress
+                ? `${selectedAddress.addressLine1}, ${selectedAddress.city} - ${selectedAddress.pincode}`
+                : 'No delivery address selected. Please add delivery address.'}
             </Text>
-            <Text style={styles.miniDestEta}>
-              Est. Delivery: <Text style={{ fontWeight: '700' }}>{estimatedDelivery.range}</Text>
-            </Text>
+            {hasValidAddress ? (
+              <Text style={styles.miniDestEta}>
+                Est. Delivery: <Text style={{ fontWeight: '700' }}>{estimatedDelivery.range}</Text>
+              </Text>
+            ) : null}
           </View>
         </ScrollView>
       </View>
@@ -1413,45 +1646,76 @@ export default function PaymentSummaryPage({
 
       <ScrollView contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>
         {/* SECTION 1: DELIVERY ADDRESS */}
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionCardHeader}>
-            <View style={styles.sectionHeaderLeft}>
-              <Ionicons name="location-outline" size={20} color="#00A3E0" />
-              <Text style={styles.sectionCardTitle}>Delivery Destination</Text>
+        {hasValidAddress ? (
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionCardHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Ionicons name="location-outline" size={20} color="#00A3E0" />
+                <Text style={styles.sectionCardTitle}>Delivery Destination</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.editAddressBtn}
+                onPress={() => {
+                  setAddressForm({ ...selectedAddress });
+                  setIsAddressModalOpen(true);
+                }}
+              >
+                <Ionicons name="pencil" size={13} color="#00A3E0" />
+                <Text style={styles.editAddressBtnText}>Change</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.addressBody}>
+              <View style={styles.addressTagRow}>
+                <View style={styles.addressTagBadge}>
+                  <Text style={styles.addressTagText}>{selectedAddress.tag || 'Home'}</Text>
+                </View>
+                <Text style={styles.recipientNameText}>{selectedAddress.recipientName}</Text>
+                <Text style={styles.recipientPhoneText}>(+91 {selectedAddress.recipientPhone})</Text>
+              </View>
+
+              <Text style={styles.addressLineText}>
+                {selectedAddress.addressLine1}
+                {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}
+              </Text>
+              <Text style={styles.addressCityStateText}>
+                {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+              </Text>
+              {selectedAddress.deliveryMessage ? (
+                <Text style={styles.deliveryNoteText}>Note: "{selectedAddress.deliveryMessage}"</Text>
+              ) : null}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.addAddressPromptCard}>
+            <View style={styles.addAddressPromptTop}>
+              <View style={styles.addAddressIconCircle}>
+                <Ionicons name="location-outline" size={22} color="#00A3E0" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.addAddressPromptTitle}>No Delivery Address Added</Text>
+                <Text style={styles.addAddressPromptSubtitle}>
+                  Please add your shipping address to calculate fast delivery and proceed.
+                </Text>
+              </View>
             </View>
             <TouchableOpacity
-              style={styles.editAddressBtn}
+              style={styles.addAddressPromptBtn}
               onPress={() => {
-                setAddressForm({ ...selectedAddress });
+                setAddressForm({
+                  ...EMPTY_ADDRESS_FORM,
+                  recipientName: currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : '',
+                  recipientPhone: currentUser?.phone || '',
+                });
                 setIsAddressModalOpen(true);
               }}
+              activeOpacity={0.88}
             >
-              <Ionicons name="pencil" size={13} color="#00A3E0" />
-              <Text style={styles.editAddressBtnText}>Change</Text>
+              <Ionicons name="add-circle" size={18} color="#FFFFFF" />
+              <Text style={styles.addAddressPromptBtnText}>+ Add Delivery Address</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.addressBody}>
-            <View style={styles.addressTagRow}>
-              <View style={styles.addressTagBadge}>
-                <Text style={styles.addressTagText}>{selectedAddress.tag || 'Home'}</Text>
-              </View>
-              <Text style={styles.recipientNameText}>{selectedAddress.recipientName}</Text>
-              <Text style={styles.recipientPhoneText}>(+91 {selectedAddress.recipientPhone})</Text>
-            </View>
-
-            <Text style={styles.addressLineText}>
-              {selectedAddress.addressLine1}
-              {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}
-            </Text>
-            <Text style={styles.addressCityStateText}>
-              {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
-            </Text>
-            {selectedAddress.deliveryMessage ? (
-              <Text style={styles.deliveryNoteText}>Note: "{selectedAddress.deliveryMessage}"</Text>
-            ) : null}
-          </View>
-        </View>
+        )}
 
         {/* SECTION 2: ORDERED ITEMS (With Add/Remove Quantity & Corner 'X' Remove Button) */}
         <View style={styles.sectionCard}>
@@ -1623,7 +1887,7 @@ export default function PaymentSummaryPage({
               />
               <TouchableOpacity
                 style={[styles.applyCouponBtn, couponLoading && { opacity: 0.7 }]}
-                onPress={handleApplyCoupon}
+                onPress={() => handleApplyCoupon()}
                 disabled={couponLoading}
                 activeOpacity={0.85}
               >
@@ -1638,6 +1902,151 @@ export default function PaymentSummaryPage({
           {couponError ? (
             <Text style={styles.couponErrorText}>{couponError}</Text>
           ) : null}
+
+          {/* Available Coupons & Offers Strip */}
+          <View style={styles.availableCouponsSection}>
+            <View style={styles.availableCouponsHeader}>
+              <Ionicons name="gift-outline" size={15} color="#0284C7" />
+              <Text style={styles.availableCouponsTitle}>Available Coupons & Offers</Text>
+            </View>
+            <Text style={styles.availableCouponsSub}>
+              Tap "Apply" on any voucher below to redeem your savings.
+            </Text>
+
+            <View style={styles.couponsGrid}>
+              {availableCoupons.map((cpn) => {
+                const isWelcome = cpn.code === 'WELCOME10';
+                const isHemohim = cpn.code === 'HEMOHIM20';
+                const isFestive = cpn.code === 'FESTIVE500';
+                const isFreeship = cpn.code === 'FREESHIP';
+                const isAlreadyApplied = appliedCoupon?.code === cpn.code;
+
+                // Eligibility logic
+                let isEligible = true;
+                let eligibilityNote = '';
+                let productScopeBadge = 'All Products';
+
+                if (isWelcome) {
+                  productScopeBadge = 'All Products • First Order';
+                  if (isFirstOrder) {
+                    isEligible = true;
+                    eligibilityNote = '✓ Eligible: You are a New Comer! 10% off your first order.';
+                  } else {
+                    isEligible = false;
+                    eligibilityNote = '⚠️ Restricted: For New Comers only on their 1st order.';
+                  }
+                } else if (isHemohim) {
+                  productScopeBadge = 'Atomy HemoHIM Supplements Only';
+                  if (hasHemohimInCart) {
+                    isEligible = true;
+                    eligibilityNote = '✓ Eligible: HemoHIM is in your cart!';
+                  } else {
+                    isEligible = false;
+                    eligibilityNote = 'Requires Atomy HemoHIM products in cart.';
+                  }
+                } else if (isFestive) {
+                  productScopeBadge = 'All Products • Min ₹5,000';
+                  if (subtotal >= 5000) {
+                    isEligible = true;
+                    eligibilityNote = `✓ Cart qualified (₹${formatInr(subtotal)})!`;
+                  } else {
+                    isEligible = false;
+                    eligibilityNote = `Add ₹${formatInr(5000 - subtotal)} more to qualify.`;
+                  }
+                } else if (isFreeship) {
+                  productScopeBadge = 'All Products Nationwide';
+                  isEligible = true;
+                  eligibilityNote = '✓ 100% Free Doorstep Delivery across India.';
+                }
+
+                return (
+                  <View
+                    key={cpn.id || cpn.code}
+                    style={[
+                      styles.couponTile,
+                      isAlreadyApplied && styles.couponTileApplied,
+                      !isEligible && styles.couponTileIneligible,
+                    ]}
+                  >
+                    <View style={styles.couponTileTop}>
+                      <View style={styles.couponTileBadgeRow}>
+                        <View style={styles.couponTileDiscountBadge}>
+                          <Text style={styles.couponTileDiscountText}>
+                            {cpn.discountDisplay || cpn.discount || 'SPECIAL OFF'}
+                          </Text>
+                        </View>
+                        {isWelcome && (
+                          <View style={styles.newComerPill}>
+                            <Ionicons name="sparkles" size={10} color="#7C3AED" />
+                            <Text style={styles.newComerPillText}>New Comers Only</Text>
+                          </View>
+                        )}
+                        {isHemohim && (
+                          <View style={styles.hemohimPill}>
+                            <Ionicons name="medkit" size={10} color="#059669" />
+                            <Text style={styles.hemohimPillText}>HemoHIM Special</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {isAlreadyApplied ? (
+                        <View style={styles.couponAppliedPill}>
+                          <Ionicons name="checkmark-circle" size={13} color="#16A34A" />
+                          <Text style={styles.couponAppliedPillText}>Applied</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={[
+                            styles.couponTileApplyBtn,
+                            (!isEligible || couponLoading) && styles.couponTileApplyBtnDisabled,
+                          ]}
+                          disabled={!isEligible || couponLoading}
+                          onPress={() => handleApplyCoupon(cpn.code)}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={[
+                              styles.couponTileApplyBtnText,
+                              !isEligible && styles.couponTileApplyBtnTextDisabled,
+                            ]}
+                          >
+                            Apply
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    <Text style={styles.couponTileCode}>{cpn.code}</Text>
+                    <Text style={styles.couponTileTitle}>{cpn.title}</Text>
+                    <Text style={styles.couponTileDesc} numberOfLines={2}>
+                      {cpn.description || cpn.desc}
+                    </Text>
+
+                    <View style={styles.couponScopeRow}>
+                      <Ionicons name="pricetags-outline" size={12} color="#64748B" />
+                      <Text style={styles.couponScopeText}>Applies to: {productScopeBadge}</Text>
+                    </View>
+
+                    <View style={styles.couponEligibilityRow}>
+                      <Ionicons
+                        name={isEligible ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+                        size={13}
+                        color={isEligible ? '#16A34A' : '#D97706'}
+                      />
+                      <Text
+                        style={[
+                          styles.couponEligibilityText,
+                          { color: isEligible ? '#16A34A' : '#D97706' },
+                        ]}
+                      >
+                        {eligibilityNote}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {/* SECTION 4: PAYMENT SUMMARY CARD (Exact replica of website payment-summary-card) */}
@@ -3509,6 +3918,226 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: '#DC2626',
     marginTop: 6,
+    fontWeight: '600',
+  },
+  addAddressPromptCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#93C5FD',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  addAddressPromptTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addAddressIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addAddressPromptTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  addAddressPromptSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  addAddressPromptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00A3E0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  addAddressPromptBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  availableCouponsSection: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  availableCouponsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  availableCouponsTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  availableCouponsSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  couponsGrid: {
+    gap: 10,
+  },
+  couponTile: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+  },
+  couponTileApplied: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  couponTileIneligible: {
+    opacity: 0.85,
+    backgroundColor: '#FAFAFA',
+  },
+  couponTileTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  couponTileBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  couponTileDiscountBadge: {
+    backgroundColor: '#00A3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  couponTileDiscountText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  newComerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3E8FF',
+    borderWidth: 1,
+    borderColor: '#D8B4FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 3,
+  },
+  newComerPillText: {
+    color: '#7C3AED',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  hemohimPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 3,
+  },
+  hemohimPillText: {
+    color: '#059669',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  couponAppliedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  couponAppliedPillText: {
+    color: '#16A34A',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  couponTileApplyBtn: {
+    backgroundColor: '#00A3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  couponTileApplyBtnDisabled: {
+    backgroundColor: '#E2E8F0',
+  },
+  couponTileApplyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  couponTileApplyBtnTextDisabled: {
+    color: '#94A3B8',
+  },
+  couponTileCode: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  couponTileTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  couponTileDesc: {
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 15,
+    marginBottom: 6,
+  },
+  couponScopeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4,
+  },
+  couponScopeText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  couponEligibilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  couponEligibilityText: {
+    fontSize: 11,
     fontWeight: '600',
   },
 });

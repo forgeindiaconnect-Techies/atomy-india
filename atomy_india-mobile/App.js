@@ -996,6 +996,7 @@ export default function App() {
             checkoutItems={checkoutItems}
             isMember={isMember}
             currentUser={currentUser}
+            placedOrders={placedOrders}
             onRequestSignIn={() => {
               setAuthNotice('Please sign in or register to complete your order.');
               setAuthInitialMode('signin');

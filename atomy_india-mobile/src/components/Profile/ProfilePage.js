@@ -349,6 +349,24 @@ export default function ProfilePage({
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(addresses));
+        const def = addresses.find((a) => a.isDefault) || addresses[0];
+        if (def) {
+          const selectedFormat = {
+            id: def.id,
+            tag: def.type || 'Home',
+            recipientName: def.name || '',
+            recipientPhone: def.phone || '',
+            pincode: def.pincode || '',
+            city: def.city || '',
+            state: def.state || '',
+            addressLine1: def.street || '',
+            addressLine2: '',
+            landmark: '',
+            deliveryMessage: '',
+            isDefault: true,
+          };
+          window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(selectedFormat));
+        }
       }
     } catch (e) {}
   }, [addresses]);
@@ -506,6 +524,20 @@ export default function ProfilePage({
   const [enteredCoupon, setEnteredCoupon] = useState('');
   const [couponFeedback, setCouponFeedback] = useState('');
 
+  const isFirstOrder = useMemo(() => {
+    if (Array.isArray(placedOrders) && placedOrders.length > 0) return false;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = window.localStorage.getItem('atomy_mobile_orders') || window.localStorage.getItem('atomy_orders');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return false;
+        }
+      }
+    } catch (e) {}
+    return true;
+  }, [placedOrders]);
+
   useEffect(() => {
     fetchCouponsFromBackend().then((list) => {
       if (Array.isArray(list) && list.length > 0) {
@@ -599,11 +631,26 @@ export default function ProfilePage({
   // Apply Coupon
   const handleApplyCoupon = () => {
     if (!enteredCoupon.trim()) return;
+    const clean = enteredCoupon.trim().toUpperCase();
     const found = coupons.find(
-      (c) => c.code.toUpperCase() === enteredCoupon.trim().toUpperCase()
+      (c) => c.code.toUpperCase() === clean
     );
     if (found) {
-      setCouponFeedback(`Coupon "${found.code}" applied! You get ${found.discount}.`);
+      if (found.code === 'WELCOME10') {
+        if (!isFirstOrder) {
+          setCouponFeedback('Coupon "WELCOME10" is exclusively reserved for new comers on their first order.');
+        } else {
+          setCouponFeedback('✓ Welcome coupon active! You qualify for 10% instant discount on your first order.');
+        }
+      } else if (found.code === 'HEMOHIM20') {
+        setCouponFeedback('🌿 Coupon "HEMOHIM20" verified! Offers 20% discount on Atomy HemoHIM supplements.');
+      } else if (found.code === 'FESTIVE500') {
+        setCouponFeedback('🎉 Coupon "FESTIVE500" verified! Flat ₹ 500 off on cart value above ₹ 5,000.');
+      } else if (found.code === 'FREESHIP') {
+        setCouponFeedback('🚚 Coupon "FREESHIP" verified! Waives delivery charges across India.');
+      } else {
+        setCouponFeedback(`Coupon "${found.code}" applied! You get ${found.discount}.`);
+      }
     } else {
       setCouponFeedback('Invalid voucher code. Please check and try again.');
     }
@@ -1646,43 +1693,151 @@ export default function ProfilePage({
             </View>
           ) : null}
 
+          {/* New Comer Welcome Program Highlight Banner */}
+          <View style={styles.newComerHighlightCard}>
+            <View style={styles.newComerHighlightTop}>
+              <View style={styles.newComerSparkleCircle}>
+                <Ionicons name="sparkles" size={20} color="#7C3AED" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <Text style={styles.newComerHighlightTitle}>New Comer Welcome Program</Text>
+                  <View style={styles.newComerHighlightBadge}>
+                    <Text style={styles.newComerHighlightBadgeText}>First Order Exclusive</Text>
+                  </View>
+                </View>
+                <Text style={styles.newComerHighlightSub}>
+                  Special 10% instant discount voucher (WELCOME10) for all newly registered customers.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.newComerStatusRow}>
+              <Ionicons
+                name={isFirstOrder ? 'checkmark-circle' : 'information-circle'}
+                size={16}
+                color={isFirstOrder ? '#16A34A' : '#D97706'}
+              />
+              <Text style={[styles.newComerStatusText, { color: isFirstOrder ? '#16A34A' : '#D97706' }]}>
+                {isFirstOrder
+                  ? '✓ You qualify as a New Comer! WELCOME10 is ready to use on your first order.'
+                  : 'ⓘ Existing account with completed orders. WELCOME10 is reserved for first-time orders.'}
+              </Text>
+            </View>
+          </View>
+
           <View style={styles.subPageHeaderInfo}>
             <Text style={styles.subPageMainTitle}>Available Coupons ({coupons.length})</Text>
             <Text style={styles.subPageMainDesc}>
-              Tap "Copy" on any coupon code to apply during order checkout.
+              Tap "Copy" on any coupon code to automatically apply during order checkout.
             </Text>
           </View>
 
           <View style={styles.couponsListContainer}>
-            {coupons.map((cpn, cIdx) => (
-              <View key={`cpn-${cIdx}`} style={styles.couponCardDetailed}>
-                <View style={styles.couponCardHeader}>
-                  <View style={styles.couponBadgeGold}>
-                    <Text style={styles.couponBadgeGoldText}>{cpn.discount}</Text>
+            {coupons.map((cpn, cIdx) => {
+              const isWelcome = cpn.code === 'WELCOME10';
+              const isHemohim = cpn.code === 'HEMOHIM20';
+              const isFestive = cpn.code === 'FESTIVE500';
+              const isFreeship = cpn.code === 'FREESHIP';
+
+              let productScopeBadge = 'All Store Products';
+              let audienceBadge = null;
+
+              if (isWelcome) {
+                productScopeBadge = 'All Products (New Comers First Order Exclusive)';
+                audienceBadge = (
+                  <View style={styles.profileNewComerPill}>
+                    <Ionicons name="sparkles" size={10} color="#7C3AED" />
+                    <Text style={styles.profileNewComerPillText}>New Comers Only</Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.copyCouponBtn}
-                    onPress={() => {
-                      setEnteredCoupon(cpn.code);
-                      Alert.alert('Code Copied', `Code ${cpn.code} ready to apply!`);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="copy-outline" size={14} color="#00A3E0" />
-                    <Text style={styles.copyCouponBtnText}>Copy</Text>
-                  </TouchableOpacity>
-                </View>
+                );
+              } else if (isHemohim) {
+                productScopeBadge = 'Atomy HemoHIM Health Supplements Only';
+                audienceBadge = (
+                  <View style={styles.profileHemohimPill}>
+                    <Ionicons name="medkit" size={10} color="#059669" />
+                    <Text style={styles.profileHemohimPillText}>HemoHIM Immunity</Text>
+                  </View>
+                );
+              } else if (isFestive) {
+                productScopeBadge = 'All Catalog Products (Orders above ₹5,000)';
+                audienceBadge = (
+                  <View style={styles.profileFestivePill}>
+                    <Ionicons name="gift" size={10} color="#B45309" />
+                    <Text style={styles.profileFestivePillText}>Festive Savings</Text>
+                  </View>
+                );
+              } else if (isFreeship) {
+                productScopeBadge = 'All Orders Nationwide (Zero Shipping Cost)';
+                audienceBadge = (
+                  <View style={styles.profileFreeshipPill}>
+                    <Ionicons name="car" size={10} color="#0284C7" />
+                    <Text style={styles.profileFreeshipPillText}>Free Delivery</Text>
+                  </View>
+                );
+              }
 
-                <Text style={styles.couponCodeText}>{cpn.code}</Text>
-                <Text style={styles.couponTitleText}>{cpn.title}</Text>
-                <Text style={styles.couponDescText}>{cpn.desc}</Text>
+              return (
+                <View key={`cpn-${cIdx}`} style={styles.couponCardDetailed}>
+                  <View style={styles.couponCardHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <View style={styles.couponBadgeGold}>
+                        <Text style={styles.couponBadgeGoldText}>{cpn.discountDisplay || cpn.discount}</Text>
+                      </View>
+                      {audienceBadge}
+                    </View>
+                    <TouchableOpacity
+                      style={styles.copyCouponBtn}
+                      onPress={() => {
+                        setEnteredCoupon(cpn.code);
+                        Alert.alert('Code Copied', `Coupon code "${cpn.code}" is ready to apply!`);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="copy-outline" size={14} color="#00A3E0" />
+                      <Text style={styles.copyCouponBtnText}>Copy</Text>
+                    </TouchableOpacity>
+                  </View>
 
-                <View style={styles.couponFooterRow}>
-                  <Text style={styles.couponExpiryText}>Valid till {cpn.validTill}</Text>
-                  <Text style={styles.couponMinText}>Min spend: {cpn.minSpend}</Text>
+                  <Text style={styles.couponCodeText}>{cpn.code}</Text>
+                  <Text style={styles.couponTitleText}>{cpn.title}</Text>
+                  <Text style={styles.couponDescText}>{cpn.description || cpn.desc}</Text>
+
+                  <View style={styles.profileCouponScopeRow}>
+                    <Ionicons name="pricetags-outline" size={12} color="#64748B" />
+                    <Text style={styles.profileCouponScopeText}>Target: {productScopeBadge}</Text>
+                  </View>
+
+                  {isWelcome ? (
+                    <View style={styles.profileCouponEligibleRow}>
+                      <Ionicons
+                        name={isFirstOrder ? 'checkmark-circle' : 'alert-circle'}
+                        size={13}
+                        color={isFirstOrder ? '#16A34A' : '#D97706'}
+                      />
+                      <Text
+                        style={[
+                          styles.profileCouponEligibleText,
+                          { color: isFirstOrder ? '#16A34A' : '#D97706' },
+                        ]}
+                      >
+                        {isFirstOrder
+                          ? 'Eligible: Valid on your first order checkout.'
+                          : 'Restricted: For first-time buyer accounts only.'}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  <View style={styles.couponFooterRow}>
+                    <Text style={styles.couponExpiryText}>Valid till {cpn.validTill}</Text>
+                    <Text style={styles.couponMinText}>
+                      {Number(cpn.minOrderValue) > 0
+                        ? `Min spend: ₹ ${Number(cpn.minOrderValue).toLocaleString('en-IN')}`
+                        : 'No minimum spend'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </ScrollView>
       </View>
@@ -3860,6 +4015,151 @@ const styles = StyleSheet.create({
   couponMinText: {
     fontSize: 11,
     color: '#64748B',
+    fontWeight: '600',
+  },
+  newComerHighlightCard: {
+    backgroundColor: '#FAF5FF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    padding: 14,
+    marginBottom: 16,
+  },
+  newComerHighlightTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  newComerSparkleCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#F3E8FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newComerHighlightTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#581C87',
+  },
+  newComerHighlightBadge: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  newComerHighlightBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  newComerHighlightSub: {
+    fontSize: 11.5,
+    color: '#6B21A8',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  newComerStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F3E8FF',
+  },
+  newComerStatusText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    flex: 1,
+  },
+  profileNewComerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#D8B4FE',
+  },
+  profileNewComerPillText: {
+    color: '#7C3AED',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  profileHemohimPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  profileHemohimPillText: {
+    color: '#059669',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  profileFestivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  profileFestivePillText: {
+    color: '#B45309',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  profileFreeshipPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  profileFreeshipPillText: {
+    color: '#0284C7',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  profileCouponScopeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 6,
+  },
+  profileCouponScopeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  profileCouponEligibleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+  },
+  profileCouponEligibleText: {
+    fontSize: 11,
     fontWeight: '600',
   },
 
