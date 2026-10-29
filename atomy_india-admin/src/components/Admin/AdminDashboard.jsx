@@ -121,7 +121,7 @@ const INITIAL_SINGLE_PRODUCT = [
 // Local storage initialization key
 const STORAGE_CLEAN_KEY = 'atomy_admin_clean_v8';
 const SEEN_ALERTS_KEY = 'atomy_admin_seen_alerts_v1';
-const READ_NOTIFS_KEY = 'atomy_admin_read_notifs_v1';
+const READ_NOTIFS_KEY = 'atomy_admin_read_notifs_v3';
 
 const getSeenAlertIds = () => {
   try {
@@ -401,7 +401,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       const oid = String(o.orderId || o.id || '');
       if (oid) {
         newSet.add(oid);
+        newSet.add(`delayed_${oid}`);
         markNotifAsRead(oid);
+        markNotifAsRead(`delayed_${oid}`);
       }
     });
     tickets.forEach(t => {
@@ -719,7 +721,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       const seedItem = (id) => {
         if (!id) return;
         seen.add(String(id));
-        readSet.add(String(id));
       };
 
       const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
@@ -738,7 +739,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         if (Array.isArray(parsed)) parsed.forEach(t => t?.ticketId && seedItem(t.ticketId));
       }
       localStorage.setItem(SEEN_ALERTS_KEY, JSON.stringify(Array.from(seen)));
-      localStorage.setItem(READ_NOTIFS_KEY, JSON.stringify(Array.from(readSet)));
       setReadNotifIds(new Set(readSet));
     } catch { }
 
@@ -849,7 +849,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         mappedOrders.forEach(o => {
           if (o.orderId) {
             markAlertIdAsSeen(o.orderId);
-            markNotifAsRead(o.orderId);
           }
         });
       }
@@ -873,7 +872,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         cleanTickets.forEach(t => {
           if (t.ticketId) {
             markAlertIdAsSeen(t.ticketId);
-            markNotifAsRead(t.ticketId);
           }
         });
         try {
@@ -899,12 +897,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       return; // Already alerted/seen, do not alarm again on reload
     }
 
-    // Orders placed prior to current session load are historical - mark as seen/read silently without audio or banner
+    // Orders placed prior to current session load are historical - mark as seen for audio chime/banner
     const orderTime = new Date(order.createdAt || order.date || 0).getTime();
     if (!isLiveRealtime && orderTime > 0 && orderTime < sessionStartTimeRef.current - 2000) {
       markAlertIdAsSeen(orderIdStr);
-      markNotifAsRead(orderIdStr);
-      setReadNotifIds(prev => new Set([...prev, orderIdStr]));
       return;
     }
 
@@ -933,12 +929,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       return; // Already alerted/seen, do not alarm again on reload
     }
 
-    // Tickets submitted prior to current session load are historical - mark as seen/read silently
+    // Tickets submitted prior to current session load are historical - mark as seen for audio chime
     const ticketTime = new Date(ticket.createdAt || 0).getTime();
     if (!isLiveRealtime && ticketTime > 0 && ticketTime < sessionStartTimeRef.current - 2000) {
       markAlertIdAsSeen(ticketIdStr);
-      markNotifAsRead(ticketIdStr);
-      setReadNotifIds(prev => new Set([...prev, ticketIdStr]));
       return;
     }
 
@@ -1372,11 +1366,11 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     const openTicketsCount = tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
     const recentNewOrders = orders.filter(o => {
       const st = String(o.orderStatus || o.status || 'PLACED').toUpperCase();
-      const isNew = st === 'PLACED' || st.includes('PAYMENT COMPLETED') || st === 'NEW' || st === 'PAID';
+      const isNew = (st.includes('PLACED') || st.includes('NEW') || st === 'PAID' || st.includes('PAYMENT COMPLETED')) && !st.includes('CANCEL') && !st.includes('DELIVERED') && !st.includes('SHIPPED');
       const oId = String(o.orderId || o.id || '');
       const isUnread = !readNotifIds.has(oId);
       return isNew && isUnread;
-    }).slice(0, 5);
+    });
 
     const unreadTickets = tickets.filter(t => {
       const isOpen = t.status === 'OPEN' || t.status === 'IN_PROGRESS';
@@ -1385,7 +1379,13 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       return isOpen && isUnread;
     });
 
-    const delayedCount = orders.filter(o => getOrderDeliverySLA(o).isDelayed).length;
+    const delayedOrders = orders.filter(o => {
+      const isDelayed = getOrderDeliverySLA(o).isDelayed;
+      const oId = String(o.orderId || o.id || '');
+      return isDelayed && !readNotifIds.has(`delayed_${oId}`);
+    });
+
+    const delayedCount = delayedOrders.length;
 
     return {
       todaySale,
@@ -1396,12 +1396,13 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       shippedCount,
       deliveredCount,
       delayedCount,
+      delayedOrders: delayedOrders.slice(0, 5),
       totalOrders: orders.length,
       lowStockCount,
       unreadLowStockCount,
       outOfStockCount,
       openTicketsCount,
-      recentNewOrders,
+      recentNewOrders: recentNewOrders.slice(0, 10),
       unreadOrdersCount: recentNewOrders.length,
       unreadTicketsCount: unreadTickets.length
     };
@@ -1999,7 +2000,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         notificationCount={
           (overviewStats.unreadOrdersCount || 0) +
           (overviewStats.unreadTicketsCount || 0) +
-          (overviewStats.unreadLowStockCount || 0)
+          (overviewStats.unreadLowStockCount || 0) +
+          (overviewStats.delayedCount || 0)
         }
         overviewStats={overviewStats}
         onSelectNotificationTab={(tab, filter, targetOrderId) => {

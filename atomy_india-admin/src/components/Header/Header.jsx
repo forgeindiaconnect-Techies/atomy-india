@@ -582,6 +582,45 @@ export default function Header({
                             })
                           ) : null}
 
+                          {overviewStats?.delayedOrders && overviewStats.delayedOrders.length > 0 ? (
+                            overviewStats.delayedOrders.map(dOrder => {
+                              const orderId = dOrder.orderId || dOrder.id;
+                              return (
+                                <div
+                                  key={`delayed_${orderId}`}
+                                  className="notif-item order-specific-item"
+                                  style={{ borderLeft: '3px solid #ef4444', backgroundColor: '#fef2f2' }}
+                                  onClick={() => {
+                                    onDismissNotif && onDismissNotif(`delayed_${orderId}`);
+                                    onSelectNotificationTab && onSelectNotificationTab('orders', 'DELAYED', orderId);
+                                    setIsAdminNotifOpen(false);
+                                  }}
+                                >
+                                  <div className="notif-icon-circle placed" style={{ background: '#fee2e2', color: '#dc2626' }}>
+                                    <Clock size={14} />
+                                  </div>
+                                  <div className="notif-text" style={{ flex: 1 }}>
+                                    <strong style={{ color: '#b91c1c' }}>Delayed Order: #{orderId}</strong>
+                                    <span>{dOrder.customerName} • Estimated: {dOrder.estimatedDeliveryDate || 'Overdue'}</span>
+                                  </div>
+                                  {onDismissNotif && (
+                                    <button
+                                      type="button"
+                                      className="notif-dismiss-btn"
+                                      title="Dismiss notification"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDismissNotif(`delayed_${orderId}`);
+                                      }}
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : null}
+
                           {(overviewStats?.unreadTicketsCount || 0) > 0 && (
                             <div
                               className="notif-item"
