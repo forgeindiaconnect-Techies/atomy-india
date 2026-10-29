@@ -115,24 +115,37 @@ function computeTargetStage(order) {
 }
 
 // Vertical & Horizontal animated delivery status stepper matching website
-function VerticalDeliveryStepper({ order }) {
+function VerticalDeliveryStepper({ order, defaultMode = 'vertical' }) {
+  const isCancelled = useMemo(() => {
+    const raw = String(order?.status || order?.orderStatus || '').toLowerCase();
+    return raw.includes('cancel');
+  }, [order]);
+
   const targetStage = useMemo(() => computeTargetStage(order), [order]);
   const [currentStep, setCurrentStep] = useState(1);
   const [lineProgress, setLineProgress] = useState(0);
-  const [stepperMode, setStepperMode] = useState('horizontal'); // 'horizontal' | 'vertical'
+  const [stepperMode, setStepperMode] = useState(defaultMode); // 'vertical' | 'horizontal'
 
   // Restart progression when order changes
   useEffect(() => {
     setCurrentStep(1);
     setLineProgress(0);
-  }, [order?.id]);
+  }, [order?.id, order?.orderId]);
+
+  // Adjust immediately if target stage is set lower
+  useEffect(() => {
+    if (currentStep > targetStage) {
+      setCurrentStep(targetStage);
+      setLineProgress(100);
+    }
+  }, [targetStage, currentStep]);
 
   // One by one stage progression with smooth animated delay
   useEffect(() => {
     if (currentStep < targetStage) {
       setLineProgress(0);
       const startTime = Date.now();
-      const duration = 1500; // 1.5s delay per stage
+      const duration = 1200; // 1.2s delay per stage
 
       const interval = setInterval(() => {
         const elapsed = Date.now() - startTime;
@@ -151,7 +164,32 @@ function VerticalDeliveryStepper({ order }) {
     }
   }, [currentStep, targetStage]);
 
-  const stages = [
+  const stages = isCancelled ? [
+    {
+      num: 1,
+      label: 'Order Placed',
+      sub: 'Payment Confirmed & Verified',
+      moverType: 'envelope',
+      moverLabel: 'Order Confirmation Sent',
+      icon: 'receipt-outline',
+    },
+    {
+      num: 2,
+      label: 'Processing & Check',
+      sub: 'Pre-Dispatch Window',
+      moverType: 'package',
+      moverLabel: 'Review Completed',
+      icon: 'cube-outline',
+    },
+    {
+      num: 3,
+      label: 'Order Cancelled',
+      sub: '100% Refund Initiated',
+      moverType: 'done',
+      moverLabel: 'Cancellation Recorded',
+      icon: 'close-circle-outline',
+    },
+  ] : [
     {
       num: 1,
       label: 'Order Placed',
@@ -199,22 +237,10 @@ function VerticalDeliveryStepper({ order }) {
       {/* 1. Live Shipping Status Header */}
       <View style={styles.stepperLiveHeader}>
         <View style={styles.statusHeaderLeftRow}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.stepperLiveTitle}>LIVE SHIPPING STATUS</Text>
-          <TouchableOpacity
-            onPress={() => setStepperMode((m) => (m === 'horizontal' ? 'vertical' : 'horizontal'))}
-            style={styles.modeToggleBtn}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={stepperMode === 'horizontal' ? 'list' : 'swap-horizontal'}
-              size={12}
-              color="#00A3E0"
-            />
-            <Text style={styles.modeToggleBtnText}>
-              {stepperMode === 'horizontal' ? 'Vertical' : 'Horizontal'}
-            </Text>
-          </TouchableOpacity>
+          <View style={[styles.livePulseDot, isCancelled && { backgroundColor: '#DC2626' }]} />
+          <Text style={[styles.stepperLiveTitle, isCancelled && { color: '#DC2626' }]}>
+            {isCancelled ? 'ORDER CANCELLATION & TRANSIT STATUS' : 'LIVE SHIPPING STATUS'}
+          </Text>
         </View>
       </View>
 
@@ -454,6 +480,8 @@ export default function OrderDeliveryPage({
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'processing' | 'in_transit' | 'delivered'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTrackOrder, setSelectedTrackOrder] = useState(null);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [activeInvoiceOrder, setActiveInvoiceOrder] = useState(null);
   const [localOrdersOverrides, setLocalOrdersOverrides] = useState({});
 
   // Mobile Modals State
@@ -788,7 +816,7 @@ export default function OrderDeliveryPage({
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rulesBannerTitle}>Official Consumer Protection SOP</Text>
                   <Text style={styles.rulesBannerSub}>
-                    Cancellation, Zero-Cost Replacement &amp; 100% Refund Rules
+                    Cancellation, Zero-Cost Replacement & 100% Refund Rules
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -796,7 +824,7 @@ export default function OrderDeliveryPage({
                   onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.rulesBannerViewBtnText}>All Rules &gt;</Text>
+                  <Text style={styles.rulesBannerViewBtnText}>{'All Rules >'}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -832,174 +860,6 @@ export default function OrderDeliveryPage({
                 </TouchableOpacity>
               </View>
             </View>
-
-            {/* 3. LATEST ORDER LIVE SHIPMENT STATUS (Set directly in page without background box) */}
-            {activeTrackedOrder && !String(activeTrackedOrder.status || '').toLowerCase().includes('cancel') && (
-              <View style={styles.latestOrderTrackerCard}>
-                <View style={styles.trackerTopMetaRow}>
-                  <View style={styles.trackerIdCol}>
-                    <View style={styles.trackerEyebrowRow}>
-                      <Ionicons name="sparkles" size={12} color="#00A3E0" />
-                      <Text style={styles.trackerEyebrowText}>
-                        {selectedTrackOrder ? 'SELECTED CONSIGNMENT' : 'LATEST ORDER SHIPMENT'}
-                      </Text>
-                    </View>
-                    <Text style={styles.trackerOrderId}>Order #{activeTrackedOrder.id}</Text>
-                    <Text style={styles.trackerOrderDate}>Placed on {activeTrackedOrder.date}</Text>
-                  </View>
-
-                  <View style={[
-                    styles.statusBadge,
-                    activeTrackedOrder.status === 'Delivered'
-                      ? styles.statusBadgeDelivered
-                      : styles.statusBadgeTransit,
-                  ]}>
-                    <Ionicons
-                      name={activeTrackedOrder.status === 'Delivered' ? 'checkmark-circle' : 'airplane-outline'}
-                      size={14}
-                      color={activeTrackedOrder.status === 'Delivered' ? '#16A34A' : '#0284C7'}
-                    />
-                    <Text style={[
-                      styles.statusBadgeText,
-                      activeTrackedOrder.status === 'Delivered'
-                        ? styles.statusBadgeTextDelivered
-                        : styles.statusBadgeTransit,
-                    ]}>
-                      {activeTrackedOrder.status}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Item Title & Courier Info */}
-                <View style={styles.trackerItemInfoRow}>
-                  <Ionicons name="bag-check-outline" size={16} color="#00A3E0" />
-                  <Text style={styles.trackerItemTitle} numberOfLines={1}>
-                    {activeTrackedOrder.title}
-                  </Text>
-                </View>
-
-                <View style={styles.trackerCourierMetaRow}>
-                  <Text style={styles.trackerCourierMetaText}>
-                    Carrier: <Text style={styles.courierBold}>{activeTrackedOrder.courier || 'Express Courier'}</Text>
-                    {activeTrackedOrder.awb ? ` • AWB: ${activeTrackedOrder.awb}` : ''}
-                    {activeTrackedOrder.eta ? ` • ETA: ${activeTrackedOrder.eta}` : ''}
-                  </Text>
-                </View>
-
-                {/* Stepper (Horizontal by default, without Blue Dart Express pill in header) */}
-                <VerticalDeliveryStepper order={activeTrackedOrder} />
-
-                {activeTrackedOrder.shippingAddress && (
-                  <View style={styles.trackerAddressBanner}>
-                    <Ionicons name="location-outline" size={14} color="#00A3E0" />
-                    <Text style={styles.trackerAddressText} numberOfLines={1}>
-                      Shipping to: <Text style={{ fontWeight: '700', color: '#1E293B' }}>{activeTrackedOrder.shippingAddress}</Text>
-                    </Text>
-                  </View>
-                )}
-
-                {/* Tracker Actions Strip: Direct Cancel, Replacement & Rules Buttons */}
-                <View style={styles.mobileTrackerActionsRow}>
-                  {(() => {
-                    const st = (activeTrackedOrder.status || '').toLowerCase();
-                    const isCancellable = !st.includes('delivered') && !st.includes('transit') && !st.includes('cancel');
-                    const isDelivered = st.includes('delivered');
-                    const isCancelled = st.includes('cancel');
-
-                    if (isCancellable) {
-                      return (
-                        <View style={styles.mobileTrackerBtnPair}>
-                          <TouchableOpacity
-                            style={[styles.mobileActionBtn, styles.mobileCancelBtn, { flex: 1.4 }]}
-                            onPress={() => handleCancelOrder(activeTrackedOrder)}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="close-circle-outline" size={15} color="#DC2626" />
-                            <Text style={styles.mobileCancelBtnText}>Cancel Order</Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={[styles.mobileActionBtn, styles.mobileRulesBtn, { flex: 1 }]}
-                            onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="shield-checkmark-outline" size={15} color="#0284C7" />
-                            <Text style={styles.mobileRulesBtnText}>Rules &amp; SOP</Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    }
-
-                    if (isDelivered) {
-                      return (
-                        <View style={{ gap: 8, width: '100%' }}>
-                          <View style={styles.mobileTrackerBtnPair}>
-                            <TouchableOpacity
-                              style={[styles.mobileActionBtn, styles.mobileReplaceBtn, { flex: 1 }]}
-                              onPress={() => handleRequestReplacement(activeTrackedOrder)}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="refresh-circle-outline" size={15} color="#4338CA" />
-                              <Text style={styles.mobileReplaceBtnText}>Free Replacement</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                              style={[styles.mobileActionBtn, styles.mobileReturnBtn, { flex: 1 }]}
-                              onPress={() => handleRequestReturn(activeTrackedOrder)}
-                              activeOpacity={0.8}
-                            >
-                              <Ionicons name="return-down-back-outline" size={15} color="#15803D" />
-                              <Text style={styles.mobileReturnBtnText}>30-Day Return</Text>
-                            </TouchableOpacity>
-                          </View>
-
-                          <TouchableOpacity
-                            style={[styles.mobileActionBtn, styles.mobileRulesBtn, { width: '100%' }]}
-                            onPress={() => { setActiveRulesTab('refund_guarantee'); setIsRulesModalOpen(true); }}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="shield-checkmark-outline" size={15} color="#0284C7" />
-                            <Text style={styles.mobileRulesBtnText}>View Consumer Protection SOP &amp; Timelines</Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    }
-
-                    if (isCancelled) {
-                      return (
-                        <View style={styles.mobileTrackerBtnPair}>
-                          <View style={[styles.mobileCancelledNotice, { flex: 1.5 }]}>
-                            <Ionicons name="close-circle" size={15} color="#DC2626" />
-                            <Text style={styles.mobileCancelledNoticeText}>Cancelled • 100% Refund</Text>
-                          </View>
-                          <TouchableOpacity
-                            style={[styles.mobileActionBtn, styles.mobileRulesBtn, { flex: 1 }]}
-                            onPress={() => { setActiveRulesTab('timelines'); setIsRulesModalOpen(true); }}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="shield-checkmark-outline" size={15} color="#0284C7" />
-                            <Text style={styles.mobileRulesBtnText}>Refund SLA</Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    }
-
-                    return (
-                      <View style={styles.mobileTrackerBtnPair}>
-                        <TouchableOpacity
-                          style={[styles.mobileActionBtn, styles.mobileRulesBtn, { flex: 1 }]}
-                          onPress={() => { setActiveRulesTab('timelines'); setIsRulesModalOpen(true); }}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons name="shield-checkmark-outline" size={15} color="#0284C7" />
-                          <Text style={styles.mobileRulesBtnText}>View Protection Rules &amp; Delivery SLA</Text>
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })()}
-                </View>
-              </View>
-            )}
 
             {/* 4. TRACKING LOOKUP BAR */}
             <View style={styles.searchSection}>
@@ -1166,39 +1026,76 @@ export default function OrderDeliveryPage({
                   )}
                 </View>
 
-                {/* Action Buttons: 2-column balanced grid */}
+                {/* Action Buttons: Track Status & View GST Invoice */}
                 <View style={styles.cardActionsRow}>
-                  {!isCancelled && (
-                    <TouchableOpacity
-                      style={[styles.trackOrderBtn, isCurrentlyTracked && styles.trackOrderBtnActive]}
-                      onPress={() => setSelectedTrackOrder(ord)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons
-                        name="location-outline"
-                        size={15}
-                        color={isCurrentlyTracked ? '#FFFFFF' : '#00A3E0'}
-                      />
-                      <Text style={[styles.trackOrderBtnText, isCurrentlyTracked && styles.trackOrderBtnTextActive]}>
-                        {isCurrentlyTracked ? 'Currently Tracking' : 'Track Status'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.trackOrderBtn,
+                      expandedOrderId === ord.id && styles.trackOrderBtnActive,
+                      isCancelled && (expandedOrderId === ord.id ? styles.cancelTrackBtnActive : styles.cancelTrackBtn),
+                      isDelivered && (expandedOrderId === ord.id ? styles.deliveredTrackBtnActive : styles.deliveredTrackBtn),
+                    ]}
+                    onPress={() => setExpandedOrderId(prev => prev === ord.id ? null : ord.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={isCancelled ? 'close-circle-outline' : isDelivered ? 'checkmark-circle-outline' : 'location-outline'}
+                      size={15}
+                      color={expandedOrderId === ord.id ? '#FFFFFF' : (isCancelled ? '#DC2626' : isDelivered ? '#16A34A' : '#00A3E0')}
+                    />
+                    <Text style={[
+                      styles.trackOrderBtnText,
+                      expandedOrderId === ord.id && styles.trackOrderBtnTextActive,
+                      isCancelled && expandedOrderId !== ord.id && { color: '#DC2626' },
+                      isDelivered && expandedOrderId !== ord.id && { color: '#16A34A' },
+                    ]}>
+                      {expandedOrderId === ord.id
+                        ? (isCancelled || isDelivered ? 'Hide Status' : 'Hide Tracking')
+                        : (isCancelled || isDelivered ? 'View Status' : 'Track Status')}
+                    </Text>
+                  </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.invoiceBtn, isCancelled && { flex: 1 }]}
-                    onPress={() => {
-                      Alert.alert(
-                        'GST Tax Invoice',
-                        `Invoice generated for Order #${ord.id}\nAmount: ${ord.total}\nPoint Value: ${ord.pv}\nGSTIN: 06AAICA5843Q1Z2\nStatus: ${ord.status}\n\nOfficial Atomy India Distributor Invoicing.`
-                      );
-                    }}
+                    style={styles.invoiceBtn}
+                    onPress={() => setActiveInvoiceOrder(ord)}
                     activeOpacity={0.8}
                   >
                     <Ionicons name="document-text-outline" size={15} color="#00A3E0" />
                     <Text style={styles.invoiceBtnText}>View GST Invoice</Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Inline Vertical Delivery / Cancellation Tracking Stepper (Matching Website) */}
+                {expandedOrderId === ord.id && (
+                  <View style={styles.orderInlineTrackerBox}>
+                    <View style={styles.inlineTrackerHeader}>
+                      <View style={styles.inlineTrackerMeta}>
+                        <Text style={styles.inlineMetaText}>
+                          Carrier: <Text style={styles.courierBold}>{isCancelled ? 'Transit Halted' : (ord.courier || 'Blue Dart Express')}</Text>
+                          <Text style={styles.inlineMetaSep}> • </Text>
+                          AWB: <Text style={styles.monoBold}>{ord.awb || `BD-${ord.id}`}</Text>
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.inlineTrackerCloseBtn}
+                        onPress={() => setExpandedOrderId(null)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="close" size={14} color="#64748B" />
+                        <Text style={styles.inlineTrackerCloseText}>Close</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    <VerticalDeliveryStepper order={ord} defaultMode="vertical" />
+
+                    <View style={styles.inlineTrackerDestination}>
+                      <Ionicons name="location-outline" size={14} color="#00A3E0" />
+                      <Text style={styles.inlineTrackerDestText} numberOfLines={2}>
+                        Shipping to: <Text style={{ fontWeight: '700', color: '#1E293B' }}>{ord.shippingAddress || 'Registered Delivery Address'}</Text>
+                      </Text>
+                    </View>
+                  </View>
+                )}
 
                 {/* Customer Section: Pre-Dispatch Cancellation, Zero-Cost Replacement, Return & Policy Rules */}
                 <View style={styles.cardCustomerActionsRow}>
@@ -1731,12 +1628,157 @@ export default function OrderDeliveryPage({
                 onPress={() => setIsRulesModalOpen(false)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.modalCloseBtnText}>Understood &amp; Close</Text>
+                <Text style={styles.modalCloseBtnText}>Understood & Close</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
+
+      {/* ========================================================
+          MODAL 5: AUTHENTIC GST TAX INVOICE MODAL (Matching Website)
+          ======================================================== */}
+      {activeInvoiceOrder && (
+        <Modal
+          visible={Boolean(activeInvoiceOrder)}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setActiveInvoiceOrder(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.invoiceModalCard}>
+              {/* Header */}
+              <View style={styles.invoiceModalHeader}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.invoiceTagPill}>
+                    <Text style={styles.invoiceTagText}>Official Tax Invoice</Text>
+                  </View>
+                  <Text style={styles.invoiceModalTitle}>Atomy India Order Details</Text>
+                  <Text style={styles.invoiceOrderNumber}>
+                    Order No: <Text style={styles.monoBold}>{activeInvoiceOrder.id}</Text>
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.invoiceModalCloseBtn}
+                  onPress={() => setActiveInvoiceOrder(null)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={22} color="#475569" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.invoiceModalScroll} showsVerticalScrollIndicator={false}>
+                {/* Meta Grid (Order Date, Payment Method, Fulfillment Partner, Tracking AWB) */}
+                <View style={styles.invoiceMetaGrid}>
+                  <View style={styles.invoiceMetaCol}>
+                    <Text style={styles.invoiceMetaLabel}>Order Date:</Text>
+                    <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.date}</Text>
+                  </View>
+                  <View style={styles.invoiceMetaCol}>
+                    <Text style={styles.invoiceMetaLabel}>Payment Method:</Text>
+                    <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.paymentMethod || 'Online Payment'}</Text>
+                  </View>
+                  <View style={styles.invoiceMetaCol}>
+                    <Text style={styles.invoiceMetaLabel}>Fulfillment Partner:</Text>
+                    <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.courier || 'Blue Dart Express'}</Text>
+                  </View>
+                  <View style={styles.invoiceMetaCol}>
+                    <Text style={styles.invoiceMetaLabel}>Tracking AWB:</Text>
+                    <Text style={[styles.invoiceMetaVal, styles.monoBold]}>{activeInvoiceOrder.awb || `BD-${activeInvoiceOrder.id}`}</Text>
+                  </View>
+                </View>
+
+                {/* Delivery Destination */}
+                <View style={styles.invoiceShippingBox}>
+                  <Text style={styles.invoiceShippingBoxLabel}>Delivery Destination:</Text>
+                  <Text style={styles.invoiceShippingBoxText}>
+                    {activeInvoiceOrder.shippingAddress || 'Registered Delivery Address'}
+                  </Text>
+                </View>
+
+                {/* Items List */}
+                <View style={styles.invoiceItemsSection}>
+                  <Text style={styles.invoiceSectionTitle}>Ordered Items</Text>
+                  {(activeInvoiceOrder.items && activeInvoiceOrder.items.length > 0 ? activeInvoiceOrder.items : [
+                    {
+                      name: activeInvoiceOrder.title,
+                      qty: activeInvoiceOrder.itemsCount || 1,
+                      price: typeof activeInvoiceOrder.total === 'string'
+                        ? parseFloat(activeInvoiceOrder.total.replace(/[^0-9.]/g, '')) || 0
+                        : activeInvoiceOrder.total || 0,
+                    }
+                  ]).map((it, idx) => {
+                    const unitPrice = typeof it.price === 'number' ? it.price : parseFloat(String(it.price || '0').replace(/[^0-9.]/g, '')) || 0;
+                    const qty = it.qty || 1;
+                    const lineTotal = unitPrice * qty;
+                    return (
+                      <View key={idx} style={styles.invoiceItemRow}>
+                        <View style={{ flex: 1, paddingRight: 8 }}>
+                          <Text style={styles.invoiceItemName} numberOfLines={2}>{it.name}</Text>
+                          <Text style={styles.invoiceItemUnit}>Qty: {qty} • ₹ {unitPrice.toLocaleString('en-IN')} each</Text>
+                        </View>
+                        <Text style={styles.invoiceItemTotal}>₹ {lineTotal.toLocaleString('en-IN')}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* Totals Summary */}
+                {(() => {
+                  const rawTotal = typeof activeInvoiceOrder.total === 'string'
+                    ? parseFloat(activeInvoiceOrder.total.replace(/[^0-9.]/g, '')) || 0
+                    : activeInvoiceOrder.total || 0;
+                  return (
+                    <View style={styles.invoiceTotalsSummary}>
+                      <View style={styles.invoiceSummaryRow}>
+                        <Text style={styles.invoiceSummaryLabel}>Subtotal:</Text>
+                        <Text style={styles.invoiceSummaryValue}>₹ {rawTotal.toLocaleString('en-IN')}</Text>
+                      </View>
+                      <View style={styles.invoiceSummaryRow}>
+                        <Text style={styles.invoiceSummaryLabel}>Shipping Fee:</Text>
+                        <Text style={styles.invoiceFreeShipping}>FREE (Standard Atomy Delivery)</Text>
+                      </View>
+                      {activeInvoiceOrder.pv && (
+                        <View style={styles.invoiceSummaryRow}>
+                          <Text style={styles.invoiceSummaryLabel}>Accumulated PV:</Text>
+                          <Text style={styles.invoicePvHighlight}>{activeInvoiceOrder.pv}</Text>
+                        </View>
+                      )}
+                      <View style={[styles.invoiceSummaryRow, styles.invoiceGrandTotalRow]}>
+                        <Text style={styles.invoiceGrandTotalLabel}>Grand Total (incl. GST):</Text>
+                        <Text style={styles.invoiceGrandTotalValue}>₹ {rawTotal.toLocaleString('en-IN')}</Text>
+                      </View>
+                    </View>
+                  );
+                })()}
+              </ScrollView>
+
+              {/* Footer Action Buttons */}
+              <View style={styles.invoiceModalFooter}>
+                <TouchableOpacity
+                  style={styles.invoiceCloseActionBtn}
+                  onPress={() => setActiveInvoiceOrder(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.invoiceCloseActionText}>Close</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.invoiceTrackActionBtn}
+                  onPress={() => {
+                    const ordId = activeInvoiceOrder.id;
+                    setActiveInvoiceOrder(null);
+                    setExpandedOrderId(ordId);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="location-outline" size={16} color="#FFFFFF" />
+                  <Text style={styles.invoiceTrackActionText}>Track Consignment</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -3377,5 +3419,305 @@ const styles = StyleSheet.create({
   mobileRulesTabTextActive: {
     color: '#00A3E0',
     fontWeight: '800',
+  },
+  // Inline Order Tracking Stepper inside Order Card
+  orderInlineTrackerBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  inlineTrackerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    marginBottom: 6,
+  },
+  inlineTrackerMeta: {
+    flex: 1,
+    marginRight: 8,
+  },
+  inlineMetaText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  inlineMetaSep: {
+    color: '#CBD5E1',
+  },
+  inlineTrackerCloseBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  inlineTrackerCloseText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  inlineTrackerDestination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: '#BAE6FD',
+    marginTop: 8,
+  },
+  inlineTrackerDestText: {
+    fontSize: 11,
+    color: '#475569',
+    flex: 1,
+  },
+  cancelTrackBtn: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECDD3',
+  },
+  cancelTrackBtnActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#B91C1C',
+  },
+  deliveredTrackBtn: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  deliveredTrackBtnActive: {
+    backgroundColor: '#16A34A',
+    borderColor: '#15803D',
+  },
+
+  // Official GST Tax Invoice Modal Styles
+  invoiceModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    width: '94%',
+    maxWidth: 520,
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  invoiceModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
+  },
+  invoiceTagPill: {
+    backgroundColor: '#E0F2FE',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  invoiceTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0284C7',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  invoiceModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  invoiceOrderNumber: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  invoiceModalCloseBtn: {
+    padding: 4,
+  },
+  invoiceModalScroll: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  invoiceMetaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 12,
+  },
+  invoiceMetaCol: {
+    width: '47%',
+    marginBottom: 4,
+  },
+  invoiceMetaLabel: {
+    fontSize: 10.5,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  invoiceMetaVal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginTop: 1,
+  },
+  invoiceShippingBox: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  invoiceShippingBoxLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284C7',
+    marginBottom: 2,
+  },
+  invoiceShippingBoxText: {
+    fontSize: 12,
+    color: '#1E293B',
+    lineHeight: 16,
+  },
+  invoiceItemsSection: {
+    marginBottom: 12,
+  },
+  invoiceSectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+  invoiceItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  invoiceItemName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  invoiceItemUnit: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  invoiceItemTotal: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  invoiceTotalsSummary: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  invoiceSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 3,
+  },
+  invoiceSummaryLabel: {
+    fontSize: 11.5,
+    color: '#64748B',
+  },
+  invoiceSummaryValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  invoiceFreeShipping: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#16A34A',
+  },
+  invoicePvHighlight: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#00A3E0',
+  },
+  invoiceGrandTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#CBD5E1',
+    marginTop: 6,
+    paddingTop: 6,
+  },
+  invoiceGrandTotalLabel: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  invoiceGrandTotalValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#00A3E0',
+  },
+  invoiceModalFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
+  },
+  invoiceCloseActionBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  invoiceCloseActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  invoiceTrackActionBtn: {
+    flex: 1.6,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#00A3E0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  invoiceTrackActionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
