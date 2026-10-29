@@ -35,8 +35,8 @@ const getLocalApiBase = () => {
 
 export const LOCAL_API_BASE = getLocalApiBase();
 
-// Default API Base prioritizes the active local backend (connected to MongoDB Atlas)
-export const API_BASE = LOCAL_API_BASE;
+// Default API Base: Prioritizes live cloud production server for mobile builds and standalone APK
+export const API_BASE = CLOUD_API_BASE;
 
 /**
  * Fetch all active products live from database (tries Local Backend first for instant response, falls back to Cloud)
@@ -52,14 +52,14 @@ export async function fetchLiveProducts(categoryId = null, search = null) {
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
 
   const candidateUrls = [
-    `${LOCAL_API_BASE}/products${queryString}`,
     `${CLOUD_API_BASE}/products${queryString}`,
+    `${LOCAL_API_BASE}/products${queryString}`,
   ];
 
   for (const url of candidateUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -105,13 +105,13 @@ export async function fetchLiveProducts(categoryId = null, search = null) {
 }
 
 /**
- * Check customer membership status from database (Local Backend first + Cloud fallback)
+ * Check customer membership status from database (Cloud first + Local fallback)
  */
 export async function fetchMembershipStatusApi(email) {
   if (!email) return null;
   const candidateUrls = [
-    `${LOCAL_API_BASE}/membership/status?email=${encodeURIComponent(email)}`,
     `${CLOUD_API_BASE}/membership/status?email=${encodeURIComponent(email)}`,
+    `${LOCAL_API_BASE}/membership/status?email=${encodeURIComponent(email)}`,
   ];
 
   for (const url of candidateUrls) {
@@ -277,18 +277,37 @@ export async function registerCustomerApi(customerData) {
     `${LOCAL_API_BASE}/auth/register`,
   ];
 
+  let lastError = 'Failed to register on server';
+
   for (const url of targetUrls) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+
       const data = await res.json().catch(() => ({}));
-      if (res.ok) return { success: true, data };
-    } catch (err) {}
+      if (res.ok) {
+        return { success: true, data };
+      }
+      if (res.status === 400 || res.status === 409 || res.status === 422) {
+        return {
+          success: false,
+          error: data.message || data.error || 'Registration failed.',
+          data,
+        };
+      }
+    } catch (err) {
+      lastError = err.message || lastError;
+    }
   }
-  return { success: false, error: 'Failed to register on server' };
+  return { success: false, error: lastError };
 }
 
 /**
@@ -305,18 +324,39 @@ export async function loginCustomerApi(credentials) {
     `${LOCAL_API_BASE}/auth/login`,
   ];
 
+  let lastError = 'Failed to log in on server';
+
   for (const url of targetUrls) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+
       const data = await res.json().catch(() => ({}));
-      if (res.ok) return { success: true, data };
-    } catch (err) {}
+      if (res.ok) {
+        return { success: true, data };
+      }
+      // If the backend actively responded with 400, 401, or 403 (e.g. wrong credentials or not found),
+      // return the server's exact response message directly!
+      if (res.status === 400 || res.status === 401 || res.status === 403 || res.status === 404) {
+        return {
+          success: false,
+          error: data.message || data.error || 'Incorrect email or password.',
+          data,
+        };
+      }
+    } catch (err) {
+      lastError = err.message || lastError;
+    }
   }
-  return { success: false, error: 'Failed to log in on server' };
+  return { success: false, error: lastError };
 }
 
 /**
@@ -328,18 +368,37 @@ export async function googleAuthCustomerApi(googleData) {
     `${LOCAL_API_BASE}/auth/google`,
   ];
 
+  let lastError = 'Google sign-in failed on server';
+
   for (const url of targetUrls) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(googleData),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+
       const data = await res.json().catch(() => ({}));
-      if (res.ok) return { success: true, data };
-    } catch (err) {}
+      if (res.ok) {
+        return { success: true, data };
+      }
+      if (res.status === 400 || res.status === 401 || res.status === 403) {
+        return {
+          success: false,
+          error: data.message || data.error || 'Google sign-in failed.',
+          data,
+        };
+      }
+    } catch (err) {
+      lastError = err.message || lastError;
+    }
   }
-  return { success: false, error: 'Google sign-in failed on server' };
+  return { success: false, error: lastError };
 }
 
 export const DEFAULT_POPUP_ADS = [
@@ -458,8 +517,8 @@ export async function fetchFloatingAdConfigApi() {
  */
 export async function requestForgotPasswordOtp(email) {
   const targetUrls = [
-    `${LOCAL_API_BASE}/auth/forgot-password`,
     `${CLOUD_API_BASE}/auth/forgot-password`,
+    `${LOCAL_API_BASE}/auth/forgot-password`,
   ];
 
   let lastError = null;
@@ -489,8 +548,8 @@ export async function requestForgotPasswordOtp(email) {
  */
 export async function verifyPasswordOtp(email, otp) {
   const targetUrls = [
-    `${LOCAL_API_BASE}/auth/verify-otp`,
     `${CLOUD_API_BASE}/auth/verify-otp`,
+    `${LOCAL_API_BASE}/auth/verify-otp`,
   ];
 
   let lastError = null;
@@ -520,8 +579,8 @@ export async function verifyPasswordOtp(email, otp) {
  */
 export async function resetCustomerPassword(email, otp, newPassword) {
   const targetUrls = [
-    `${LOCAL_API_BASE}/auth/reset-password`,
     `${CLOUD_API_BASE}/auth/reset-password`,
+    `${LOCAL_API_BASE}/auth/reset-password`,
   ];
 
   let lastError = null;
@@ -559,8 +618,8 @@ export async function resetCustomerPassword(email, otp, newPassword) {
  */
 export async function fetchCouponsApi() {
   const targetUrls = [
-    `${LOCAL_API_BASE}/coupons`,
     `${CLOUD_API_BASE}/coupons`,
+    `${LOCAL_API_BASE}/coupons`,
   ];
 
   for (const url of targetUrls) {
@@ -583,8 +642,8 @@ export async function fetchCouponsApi() {
  */
 export async function applyCouponApi(code, cartAmount = 0, cartItems = [], isFirstOrder = true) {
   const targetUrls = [
-    `${LOCAL_API_BASE}/coupons/apply`,
     `${CLOUD_API_BASE}/coupons/apply`,
+    `${LOCAL_API_BASE}/coupons/apply`,
   ];
 
   for (const url of targetUrls) {
