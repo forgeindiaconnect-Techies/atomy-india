@@ -1,21 +1,23 @@
 import { Platform } from 'react-native';
 
 let Notifications = null;
-try {
-  // Guard against missing native modules in Expo Go (e.g. ExpoTopicSubscriptionModule)
-  Notifications = require('expo-notifications');
-  if (Platform.OS !== 'web' && Notifications && typeof Notifications.setNotificationHandler === 'function') {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-      }),
-    });
+if (Platform.OS !== 'web') {
+  try {
+    // Guard against missing native modules in Expo Go (e.g. ExpoTopicSubscriptionModule)
+    Notifications = require('expo-notifications');
+    if (Notifications && typeof Notifications.setNotificationHandler === 'function') {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }),
+      });
+    }
+  } catch (loadErr) {
+    console.log('[PushNotification] Native notification module not available in Expo Go:', loadErr?.message);
+    Notifications = null;
   }
-} catch (loadErr) {
-  console.log('[PushNotification] Native notification module not available in Expo Go:', loadErr?.message);
-  Notifications = null;
 }
 
 /**

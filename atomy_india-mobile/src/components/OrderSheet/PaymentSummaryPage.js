@@ -172,6 +172,9 @@ export default function PaymentSummaryPage({
   const [isItemsExpanded, setIsItemsExpanded] = useState(true);
   const [isTaxBreakdownOpen, setIsTaxBreakdownOpen] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(true);
+  const [isVoucherOpen, setIsVoucherOpen] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [isVoucherApplied, setIsVoucherApplied] = useState(false);
 
   // Address state
   const [selectedAddress, setSelectedAddress] = useState(DEFAULT_ADDRESS);
@@ -256,7 +259,8 @@ export default function PaymentSummaryPage({
   }, [appliedCoupon, subtotal]);
 
   const shippingFee = appliedCoupon?.isFreeShipping ? 0 : rawShippingFee;
-  const grandTotal = Math.max(0, subtotal - couponDiscount + shippingFee);
+  const voucherDiscount = isVoucherApplied ? Math.min(subtotal, 500) : 0;
+  const grandTotal = Math.max(0, subtotal - couponDiscount - voucherDiscount + shippingFee);
 
   const handleApplyCoupon = async () => {
     setCouponError('');
