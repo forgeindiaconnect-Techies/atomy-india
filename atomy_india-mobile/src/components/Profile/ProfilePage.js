@@ -21,6 +21,7 @@ import { fetchCouponsFromBackend } from '../../services/couponService';
 import {
   fetchNotificationsApi,
   getStoredNotifications,
+  saveStoredNotifications,
   reconcileNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
@@ -76,13 +77,27 @@ export default function ProfilePage({
   onNavigateCart,
   onNavigateFavorites,
   onNavigateMembership,
+  onNavigateOrderDelivery,
+  onNavigateOrders,
   onLogOut,
   onNavigateSignIn,
   onOpenAuthModal,
 }) {
+  const userMembership = useMemo(() => {
+    if (!isMember) return null;
+    if (
+      membershipData &&
+      currentUser?.email &&
+      membershipData?.customerEmail?.toLowerCase() === currentUser?.email?.toLowerCase()
+    ) {
+      return membershipData;
+    }
+    return isMember ? { expiryDate: true } : null;
+  }, [isMember, membershipData, currentUser?.email]);
+
   const expiry = useMemo(() => {
-    return membershipExpiryInfo || getMembershipExpiryInfo(membershipData || (isMember ? { expiryDate: true } : null));
-  }, [membershipExpiryInfo, membershipData, isMember]);
+    return membershipExpiryInfo || getMembershipExpiryInfo(userMembership);
+  }, [membershipExpiryInfo, userMembership]);
 
   const isExpiringSoon = expiry?.status === 'EXPIRING_SOON';
   const isExpired = expiry?.status === 'EXPIRED';
@@ -198,36 +213,53 @@ export default function ProfilePage({
     return sum;
   }, [orders, currentUser]);
 
-  // Notifications State & Sync
+  // Notifications State & Sync (Live from backend, no hardcoded items)
   const [notifications, setNotifications] = useState([]);
   const [notifFilter, setNotifFilter] = useState('all'); // 'all' | 'orders' | 'account'
 
-  // Dynamic reconciliation with orders and session (including membership plan expiry state)
+  // Dynamic live sync with backend API and local cache
   useEffect(() => {
-    const email = currentUser?.email || 'guest';
-    const initial = reconcileNotifications(email, currentUser, orders, expiry);
-    setNotifications(initial);
+    const email = currentUser?.email;
+    if (!email || email === 'guest') {
+      setNotifications([]);
+      return;
+    }
 
+    // 1. Initial cached notifications for instantaneous display
+    const cached = getStoredNotifications(email);
+    setNotifications(cached);
+
+    // 2. Fetch live notifications directly from backend
     fetchNotificationsApi(email).then((remote) => {
-      if (remote && remote.length > 0) {
-        const merged = reconcileNotifications(email, currentUser, orders, expiry);
-        setNotifications(merged);
+      if (Array.isArray(remote)) {
+        setNotifications(remote);
+        saveStoredNotifications(email, remote);
       }
-    });
-  }, [currentUser?.email, orders, expiry]);
+    }).catch(() => {});
+  }, [currentUser?.email]);
 
-  // Live 30-second interval timer for real-time timestamp updates without reload
+  // Live 15-second background interval for real-time timestamp updates and background polling
   useEffect(() => {
     const timer = setInterval(() => {
-      setNotifications((prev) =>
-        (prev || []).map((n) => ({
-          ...n,
-          time: n.createdAt ? formatRelativeTime(n.createdAt) : n.time,
-        }))
-      );
-    }, 30000);
+      const email = currentUser?.email;
+      if (email && email !== 'guest') {
+        fetchNotificationsApi(email).then((remote) => {
+          if (Array.isArray(remote)) {
+            setNotifications(remote);
+            saveStoredNotifications(email, remote);
+          } else {
+            setNotifications((prev) =>
+              (prev || []).map((n) => ({
+                ...n,
+                time: n.createdAt ? formatRelativeTime(n.createdAt) : n.time,
+              }))
+            );
+          }
+        }).catch(() => {});
+      }
+    }, 15000);
     return () => clearInterval(timer);
-  }, []);
+  }, [currentUser?.email]);
 
   const unreadNotifCount = notifications.filter((n) => n.unread).length;
 
@@ -839,9 +871,17 @@ export default function ProfilePage({
   }
 
   // ---------------------------------------------------------------------------
-  // SUB-PAGE: MY ORDERS
+  // SUB-PAGE: MY ORDERS (Redirect to Menu Bar Order Page for unified experience)
   // ---------------------------------------------------------------------------
   if (currentSubView === 'orders') {
+    if (onNavigateOrderDelivery) {
+      onNavigateOrderDelivery();
+      return null;
+    }
+    if (onNavigateOrders) {
+      onNavigateOrders();
+      return null;
+    }
     return (
       <View style={styles.root}>
         <View style={styles.headerBar}>
@@ -2531,8 +2571,14 @@ export default function ProfilePage({
                           style={styles.notifTrackBtn}
                           onPress={() => {
                             handleMarkRead(item.id);
-                            setCurrentSubView('orders');
-                            setSelectedTrackOrder(matchedOrder);
+                            if (onNavigateOrderDelivery) {
+                              onNavigateOrderDelivery();
+                            } else if (onNavigateOrders) {
+                              onNavigateOrders();
+                            } else {
+                              setCurrentSubView('orders');
+                              setSelectedTrackOrder(matchedOrder);
+                            }
                           }}
                           activeOpacity={0.8}
                         >
@@ -2544,8 +2590,14 @@ export default function ProfilePage({
                           style={styles.notifInvoiceBtn}
                           onPress={() => {
                             handleMarkRead(item.id);
-                            setCurrentSubView('orders');
-                            setSelectedInvoiceOrder(matchedOrder);
+                            if (onNavigateOrderDelivery) {
+                              onNavigateOrderDelivery();
+                            } else if (onNavigateOrders) {
+                              onNavigateOrders();
+                            } else {
+                              setCurrentSubView('orders');
+                              setSelectedInvoiceOrder(matchedOrder);
+                            }
                           }}
                           activeOpacity={0.8}
                         >
@@ -2575,7 +2627,15 @@ export default function ProfilePage({
       desc: 'Track orders, invoices & package history',
       icon: 'receipt-outline',
       badge: `${orders.length}`,
-      onPress: () => setCurrentSubView('orders'),
+      onPress: () => {
+        if (onNavigateOrderDelivery) {
+          onNavigateOrderDelivery();
+        } else if (onNavigateOrders) {
+          onNavigateOrders();
+        } else {
+          setCurrentSubView('orders');
+        }
+      },
     },
     {
       id: 'addresses',
@@ -2922,7 +2982,15 @@ export default function ProfilePage({
 
           <TouchableOpacity
             style={styles.counterBox}
-            onPress={() => setCurrentSubView('orders')}
+            onPress={() => {
+              if (onNavigateOrderDelivery) {
+                onNavigateOrderDelivery();
+              } else if (onNavigateOrders) {
+                onNavigateOrders();
+              } else {
+                setCurrentSubView('orders');
+              }
+            }}
             activeOpacity={0.7}
           >
             <Text style={styles.counterVal}>{orders.length}</Text>

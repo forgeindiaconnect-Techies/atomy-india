@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Rect, Circle, Line, Text as SvgText, G } from 'react-native-svg';
 import { COLORS } from '../../constants/theme';
+import { addNotification } from '../../services/notificationService';
 
 const phoenixLogo = require('../../../assets/fic-symbol.png');
 
@@ -640,6 +641,19 @@ export default function OrderDeliveryPage({
             createdAt: new Date().toISOString()
           });
           window.localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
+        }
+      } catch {}
+
+      // Trigger live customer notification for order cancellation
+      try {
+        const userEmail = cancelModalOrder.customerEmail || cancelModalOrder.email || (typeof window !== 'undefined' && JSON.parse(window.localStorage.getItem('atomy_user_session') || '{}')?.email);
+        if (userEmail) {
+          addNotification(userEmail, {
+            type: 'order_cancelled',
+            orderId: String(id),
+            title: `Order #${id} Cancelled`,
+            message: `Order #${id} was cancelled (${fullReason}). Refund status: ${inTransitAlert ? 'Non-refundable (transit commenced)' : '100% Refund initiated to source payment'}.`,
+          });
         }
       } catch {}
 

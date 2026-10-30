@@ -37,6 +37,10 @@ public class CustomerUser {
 
     private String pincode;
 
+    private String gender;
+
+    private String dob;
+
     private String role; // CUSTOMER
 
     @Field("is_member")
@@ -144,6 +148,22 @@ public class CustomerUser {
 
     public void setPincode(String pincode) {
         this.pincode = pincode;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getDob() {
+        return dob;
+    }
+
+    public void setDob(String dob) {
+        this.dob = dob;
     }
 
     public String getRole() {

@@ -17,7 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/api/auth", "/api/customer"})
 @CrossOrigin(origins = "*")
 public class CustomerAuthController {
 
@@ -151,15 +151,14 @@ public class CustomerAuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
         }
 
-        // Verify active membership status in database
+        // Strictly verify active membership status in database
+        boolean hasActiveMembership = false;
         if (customer.getEmail() != null) {
-            boolean hasActiveMembership = membershipRepository
+            hasActiveMembership = membershipRepository
                     .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE")
                     .isPresent();
-            if (hasActiveMembership) {
-                customer.setIsMember(true);
-            }
         }
+        customer.setIsMember(hasActiveMembership);
 
         customer.setLastLoginAt(LocalDateTime.now());
         customerUserRepository.save(customer);
@@ -172,7 +171,7 @@ public class CustomerAuthController {
 
     /**
      * POST /api/auth/google
-     * Seamless OAuth login/signup - automatically registers new Google users into MySQL
+     * Seamless OAuth login/signup - automatically registers new Google users into MongoDB
      */
     @PostMapping("/google")
     public ResponseEntity<?> googleAuth(@RequestBody Map<String, String> googleData) {
@@ -193,7 +192,7 @@ public class CustomerAuthController {
                 customer.setFullName(name.trim());
             }
         } else {
-            // Create brand new customer record in MySQL
+            // Create brand new customer record
             String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
             String randPart = String.format("%04d", new Random().nextInt(10000));
             String customerId = "CUST-" + datePart + "-" + randPart;
@@ -210,11 +209,106 @@ public class CustomerAuthController {
             customer.setLastLoginAt(LocalDateTime.now());
         }
 
+        // Verify membership status live
+        boolean hasActiveMembership = membershipRepository
+                .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE")
+                .isPresent();
+        customer.setIsMember(hasActiveMembership);
+
         CustomerUser saved = customerUserRepository.save(customer);
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("success", true);
         resp.put("message", "Google authentication successful");
+        resp.put("customer", saved);
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * GET /api/auth/profile?email=...
+     * Also accessible via GET /api/customer/profile?email=...
+     * Fetch customer profile details live from database
+     */
+    @GetMapping({"/profile", "/user"})
+    public ResponseEntity<?> getCustomerProfile(@RequestParam String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Email is required"));
+        }
+
+        Optional<CustomerUser> userOpt = customerUserRepository.findByEmail(email.trim().toLowerCase());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", "Customer account not found"));
+        }
+
+        CustomerUser customer = userOpt.get();
+        boolean hasActiveMembership = membershipRepository
+                .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE")
+                .isPresent();
+        customer.setIsMember(hasActiveMembership);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", true);
+        resp.put("customer", customer);
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * PUT /api/auth/profile
+     * Also accessible via PUT /api/customer/profile
+     * Update customer profile in database (Name, Phone, Address, City, State, Pincode, Gender, DOB)
+     */
+    @PutMapping({"/profile", "/user"})
+    public ResponseEntity<?> updateCustomerProfile(@RequestBody Map<String, Object> req) {
+        String email = req.get("email") != null ? req.get("email").toString().trim().toLowerCase() : "";
+        if (email.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Email is required to update profile"));
+        }
+
+        Optional<CustomerUser> userOpt = customerUserRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", "Customer account not found"));
+        }
+
+        CustomerUser customer = userOpt.get();
+
+        if (req.containsKey("fullName") && req.get("fullName") != null) {
+            customer.setFullName(req.get("fullName").toString().trim());
+        } else if (req.containsKey("name") && req.get("name") != null) {
+            customer.setFullName(req.get("name").toString().trim());
+        }
+
+        if (req.containsKey("phone") && req.get("phone") != null) {
+            customer.setPhone(req.get("phone").toString().trim());
+        }
+        if (req.containsKey("address") && req.get("address") != null) {
+            customer.setAddress(req.get("address").toString().trim());
+        }
+        if (req.containsKey("city") && req.get("city") != null) {
+            customer.setCity(req.get("city").toString().trim());
+        }
+        if (req.containsKey("state") && req.get("state") != null) {
+            customer.setState(req.get("state").toString().trim());
+        }
+        if (req.containsKey("pincode") && req.get("pincode") != null) {
+            customer.setPincode(req.get("pincode").toString().trim());
+        }
+        if (req.containsKey("gender") && req.get("gender") != null) {
+            customer.setGender(req.get("gender").toString().trim());
+        }
+        if (req.containsKey("dob") && req.get("dob") != null) {
+            customer.setDob(req.get("dob").toString().trim());
+        }
+
+        boolean hasActiveMembership = membershipRepository
+                .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE")
+                .isPresent();
+        customer.setIsMember(hasActiveMembership);
+
+        CustomerUser saved = customerUserRepository.save(customer);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", true);
+        resp.put("message", "Profile updated successfully");
         resp.put("customer", saved);
         return ResponseEntity.ok(resp);
     }

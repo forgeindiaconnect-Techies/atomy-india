@@ -68,6 +68,7 @@ import {
   setupNotificationListeners,
   scheduleLocalNotificationAsync,
 } from './src/services/pushNotificationService';
+import { addNotification } from './src/services/notificationService';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from './src/data/officialDistributorPrices';
 import {
   createOrderApi,
@@ -76,6 +77,8 @@ import {
   fetchLiveProducts,
   fetchMembershipStatusApi,
   fetchFloatingAdConfigApi,
+  fetchCustomerProfileApi,
+  updateCustomerProfileApi,
 } from './src/services/api';
 import { syncCatalogFromBackend, onCatalogUpdate } from './src/services/catalogSyncService';
 import storageService from './src/services/storageService';
@@ -135,10 +138,7 @@ const loadInitialIsMember = () => {
           return parsed.isMember;
         }
       }
-      const savedMember = window.localStorage.getItem('atomy_is_member');
-      if (savedMember !== null) {
-        return savedMember === 'true';
-      }
+      return false;
     }
   } catch (e) {}
   return false;
@@ -352,8 +352,10 @@ export default function App() {
         if (typeof cached?.isMember === 'boolean') {
           setIsMember(cached.isMember);
         }
-        if (cached?.membershipData) {
+        if (cached?.isMember && cached?.membershipData) {
           setMembershipData(cached.membershipData);
+        } else {
+          setMembershipData(null);
         }
         if (Array.isArray(cached?.recentlyViewed) && cached.recentlyViewed.length > 0) {
           setRecentlyViewed(cached.recentlyViewed);
@@ -373,12 +375,16 @@ export default function App() {
           fetchMembershipStatusApi(cached.userSession.email).then((mem) => {
             if (mem) {
               if (typeof mem.isMember === 'boolean') {
-                setIsMember(mem.isMember);
-                storageService.saveMembershipStatus(mem.isMember);
-              }
-              if (mem.membership) {
-                setMembershipData(mem.membership);
-                storageService.saveMembershipData(mem.membership);
+                const active = Boolean(mem.isMember);
+                setIsMember(active);
+                storageService.saveMembershipStatus(active);
+                if (active && mem.membership) {
+                  setMembershipData(mem.membership);
+                  storageService.saveMembershipData(mem.membership);
+                } else {
+                  setMembershipData(null);
+                  storageService.saveMembershipData(null);
+                }
               }
             }
           }).catch(() => {});
@@ -441,23 +447,68 @@ export default function App() {
     };
   }, []);
 
-  // Live Sync with Spring Boot Backend & MySQL Database (Port 8085)
+  // Live Sync with Spring Boot Backend & MongoDB Database (Port 8085 / Cloud)
   useEffect(() => {
     async function loadLiveBackendData() {
       if (!currentUser?.email) return;
 
-      // 1. Sync Membership status with Admin & MySQL
+      // 1. Live Sync Customer Profile details from Backend Database
+      try {
+        const liveProfile = await fetchCustomerProfileApi(currentUser.email);
+        if (liveProfile) {
+          setCurrentUser((prev) => ({
+            ...prev,
+            name: liveProfile.fullName || liveProfile.username || prev.name,
+            phone: liveProfile.phone !== undefined ? liveProfile.phone : prev.phone,
+            address: liveProfile.address !== undefined ? liveProfile.address : prev.address,
+            city: liveProfile.city !== undefined ? liveProfile.city : prev.city,
+            state: liveProfile.state !== undefined ? liveProfile.state : prev.state,
+            pincode: liveProfile.pincode !== undefined ? liveProfile.pincode : prev.pincode,
+            gender: liveProfile.gender !== undefined ? liveProfile.gender : prev.gender,
+            dob: liveProfile.dob !== undefined ? liveProfile.dob : prev.dob,
+            isMember: typeof liveProfile.isMember === 'boolean' ? liveProfile.isMember : prev.isMember,
+          }));
+
+          if (typeof liveProfile.isMember === 'boolean') {
+            setIsMember(liveProfile.isMember);
+            storageService.saveMembershipStatus(liveProfile.isMember);
+            if (!liveProfile.isMember) {
+              setMembershipData(null);
+              storageService.saveMembershipData(null);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Customer profile sync error:', e);
+      }
+
+      // 2. Sync Membership status with Admin & Database
       try {
         const memData = await fetchMembershipStatusApi(currentUser.email);
         if (memData && typeof memData.isMember === 'boolean') {
-          setIsMember(memData.isMember);
+          const active = Boolean(memData.isMember);
+          setIsMember(active);
+          storageService.saveMembershipStatus(active);
+          if (active && memData.membership) {
+            setMembershipData(memData.membership);
+            storageService.saveMembershipData(memData.membership);
+          } else {
+            setMembershipData(null);
+            storageService.saveMembershipData(null);
+          }
           if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem('atomy_is_member', memData.isMember ? 'true' : 'false');
+            window.localStorage.setItem('atomy_is_member', active ? 'true' : 'false');
           }
         } else if (currentUser?.isMember !== undefined) {
-          setIsMember(Boolean(currentUser.isMember));
+          const fallback = Boolean(currentUser.isMember);
+          setIsMember(fallback);
+          storageService.saveMembershipStatus(fallback);
+          if (!fallback) {
+            setMembershipData(null);
+            storageService.saveMembershipData(null);
+          }
           if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem('atomy_is_member', currentUser.isMember ? 'true' : 'false');
+            window.localStorage.setItem('atomy_is_member', fallback ? 'true' : 'false');
           }
         }
       } catch (e) {
@@ -698,7 +749,7 @@ export default function App() {
     handleNavigateHome();
   };
 
-  // User Profile Update handler (Persists to AsyncStorage & session storage)
+  // User Profile Update handler (Persists to AsyncStorage, session storage, and backend database)
   const handleUpdateUser = (updated) => {
     setCurrentUser(updated);
     storageService.saveUserSession(updated);
@@ -708,31 +759,44 @@ export default function App() {
         window.localStorage.removeItem('atomy_user_logged_out');
       }
     } catch (e) {}
+
+    // Synchronize customer profile update with Backend database
+    if (updated?.email && updated?.name && updated.name !== 'Guest User') {
+      updateCustomerProfileApi(updated).catch((err) => {
+        console.warn('Backend profile sync error:', err);
+      });
+    }
   };
 
   // Auth Success Handler: updates user, live syncs membership, resumes pending orders
   const handleAuthSuccess = async (user) => {
     setAuthNotice(null);
     handleUpdateUser(user);
-    showToast(`Welcome back, ${user.name}!`);
+    showToast(`Welcome back, ${user.name || user.fullName || 'User'}!`);
 
-    // Live sync membership status
+    // Strictly sync live membership status for this specific user
     try {
       const memData = await fetchMembershipStatusApi(user.email);
       if (memData && typeof memData.isMember === 'boolean') {
-        setIsMember(memData.isMember);
-        storageService.saveMembershipStatus(memData.isMember);
-        if (memData.membership) {
+        const active = Boolean(memData.isMember);
+        setIsMember(active);
+        storageService.saveMembershipStatus(active);
+        if (active && memData.membership) {
           setMembershipData(memData.membership);
           storageService.saveMembershipData(memData.membership);
+        } else {
+          setMembershipData(null);
+          storageService.saveMembershipData(null);
         }
         if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem('atomy_is_member', memData.isMember ? 'true' : 'false');
+          window.localStorage.setItem('atomy_is_member', active ? 'true' : 'false');
         }
       } else {
         const fallbackMem = Boolean(user.isMember);
         setIsMember(fallbackMem);
         storageService.saveMembershipStatus(fallbackMem);
+        setMembershipData(null);
+        storageService.saveMembershipData(null);
         if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.setItem('atomy_is_member', fallbackMem ? 'true' : 'false');
         }
@@ -741,6 +805,8 @@ export default function App() {
       const fallbackMem = Boolean(user.isMember);
       setIsMember(fallbackMem);
       storageService.saveMembershipStatus(fallbackMem);
+      setMembershipData(null);
+      storageService.saveMembershipData(null);
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem('atomy_is_member', fallbackMem ? 'true' : 'false');
       }
@@ -959,29 +1025,34 @@ export default function App() {
               }
             }}
             onBuyNow={(prod, quantity = 1) => {
-              const official = prod?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[prod.id] : null;
-              const rawPrice = Number(prod.price) || (official ? official.dpPrice : 1000);
-              let dpPrice = Number(prod.dpPrice || (official ? official.dpPrice : 0));
-              if (!dpPrice || dpPrice >= rawPrice) {
-                dpPrice = Math.round(rawPrice * 0.85);
+              try {
+                const official = prod?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[prod.id] : null;
+                const rawPrice = Number(prod?.price) || (official ? official.dpPrice : 1000);
+                let dpPrice = Number(prod?.dpPrice || (official ? official.dpPrice : 0));
+                if (!dpPrice || dpPrice >= rawPrice) {
+                  dpPrice = Math.round(rawPrice * 0.85);
+                }
+                const item = {
+                  ...prod,
+                  price: rawPrice,
+                  dpPrice,
+                  pv: Number(prod?.pv || (official ? official.pv : 0)) || Math.round(rawPrice * 4.5),
+                  image: prod?.image || prod?.img || '',
+                  qty: Number(quantity) || 1,
+                  tags: Array.isArray(prod?.tags) ? prod.tags : (prod?.tags ? [String(prod.tags)] : []),
+                };
+                if (!isUserLoggedIn) {
+                  setPendingOrderAction({ type: 'buynow', items: [item] });
+                  setAuthNotice('Please sign in or register to place your order with Atomy India.');
+                  setAuthInitialMode('signin');
+                  navigateTo('signin');
+                  return;
+                }
+                setCheckoutItems([item]);
+                navigateTo('payment_summary');
+              } catch (err) {
+                console.warn('onBuyNow error:', err);
               }
-              const item = {
-                ...prod,
-                price: rawPrice,
-                dpPrice,
-                pv: Number(prod.pv || (official ? official.pv : 0)) || Math.round(rawPrice * 4.5),
-                image: prod.image || prod.img,
-                qty: quantity || 1,
-              };
-              if (!isUserLoggedIn) {
-                setPendingOrderAction({ type: 'buynow', items: [item] });
-                setAuthNotice('Please sign in or register to place your order with Atomy India.');
-                setAuthInitialMode('signin');
-                navigateTo('signin');
-                return;
-              }
-              setCheckoutItems([item]);
-              navigateTo('payment_summary');
             }}
             onToggleFavorite={handleToggleFavorite}
             onJoinMemberPress={() => navigateTo('membership')}
@@ -1050,6 +1121,16 @@ export default function App() {
               setPlacedOrders((prev) => [newOrder, ...prev]);
               showToast('Order Placed & Synced with Database! 🎉');
 
+              // Trigger live in-app customer notification
+              if (currentUser?.email) {
+                addNotification(currentUser.email, {
+                  type: 'order_placed',
+                  orderId: realOrderId,
+                  title: `Order #${realOrderId} Confirmed & Placed`,
+                  message: `Your order for ${newOrder.title || 'Atomy items'} totaling ${formattedTotal} has been placed. Packaging and dispatch initiated.`,
+                });
+              }
+
               // Trigger system notification (pops up in device notification tray outside the app)
               scheduleLocalNotificationAsync({
                 title: 'Order Confirmed! 📦 Atomy India',
@@ -1108,29 +1189,34 @@ export default function App() {
               onToggleFavorite={handleToggleFavorite}
               onAddToCart={handleAddToCart}
               onBuyNow={(prod) => {
-                const official = prod?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[prod.id] : null;
-                const rawPrice = Number(prod.price) || (official ? official.dpPrice : 1000);
-                let dpPrice = Number(prod.dpPrice || (official ? official.dpPrice : 0));
-                if (!dpPrice || dpPrice >= rawPrice) {
-                  dpPrice = Math.round(rawPrice * 0.85);
+                try {
+                  const official = prod?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[prod.id] : null;
+                  const rawPrice = Number(prod?.price) || (official ? official.dpPrice : 1000);
+                  let dpPrice = Number(prod?.dpPrice || (official ? official.dpPrice : 0));
+                  if (!dpPrice || dpPrice >= rawPrice) {
+                    dpPrice = Math.round(rawPrice * 0.85);
+                  }
+                  const item = {
+                    ...prod,
+                    price: rawPrice,
+                    dpPrice,
+                    pv: Number(prod?.pv || (official ? official.pv : 0)) || Math.round(rawPrice * 4.5),
+                    image: prod?.image || prod?.img || '',
+                    qty: 1,
+                    tags: Array.isArray(prod?.tags) ? prod.tags : (prod?.tags ? [String(prod.tags)] : []),
+                  };
+                  if (!isUserLoggedIn) {
+                    setPendingOrderAction({ type: 'buynow', items: [item] });
+                    setAuthNotice('Please sign in or register to place your order with Atomy India.');
+                    setAuthInitialMode('signin');
+                    navigateTo('signin');
+                    return;
+                  }
+                  setCheckoutItems([item]);
+                  navigateTo('payment_summary');
+                } catch (err) {
+                  console.warn('onBuyNow error:', err);
                 }
-                const item = {
-                  ...prod,
-                  price: rawPrice,
-                  dpPrice,
-                  pv: Number(prod.pv || (official ? official.pv : 0)) || Math.round(rawPrice * 4.5),
-                  image: prod.image || prod.img,
-                  qty: 1,
-                };
-                if (!isUserLoggedIn) {
-                  setPendingOrderAction({ type: 'buynow', items: [item] });
-                  setAuthNotice('Please sign in or register to place your order with Atomy India.');
-                  setAuthInitialMode('signin');
-                  navigateTo('signin');
-                  return;
-                }
-                setCheckoutItems([item]);
-                navigateTo('payment_summary');
               }}
               onProductClick={handleOpenProductDetail}
             />
@@ -1159,6 +1245,8 @@ export default function App() {
                 onNavigateCart={() => navigateTo('cart')}
                 onNavigateFavorites={() => navigateTo('favorites')}
                 onNavigateMembership={() => navigateTo('membership')}
+                onNavigateOrderDelivery={() => navigateTo('order_delivery')}
+                onNavigateOrders={() => navigateTo('order_delivery')}
                 onLogOut={handleUserLogout}
                 onNavigateSignIn={() => {
                   setAuthNotice(null);

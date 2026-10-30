@@ -22,7 +22,7 @@ public class CustomerNotificationController {
         if (email == null || email.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(notificationRepository.findByEmailOrderByCreatedAtDesc(email.trim().toLowerCase()));
+        return ResponseEntity.ok(notificationRepository.findByEmailIgnoreCaseOrderByCreatedAtDesc(email.trim()));
     }
 
     @GetMapping("/unread-count")
@@ -30,7 +30,7 @@ public class CustomerNotificationController {
         if (email == null || email.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        long count = notificationRepository.countByEmailAndIsReadFalse(email.trim().toLowerCase());
+        long count = notificationRepository.countByEmailIgnoreCaseAndIsReadFalse(email.trim());
         return ResponseEntity.ok(Map.of("unreadCount", count));
     }
 
@@ -70,7 +70,7 @@ public class CustomerNotificationController {
         if (email == null || email.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        List<CustomerNotification> unread = notificationRepository.findByEmailAndIsReadFalseOrderByCreatedAtDesc(email.trim().toLowerCase());
+        List<CustomerNotification> unread = notificationRepository.findByEmailIgnoreCaseAndIsReadFalseOrderByCreatedAtDesc(email.trim());
         for (CustomerNotification n : unread) {
             n.setRead(true);
         }
@@ -93,7 +93,7 @@ public class CustomerNotificationController {
         if (email == null || email.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        notificationRepository.deleteByEmail(email.trim().toLowerCase());
+        notificationRepository.deleteByEmailIgnoreCase(email.trim());
         return ResponseEntity.ok(Map.of("success", true));
     }
 }

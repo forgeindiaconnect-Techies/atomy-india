@@ -27,6 +27,9 @@ public class CustomerMembershipController {
     private CustomerUserRepository customerUserRepository;
 
     @Autowired
+    private com.example.atomy_india.repository.CustomerNotificationRepository notificationRepository;
+
+    @Autowired
     private com.example.atomy_india.service.BrevoEmailService brevoEmailService;
 
     private static final String DEFAULT_SETTINGS_JSON = "{"
@@ -107,6 +110,18 @@ public class CustomerMembershipController {
             // Send Membership Welcome Confirmation Email via Brevo
             try {
                 brevoEmailService.sendMembershipWelcomeEmail(saved);
+            } catch (Exception ignored) {}
+
+            // Live notification for customer
+            try {
+                com.example.atomy_india.model.CustomerNotification notif = new com.example.atomy_india.model.CustomerNotification(
+                        email,
+                        "🎉 Distributor Membership Activated",
+                        "Your Atomy Distributor Membership plan (" + plan + ") is now active. You have unlocked wholesale DP prices & PV accumulation.",
+                        "membership_active",
+                        null
+                );
+                notificationRepository.save(notif);
             } catch (Exception ignored) {}
 
             return ResponseEntity.ok(saved);

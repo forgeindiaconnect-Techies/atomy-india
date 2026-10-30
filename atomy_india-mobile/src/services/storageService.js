@@ -118,9 +118,20 @@ export async function saveUserSession(user) {
       if (typeof user.isMember === 'boolean') {
         memoryCache.isMember = user.isMember;
         await AsyncStorage.setItem(KEYS.IS_MEMBER, user.isMember ? 'true' : 'false');
+        if (!user.isMember) {
+          memoryCache.membershipData = null;
+          await AsyncStorage.removeItem(KEYS.MEMBERSHIP_DATA);
+        }
+      } else {
+        memoryCache.isMember = false;
+        memoryCache.membershipData = null;
+        await AsyncStorage.setItem(KEYS.IS_MEMBER, 'false');
+        await AsyncStorage.removeItem(KEYS.MEMBERSHIP_DATA);
       }
     } else {
       await AsyncStorage.removeItem(KEYS.USER_SESSION);
+      memoryCache.membershipData = null;
+      await AsyncStorage.removeItem(KEYS.MEMBERSHIP_DATA);
     }
   } catch (err) {
     console.warn('[StorageService] Failed to persist user session:', err);
@@ -173,11 +184,18 @@ export async function clearUserSession() {
  * Save membership status
  */
 export async function saveMembershipStatus(isMember) {
-  memoryCache.isMember = Boolean(isMember);
+  const active = Boolean(isMember);
+  memoryCache.isMember = active;
+  if (!active) {
+    memoryCache.membershipData = null;
+  }
   try {
-    await AsyncStorage.setItem(KEYS.IS_MEMBER, isMember ? 'true' : 'false');
+    await AsyncStorage.setItem(KEYS.IS_MEMBER, active ? 'true' : 'false');
+    if (!active) {
+      await AsyncStorage.removeItem(KEYS.MEMBERSHIP_DATA);
+    }
     if (memoryCache.userSession) {
-      memoryCache.userSession.isMember = Boolean(isMember);
+      memoryCache.userSession.isMember = active;
       await AsyncStorage.setItem(KEYS.USER_SESSION, JSON.stringify(memoryCache.userSession));
     }
   } catch (err) {

@@ -360,6 +360,85 @@ export async function loginCustomerApi(credentials) {
 }
 
 /**
+ * Fetch customer profile live from database (Cloud Server + Local fallback)
+ */
+export async function fetchCustomerProfileApi(email) {
+  if (!email) return null;
+  const candidateUrls = [
+    `${CLOUD_API_BASE}/auth/profile?email=${encodeURIComponent(email)}`,
+    `${LOCAL_API_BASE}/auth/profile?email=${encodeURIComponent(email)}`,
+  ];
+
+  for (const url of candidateUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.customer) {
+          return data.customer;
+        }
+      }
+    } catch (err) {}
+  }
+  return null;
+}
+
+/**
+ * Update customer profile in database (Cloud Server AND Local Host in parallel)
+ */
+export async function updateCustomerProfileApi(profileData) {
+  const payload = {
+    email: profileData.email || '',
+    fullName: profileData.fullName || profileData.name || '',
+    name: profileData.name || profileData.fullName || '',
+    phone: profileData.phone || '',
+    address: profileData.address || '',
+    city: profileData.city || '',
+    state: profileData.state || '',
+    pincode: profileData.pincode || '',
+    gender: profileData.gender || '',
+    dob: profileData.dob || '',
+  };
+
+  const targetUrls = [
+    `${CLOUD_API_BASE}/auth/profile`,
+    `${LOCAL_API_BASE}/auth/profile`,
+  ];
+
+  let successfulResult = null;
+  let lastError = null;
+
+  await Promise.allSettled(
+    targetUrls.map(async (url) => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.customer) {
+          successfulResult = { success: true, customer: data.customer };
+        } else {
+          lastError = data.message || 'Failed to update profile';
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
+    })
+  );
+
+  return successfulResult || { success: false, error: lastError || 'Failed to update profile' };
+}
+
+/**
  * Customer Google Sign-in / Fast Auth
  */
 export async function googleAuthCustomerApi(googleData) {

@@ -11,9 +11,17 @@ public interface CustomerNotificationRepository extends MongoRepository<Customer
 
     List<CustomerNotification> findByEmailOrderByCreatedAtDesc(String email);
 
+    List<CustomerNotification> findByEmailIgnoreCaseOrderByCreatedAtDesc(String email);
+
     List<CustomerNotification> findByEmailAndIsReadFalseOrderByCreatedAtDesc(String email);
+
+    List<CustomerNotification> findByEmailIgnoreCaseAndIsReadFalseOrderByCreatedAtDesc(String email);
 
     long countByEmailAndIsReadFalse(String email);
 
+    long countByEmailIgnoreCaseAndIsReadFalse(String email);
+
     void deleteByEmail(String email);
+
+    void deleteByEmailIgnoreCase(String email);
 }

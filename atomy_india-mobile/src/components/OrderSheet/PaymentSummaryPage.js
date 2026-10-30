@@ -287,9 +287,10 @@ export default function PaymentSummaryPage({
     return (
       Array.isArray(checkoutItems) &&
       checkoutItems.some((it) => {
-        const n = (it.name || it.title || '').toLowerCase();
-        const t = (it.tags || '').toLowerCase();
-        const c = (it.category || '').toLowerCase();
+        if (!it) return false;
+        const n = String(it.name || it.title || '').toLowerCase();
+        const t = Array.isArray(it.tags) ? it.tags.join(' ').toLowerCase() : String(it.tags || '').toLowerCase();
+        const c = String(it.category || '').toLowerCase();
         return n.includes('hemohim') || n.includes('hemo him') || t.includes('hemohim') || c.includes('hemohim');
       })
     );

@@ -43,6 +43,9 @@ public class CustomerService {
     @Autowired
     private CustomerUserRepository customerUserRepository;
 
+    @Autowired
+    private com.example.atomy_india.repository.CustomerNotificationRepository customerNotificationRepository;
+
     // --- Products & Categories ---
 
     public List<Product> getAllActiveProducts() {
@@ -234,6 +237,22 @@ public class CustomerService {
         } catch (Exception e) {
             // Non-blocking email dispatch failure
         }
+
+        // Live notification for the customer
+        try {
+            if (savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().trim().isEmpty()) {
+                com.example.atomy_india.model.CustomerNotification notif = new com.example.atomy_india.model.CustomerNotification(
+                        savedOrder.getCustomerEmail().trim().toLowerCase(),
+                        "Order #" + savedOrder.getOrderId() + " Confirmed & Placed",
+                        "Your order for " + orderItems.size() + " item(s) totaling ₹"
+                                + String.format(java.util.Locale.ENGLISH, "%.2f", savedOrder.getTotalAmount())
+                                + " has been placed. Packaging and dispatch initiated.",
+                        "order_placed",
+                        savedOrder.getOrderId()
+                );
+                customerNotificationRepository.save(notif);
+            }
+        } catch (Exception ignored) {}
 
         return savedOrder;
     }

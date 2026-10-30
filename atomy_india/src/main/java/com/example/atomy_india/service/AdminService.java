@@ -37,6 +37,9 @@ public class AdminService {
     private SupportTicketRepository ticketRepository;
 
     @Autowired
+    private com.example.atomy_india.repository.CustomerNotificationRepository notificationRepository;
+
+    @Autowired
     private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     @Autowired
@@ -169,6 +172,35 @@ public class AdminService {
             } catch (Exception e) {}
         }
 
+        // Live notification for the customer on order status update
+        try {
+            if (savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().trim().isEmpty()) {
+                String type = "general";
+                String title = "Order #" + orderId + " Status Updated";
+                String message = "Your order status is now " + newStatus.name() + ".";
+                if (newStatus == CustomerOrder.OrderStatus.SHIPPED) {
+                    type = "order_transit";
+                    title = "Order #" + orderId + " Out for Delivery";
+                    message = "Your package is on its way. Expected delivery within 24-48 hours.";
+                } else if (newStatus == CustomerOrder.OrderStatus.DELIVERED) {
+                    type = "order_delivered";
+                    title = "Order #" + orderId + " Delivered! 🎉";
+                    message = "Your order has been delivered successfully to your shipping address.";
+                } else if (newStatus == CustomerOrder.OrderStatus.CANCELLED) {
+                    type = "order_cancelled";
+                    title = "Order #" + orderId + " Cancelled";
+                    message = "Order #" + orderId + " was cancelled.";
+                }
+                notificationRepository.save(new com.example.atomy_india.model.CustomerNotification(
+                        savedOrder.getCustomerEmail().trim().toLowerCase(),
+                        title,
+                        message,
+                        type,
+                        orderId
+                ));
+            }
+        } catch (Exception ignored) {}
+
         return savedOrder;
     }
 
@@ -210,6 +242,22 @@ public class AdminService {
         try {
             brevoEmailService.sendOrderShipped(order, savedTracking);
         } catch (Exception e) {}
+
+        // Live notification for the customer on dispatch
+        try {
+            if (order.getCustomerEmail() != null && !order.getCustomerEmail().trim().isEmpty()) {
+                String courier = req.getCourierPartner() != null ? req.getCourierPartner() : "Blue Dart Express";
+                String awb = req.getTrackingNumber() != null ? req.getTrackingNumber() : "";
+                String courierText = !awb.isEmpty() ? " via " + courier + " (AWB: " + awb + ")" : " via " + courier;
+                notificationRepository.save(new com.example.atomy_india.model.CustomerNotification(
+                        order.getCustomerEmail().trim().toLowerCase(),
+                        "Order #" + orderId + " Out for Delivery",
+                        "Your package is on its way" + courierText + ". Expected delivery within 24-48 hours.",
+                        "order_transit",
+                        orderId
+                ));
+            }
+        } catch (Exception ignored) {}
 
         return savedTracking;
     }

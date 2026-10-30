@@ -1379,13 +1379,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       return isOpen && isUnread;
     });
 
-    const delayedOrders = orders.filter(o => {
-      const isDelayed = getOrderDeliverySLA(o).isDelayed;
+    const allDelayedOrders = orders.filter(o => getOrderDeliverySLA(o).isDelayed);
+    const unreadDelayedOrders = allDelayedOrders.filter(o => {
       const oId = String(o.orderId || o.id || '');
-      return isDelayed && !readNotifIds.has(`delayed_${oId}`);
+      return !readNotifIds.has(`delayed_${oId}`);
     });
 
-    const delayedCount = delayedOrders.length;
+    const delayedCount = allDelayedOrders.length;
+    const unreadDelayedCount = unreadDelayedOrders.length;
 
     return {
       todaySale,
@@ -1396,7 +1397,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       shippedCount,
       deliveredCount,
       delayedCount,
-      delayedOrders: delayedOrders.slice(0, 5),
+      unreadDelayedCount,
+      delayedOrders: allDelayedOrders,
       totalOrders: orders.length,
       lowStockCount,
       unreadLowStockCount,
@@ -2001,7 +2003,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           (overviewStats.unreadOrdersCount || 0) +
           (overviewStats.unreadTicketsCount || 0) +
           (overviewStats.unreadLowStockCount || 0) +
-          (overviewStats.delayedCount || 0)
+          (overviewStats.unreadDelayedCount !== undefined ? overviewStats.unreadDelayedCount : overviewStats.delayedCount || 0)
         }
         overviewStats={overviewStats}
         onSelectNotificationTab={(tab, filter, targetOrderId) => {
@@ -2414,24 +2416,47 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                         <AlertTriangle size={20} color="#dc2626" />
                       </div>
                       <div className="delayed-banner-text">
-                        <strong>{overviewStats.delayedCount} Customer Order{overviewStats.delayedCount > 1 ? 's' : ''} Exceeded Delivery Window!</strong>
+                        <strong>⚠️ {overviewStats.delayedCount} Customer Order{overviewStats.delayedCount > 1 ? 's' : ''} Exceeded Delivery Window!</strong>
                         <span>Packages have passed the standard delivery deadline (within 2 days via nearby hubs; 3 days for remote mountain/forest terrains). Review dispatch status or coordinate with Blue Dart logistics.</span>
                       </div>
-                      <button className="delayed-banner-btn" type="button">
-                        View Delayed Orders ({overviewStats.delayedCount}) →
-                      </button>
-                      <button
-                        className="delayed-banner-close-btn"
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsDelayedBannerDismissed(true);
-                        }}
-                        title="Dismiss notification"
-                        aria-label="Close notification"
-                      >
-                        <X size={16} />
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          className="delayed-banner-btn"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTriggerAllDelayEmails();
+                          }}
+                          style={{ background: '#dc2626', color: '#fff', border: 'none' }}
+                          title="Send Apology Email to All Delayed Customers"
+                        >
+                          <Mail size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+                          Dispatch Apology to All ({overviewStats.delayedCount})
+                        </button>
+                        <button
+                          className="delayed-banner-btn"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveTab('orders');
+                            setOrderStatusFilter('DELAYED');
+                          }}
+                        >
+                          View Delayed Orders ({overviewStats.delayedCount}) →
+                        </button>
+                        <button
+                          className="delayed-banner-close-btn"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsDelayedBannerDismissed(true);
+                          }}
+                          title="Dismiss notification for this session"
+                          aria-label="Close notification"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -2841,7 +2866,28 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 <div className="admin-tab-content">
                   <div className="content-heading-row with-filter">
                     <div>
-                      <h2 className="content-title">Customer Orders & Logistics Fulfillment</h2>
+                      <h2 className="content-title">
+                        Customer Orders &amp; Logistics Fulfillment
+                        {orderStatusFilter === 'DELAYED' && (
+                          <span style={{
+                            marginLeft: '12px',
+                            background: '#fee2e2',
+                            color: '#dc2626',
+                            border: '1px solid #fca5a5',
+                            padding: '3px 12px',
+                            borderRadius: '16px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            verticalAlign: 'middle'
+                          }}>
+                            <AlertTriangle size={14} color="#dc2626" />
+                            {overviewStats.delayedCount} Delayed Orders
+                          </span>
+                        )}
+                      </h2>
                       <p className="content-subtitle">
                         Inspect orders placed by direct consumers, update delivery stages, and dispatch courier tracking.
                       </p>
@@ -2898,7 +2944,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       <div className="delayed-mgmt-left">
                         <AlertTriangle size={20} color="#dc2626" style={{ marginTop: '2px', flexShrink: 0 }} />
                         <div>
-                          <strong>Delayed Orders Delivery Window SLA Control</strong>
+                          <strong>Delayed Orders Delivery Window SLA Control ({overviewStats.delayedCount} Delayed Orders)</strong>
                           <p>
                             Automated background scans trigger every 4 hours to send apology emails to customers whose shipments exceed 2 days (dispatched from nearby regional hubs) or 3 days (remote mountain/forest areas with limited transport). You can also click below to manually trigger or resend apology emails.
                           </p>

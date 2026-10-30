@@ -1156,7 +1156,13 @@ export default function ProductDetailPage({
 
           <TouchableOpacity
             style={styles.bottomBuyBtn}
-            onPress={() => onBuyNow && onBuyNow(product, qty)}
+            onPress={() => {
+              try {
+                if (onBuyNow) onBuyNow(product, qty);
+              } catch (err) {
+                console.warn('Buy now navigation error:', err);
+              }
+            }}
             activeOpacity={0.88}
           >
             <Text style={styles.bottomBuyBtnText}>Buy Now</Text>
