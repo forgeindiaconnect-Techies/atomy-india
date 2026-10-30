@@ -85,6 +85,74 @@ export default function Header({
   const [isAtomySitesOpen, setIsAtomySitesOpen] = useState(false);
   const atomySitesMenuRef = useRef(null);
 
+  // Local persistent dismissed notifications state to guarantee instantaneous dismissal
+  const [localDismissedIds, setLocalDismissedIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_admin_read_notifs_v3');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const handleDismissOrder = (rawId, e) => {
+    if (e) e.stopPropagation();
+    if (!rawId) return;
+    const str = String(rawId);
+    const cleanId = str.replace(/^delayed_/, '');
+    const nextSet = new Set(localDismissedIds);
+    nextSet.add(cleanId);
+    nextSet.add(`delayed_${cleanId}`);
+    setLocalDismissedIds(nextSet);
+    try {
+      localStorage.setItem('atomy_admin_read_notifs_v3', JSON.stringify(Array.from(nextSet)));
+    } catch {}
+    if (onDismissNotif) {
+      onDismissNotif(`delayed_${cleanId}`);
+      onDismissNotif(cleanId);
+    }
+  };
+
+  const handleClearAll = (e) => {
+    if (e) e.stopPropagation();
+    const nextSet = new Set(localDismissedIds);
+    (overviewStats?.recentNewOrders || []).forEach(ro => {
+      const oid = String(ro.orderId || ro.id || '');
+      if (oid) {
+        nextSet.add(oid);
+        nextSet.add(`delayed_${oid}`);
+      }
+    });
+    (overviewStats?.delayedOrders || []).forEach(d => {
+      const oid = String(d.orderId || d.id || '');
+      if (oid) {
+        nextSet.add(oid);
+        nextSet.add(`delayed_${oid}`);
+      }
+    });
+    setLocalDismissedIds(nextSet);
+    try {
+      localStorage.setItem('atomy_admin_read_notifs_v3', JSON.stringify(Array.from(nextSet)));
+    } catch {}
+    if (onMarkAllNotifsAsRead) onMarkAllNotifsAsRead();
+    if (onDismissTickets) onDismissTickets();
+    if (onDismissStockAlerts) onDismissStockAlerts();
+  };
+
+  const visibleRecentOrders = (overviewStats?.recentNewOrders || []).filter(ro => {
+    const oid = String(ro.orderId || ro.id || '');
+    return !localDismissedIds.has(oid) && !localDismissedIds.has(`delayed_${oid}`);
+  });
+
+  const visibleDelayedOrders = (overviewStats?.delayedOrders || []).filter(d => {
+    const oid = String(d.orderId || d.id || '');
+    return !localDismissedIds.has(oid) && !localDismissedIds.has(`delayed_${oid}`);
+  });
+
+  const ticketsCount = overviewStats?.unreadTicketsCount || 0;
+  const stockCount = overviewStats?.unreadLowStockCount || 0;
+  const effectiveCount = visibleRecentOrders.length + visibleDelayedOrders.length + ticketsCount + stockCount;
+
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (adminNotifRef.current && !adminNotifRef.current.contains(e.target)) {
@@ -509,9 +577,9 @@ export default function Header({
                       aria-label="Notifications"
                     >
                       <Bell size={20} strokeWidth={2.2} />
-                      {notificationCount > 0 && (
+                      {effectiveCount > 0 && (
                         <span className="admin-master-bell-badge">
-                          {notificationCount}
+                          {effectiveCount}
                         </span>
                       )}
                     </button>
@@ -522,32 +590,29 @@ export default function Header({
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <strong>Notifications & Alerts</strong>
                             <span className="notif-count-pill">
-                              {notificationCount} Active
+                              {effectiveCount} Active
                             </span>
                           </div>
-                          {notificationCount > 0 && onMarkAllNotifsAsRead && (
+                          {(effectiveCount > 0 || visibleRecentOrders.length > 0 || visibleDelayedOrders.length > 0) && (
                             <button
                               type="button"
                               className="notif-clear-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onMarkAllNotifsAsRead();
-                              }}
+                              onClick={handleClearAll}
                             >
-                              Mark all read
+                              Clear all
                             </button>
                           )}
                         </div>
                         <div className="notif-dropdown-body">
-                          {overviewStats?.recentNewOrders && overviewStats.recentNewOrders.length > 0 ? (
-                            overviewStats.recentNewOrders.map(ro => {
+                          {visibleRecentOrders.length > 0 ? (
+                            visibleRecentOrders.map(ro => {
                               const orderId = ro.orderId || ro.id;
                               return (
                                 <div
                                   key={orderId}
                                   className="notif-item order-specific-item"
                                   onClick={() => {
-                                    onDismissNotif && onDismissNotif(orderId);
+                                    handleDismissOrder(orderId);
                                     onSelectNotificationTab && onSelectNotificationTab('orders', 'ALL', orderId);
                                     setIsAdminNotifOpen(false);
                                   }}
@@ -564,26 +629,21 @@ export default function Header({
                                       </span>
                                     )}
                                   </div>
-                                  {onDismissNotif && (
-                                    <button
-                                      type="button"
-                                      className="notif-dismiss-btn"
-                                      title="Dismiss notification"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDismissNotif(orderId);
-                                      }}
-                                    >
-                                      <X size={14} />
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    className="notif-dismiss-btn"
+                                    title="Dismiss notification"
+                                    onClick={(e) => handleDismissOrder(orderId, e)}
+                                  >
+                                    <X size={14} />
+                                  </button>
                                 </div>
                               );
                             })
                           ) : null}
 
-                          {overviewStats?.delayedOrders && overviewStats.delayedOrders.length > 0 ? (
-                            overviewStats.delayedOrders.map(dOrder => {
+                          {visibleDelayedOrders.length > 0 ? (
+                            visibleDelayedOrders.map(dOrder => {
                               const orderId = dOrder.orderId || dOrder.id;
                               return (
                                 <div
@@ -591,7 +651,7 @@ export default function Header({
                                   className="notif-item order-specific-item"
                                   style={{ borderLeft: '3px solid #ef4444', backgroundColor: '#fef2f2' }}
                                   onClick={() => {
-                                    onDismissNotif && onDismissNotif(`delayed_${orderId}`);
+                                    handleDismissOrder(orderId);
                                     onSelectNotificationTab && onSelectNotificationTab('orders', 'DELAYED', orderId);
                                     setIsAdminNotifOpen(false);
                                   }}
@@ -603,19 +663,14 @@ export default function Header({
                                     <strong style={{ color: '#b91c1c' }}>Delayed Order: #{orderId}</strong>
                                     <span>{dOrder.customerName} • Estimated: {dOrder.estimatedDeliveryDate || 'Overdue'}</span>
                                   </div>
-                                  {onDismissNotif && (
-                                    <button
-                                      type="button"
-                                      className="notif-dismiss-btn"
-                                      title="Dismiss notification"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDismissNotif(`delayed_${orderId}`);
-                                      }}
-                                    >
-                                      <X size={14} />
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    className="notif-dismiss-btn"
+                                    title="Dismiss notification"
+                                    onClick={(e) => handleDismissOrder(orderId, e)}
+                                  >
+                                    <X size={14} />
+                                  </button>
                                 </div>
                               );
                             })
@@ -685,7 +740,7 @@ export default function Header({
                             </div>
                           )}
 
-                          {notificationCount === 0 && (
+                          {effectiveCount === 0 && (
                             <div className="notif-empty-state">
                               <span>✓ All systems normal. No active alerts.</span>
                             </div>
