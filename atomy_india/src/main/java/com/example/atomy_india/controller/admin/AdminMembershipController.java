@@ -2,9 +2,11 @@ package com.example.atomy_india.controller.admin;
 
 import com.example.atomy_india.model.Membership;
 import com.example.atomy_india.model.PromotionSetting;
+import com.example.atomy_india.repository.CustomerUserRepository;
 import com.example.atomy_india.repository.MembershipRepository;
 import com.example.atomy_india.repository.PromotionSettingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +24,9 @@ public class AdminMembershipController {
 
     @Autowired
     private PromotionSettingRepository promotionSettingRepository;
+
+    @Autowired
+    private CustomerUserRepository customerUserRepository;
 
     private static final String DEFAULT_SETTINGS_JSON = "{"
             + "\"className\":\"Atomy Distributor Membership\","
@@ -58,6 +63,14 @@ public class AdminMembershipController {
             String memberId = "ATM-MEM-" + (100 + new Random().nextInt(900));
             Membership m = new Membership(memberId, name, email, phone, plan, amountPaid, paymentMethod, paymentId);
             Membership saved = membershipRepository.save(m);
+
+            // Synchronize with CustomerUser in database
+            final String customerEmail = email;
+            customerUserRepository.findByEmail(customerEmail).ifPresent(user -> {
+                user.setIsMember(true);
+                customerUserRepository.save(user);
+            });
+
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
@@ -77,18 +90,27 @@ public class AdminMembershipController {
             m.setStatus(newStatus.toUpperCase());
             m.setUpdatedAt(LocalDateTime.now());
             membershipRepository.save(m);
+
+            boolean active = "ACTIVE".equalsIgnoreCase(newStatus);
+            if (m.getCustomerEmail() != null && !m.getCustomerEmail().isEmpty()) {
+                customerUserRepository.findByEmail(m.getCustomerEmail().trim().toLowerCase()).ifPresent(user -> {
+                    user.setIsMember(active);
+                    customerUserRepository.save(user);
+                });
+            }
+
             return ResponseEntity.ok(m);
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/settings")
+    @GetMapping(value = "/settings", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSettings() {
         return promotionSettingRepository.findById("membership_settings")
-                .map(s -> ResponseEntity.ok(s.getJsonContent()))
-                .orElse(ResponseEntity.ok(DEFAULT_SETTINGS_JSON));
+                .map(s -> ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(s.getJsonContent()))
+                .orElse(ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(DEFAULT_SETTINGS_JSON));
     }
 
-    @PostMapping("/settings")
+    @PostMapping(value = "/settings", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PromotionSetting> saveSettings(@RequestBody String rawJson) {
         PromotionSetting setting = promotionSettingRepository.findById("membership_settings")
                 .orElse(new PromotionSetting("membership_settings", rawJson));

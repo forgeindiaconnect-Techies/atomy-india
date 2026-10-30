@@ -1,15 +1,12 @@
 // Membership Service for Atomy India Admin Console
 // Manages single-class Atomy Distributor Membership, Monthly & Annual plans, and Member Registry
-// Synced with Spring Boot Backend on Cloud Server & Localhost
+// Synced with Spring Boot Backend & MongoDB Atlas database
 
-const rawBase = (typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost'
-  ? 'https://atomy-india.onrender.com/api'
-  : (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api')
-).trim().replace(/\/+$/, '');
+const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
+const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
-const CLOUD_ADMIN_API_BASE = 'https://atomy-india.onrender.com/api/admin/membership';
-const LOCAL_ADMIN_API_BASE = 'http://localhost:8085/api/admin/membership';
-const ADMIN_API_BASE = rawBase.endsWith('/api') ? `${rawBase}/admin/membership` : `${rawBase}/api/admin/membership`;
+const ADMIN_MEMBERSHIP_API = `${API_BASE}/admin/membership`;
+const CLOUD_MEMBERSHIP_API = 'https://atomy-india.onrender.com/api/admin/membership';
 
 const SETTINGS_KEY = 'atomy_membership_settings';
 const MEMBERS_KEY = 'atomy_members_registry';
@@ -38,20 +35,34 @@ export function getMembershipSettings() {
 }
 
 export async function fetchMembershipSettingsFromBackend() {
-  const candidateUrls = [CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE];
-  const uniqueUrls = [...new Set(candidateUrls)];
+  const candidateUrls = [...new Set([ADMIN_MEMBERSHIP_API, CLOUD_MEMBERSHIP_API])];
 
-  for (const baseUrl of uniqueUrls) {
+  for (const baseUrl of candidateUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(`${baseUrl}/settings`, { signal: controller.signal });
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(`${baseUrl}/settings`, { 
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal 
+      });
       clearTimeout(timeoutId);
       if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
-        window.dispatchEvent(new CustomEvent('atomy:membership-settings-updated', { detail: data }));
-        return data;
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+          if (data && typeof data === 'object' && data.jsonContent) {
+            data = JSON.parse(data.jsonContent);
+          }
+        } catch {
+          data = DEFAULT_MEMBERSHIP_SETTINGS;
+        }
+        if (data && typeof data === 'object') {
+          const merged = { ...DEFAULT_MEMBERSHIP_SETTINGS, ...data };
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
+          window.dispatchEvent(new CustomEvent('atomy:membership-settings-updated', { detail: merged }));
+          return merged;
+        }
       }
     } catch (e) {
       // try next candidate
@@ -60,20 +71,21 @@ export async function fetchMembershipSettingsFromBackend() {
   return getMembershipSettings();
 }
 
-export function saveMembershipSettings(settings) {
+export async function saveMembershipSettings(settings) {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     window.dispatchEvent(new CustomEvent('atomy:membership-settings-updated', { detail: settings }));
 
-    // Sync to Cloud Server and Local Host in parallel
-    const targetUrls = [...new Set([CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE])];
-    targetUrls.forEach((baseUrl) => {
-      fetch(`${baseUrl}/settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      }).catch(err => console.warn(`Save settings error on ${baseUrl}:`, err));
-    });
+    const targetUrls = [...new Set([ADMIN_MEMBERSHIP_API, CLOUD_MEMBERSHIP_API])];
+    await Promise.allSettled(
+      targetUrls.map(baseUrl =>
+        fetch(`${baseUrl}/settings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings)
+        })
+      )
+    );
   } catch (e) {
     console.error('Failed to save membership settings', e);
   }
@@ -82,58 +94,41 @@ export function saveMembershipSettings(settings) {
 export function getMembersRegistry() {
   try {
     const saved = localStorage.getItem(MEMBERS_KEY);
-    if (!saved) {
-      return [];
-    }
+    if (!saved) return [];
     const parsed = JSON.parse(saved);
-    if (Array.isArray(parsed)) {
-      // Filter out any legacy hardcoded demo IDs
-      const clean = parsed.filter(m => 
-        !['ATM-MEM-001', 'ATM-MEM-002', 'ATM-MEM-003', 'ATM-MEM-414'].includes(m.id) && 
-        !m.paymentId?.includes('test') &&
-        !m.email?.includes('example.com') &&
-        !m.customerEmail?.includes('example.com')
-      );
-      if (clean.length !== parsed.length) {
-        localStorage.setItem(MEMBERS_KEY, JSON.stringify(clean));
-      }
-      return clean;
-    }
-    return [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
 export async function fetchMembersFromBackend() {
-  const candidateUrls = [CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE];
-  const uniqueUrls = [...new Set(candidateUrls)];
+  const candidateUrls = [...new Set([ADMIN_MEMBERSHIP_API, CLOUD_MEMBERSHIP_API])];
 
-  for (const baseUrl of uniqueUrls) {
+  for (const baseUrl of candidateUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`${baseUrl}/members`, { signal: controller.signal });
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(`${baseUrl}/members`, { 
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal 
+      });
       clearTimeout(timeoutId);
       if (res.ok) {
         const list = await res.json();
         if (Array.isArray(list)) {
-          // Normalize fields
-          const normalized = list
-            .filter(m => 
-              !['ATM-MEM-001', 'ATM-MEM-002', 'ATM-MEM-003', 'ATM-MEM-414'].includes(m.id) && 
-              !m.paymentId?.includes('test') &&
-              !m.email?.includes('example.com') &&
-              !m.customerEmail?.includes('example.com')
-            )
-            .map(m => ({
-              ...m,
-              name: m.customerName || m.name,
-              email: m.customerEmail || m.email,
-              phone: m.customerPhone || m.phone,
-              startDate: m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : '',
-              expiryDate: m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : ''
-            }));
+          // Normalize real database records
+          const normalized = list.map(m => ({
+            ...m,
+            name: m.customerName || m.name,
+            customerName: m.customerName || m.name,
+            email: m.customerEmail || m.email,
+            customerEmail: m.customerEmail || m.email,
+            phone: m.customerPhone || m.phone,
+            customerPhone: m.customerPhone || m.phone,
+            startDate: m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : '',
+            expiryDate: m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : ''
+          }));
           localStorage.setItem(MEMBERS_KEY, JSON.stringify(normalized));
           window.dispatchEvent(new CustomEvent('atomy:members-registry-updated', { detail: normalized }));
           return normalized;
@@ -165,68 +160,46 @@ export async function addMemberToRegistry(memberData) {
     expiry.setMonth(expiry.getMonth() + 1);
   }
 
-  // 1. Post to Cloud and Local Backends in parallel
-  const targetUrls = [...new Set([CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE])];
+  const targetUrls = [...new Set([ADMIN_MEMBERSHIP_API, CLOUD_MEMBERSHIP_API])];
   let savedResult = null;
 
-  await Promise.allSettled(
-    targetUrls.map(async (baseUrl) => {
-      try {
-        const res = await fetch(`${baseUrl}/members`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: memberData.name,
-            email: memberData.email,
-            phone: memberData.phone,
-            plan: memberData.plan
-          })
-        });
-        if (res.ok) {
-          const saved = await res.json();
-          if (!savedResult) savedResult = saved;
-        }
-      } catch (err) {}
-    })
-  );
+  for (const baseUrl of targetUrls) {
+    try {
+      const res = await fetch(`${baseUrl}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: memberData.name,
+          email: memberData.email,
+          phone: memberData.phone,
+          plan: memberData.plan
+        })
+      });
+      if (res.ok) {
+        savedResult = await res.json();
+        break;
+      }
+    } catch (err) {}
+  }
 
   if (savedResult) {
     const normalized = {
       ...savedResult,
       name: savedResult.customerName || savedResult.name,
+      customerName: savedResult.customerName || savedResult.name,
       email: savedResult.customerEmail || savedResult.email,
+      customerEmail: savedResult.customerEmail || savedResult.email,
       phone: savedResult.customerPhone || savedResult.phone,
-      startDate: savedResult.startDate ? savedResult.startDate.split('T')[0] : now.toISOString().split('T')[0],
-      expiryDate: savedResult.expiryDate ? savedResult.expiryDate.split('T')[0] : expiry.toISOString().split('T')[0]
+      customerPhone: savedResult.customerPhone || savedResult.phone,
+      startDate: savedResult.startDate ? String(savedResult.startDate).split('T')[0] : now.toISOString().split('T')[0],
+      expiryDate: savedResult.expiryDate ? String(savedResult.expiryDate).split('T')[0] : expiry.toISOString().split('T')[0]
     };
     const updated = [normalized, ...registry.filter(m => (m.email || m.customerEmail) !== normalized.email)];
     saveMembersRegistry(updated);
     return normalized;
   }
 
-  // Fallback
-  const newMember = {
-    id: `ATM-MEM-${Math.floor(100 + Math.random() * 900)}`,
-    name: memberData.name,
-    customerName: memberData.name,
-    email: memberData.email,
-    customerEmail: memberData.email,
-    phone: memberData.phone || '+91 98000 00000',
-    plan: memberData.plan || 'ANNUAL',
-    status: 'ACTIVE',
-    startDate: now.toISOString().split('T')[0],
-    expiryDate: expiry.toISOString().split('T')[0],
-    lifetimePv: 0,
-    totalSavings: 0,
-    amountPaid: memberData.plan === 'MONTHLY' ? 299 : 2499,
-    paymentMethod: 'ADMIN_MANUAL',
-    paymentId: `admin_enrolled_${Date.now()}`,
-    paymentStatus: 'PAID'
-  };
-
-  const updated = [newMember, ...registry.filter(m => (m.email || m.customerEmail) !== newMember.email)];
-  saveMembersRegistry(updated);
-  return newMember;
+  return null;
 }
 
 export async function updateMemberStatus(memberId, newStatus) {
@@ -239,15 +212,16 @@ export async function updateMemberStatus(memberId, newStatus) {
   });
   saveMembersRegistry(updated);
 
-  // Sync to Cloud & Local in parallel
-  const targetUrls = [...new Set([CLOUD_ADMIN_API_BASE, ADMIN_API_BASE, LOCAL_ADMIN_API_BASE])];
-  targetUrls.forEach((baseUrl) => {
-    fetch(`${baseUrl}/members/${encodeURIComponent(memberId)}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
-    }).catch(e => console.warn(`Update member status error on ${baseUrl}:`, e));
-  });
+  const targetUrls = [...new Set([ADMIN_MEMBERSHIP_API, CLOUD_MEMBERSHIP_API])];
+  await Promise.allSettled(
+    targetUrls.map(baseUrl =>
+      fetch(`${baseUrl}/members/${encodeURIComponent(memberId)}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+    )
+  );
 
   return updated;
 }

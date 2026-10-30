@@ -5,6 +5,7 @@ import com.example.atomy_india.repository.CustomerUserRepository;
 import com.example.atomy_india.repository.MembershipRepository;
 import com.example.atomy_india.repository.PromotionSettingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,7 +51,9 @@ public class CustomerMembershipController {
             String name = req.get("name") != null ? req.get("name").toString().trim() : "Atomy Customer";
             String email = req.get("email") != null ? req.get("email").toString().trim().toLowerCase() : "";
             if (email.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Email is required to join membership"));
+                Map<String, String> err = new HashMap<>();
+                err.put("error", "Email is required to join membership");
+                return ResponseEntity.badRequest().body(err);
             }
 
             String phone = req.get("phone") != null ? req.get("phone").toString().trim() : "+91 98000 00000";
@@ -126,14 +129,18 @@ public class CustomerMembershipController {
 
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            Map<String, String> err = new HashMap<>();
+            err.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(err);
         }
     }
 
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getMembershipStatus(@RequestParam String email) {
+        Map<String, Object> result = new HashMap<>();
         if (email == null || email.trim().isEmpty()) {
-            return ResponseEntity.ok(Map.of("isMember", false));
+            result.put("isMember", false);
+            return ResponseEntity.ok(result);
         }
 
         Optional<Membership> active = membershipRepository
@@ -141,7 +148,6 @@ public class CustomerMembershipController {
 
         if (active.isPresent()) {
             Membership m = active.get();
-            // Check if expired
             if (m.getExpiryDate() != null && m.getExpiryDate().isBefore(LocalDateTime.now())) {
                 m.setStatus("EXPIRED");
                 if (!Boolean.TRUE.equals(m.getExpiredEmailSent())) {
@@ -151,26 +157,28 @@ public class CustomerMembershipController {
                     } catch (Exception ignored) {}
                 }
                 membershipRepository.save(m);
-                // Also update customer user record
                 customerUserRepository.findByEmail(m.getCustomerEmail()).ifPresent(user -> {
                     user.setIsMember(false);
                     customerUserRepository.save(user);
                 });
-                return ResponseEntity.ok(Map.of("isMember", false, "status", "EXPIRED"));
+                result.put("isMember", false);
+                result.put("status", "EXPIRED");
+                return ResponseEntity.ok(result);
             }
-            return ResponseEntity.ok(Map.of(
-                    "isMember", true,
-                    "membership", m
-            ));
+
+            result.put("isMember", true);
+            result.put("membership", m);
+            return ResponseEntity.ok(result);
         }
 
-        return ResponseEntity.ok(Map.of("isMember", false));
+        result.put("isMember", false);
+        return ResponseEntity.ok(result);
     }
 
-    @GetMapping("/settings")
+    @GetMapping(value = "/settings", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getMembershipSettings() {
         return promotionSettingRepository.findById("membership_settings")
-                .map(s -> ResponseEntity.ok(s.getJsonContent()))
-                .orElse(ResponseEntity.ok(DEFAULT_SETTINGS_JSON));
+                .map(s -> ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(s.getJsonContent()))
+                .orElse(ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(DEFAULT_SETTINGS_JSON));
     }
 }

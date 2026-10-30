@@ -50,15 +50,17 @@ export default function MembershipManagementPage() {
     plan: 'ANNUAL'
   });
 
-  // Load from backend MySQL database on mount
+  // Load from backend MongoDB database on mount
   useEffect(() => {
     setIsLoading(true);
     Promise.all([
       fetchMembersFromBackend(),
       fetchMembershipSettingsFromBackend()
     ]).then(([m, s]) => {
-      if (m) setMembers(m);
+      if (m && Array.isArray(m)) setMembers(m);
       if (s) setSettings(s);
+    }).catch(err => {
+      console.warn('Initial membership fetch error:', err);
     }).finally(() => {
       setIsLoading(false);
     });
@@ -75,29 +77,58 @@ export default function MembershipManagementPage() {
     };
   }, []);
 
-  const handleSaveSettings = (e) => {
+  const handleSaveSettings = async (e) => {
     e.preventDefault();
-    saveMembershipSettings(settings);
-    setIsSavedToast(true);
-    setTimeout(() => setIsSavedToast(false), 3000);
+    setIsLoading(true);
+    try {
+      await saveMembershipSettings(settings);
+      setIsSavedToast(true);
+      setTimeout(() => setIsSavedToast(false), 3000);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEnrollMemberSubmit = (e) => {
+  const handleEnrollMemberSubmit = async (e) => {
     e.preventDefault();
     if (!newMemberForm.name.trim() || !newMemberForm.email.trim()) {
       alert('Please fill in member name and email.');
       return;
     }
-    const added = addMemberToRegistry(newMemberForm);
-    setMembers(getMembersRegistry());
-    setIsEnrollModalOpen(false);
-    setNewMemberForm({ name: '', email: '', phone: '', plan: 'ANNUAL' });
+    setIsLoading(true);
+    try {
+      const added = await addMemberToRegistry(newMemberForm);
+      if (added) {
+        setMembers(getMembersRegistry());
+      } else {
+        const refreshed = await fetchMembersFromBackend();
+        if (refreshed) setMembers(refreshed);
+      }
+      setIsEnrollModalOpen(false);
+      setNewMemberForm({ name: '', email: '', phone: '', plan: 'ANNUAL' });
+    } catch (err) {
+      console.error('Failed to enroll member:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleToggleMemberStatus = (memberId, currentStatus) => {
+  const handleToggleMemberStatus = async (memberId, currentStatus) => {
     const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    const updated = updateMemberStatus(memberId, newStatus);
-    setMembers(updated);
+    // Optimistic UI update
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, status: newStatus } : m));
+    try {
+      const updated = await updateMemberStatus(memberId, newStatus);
+      if (Array.isArray(updated)) {
+        setMembers(updated);
+      }
+    } catch (err) {
+      console.error('Failed to toggle member status:', err);
+      const refreshed = await fetchMembersFromBackend();
+      if (refreshed) setMembers(refreshed);
+    }
   };
 
   const handleSyncDatabase = async () => {
@@ -107,7 +138,7 @@ export default function MembershipManagementPage() {
         fetchMembersFromBackend(),
         fetchMembershipSettingsFromBackend()
       ]);
-      if (m) setMembers(m);
+      if (m && Array.isArray(m)) setMembers(m);
       if (s) setSettings(s);
       setIsSavedToast(true);
       setTimeout(() => setIsSavedToast(false), 2500);
