@@ -43,7 +43,8 @@ import {
   LogOut,
   Crown,
   Ticket,
-  Menu
+  Menu,
+  UserPlus
 } from 'lucide-react';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
@@ -78,6 +79,8 @@ import AdPromotionManager from './AdPromotionManager';
 import MembershipManagementPage from './MembershipManagementPage';
 import CouponManager from './CouponManager';
 import FinanceSettlementPage from './FinanceSettlementPage';
+import TerritoryManagementPage from './TerritoryManagementPage';
+import InviteDistributorsPage from './InviteDistributorsPage';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
 import {
   getAdConfig,
@@ -119,7 +122,7 @@ const INITIAL_SINGLE_PRODUCT = [
 ];
 
 // Local storage initialization key
-const STORAGE_CLEAN_KEY = 'atomy_admin_clean_v8';
+const STORAGE_CLEAN_KEY = 'atomy_admin_clean_v9';
 const SEEN_ALERTS_KEY = 'atomy_admin_seen_alerts_v1';
 const READ_NOTIFS_KEY = 'atomy_admin_read_notifs_v3';
 
@@ -161,6 +164,38 @@ const markNotifAsRead = (id) => {
   } catch {
     // ignore
   }
+};
+
+// Sanitize product prices and MRPs to eliminate accidental zero-price fallbacks
+const sanitizeAdminProducts = (list) => {
+  if (!Array.isArray(list)) return [];
+  const defaultMap = new Map();
+  if (Array.isArray(INITIAL_ADMIN_PRODUCTS)) {
+    INITIAL_ADMIN_PRODUCTS.forEach(p => {
+      if (p?.id) defaultMap.set(String(p.id).toUpperCase(), p);
+    });
+  }
+  return list.map(p => {
+    if (!p) return p;
+    let price = Number(p.price) || 0;
+    let mrp = Number(p.originalPrice) || 0;
+    const def = defaultMap.get(String(p.id || '').toUpperCase());
+
+    if (price <= 0 && mrp > 0) {
+      price = mrp;
+    } else if (price <= 0 && def && Number(def.price) > 0) {
+      price = Number(def.price);
+      if (mrp <= 0) mrp = Number(def.originalPrice || def.price);
+    }
+    if (mrp <= 0 && price > 0) {
+      mrp = def && Number(def.originalPrice) > price ? Number(def.originalPrice) : price;
+    }
+    return {
+      ...p,
+      price,
+      originalPrice: mrp
+    };
+  });
 };
 
 export default function AdminDashboard({ onBackToStore, onLogout, adminProfileProp }) {
@@ -235,7 +270,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         return INITIAL_SINGLE_PRODUCT;
       }
       const saved = localStorage.getItem('atomy_admin_products');
-      return saved ? JSON.parse(saved) : INITIAL_SINGLE_PRODUCT;
+      return saved ? sanitizeAdminProducts(JSON.parse(saved)) : INITIAL_SINGLE_PRODUCT;
     } catch {
       return INITIAL_SINGLE_PRODUCT;
     }
@@ -359,18 +394,20 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const handleDismissNotif = (id) => {
     if (!id) return;
     const strId = String(id);
-    markNotifAsRead(strId);
-    setReadNotifIds(prev => new Set([...prev, strId]));
+    const cleanId = strId.replace(/^delayed_/, '');
+    markNotifAsRead(cleanId);
+    markNotifAsRead(`delayed_${cleanId}`);
+    setReadNotifIds(prev => new Set([...prev, cleanId, `delayed_${cleanId}`]));
   };
 
   const handleDismissTickets = () => {
     const newSet = new Set(readNotifIds);
     tickets.forEach(t => {
-      const tid = String(t.ticketId || t.id || '');
-      if (tid) {
+      [t.ticketId, t.id, t._id].filter(Boolean).forEach(raw => {
+        const tid = String(raw);
         newSet.add(tid);
         markNotifAsRead(tid);
-      }
+      });
     });
     setReadNotifIds(newSet);
     showToast('Support notifications marked as read');
@@ -398,20 +435,20 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const handleMarkAllNotifsAsRead = () => {
     const newSet = new Set(readNotifIds);
     orders.forEach(o => {
-      const oid = String(o.orderId || o.id || '');
-      if (oid) {
-        newSet.add(oid);
-        newSet.add(`delayed_${oid}`);
-        markNotifAsRead(oid);
-        markNotifAsRead(`delayed_${oid}`);
-      }
+      [o.orderId, o.id, o._id].filter(Boolean).forEach(raw => {
+        const id = String(raw);
+        newSet.add(id);
+        newSet.add(`delayed_${id}`);
+        markNotifAsRead(id);
+        markNotifAsRead(`delayed_${id}`);
+      });
     });
     tickets.forEach(t => {
-      const tid = String(t.ticketId || t.id || '');
-      if (tid) {
+      [t.ticketId, t.id, t._id].filter(Boolean).forEach(raw => {
+        const tid = String(raw);
         newSet.add(tid);
         markNotifAsRead(tid);
-      }
+      });
     });
     setReadNotifIds(newSet);
     handleDismissStockAlerts();
@@ -854,9 +891,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         });
       }
       if (prodsRes.status === 'fulfilled' && Array.isArray(prodsRes.value) && prodsRes.value.length > 0) {
-        setProducts(prodsRes.value);
+        const cleanProds = sanitizeAdminProducts(prodsRes.value);
+        setProducts(cleanProds);
         try {
-          localStorage.setItem('atomy_admin_products', JSON.stringify(prodsRes.value));
+          localStorage.setItem('atomy_admin_products', JSON.stringify(cleanProds));
         } catch { }
       }
       if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
@@ -998,9 +1036,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     if (activeTab === 'inventory') {
       fetchAdminProducts().then(freshProds => {
         if (Array.isArray(freshProds) && freshProds.length > 0) {
-          setProducts(freshProds);
+          const cleanProds = sanitizeAdminProducts(freshProds);
+          setProducts(cleanProds);
           try {
-            localStorage.setItem('atomy_admin_products', JSON.stringify(freshProds));
+            localStorage.setItem('atomy_admin_products', JSON.stringify(cleanProds));
           } catch {}
         }
       }).catch(() => {});
@@ -1027,9 +1066,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         // Also refresh latest accurate inventory counts directly from backend database
         fetchAdminProducts().then(freshProds => {
           if (Array.isArray(freshProds) && freshProds.length > 0) {
-            setProducts(freshProds);
+            const cleanProds = sanitizeAdminProducts(freshProds);
+            setProducts(cleanProds);
             try {
-              localStorage.setItem('atomy_admin_products', JSON.stringify(freshProds));
+              localStorage.setItem('atomy_admin_products', JSON.stringify(cleanProds));
             } catch {}
           }
         }).catch(() => {});
@@ -1148,7 +1188,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         try {
           const freshProds = JSON.parse(e.newValue);
           if (Array.isArray(freshProds) && freshProds.length > 0) {
-            setProducts(freshProds);
+            setProducts(sanitizeAdminProducts(freshProds));
           }
         } catch (err) {}
       }
@@ -1169,9 +1209,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     };
     window.addEventListener('storage', handleStorageUpdate);
 
-    // 3. Active Polling interval to check backend & storage every 3 seconds
-    const intervalTime = Math.min((soundSettings.pollingIntervalSec || 10) * 1000, 3000);
+    // 3. Active Polling interval to check backend & storage
+    const intervalTime = Math.max((soundSettings.pollingIntervalSec || 10) * 1000, 5000);
     const interval = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       // Poll orders from Spring Boot Backend
       try {
         const backendOrders = await fetchAdminOrders();
@@ -1426,7 +1467,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       pv: 15000,
       stockQuantity: 50,
       lowStockThreshold: 10,
-      image: 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg',
+      image: 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg',
       description: '',
       features: 'High absorption, clinically tested, natural formula',
       ingredients: 'Botanical extracts, antioxidants, essential vitamins',
@@ -1463,17 +1504,24 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   };
 
   const handleSaveProductFromEditor = async (productData) => {
+    const rawPrice = Number(productData.price) || 0;
+    const rawMrp = Number(productData.originalPrice) || 0;
+    const safePrice = rawPrice > 0 ? rawPrice : (rawMrp > 0 ? rawMrp : 0);
+    const safeMrp = rawMrp > 0 ? rawMrp : safePrice;
+    const safeStock = Number(productData.stockQuantity) || 0;
+    const safeThreshold = Number(productData.lowStockThreshold) || 10;
+
     const payload = {
       ...productData,
-      price: Number(productData.price) || 0,
-      originalPrice: Number(productData.originalPrice) || 0,
+      price: safePrice,
+      originalPrice: safeMrp,
       discountPercent: Number(productData.discountPercent) || 0,
       dpPrice: productData.dpPrice ? Number(productData.dpPrice) : 0,
       pv: Number(productData.pv) || 0,
-      stockQuantity: Number(productData.stockQuantity) || 0,
-      lowStockThreshold: Number(productData.lowStockThreshold) || 10,
-      status: (Number(productData.stockQuantity) || 0) === 0 ? 'OUT_OF_STOCK'
-        : (Number(productData.stockQuantity) || 0) <= (Number(productData.lowStockThreshold) || 10) ? 'LOW_STOCK' : 'IN_STOCK',
+      stockQuantity: safeStock,
+      lowStockThreshold: safeThreshold,
+      status: safeStock === 0 ? 'OUT_OF_STOCK'
+        : safeStock <= safeThreshold ? 'LOW_STOCK' : 'IN_STOCK',
       isVeg: Boolean(productData.isVeg),
       isNonVeg: Boolean(productData.isNonVeg),
       gstReduced: Boolean(productData.gstReduced),
@@ -1489,18 +1537,35 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     try {
       if (productData.isNew) {
         await createAdminProduct(payload);
-        setProducts(prev => [payload, ...prev]);
+        setProducts(prev => {
+          const next = [payload, ...prev];
+          try {
+            localStorage.setItem('atomy_admin_products', JSON.stringify(next));
+          } catch {}
+          return next;
+        });
         showToast(`Product "${payload.name}" published to live store!`);
       } else {
         await updateAdminProduct(payload.id, payload);
-        setProducts(prev => prev.map(p => p.id === payload.id ? payload : p));
+        await updateAdminStock(payload.id, safeStock, safeThreshold).catch(() => {});
+        setProducts(prev => {
+          const next = prev.map(p => p.id === payload.id ? payload : p);
+          try {
+            localStorage.setItem('atomy_admin_products', JSON.stringify(next));
+          } catch {}
+          return next;
+        });
         showToast(`Product "${payload.name}" updated and synced with customer website!`);
       }
     } catch (err) {
       console.warn('Backend update warning:', err);
       setProducts(prev => {
         const exists = prev.some(p => p.id === payload.id);
-        return exists ? prev.map(p => p.id === payload.id ? payload : p) : [payload, ...prev];
+        const next = exists ? prev.map(p => p.id === payload.id ? payload : p) : [payload, ...prev];
+        try {
+          localStorage.setItem('atomy_admin_products', JSON.stringify(next));
+        } catch {}
+        return next;
       });
       showToast(`Product "${payload.name}" saved!`);
     }
@@ -1509,6 +1574,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     try {
       const channel = new BroadcastChannel('atomy_product_channel');
       channel.postMessage({ type: 'PRODUCT_UPDATED', product: payload });
+      const syncChannel = new BroadcastChannel('atomy_sync_channel');
+      syncChannel.postMessage({ type: 'PRODUCT_UPDATED', product: payload });
     } catch { }
 
     setIsEditingProductView(false);
@@ -2143,6 +2210,22 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             </button>
 
             <button
+              className={`sidebar-nav-button ${activeTab === 'territories' && !isEditingProductView ? 'active' : ''}`}
+              onClick={() => { setActiveTab('territories'); setIsEditingProductView(false); }}
+            >
+              <MapPin size={20} />
+              <span>Distributors & Territories</span>
+            </button>
+
+            <button
+              className={`sidebar-nav-button ${activeTab === 'invite-distributors' && !isEditingProductView ? 'active' : ''}`}
+              onClick={() => { setActiveTab('invite-distributors'); setIsEditingProductView(false); }}
+            >
+              <UserPlus size={20} />
+              <span>Invite Distributors</span>
+            </button>
+
+            <button
               className={`sidebar-nav-button ${activeTab === 'customers' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('customers'); setIsEditingProductView(false); }}
             >
@@ -2189,6 +2272,21 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <Settings size={20} />
               <span>Settings</span>
             </button>
+
+            <div style={{ margin: '14px 10px', borderTop: '1px solid #e2e8f0' }}></div>
+
+            <button
+              type="button"
+              className="sidebar-nav-button logout-sidebar-btn"
+              onClick={onLogout}
+              style={{
+                color: '#dc2626',
+                fontWeight: 700
+              }}
+            >
+              <LogOut size={20} />
+              <span>Sign Out</span>
+            </button>
           </nav>
 
           <div className="sidebar-footer-box">
@@ -2196,34 +2294,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <span className="dot-green"></span>
               <span>Online • {soundSettings.orderSoundEnabled ? 'Audio Chimes Active' : 'Sound Muted'}</span>
             </div>
-
-            {onLogout && (
-              <button
-                type="button"
-                id="btn-sidebar-admin-logout"
-                onClick={onLogout}
-                style={{
-                  width: '100%',
-                  marginTop: '10px',
-                  background: 'rgba(239, 68, 68, 0.08)',
-                  color: '#f87171',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  borderRadius: '7px',
-                  padding: '7px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '7px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <LogOut size={14} />
-                <span>Sign Out Console</span>
-              </button>
-            )}
           </div>
         </aside>
 
@@ -2798,9 +2868,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 </span>
                               </td>
                               <td className="cell-price">
-                                ₹ {Number(p.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                {p.originalPrice && p.originalPrice > p.price && (
-                                  <div className="cell-mrp-sub">MRP: ₹ {p.originalPrice.toLocaleString('en-IN')}</div>
+                                ₹ {Number(p.price || p.originalPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                {p.originalPrice && Number(p.originalPrice) > Number(p.price || p.originalPrice || 0) && (
+                                  <div className="cell-mrp-sub">MRP: ₹ {Number(p.originalPrice).toLocaleString('en-IN')}</div>
                                 )}
                               </td>
                               <td>
@@ -3176,6 +3246,20 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     setTicketStatusFilter('ALL');
                   }}
                 />
+              )}
+
+              {/* ========================================================
+              TAB: REGIONAL DISTRIBUTORS & INDIA PINCODE TERRITORIES
+              ======================================================== */}
+              {activeTab === 'territories' && !isEditingProductView && (
+                <TerritoryManagementPage showToast={showToast} />
+              )}
+
+              {/* ========================================================
+              TAB: INVITE & ONBOARD REGIONAL DISTRIBUTORS (PIN CODES)
+              ======================================================== */}
+              {activeTab === 'invite-distributors' && !isEditingProductView && (
+                <InviteDistributorsPage showToast={showToast} />
               )}
 
               {/* ========================================================

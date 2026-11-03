@@ -55,6 +55,24 @@ public class Product {
 
     private Boolean active = true;
 
+    @org.springframework.data.annotation.Transient
+    private Integer stockQuantity = 50;
+
+    @org.springframework.data.annotation.Transient
+    private Integer lowStockThreshold = 10;
+
+    @org.springframework.data.annotation.Transient
+    private Boolean inStock = true;
+
+    @org.springframework.data.annotation.Transient
+    private String regionalHubId;
+
+    @org.springframework.data.annotation.Transient
+    private String regionalHubName;
+
+    @org.springframework.data.annotation.Transient
+    private String regionalPincode;
+
     public Product() {}
 
     public Product(String id, String name, BigDecimal price, BigDecimal originalPrice,
@@ -136,4 +154,27 @@ public class Product {
     public Boolean isActive() { return active != null ? active : true; }
     public Boolean getActive() { return active != null ? active : true; }
     public void setActive(Boolean active) { this.active = active != null ? active : true; }
+
+    public Integer getStockQuantity() { return stockQuantity != null ? stockQuantity : 0; }
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity != null ? Math.max(0, stockQuantity) : 0;
+        this.inStock = this.stockQuantity > 0;
+    }
+
+    public Integer getLowStockThreshold() { return lowStockThreshold != null ? lowStockThreshold : 10; }
+    public void setLowStockThreshold(Integer lowStockThreshold) {
+        this.lowStockThreshold = lowStockThreshold != null ? lowStockThreshold : 10;
+    }
+
+    public Boolean getInStock() { return inStock != null ? inStock : (stockQuantity != null && stockQuantity > 0); }
+    public void setInStock(Boolean inStock) { this.inStock = inStock; }
+
+    public String getRegionalHubId() { return regionalHubId; }
+    public void setRegionalHubId(String regionalHubId) { this.regionalHubId = regionalHubId; }
+
+    public String getRegionalHubName() { return regionalHubName; }
+    public void setRegionalHubName(String regionalHubName) { this.regionalHubName = regionalHubName; }
+
+    public String getRegionalPincode() { return regionalPincode; }
+    public void setRegionalPincode(String regionalPincode) { this.regionalPincode = regionalPincode; }
 }

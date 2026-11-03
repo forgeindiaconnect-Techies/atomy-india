@@ -551,8 +551,10 @@ export default function CategoryPage({
                 onMouseMove={handleMouseMove}
                 onWheel={handleSliderWheel}
               >
-                {categoryData.bestProducts.map((product) => (
-                  <div key={product.id} className="cate-product-card">
+                {categoryData.bestProducts.map((product) => {
+                  const isOos = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
+                  return (
+                  <div key={product.id} className="cate-product-card" style={isOos ? { opacity: 0.6 } : {}}>
                     <div className="cate-product-img-box">
                       {product.gstReduced && (
                         <img
@@ -567,6 +569,24 @@ export default function CategoryPage({
                       {product.isNonVeg && (
                         <span className="cate-flag-nonveg">NON-VEG</span>
                       )}
+                      {isOos && (
+                        <span style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          background: '#ef4444',
+                          color: '#ffffff',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          zIndex: 2,
+                          letterSpacing: '0.4px',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                        }}>
+                          OUT OF STOCK
+                        </span>
+                      )}
                       <img
                         src={product.image}
                         alt={product.name}
@@ -574,12 +594,19 @@ export default function CategoryPage({
                         onError={handleImageError}
                         loading="lazy"
                         onClick={() => onProductClick && onProductClick(product)}
+                        style={isOos ? { opacity: 0.6, filter: 'grayscale(20%)' } : {}}
                       />
                       <button
                         type="button"
                         className="cate-cart-btn"
-                        onClick={() => onAddToCart && onAddToCart(product)}
+                        disabled={isOos}
+                        style={isOos ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                        onClick={() => {
+                          if (isOos) return;
+                          onAddToCart && onAddToCart(product);
+                        }}
                         aria-label={`Add ${product.name} to cart`}
+                        title={isOos ? 'Out of Stock' : `Add ${product.name} to cart`}
                       >
                         <ShoppingCart size={19} />
                       </button>
@@ -601,7 +628,8 @@ export default function CategoryPage({
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <button
@@ -642,8 +670,10 @@ export default function CategoryPage({
                 onMouseMove={handleRecMouseMove}
                 onWheel={handleRecSliderWheel}
               >
-                {categoryData.recommendationProducts.map((product) => (
-                  <div key={product.id} className="cate-product-card">
+                {categoryData.recommendationProducts.map((product) => {
+                  const isOos = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
+                  return (
+                  <div key={product.id} className="cate-product-card" style={isOos ? { opacity: 0.6 } : {}}>
                     <div className="cate-product-img-box">
                       {product.gstReduced && (
                         <img
@@ -658,6 +688,24 @@ export default function CategoryPage({
                       {product.isNonVeg && (
                         <span className="cate-flag-nonveg">NON-VEG</span>
                       )}
+                      {isOos && (
+                        <span style={{
+                          position: 'absolute',
+                          top: '10px',
+                          left: '10px',
+                          background: '#ef4444',
+                          color: '#ffffff',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          zIndex: 2,
+                          letterSpacing: '0.4px',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                        }}>
+                          OUT OF STOCK
+                        </span>
+                      )}
                       <img
                         src={product.image}
                         alt={product.name}
@@ -665,12 +713,19 @@ export default function CategoryPage({
                         onError={handleImageError}
                         loading="lazy"
                         onClick={() => onProductClick && onProductClick(product)}
+                        style={isOos ? { opacity: 0.6, filter: 'grayscale(20%)' } : {}}
                       />
                       <button
                         type="button"
                         className="cate-cart-btn"
-                        onClick={() => onAddToCart && onAddToCart(product)}
+                        disabled={isOos}
+                        style={isOos ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                        onClick={() => {
+                          if (isOos) return;
+                          onAddToCart && onAddToCart(product);
+                        }}
                         aria-label={`Add ${product.name} to cart`}
+                        title={isOos ? 'Out of Stock' : `Add ${product.name} to cart`}
                       >
                         <ShoppingCart size={19} />
                       </button>
@@ -692,7 +747,8 @@ export default function CategoryPage({
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <button
@@ -747,8 +803,10 @@ export default function CategoryPage({
 
           {/* Grid of All Products */}
           <div className="cate-products-grid">
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="cate-product-card">
+            {filteredProducts.map((product) => {
+              const isOos = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
+              return (
+              <div key={product.id} className="cate-product-card" style={isOos ? { opacity: 0.6 } : {}}>
                 <div className="cate-product-img-box">
                   {product.gstReduced && (
                     <img
@@ -763,6 +821,24 @@ export default function CategoryPage({
                   {product.isNonVeg && (
                     <span className="cate-flag-nonveg">NON-VEG</span>
                   )}
+                  {isOos && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '10px',
+                      left: '10px',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      zIndex: 2,
+                      letterSpacing: '0.4px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                    }}>
+                      OUT OF STOCK
+                    </span>
+                  )}
                   <img
                     src={product.image}
                     alt={product.name}
@@ -770,12 +846,19 @@ export default function CategoryPage({
                     onError={handleImageError}
                     loading="lazy"
                     onClick={() => onProductClick && onProductClick(product)}
+                    style={isOos ? { opacity: 0.6, filter: 'grayscale(20%)' } : {}}
                   />
                   <button
                     type="button"
                     className="cate-cart-btn"
-                    onClick={() => onAddToCart && onAddToCart(product)}
+                    disabled={isOos}
+                    style={isOos ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                    onClick={() => {
+                      if (isOos) return;
+                      onAddToCart && onAddToCart(product);
+                    }}
                     aria-label={`Add ${product.name} to cart`}
+                    title={isOos ? 'Out of Stock' : `Add ${product.name} to cart`}
                   >
                     <ShoppingCart size={19} />
                   </button>
@@ -797,7 +880,8 @@ export default function CategoryPage({
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </div>

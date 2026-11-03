@@ -2914,16 +2914,22 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
   }
 
+  .pdp-tabs-sticky-bar-wrapper .container {
+    padding: 0 8px !important;
+  }
+
   .pdp-tab-headers-bar {
     display: flex !important;
     align-items: center !important;
     width: 100% !important;
     overflow-x: auto !important;
+    overflow-y: hidden !important;
     white-space: nowrap !important;
+    flex-wrap: nowrap !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding: 0 !important;
-    gap: 2px !important;
+    padding: 4px 0 !important;
+    gap: 6px !important;
   }
 
   .pdp-tab-headers-bar::-webkit-scrollbar {
@@ -2931,23 +2937,26 @@
   }
 
   .pdp-tab-nav-btn {
-    flex: 1 !important;
-    min-width: 72px !important;
-    padding: 12px 6px !important;
-    font-size: 12.5px !important;
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
     text-align: center !important;
+    white-space: nowrap !important;
     flex-shrink: 0 !important;
   }
 
   .pdp-tabs-quick-corner {
     flex-shrink: 0 !important;
-    margin-left: 2px !important;
+    margin-left: 6px !important;
   }
 
   .pdp-tabs-quick-corner .quick-menu-corner-pill {
     height: 34px !important;
     padding: 0 10px !important;
     font-size: 12px !important;
+    white-space: nowrap !important;
   }
 
   .pdp-tabs-quick-corner .quick-menu-corner-dropdown {

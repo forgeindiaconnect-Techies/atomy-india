@@ -10,7 +10,7 @@ import {
 } from '../data/mockData';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../data/officialDistributorPrices';
 
-const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
+const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
 const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
 
 const listeners = new Set();
@@ -179,7 +179,12 @@ export function mergeProductIntoCatalog(product) {
     dpPrice,
     tags: normalizedTags,
     formattedPrice,
-    formattedOriginalPrice
+    formattedOriginalPrice,
+    stockQuantity: product.stockQuantity !== undefined ? Number(product.stockQuantity) : 50,
+    inStock: product.inStock !== undefined ? Boolean(product.inStock) : true,
+    regionalHubId: product.regionalHubId,
+    regionalHubName: product.regionalHubName,
+    regionalPincode: product.regionalPincode
   };
 
   // 1. Update in ALL_CATALOG_PRODUCTS
@@ -283,12 +288,42 @@ export function removeProductFromCatalog(productId) {
   notifyListeners({ type: 'DELETE', id: idStr });
 }
 
-/**
- * Fetch all active products from Spring Boot backend MySQL database
- */
-export async function syncCatalogFromBackend() {
+export function getCustomerDeliveryPincode() {
+  if (typeof window === 'undefined') return '110001';
   try {
-    const res = await fetch(`${API_BASE}/products`);
+    const saved = localStorage.getItem('atomy_customer_delivery_pincode');
+    if (saved && /^\d{6}$/.test(saved.trim())) return saved.trim();
+    const uStr = localStorage.getItem('atomy_current_user');
+    if (uStr) {
+      const u = JSON.parse(uStr);
+      if (u && u.pincode && /^\d{6}$/.test(String(u.pincode).trim())) {
+        return String(u.pincode).trim();
+      }
+    }
+  } catch {}
+  return '110001';
+}
+
+export function setCustomerDeliveryPincode(pincode) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (pincode && /^\d{6}$/.test(String(pincode).trim())) {
+      const clean = String(pincode).trim();
+      localStorage.setItem('atomy_customer_delivery_pincode', clean);
+      syncCatalogFromBackend(clean);
+      window.dispatchEvent(new CustomEvent('atomy_pincode_changed', { detail: { pincode: clean } }));
+    }
+  } catch {}
+}
+
+/**
+ * Fetch all active products from Spring Boot backend merged with Regional Hub stock
+ */
+export async function syncCatalogFromBackend(customPin = null) {
+  try {
+    const pin = customPin || getCustomerDeliveryPincode();
+    const url = pin ? `${API_BASE}/products?pincode=${encodeURIComponent(pin)}` : `${API_BASE}/products`;
+    const res = await fetch(url);
     if (!res.ok) return null;
     const products = await res.json();
     if (Array.isArray(products)) {
@@ -334,15 +369,16 @@ if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
   }
 }
 
-// 5. Automatic Active Sync: Immediate fetch, 2-second polling, and window focus/visibility triggers
+// 5. Automatic Active Sync: Immediate fetch, polling, and window focus/visibility triggers
 if (typeof window !== 'undefined') {
-  // Initial sync immediately
+  // Initial sync immediately with active delivery PIN
   syncCatalogFromBackend();
 
-  // Active real-time polling every 2.5 seconds to sync admin changes across different localhost ports
+  // Active real-time polling to sync regional stock changes
   setInterval(() => {
+    if (document.hidden) return;
     syncCatalogFromBackend();
-  }, 2500);
+  }, 5000);
 
   // Sync immediately when customer switches to this tab or window
   window.addEventListener('focus', () => {
@@ -352,6 +388,12 @@ if (typeof window !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       syncCatalogFromBackend();
+    }
+  });
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'atomy_customer_delivery_pincode') {
+      syncCatalogFromBackend(e.newValue);
     }
   });
 }

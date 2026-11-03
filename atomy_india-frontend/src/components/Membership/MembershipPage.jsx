@@ -91,7 +91,11 @@ export default function MembershipPage({
           <button
             type="button"
             className="membership-back-btn"
-            onClick={onNavigateBack || onNavigateHome}
+            onClick={() => {
+              if (onNavigateHome) onNavigateHome();
+              else if (onNavigateBack) onNavigateBack();
+              else window.location.href = '/';
+            }}
           >
             <ArrowLeft size={16} />
             <span>Back to Shopping Mall</span>
@@ -212,46 +216,6 @@ export default function MembershipPage({
           )}
         </div>
 
-        {/* Benefits Grid */}
-        <div className="membership-benefits-section">
-          <h2 className="section-title-center">Distributor Member Privileges</h2>
-          <p className="section-sub-center">Everything you receive as an official Atomy Distributor</p>
-
-          <div className="membership-benefits-grid">
-            <div className="benefit-card">
-              <div className="benefit-icon-box blue">
-                <BadgePercent size={24} />
-              </div>
-              <h3>Wholesale DP Pricing</h3>
-              <p>Save ~18% to 20% on every order. Purchase all authentic Atomy products at direct wholesale distributor rates rather than retail MRP.</p>
-            </div>
-
-            <div className="benefit-card">
-              <div className="benefit-icon-box cyan">
-                <Sparkles size={24} />
-              </div>
-              <h3>Personal PV Points</h3>
-              <p>Every purchase accumulates Point Value (PV) credited straight to your profile, unlocking distributor compensation advantages.</p>
-            </div>
-
-            <div className="benefit-card">
-              <div className="benefit-icon-box green">
-                <Truck size={24} />
-              </div>
-              <h3>Priority Fast Dispatch</h3>
-              <p>Enjoy expedited order packaging and free standard delivery on qualifying Atomy orders directly from our verified warehouse.</p>
-            </div>
-
-            <div className="benefit-card">
-              <div className="benefit-icon-box purple">
-                <Award size={24} />
-              </div>
-              <h3>Absolute Quality Guarantee</h3>
-              <p>100% genuine Korean wellness and personal care formulations backed by Kolmar BNH and Atomy Global standards.</p>
-            </div>
-          </div>
-        </div>
-
         {/* Plan Selection Section */}
         <div className="membership-pricing-section">
           <div className="pricing-header-wrap">
@@ -363,6 +327,46 @@ export default function MembershipPage({
             <p className="security-guarantee-note">
               🔒 100% Secure Checkout • Instant Activation • Cancel Anytime
             </p>
+          </div>
+        </div>
+
+        {/* Benefits Grid / Privileges Section */}
+        <div className="membership-benefits-section">
+          <h2 className="section-title-center">Distributor Member Privileges</h2>
+          <p className="section-sub-center">Everything you receive as an official Atomy Distributor</p>
+
+          <div className="membership-benefits-grid">
+            <div className="benefit-card">
+              <div className="benefit-icon-box blue">
+                <BadgePercent size={24} />
+              </div>
+              <h3>Wholesale DP Pricing</h3>
+              <p>Save ~18% to 20% on every order. Purchase all authentic Atomy products at direct wholesale distributor rates rather than retail MRP.</p>
+            </div>
+
+            <div className="benefit-card">
+              <div className="benefit-icon-box cyan">
+                <Sparkles size={24} />
+              </div>
+              <h3>Personal PV Points</h3>
+              <p>Every purchase accumulates Point Value (PV) credited straight to your profile, unlocking distributor compensation advantages.</p>
+            </div>
+
+            <div className="benefit-card">
+              <div className="benefit-icon-box green">
+                <Truck size={24} />
+              </div>
+              <h3>Priority Fast Dispatch</h3>
+              <p>Enjoy expedited order packaging and free standard delivery on qualifying Atomy orders directly from our verified warehouse.</p>
+            </div>
+
+            <div className="benefit-card">
+              <div className="benefit-icon-box purple">
+                <Award size={24} />
+              </div>
+              <h3>Absolute Quality Guarantee</h3>
+              <p>100% genuine Korean wellness and personal care formulations backed by Kolmar BNH and Atomy Global standards.</p>
+            </div>
           </div>
         </div>
 

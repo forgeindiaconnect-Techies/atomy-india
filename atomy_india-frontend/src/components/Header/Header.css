@@ -1,3 +1,12 @@
+
+/* Mobile Category Drawer Open State - Elevate above all headers & modals */
+.sub-nav-bar.has-drawer-open {
+  z-index: 999999 !important;
+}
+
+body.mobile-drawer-open {
+  overflow: hidden !important;
+}
 /* Header Container - Master navbar is not fixed */
 .header-wrapper {
   width: 100%;
@@ -158,6 +167,69 @@
   background: #d1fae5;
   border-color: #059669;
   transform: translateY(-1px);
+}
+
+/* Regional Pincode & Hub Selector Top Header Pill */
+.top-pincode-picker-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.42) !important;
+  border-radius: 9999px !important;
+  padding: 4px 12px !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 11.5px !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+  line-height: 1.2 !important;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.top-pincode-picker-btn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  text-decoration: none !important;
+  transform: translateY(-1px);
+}
+
+.top-pincode-picker-btn .pin-icon {
+  color: #38bdf8 !important;
+}
+
+.top-pincode-picker-btn .pin-accent {
+  color: #38bdf8 !important;
+  font-weight: 700 !important;
+}
+
+.top-pincode-picker-btn .hub-label {
+  color: #f0f9ff !important;
+  font-weight: 500 !important;
+  opacity: 0.95;
+}
+
+/* Light navbar mode for pincode button */
+.theme-light-navbar .top-pincode-picker-btn {
+  background: #f0f9ff !important;
+  border: 1px solid #bae6fd !important;
+  color: #0369a1 !important;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.1);
+}
+
+.theme-light-navbar .top-pincode-picker-btn .pin-icon {
+  color: #0284c7 !important;
+}
+
+.theme-light-navbar .top-pincode-picker-btn .pin-accent {
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+.theme-light-navbar .top-pincode-picker-btn .hub-label {
+  color: #0369a1 !important;
 }
 
 .header-member-account-badge .member-status-dot {
@@ -655,13 +727,13 @@
   background-color: rgba(0, 0, 0, 0.2);
 }
 
-/* Search Container & Interactive Dropdown - Sized to leave space for profile name */
+/* Search Container & Interactive Dropdown - Extended smoothly towards customer name */
 .search-container {
   position: relative;
   width: 100%;
-  max-width: 440px;
-  min-width: 200px;
-  flex: 0 1 440px;
+  max-width: 720px;
+  min-width: 260px;
+  flex: 1 1 auto;
 }
 
 .search-box {
@@ -670,18 +742,23 @@
   background-color: #ffffff;
   border-radius: 9999px;
   height: 44px;
-  padding: 0 16px 0 22px;
+  padding: 0 8px 0 22px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
   width: 100%;
   position: relative;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  gap: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .search-container:focus-within .search-box {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-color: rgba(2, 132, 199, 0.25);
 }
 
 .search-input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   border: none;
   outline: none;
@@ -689,6 +766,54 @@
   color: #333333;
   background: transparent;
   font-family: inherit;
+}
+
+/* Inline Location Chip inside the Search Bar */
+.search-inline-location-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 9999px;
+  padding: 5px 12px;
+  color: #0284c7;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+}
+
+.search-inline-location-btn:hover {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+  transform: translateY(-1px);
+}
+
+.search-inline-location-btn .search-location-icon {
+  color: #00a3e0;
+  flex-shrink: 0;
+}
+
+.search-inline-location-btn .search-location-text {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-inline-location-btn .search-location-arrow {
+  color: #0284c7;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.search-inline-location-btn:hover .search-location-arrow {
+  transform: translateY(1px);
 }
 
 .search-input::placeholder {
@@ -1590,6 +1715,22 @@
   border-radius: 50%;
   border: 1.5px solid #ffffff;
 }
+/* Desktop View: Star badge is strictly hidden. Desktop uses original clean avatar with green dot. */
+.header-avatar-star-badge {
+  display: none !important;
+}
+
+.drawer-avatar-star-badge {
+  display: none !important;
+}
+
+.mobile-drawer-avatar-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 
 /* Seamless Merged Customer Greeting */
 .customer-header-greeting {
@@ -2154,6 +2295,67 @@
     font-size: 10.5px !important;
     border-width: 1.5px !important;
   }
+  /* Mobile View ONLY: For membership holding customer, remove green dot and set star in that exact place */
+  .logged-in-profile-btn.has-member-star .profile-online-badge {
+    display: none !important;
+  }
+
+  .logged-in-profile-btn.has-member-star .header-avatar-star-badge {
+    display: flex !important;
+    position: absolute !important;
+    bottom: -2px !important;
+    right: -2px !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: 14px !important;
+    height: 14px !important;
+    background: #ffffff !important;
+    border-radius: 50% !important;
+    border: 1.5px solid #f59e0b !important;
+    box-shadow: 0 1px 3px rgba(245, 158, 11, 0.45) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 5 !important;
+    pointer-events: none !important;
+    line-height: 1 !important;
+  }
+
+  .logged-in-profile-btn.has-member-star .header-avatar-star-badge svg {
+    width: 8.5px !important;
+    height: 8.5px !important;
+  }
+
+  .logged-in-profile-btn.has-member-star .profile-avatar-circle {
+    box-shadow: 0 0 0 1.5px #f59e0b, 0 2px 5px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .drawer-avatar-star-badge {
+    display: flex !important;
+    position: absolute !important;
+    bottom: -2px !important;
+    right: -2px !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: 15px !important;
+    height: 15px !important;
+    background: #ffffff !important;
+    border-radius: 50% !important;
+    border: 1.5px solid #f59e0b !important;
+    box-shadow: 0 1px 4px rgba(245, 158, 11, 0.45) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 3 !important;
+  }
+
+  .drawer-avatar-star-badge svg {
+    width: 9px !important;
+    height: 9px !important;
+  }
+
+
+
 
   .profile-online-badge {
     width: 6px !important;
@@ -2558,8 +2760,8 @@
   .category-subsidebar-list {
     display: flex !important;
     flex-direction: column !important;
-    gap: 6px !important;
-    flex: 1 !important;
+    gap: 8px !important;
+    flex: none !important;
   }
 
   .category-subsidebar-item {
@@ -2725,14 +2927,14 @@
   }
 
   .category-popup-dropdown {
-    width: 310px !important;
+    width: min(340px, 88vw) !important;
     max-width: 88vw !important;
     display: flex !important;
     flex-direction: column !important;
   }
 
   .category-popup-split-body {
-    grid-template-columns: 115px 1fr !important;
+    grid-template-columns: 125px 1fr !important;
   }
 
   .category-popup-sidebar {
@@ -2968,14 +3170,14 @@
 
 /* DARK NAVBAR THEME (Blues, Blacks, Dark Charcoal, Deep Violet, Deep Pine, Deep Reds) */
 .theme-dark-navbar .top-utility-links a,
-.theme-dark-navbar .top-utility-links button:not(.top-membership-pill),
+.theme-dark-navbar .top-utility-links button:not(.top-membership-pill):not(.top-pincode-picker-btn),
 .theme-dark-navbar .region-title,
 .theme-dark-navbar .region-selector-btn {
   color: #ffffff !important;
 }
 
 .theme-dark-navbar .top-utility-links a:hover,
-.theme-dark-navbar .top-utility-links button:not(.top-membership-pill):hover {
+.theme-dark-navbar .top-utility-links button:not(.top-membership-pill):not(.top-pincode-picker-btn):hover {
   color: #e0f2fe !important;
 }
 
@@ -3043,14 +3245,14 @@
 
 /* LIGHT NAVBAR THEME (Dark Yellow, Pale Yellow, White, Creams, Light Cyans, Light Grays) */
 .theme-light-navbar .top-utility-links a,
-.theme-light-navbar .top-utility-links button:not(.top-membership-pill),
+.theme-light-navbar .top-utility-links button:not(.top-membership-pill):not(.top-pincode-picker-btn),
 .theme-light-navbar .region-title,
 .theme-light-navbar .region-selector-btn {
   color: #0f172a !important;
 }
 
 .theme-light-navbar .top-utility-links a:hover,
-.theme-light-navbar .top-utility-links button:not(.top-membership-pill):hover {
+.theme-light-navbar .top-utility-links button:not(.top-membership-pill):not(.top-pincode-picker-btn):hover {
   color: #000000 !important;
 }
 

@@ -8,6 +8,11 @@ import java.util.Optional;
 
 @Repository
 public interface OrderTrackingRepository extends MongoRepository<OrderTracking, String> {
+    Optional<OrderTracking> findFirstByOrderIdOrderByUpdatedAtDesc(String orderId);
+    Optional<OrderTracking> findFirstByOrderId(String orderId);
+    java.util.List<OrderTracking> findAllByOrderId(String orderId);
     Optional<OrderTracking> findByOrderId(String orderId);
+    Optional<OrderTracking> findFirstByTrackingNumberOrderByUpdatedAtDesc(String trackingNumber);
+    Optional<OrderTracking> findFirstByTrackingNumber(String trackingNumber);
     Optional<OrderTracking> findByTrackingNumber(String trackingNumber);
 }

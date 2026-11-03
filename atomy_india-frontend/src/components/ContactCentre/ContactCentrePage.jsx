@@ -45,11 +45,17 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
   const mapInstanceRef = useRef(null);
   const markersRef = useRef({});
 
+  const extractTenDigitPhone = (raw) => {
+    if (!raw) return '';
+    const digits = String(raw).replace(/\D/g, '');
+    return digits.length > 10 ? digits.slice(-10) : digits;
+  };
+
   // 1:1 Inquiry Form state
   const [inquiryCategory, setInquiryCategory] = useState('Order & Delivery');
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
-  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [phone, setPhone] = useState(() => extractTenDigitPhone(currentUser?.phone));
   const [orderNo, setOrderNo] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -69,7 +75,7 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
     if (currentUser) {
       if (!name && currentUser.name) setName(currentUser.name);
       if (!email && currentUser.email) setEmail(currentUser.email);
-      if (!phone && currentUser.phone) setPhone(currentUser.phone);
+      if (!phone && currentUser.phone) setPhone(extractTenDigitPhone(currentUser.phone));
     }
   }, [currentUser]);
 
@@ -999,11 +1005,20 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
                         <label>Phone Number (Optional)</label>
                         <input
                           type="tel"
-                          placeholder="e.g. +91 98765 43210"
+                          placeholder="e.g. 9876543210"
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          maxLength={10}
+                          inputMode="numeric"
+                          pattern="[0-9]{10}"
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setPhone(digits);
+                          }}
                           className="form-input"
                         />
+                        <span style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                          {phone.length > 0 ? `${phone.length}/10 digits` : 'Max 10 digits'}
+                        </span>
                       </div>
 
                       <div className="form-field">

@@ -23,7 +23,9 @@ import {
   Check,
   IndianRupee,
   AlertCircle,
-  Banknote
+  Banknote,
+  Download,
+  Printer
 } from 'lucide-react';
 import DeliveryStatusStepper from './DeliveryStatusStepper';
 import { updateAdminOrderStatus, syncUnsyncedOrdersToBackend } from '../../services/api';
@@ -110,6 +112,47 @@ export const RETURN_REPLACEMENT_REASONS = [
     desc: 'Please describe the issue for our quality assurance desk'
   }
 ];
+
+// Helper to reliably extract complete destination address across all order formats
+export const resolveOrderDestination = (order) => {
+  if (!order) return { recipient: 'Customer', phone: '', street: '', city: '', state: '', pincode: '', fullAddress: 'Registered Delivery Destination' };
+  
+  const recipient = order.customerName || order.recipient || order.shippingAddress?.recipient || order.address?.recipient || 'Customer';
+  const phone = order.customerPhone || order.phone || order.shippingAddress?.phone || order.address?.phone || '';
+  
+  let street = '';
+  if (typeof order.shippingAddress === 'string' && order.shippingAddress.trim()) {
+    street = order.shippingAddress.trim();
+  } else if (order.shippingAddress && typeof order.shippingAddress === 'object') {
+    street = order.shippingAddress.address || order.shippingAddress.fullAddress || order.shippingAddress.street || '';
+  } else if (typeof order.address === 'string' && order.address.trim()) {
+    street = order.address.trim();
+  } else if (order.address && typeof order.address === 'object') {
+    street = order.address.address || order.address.fullAddress || order.address.street || '';
+  }
+
+  const city = order.city || order.shippingAddress?.city || order.address?.city || '';
+  const state = order.state || order.shippingAddress?.state || order.address?.state || '';
+  const pincode = order.pincode || order.shippingAddress?.pincode || order.address?.pincode || '';
+
+  const parts = [];
+  if (street) parts.push(street);
+  if (city && !street.toLowerCase().includes(city.toLowerCase())) parts.push(city);
+  if (state && !street.toLowerCase().includes(state.toLowerCase())) parts.push(state);
+  if (pincode && !street.includes(pincode)) parts.push(`PIN: ${pincode}`);
+
+  const fullAddress = parts.length > 0 ? parts.join(', ') : [city, state, pincode ? `PIN: ${pincode}` : ''].filter(Boolean).join(', ') || 'Direct Customer Delivery Destination';
+
+  return {
+    recipient,
+    phone,
+    street: street || fullAddress,
+    city,
+    state,
+    pincode,
+    fullAddress
+  };
+};
 
 export default function OrderHistoryPage({ 
   onNavigateHome, 
@@ -222,6 +265,17 @@ export default function OrderHistoryPage({
         shipFee = 150;
       }
 
+      // Reconcile single-item orders so item unit price matches the paid merchandise subtotal
+      if (rawItems.length === 1 && orderGrandTotal > 0) {
+        const itemNetTotal = orderGrandTotal - shipFee;
+        if (itemNetTotal > 0) {
+          rawItems[0].price = itemNetTotal / (rawItems[0].qty || 1);
+        }
+      }
+      const reconciledSubtotal = rawItems.reduce((sum, it) => sum + (it.price * it.qty), 0);
+
+      const dest = resolveOrderDestination(o);
+
       return {
         orderId: oId,
         orderDate: o.date ? o.date.split('T')[0] : (o.orderDate || new Date().toISOString().split('T')[0]),
@@ -237,11 +291,28 @@ export default function OrderHistoryPage({
         shippingFee: shipFee,
         grandTotal: orderGrandTotal,
         totalAmount: orderGrandTotal,
-        subtotal: itemsSum,
-        shippingAddress: o.address || o.shippingAddress || {
-          recipient: o.recipient || 'Atomy Customer',
-          phone: o.phone || '',
-          address: o.fullAddress || 'Registered Delivery Address'
+        subtotal: reconciledSubtotal,
+        recipient: dest.recipient,
+        customerName: dest.recipient,
+        phone: dest.phone,
+        city: dest.city,
+        state: dest.state,
+        pincode: dest.pincode,
+        shippingAddress: {
+          recipient: dest.recipient,
+          phone: dest.phone,
+          address: dest.fullAddress,
+          fullAddress: dest.fullAddress,
+          street: dest.street,
+          city: dest.city,
+          state: dest.state,
+          pincode: dest.pincode
+        },
+        address: {
+          recipient: dest.recipient,
+          phone: dest.phone,
+          address: dest.fullAddress,
+          fullAddress: dest.fullAddress
         },
         items: rawItems
       };
@@ -518,6 +589,389 @@ export default function OrderHistoryPage({
   const isDelivered = (order) => {
     if (!order) return false;
     return String(order.status || '').toLowerCase() === 'delivered';
+  };
+
+  // ==========================================
+  // OFFICIAL ATOMY INDIA TAX INVOICE & PDF
+  // ==========================================
+  const generateCustomerInvoiceHtml = (order) => {
+    if (!order) return '';
+    const orderId = order.orderId || order.id || 'ORDER';
+    const orderDate = order.orderDate || new Date().toISOString().split('T')[0];
+    const invoiceNo = `INV-${orderId}`;
+    
+    // Shipping Address Details
+    const dest = resolveOrderDestination(order);
+    const recipient = dest.recipient;
+    const phone = dest.phone || 'N/A';
+    const destinationLocation = dest.fullAddress;
+
+    // Order items & monetary breakdown
+    const items = getOrderItems(order);
+    const shippingFee = Number(order.shippingFee || 0);
+    const totalAmount = getOrderTotal(order) || (items.reduce((s, it) => s + ((Number(it.price) || 0) * (Number(it.qty || it.quantity) || 1)), 0) + shippingFee);
+    const subtotal = Math.max(0, totalAmount - shippingFee);
+    const totalPV = items.reduce((s, it) => s + ((Number(it.pv) || 0) * (Number(it.qty || it.quantity) || 1)), 0);
+
+    // GST Breakdown (18% GST standard in India: 9% CGST + 9% SGST)
+    const taxableAmount = (subtotal / 1.18).toFixed(2);
+    const totalGST = (subtotal - Number(taxableAmount)).toFixed(2);
+    const cgst = (Number(totalGST) / 2).toFixed(2);
+    const sgst = (Number(totalGST) / 2).toFixed(2);
+
+    const courierPartner = order.courier || 'Blue Dart Express (Surface & Air)';
+    const trackingNumber = order.trackingNumber || `BD${orderId.replace(/\D/g, '') || '939640461'}IN`;
+
+    const itemsHtml = items.map((it, idx) => {
+      const qty = Number(it.qty || it.quantity) || 1;
+      const unitPrice = Number(it.price) || 0;
+      const lineTotal = unitPrice * qty;
+      const lineTaxable = (lineTotal / 1.18).toFixed(2);
+      const lineGst = (lineTotal - Number(lineTaxable)).toFixed(2);
+      const itemPv = Number(it.pv) || 0;
+      return `
+        <tr>
+          <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">${idx + 1}</td>
+          <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">
+            <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${it.name || 'Atomy Product'}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">HSN Code: 33049900 • Earned PV: ${(itemPv * qty).toLocaleString('en-IN')} (${itemPv.toLocaleString('en-IN')} PV/unit)</div>
+          </td>
+          <td style="text-align: center; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 13px; font-weight: 600;">${qty}</td>
+          <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">₹ ${unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">₹ ${parseFloat(lineTaxable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #475569;">18% (₹ ${parseFloat(lineGst).toLocaleString('en-IN', { minimumFractionDigits: 2 })})</td>
+          <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-size: 13px; font-weight: 700; color: #0f172a;">₹ ${lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <title>Atomy_Tax_Invoice_${orderId}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+          @page {
+            size: A4;
+            margin: 12mm 15mm;
+          }
+          * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+          }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #1e293b;
+            background: #ffffff;
+            margin: 0;
+            padding: 24px;
+            line-height: 1.45;
+          }
+          .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          }
+          .action-btn-pdf {
+            background: #00A3E0;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .action-btn-pdf:hover {
+            background: #0284c7;
+          }
+          .action-btn-close {
+            background: #334155;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+          }
+          .action-btn-close:hover {
+            background: #475569;
+          }
+          .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-bottom: 2px solid #00A3E0;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+          }
+          .company-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #00A3E0;
+            letter-spacing: -0.5px;
+          }
+          .badge-tax {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 3px 10px;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+          }
+          .address-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+          }
+          .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 20px;
+          }
+          .items-table th {
+            background: #f1f5f9;
+            color: #334155;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 10px 8px;
+            border-top: 1px solid #cbd5e1;
+            border-bottom: 1px solid #cbd5e1;
+          }
+          .summary-card {
+            width: 360px;
+            margin-left: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 14px 18px;
+            background: #f8fafc;
+            margin-bottom: 24px;
+          }
+          .summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+            color: #475569;
+          }
+          .grand-total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            border-top: 1.5px solid #0f172a;
+            padding-top: 8px;
+            margin-top: 8px;
+          }
+          .footer-section {
+            border-top: 1px solid #cbd5e1;
+            padding-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 11px;
+            color: #64748b;
+          }
+          @media print {
+            body {
+              padding: 0;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .no-print {
+              display: none !important;
+            }
+            .address-card, .summary-card, .items-table th, .badge-tax {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="action-bar no-print">
+          <div>
+            <strong>Atomy Tax Invoice Preview (A4 PDF Form)</strong>
+            <span style="font-size: 12px; color: #94a3b8; margin-left: 10px;">Select &quot;Save as PDF&quot; in the print dialog</span>
+          </div>
+          <div>
+            <button class="action-btn-pdf" onclick="window.print()">
+              <span>🖨️ / 📥 Save as PDF</span>
+            </button>
+            <button class="action-btn-close" onclick="window.close()">Close</button>
+          </div>
+        </div>
+
+        <table class="header-table">
+          <tr>
+            <td style="width: 58%; vertical-align: top;">
+              <div class="company-title">ATOMY ENTERPRISE INDIA</div>
+              <div style="font-size: 12px; color: #475569; margin-top: 3px;">Atomy Enterprise India Private Limited • Tax Invoice</div>
+              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Regd Office: Plot No. 89, Sector 44, Gurugram, Haryana - 122003</div>
+              <div style="font-size: 11px; color: #0284c7; font-weight: 600; margin-top: 2px;">GSTIN: 33AAACA0101A1Z5 • CIN: U51909HR2019FTC083759</div>
+              <span class="badge-tax">TAX INVOICE / ORIGINAL FOR RECIPIENT</span>
+            </td>
+            <td style="width: 42%; vertical-align: top; text-align: right;">
+              <div style="font-size: 17px; font-weight: 800; color: #0f172a;">${invoiceNo}</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Order No: <strong>${orderId}</strong></div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Order Date: ${orderDate}</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Payment: <strong>${order.paymentMethod || 'Online UPI'}</strong> (${order.paymentStatus || 'PAID'})</div>
+              <div style="font-size: 11px; color: #0f172a; margin-top: 6px; font-weight: 600;">Carrier: ${courierPartner}</div>
+              <div style="font-size: 11px; color: #0284c7; font-family: monospace; font-weight: 700;">AWB: ${trackingNumber}</div>
+            </td>
+          </tr>
+        </table>
+
+        <div class="address-card">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="width: 50%; vertical-align: top; padding-right: 14px;">
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Dispatched By (Logistics Hub):</div>
+                <strong style="color: #0f172a; font-size: 13px;">Atomy Authorized Regional Fulfillment Center</strong><br/>
+                <span style="font-size: 12px; color: #475569;">Carrier Partner: ${courierPartner}</span><br/>
+                <span style="font-size: 12px; color: #475569;">Official Waybill Tracking ID: <strong>${trackingNumber}</strong></span><br/>
+                <span style="font-size: 11px; color: #64748b;">Support: 1800-123-2866 • support@atomyindia.com</span>
+              </td>
+              <td style="width: 50%; vertical-align: top; padding-left: 14px; border-left: 1px solid #cbd5e1;">
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Billed &amp; Shipped To (Recipient):</div>
+                <strong style="color: #0f172a; font-size: 13px;">${recipient}</strong><br/>
+                <span style="font-size: 12px; color: #475569;">Delivery Address: ${destinationLocation}</span><br/>
+                <span style="font-size: 12px; color: #475569;">Contact Mobile: ${phone}</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width: 35px; text-align: center;">#</th>
+              <th>Product Description</th>
+              <th style="width: 50px; text-align: center;">Qty</th>
+              <th style="width: 95px; text-align: right;">Unit Price</th>
+              <th style="width: 95px; text-align: right;">Taxable Val</th>
+              <th style="width: 110px; text-align: right;">GST Rate</th>
+              <th style="width: 105px; text-align: right;">Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div class="summary-card">
+          <div class="summary-row">
+            <span>Total Earned PV:</span>
+            <span style="color: #0284c7; font-weight: 700;">${totalPV.toLocaleString('en-IN')} PV</span>
+          </div>
+          <div class="summary-row">
+            <span>Taxable Net Amount:</span>
+            <span>₹ ${parseFloat(taxableAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="summary-row">
+            <span>CGST (9%):</span>
+            <span>₹ ${parseFloat(cgst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="summary-row">
+            <span>SGST (9%):</span>
+            <span>₹ ${parseFloat(sgst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+          </div>
+          <div class="summary-row">
+            <span>Shipping &amp; Delivery Fee:</span>
+            <span>${shippingFee > 0 ? `₹ ${shippingFee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '<span style="color: #16a34a; font-weight: 600;">FREE (Standard Delivery)</span>'}</span>
+          </div>
+          <div class="grand-total-row">
+            <span>Invoice Grand Total:</span>
+            <span>₹ ${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+
+        <div class="footer-section">
+          <div>
+            <strong>Terms &amp; Notice:</strong><br/>
+            <span>• Computer-generated Tax Invoice issued in accordance with Rule 48 of the CGST Rules, 2017.</span><br/>
+            <span>• Goods once sold are covered under Atomy 100% Satisfaction &amp; 30-Day Return Policy.</span><br/>
+            <span>• For warranty or quality claims, write to support@atomyindia.com or call 1800-123-2866.</span>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 800; color: #0f172a;">For Atomy Enterprise India Pvt. Ltd.</div>
+            <div style="margin-top: 30px; font-size: 11px; color: #64748b;">Authorized Signatory / Digitally Verified</div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleCustomerPrintInvoice = (order) => {
+    if (!order) return;
+    const printWindow = window.open('', '_blank', 'width=920,height=960');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups to view/print the invoice.');
+      return;
+    }
+    const html = generateCustomerInvoiceHtml(order);
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 450);
+  };
+
+  const handleCustomerDownloadInvoice = (order) => {
+    if (!order) return;
+    const orderId = order.orderId || order.id || 'ORDER';
+    const html = generateCustomerInvoiceHtml(order);
+
+    // 1. Direct file download as HTML document
+    try {
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Atomy_Tax_Invoice_${orderId}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.warn('File download warning:', e);
+    }
+
+    // 2. Open printable/PDF window with auto-trigger for system Save-as-PDF
+    const printWindow = window.open('', '_blank', 'width=920,height=960');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 450);
+    }
   };
 
   return (
@@ -1510,13 +1964,25 @@ export default function OrderHistoryPage({
                 <h3>Atomy India Order Details</h3>
                 <span className="invoice-order-no">Order No: <strong>{activeInvoiceOrder.orderId}</strong></span>
               </div>
-              <button 
-                type="button" 
-                className="invoice-close-btn"
-                onClick={() => setActiveInvoiceOrder(null)}
-              >
-                <X size={20} />
-              </button>
+              <div className="invoice-header-actions">
+                <button
+                  type="button"
+                  className="invoice-quick-dl-btn"
+                  onClick={() => handleCustomerDownloadInvoice(activeInvoiceOrder)}
+                  title="Download Tax Invoice (PDF Form)"
+                >
+                  <Download size={14} />
+                  <span>Download PDF</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="invoice-close-btn"
+                  onClick={() => setActiveInvoiceOrder(null)}
+                  title="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="invoice-modal-body">
@@ -1542,8 +2008,10 @@ export default function OrderHistoryPage({
               <div className="invoice-shipping-box">
                 <span className="shipping-box-label">Delivery Destination:</span>
                 <p className="shipping-box-text">
-                  <strong>{activeInvoiceOrder.shippingAddress?.recipient}</strong> ({activeInvoiceOrder.shippingAddress?.phone})<br />
-                  {activeInvoiceOrder.shippingAddress?.address}
+                  <strong>{resolveOrderDestination(activeInvoiceOrder).recipient}</strong> {resolveOrderDestination(activeInvoiceOrder).phone && `(${resolveOrderDestination(activeInvoiceOrder).phone})`}<br />
+                  <span style={{ display: 'block', marginTop: '4px', color: '#1e293b', fontSize: '13.5px', lineHeight: '1.5' }}>
+                    {resolveOrderDestination(activeInvoiceOrder).fullAddress}
+                  </span>
                 </p>
               </div>
 
@@ -1565,24 +2033,40 @@ export default function OrderHistoryPage({
               </div>
 
               {(() => {
-                const invSubtotal = activeInvoiceOrder.items.reduce((s, it) => s + (it.price * it.qty), 0);
                 const invShipping = Number(activeInvoiceOrder.shippingFee || 0);
                 const invGrandTotal = (activeInvoiceOrder.grandTotal && activeInvoiceOrder.grandTotal > 0)
                   ? Number(activeInvoiceOrder.grandTotal)
                   : (activeInvoiceOrder.totalAmount && activeInvoiceOrder.totalAmount > 0)
                     ? Number(activeInvoiceOrder.totalAmount)
-                    : (invSubtotal + invShipping);
+                    : (activeInvoiceOrder.items.reduce((s, it) => s + (it.price * it.qty), 0) + invShipping);
+                const invSubtotal = Math.max(0, invGrandTotal - invShipping);
+                const taxableNet = Number((invSubtotal / 1.18).toFixed(2));
+                const totalGst = Number((invSubtotal - taxableNet).toFixed(2));
+                const cgst = Number((totalGst / 2).toFixed(2));
+                const sgst = Number((totalGst - cgst).toFixed(2));
 
                 return (
                   <div className="invoice-totals-summary">
                     <div className="summary-row">
-                      <span>Subtotal:</span>
+                      <span>Items Subtotal:</span>
                       <span>₹ {invSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="summary-row">
-                      <span>Shipping Fee:</span>
+                      <span style={{ color: '#475569' }}>Taxable Net Amount:</span>
+                      <span style={{ color: '#475569' }}>₹ {taxableNet.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="summary-row">
+                      <span style={{ color: '#475569' }}>CGST (9%):</span>
+                      <span style={{ color: '#475569' }}>₹ {cgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="summary-row">
+                      <span style={{ color: '#475569' }}>SGST (9%):</span>
+                      <span style={{ color: '#475569' }}>₹ {sgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="summary-row">
+                      <span>Delivery &amp; Shipping Fee:</span>
                       {invShipping > 0 ? (
-                        <span>₹ {invShipping.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>₹ {invShipping.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       ) : (
                         <span className="free-shipping">FREE (Standard Atomy Delivery)</span>
                       )}
@@ -1614,11 +2098,29 @@ export default function OrderHistoryPage({
               </button>
               <button
                 type="button"
+                className="invoice-print-action"
+                onClick={() => handleCustomerPrintInvoice(activeInvoiceOrder)}
+                title="Print Tax Invoice / Save as PDF"
+              >
+                <Printer size={15} />
+                <span>Print Tax Invoice</span>
+              </button>
+              <button
+                type="button"
+                className="invoice-download-action"
+                onClick={() => handleCustomerDownloadInvoice(activeInvoiceOrder)}
+                title="Download Official Tax Invoice (PDF Form)"
+              >
+                <Download size={15} />
+                <span>Download Invoice (PDF)</span>
+              </button>
+              <button
+                type="button"
                 className="invoice-track-action"
                 onClick={() => {
                   const ord = activeInvoiceOrder;
                   setActiveInvoiceOrder(null);
-                  handleTrackDelivery(ord);
+                  handleToggleTracking(ord);
                 }}
               >
                 <Truck size={16} />

@@ -15,7 +15,19 @@ public class CreateOrderRequest {
     private CustomerOrder.PaymentMethod paymentMethod;
     private java.math.BigDecimal shippingFee;
     private java.math.BigDecimal totalAmount;
+    private String fulfillmentType; // "STORE_PICKUP" or "COURIER_DELIVERY"
+    private String pickupStatus;
+    private String hubAddress;
     private List<OrderItemDto> items;
+
+    public String getFulfillmentType() { return fulfillmentType; }
+    public void setFulfillmentType(String fulfillmentType) { this.fulfillmentType = fulfillmentType; }
+
+    public String getPickupStatus() { return pickupStatus; }
+    public void setPickupStatus(String pickupStatus) { this.pickupStatus = pickupStatus; }
+
+    public String getHubAddress() { return hubAddress; }
+    public void setHubAddress(String hubAddress) { this.hubAddress = hubAddress; }
 
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }

@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminLoginPage from './components/Admin/AdminLoginPage';
+import DistributorDashboard from './components/Distributor/DistributorDashboard';
 import './App.css';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     try {
-      const localSession = localStorage.getItem('atomy_admin_session');
-      if (localSession) {
-        const parsed = JSON.parse(localSession);
-        if (parsed?.authenticated) return true;
-      }
-      const sessSession = sessionStorage.getItem('atomy_admin_session');
-      if (sessSession) {
-        const parsed = JSON.parse(sessSession);
-        if (parsed?.authenticated) return true;
+      const savedRaw = localStorage.getItem('atomy_admin_session') || sessionStorage.getItem('atomy_admin_session');
+      if (savedRaw) {
+        const parsed = JSON.parse(savedRaw);
+        const MAX_SESSION_AGE = 24 * 60 * 60 * 1000; // 24 hours
+        if (parsed?.authenticated && parsed?.adminUser && parsed?.loginTimestamp) {
+          if (Date.now() - parsed.loginTimestamp < MAX_SESSION_AGE) {
+            return true;
+          }
+        }
       }
       return false;
     } catch {
@@ -24,8 +25,17 @@ export default function App() {
 
   const [currentAdmin, setCurrentAdmin] = useState(() => {
     try {
-      const saved = localStorage.getItem('atomy_admin_session') || sessionStorage.getItem('atomy_admin_session');
-      return saved ? JSON.parse(saved).adminUser : null;
+      const savedRaw = localStorage.getItem('atomy_admin_session') || sessionStorage.getItem('atomy_admin_session');
+      if (savedRaw) {
+        const parsed = JSON.parse(savedRaw);
+        const MAX_SESSION_AGE = 24 * 60 * 60 * 1000;
+        if (parsed?.authenticated && parsed?.adminUser && parsed?.loginTimestamp) {
+          if (Date.now() - parsed.loginTimestamp < MAX_SESSION_AGE) {
+            return parsed.adminUser;
+          }
+        }
+      }
+      return null;
     } catch {
       return null;
     }
@@ -59,10 +69,21 @@ export default function App() {
           onLoginSuccess={handleLoginSuccess}
           onBackToStore={handleBackToStore}
         />
-      ) : (
+      ) : currentAdmin?.role === 'DISTRIBUTOR_ADMIN' ? (
+        <DistributorDashboard
+          distributorUser={currentAdmin}
+          onLogout={handleLogout}
+          onBackToStore={handleBackToStore}
+        />
+      ) : currentAdmin?.role === 'SUPER_ADMIN' ? (
         <AdminDashboard 
           adminProfileProp={currentAdmin}
           onLogout={handleLogout}
+          onBackToStore={handleBackToStore}
+        />
+      ) : (
+        <AdminLoginPage 
+          onLoginSuccess={handleLoginSuccess}
           onBackToStore={handleBackToStore}
         />
       )}

@@ -1,7 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, User, ShoppingCart, ChevronDown, ChevronUp, ChevronRight, Menu, Globe, X, Bell, Sparkles, Clock, Heart, Ticket, Compass, Settings, Check } from 'lucide-react';
+import { Search, User, ShoppingCart, ChevronDown, ChevronUp, ChevronRight, Menu, Globe, X, Bell, Sparkles, Clock, Heart, Ticket, Compass, Settings, Check, Star, MapPin, Navigation } from 'lucide-react';
 import { SUPPORTED_LANGUAGES, getSavedLanguage, changeLanguage } from '../../services/languageService';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
+import { getCustomerDeliveryPincode, setCustomerDeliveryPincode, syncCatalogFromBackend } from '../../services/catalogSyncService';
+import { 
+  lookupPostalPincode,
+  detectCustomerLiveLocation, 
+  getShortLocationLabel, 
+  getHubLabel, 
+  applyDetectedLocation
+} from '../../services/locationService';
 import atomyLogo from '../../assets/atomy-logo.png';
 import ficLogo from '../../assets/fic-symbol.png';
 import IndiaMap from './IndiaMap';
@@ -9,7 +17,17 @@ import PhoenixFlight from './PhoenixFlight';
 import NavbarColorPicker, { isHexColorDark, hexToRgba, rgbaToHex } from './NavbarColorPicker';
 import { getMembershipExpiryInfo } from '../Membership/MembershipExpiryBanner';
 import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
+import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
 import './Header.css';
+
+export function getProductMrpPrice(prod) {
+  if (!prod) return 0;
+  const official = prod.id ? OFFICIAL_DISTRIBUTOR_PRICES[prod.id] : null;
+  const mrp = Number(prod.originalPrice || prod.mrp || official?.mrp);
+  if (mrp && mrp > 0) return mrp;
+  const p = Number(prod.price || prod.dpPrice || official?.dpPrice || 0);
+  return p > 0 ? p : 1000;
+}
 
 
 const ATOMY_FAMILY_SITES = [
@@ -71,18 +89,164 @@ export default function Header({
   onNavigateMembership
 }) {
   const activeMembership = membership || currentUser?.membership;
+  const isCustomerMember = Boolean(isMember || currentUser?.isMember || activeMembership?.status === 'ACTIVE');
   const expiryInfo = React.useMemo(() => getMembershipExpiryInfo(activeMembership), [activeMembership]);
 
   const [activePortal, setActivePortal] = useState('mall');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
+  useEffect(() => {
+    if (isMegaMenuOpen) {
+      document.body.classList.add('mobile-drawer-open');
+    } else {
+      document.body.classList.remove('mobile-drawer-open');
+    }
+    return () => {
+      document.body.classList.remove('mobile-drawer-open');
+    };
+  }, [isMegaMenuOpen]);
+
+
   const [hoveredCategoryIndex, setHoveredCategoryIndex] = useState(0);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
   const [isAtomySitesOpen, setIsAtomySitesOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState(() => getSavedLanguage());
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+
+  // Zepto-style Delivery Location & Regional Hub Lock State
+  const [deliveryPincode, setDeliveryPincode] = useState(() => getCustomerDeliveryPincode());
+  const [deliveryCity, setDeliveryCity] = useState(() => {
+    try {
+      return localStorage.getItem('atomy_customer_delivery_city') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [locationInput, setLocationInput] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationStatusMsg, setLocationStatusMsg] = useState('');
+  const [availablePostAreas, setAvailablePostAreas] = useState([]);
+  const [currentDistrict, setCurrentDistrict] = useState('');
+  const [selectedSubArea, setSelectedSubArea] = useState('');
+
+  // Dynamically resolve district & available post areas when user types a 6-digit PIN
+  useEffect(() => {
+    const clean = locationInput.trim();
+    if (/^\d{6}$/.test(clean)) {
+      lookupPostalPincode(clean).then((info) => {
+        if (info && info.valid) {
+          const dist = info.district || info.areaName;
+          setCurrentDistrict(dist);
+          setAvailablePostAreas(Array.isArray(info.postAreas) ? info.postAreas : []);
+        } else {
+          setAvailablePostAreas([]);
+          setCurrentDistrict('');
+        }
+      });
+    } else {
+      setAvailablePostAreas([]);
+      setCurrentDistrict('');
+      setSelectedSubArea('');
+    }
+  }, [locationInput]);
+
+  // Listen for pincode and area change broadcasts across all components
+  useEffect(() => {
+    const handlePinChange = (e) => {
+      if (e?.detail?.pincode) setDeliveryPincode(e.detail.pincode);
+      if (e?.detail?.city) setDeliveryCity(e.detail.city);
+    };
+    window.addEventListener('atomy_pincode_changed', handlePinChange);
+    return () => window.removeEventListener('atomy_pincode_changed', handlePinChange);
+  }, []);
+
+  // Auto-detect location on first customer visit or launch
+  useEffect(() => {
+    try {
+      const alreadyDetected = localStorage.getItem('atomy_location_autodetected_v2');
+      if (!alreadyDetected) {
+        detectCustomerLiveLocation().then((loc) => {
+          if (loc && loc.pincode) {
+            setDeliveryPincode(loc.pincode);
+            if (loc.city) setDeliveryCity(loc.city);
+          }
+        });
+      }
+    } catch {}
+  }, []);
+
+  const handleSelectPincode = async (pin, chosenSubLocality = null) => {
+    const clean = String(pin || '').trim();
+    if (!/^\d{6}$/.test(clean)) {
+      setLocationStatusMsg('Please enter a valid 6-digit Indian PIN code.');
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationStatusMsg(`Resolving delivery area for PIN ${clean}...`);
+
+    try {
+      const postalInfo = await lookupPostalPincode(clean);
+      setIsLocating(false);
+
+      const district = postalInfo?.district || postalInfo?.areaName || 'Regional Hub';
+      const resolvedArea = chosenSubLocality
+        ? `${chosenSubLocality}, ${district}`
+        : district;
+      const resolvedState = postalInfo?.state || 'India';
+
+      applyDetectedLocation({
+        pincode: clean,
+        city: resolvedArea,
+        state: resolvedState
+      });
+
+      setDeliveryPincode(clean);
+      setDeliveryCity(resolvedArea);
+      setSelectedSubArea(chosenSubLocality || '');
+      setLocationStatusMsg(`✓ Connected to ${resolvedArea} (${clean}). Showing live stock!`);
+
+      setTimeout(() => {
+        setIsLocationModalOpen(false);
+        setLocationStatusMsg('');
+      }, 1200);
+    } catch (err) {
+      setIsLocating(false);
+      const fallbackCity = chosenSubLocality || `Area (${clean})`;
+      applyDetectedLocation({ pincode: clean, city: fallbackCity });
+      setDeliveryPincode(clean);
+      setDeliveryCity(fallbackCity);
+      setLocationStatusMsg(`✓ Set delivery to PIN ${clean}.`);
+      setTimeout(() => {
+        setIsLocationModalOpen(false);
+        setLocationStatusMsg('');
+      }, 1200);
+    }
+  };
+
+  const handleDetectLiveLocation = async () => {
+    setIsLocating(true);
+    setLocationStatusMsg('Detecting your live regional location with GPS...');
+    try {
+      const loc = await detectCustomerLiveLocation({ force: true });
+      setIsLocating(false);
+      if (loc && loc.pincode) {
+        setDeliveryPincode(loc.pincode);
+        if (loc.city) setDeliveryCity(loc.city);
+        setLocationStatusMsg(`✓ Live GPS detected: ${loc.city || 'Your Area'} (${loc.pincode})! Live regional stock updated.`);
+        setTimeout(() => {
+          setIsLocationModalOpen(false);
+          setLocationStatusMsg('');
+        }, 1300);
+      }
+    } catch (err) {
+      setIsLocating(false);
+      setLocationStatusMsg('GPS timeout. Please enter your 6-digit PIN code above and click Apply.');
+    }
+  };
   const [navbarBgColor, setNavbarBgColor] = useState(() => {
     try {
       const saved = localStorage.getItem('atomy_navbar_bg');
@@ -321,7 +485,7 @@ export default function Header({
   const categories = [
     {
       id: "hemohim",
-      name: "HemoHIM",
+      name: "HEMOHIM",
       icon: "https://image.atomy.com/IN/banner/90/793/25100000002079317317.svg",
       subcategories: ["HemoHIM", "HemoHIM Global Edition"]
     },
@@ -581,7 +745,10 @@ export default function Header({
                     <div className="portal-col">
                       <span
                         className={`portal-tab ${activePortal === 'mall' ? 'active' : ''}`}
-                        onClick={() => setActivePortal('mall')}
+                        onClick={() => {
+                        setActivePortal('mall');
+                        if (onNavigateHome) onNavigateHome();
+                      }}
                       >
                         Shopping Mall
                       </span>
@@ -629,6 +796,22 @@ export default function Header({
                         <X size={15} />
                       </button>
                     )}
+                    <button
+                      type="button"
+                      className="search-inline-location-btn"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsLocationModalOpen(true);
+                      }}
+                      title="Change delivery location & live regional stock"
+                    >
+                      <MapPin size={13} className="search-location-icon" />
+                      <span className="search-location-text">
+                        {getShortLocationLabel(deliveryPincode, deliveryCity)}
+                      </span>
+                      <ChevronDown size={11} className="search-location-arrow" />
+                    </button>
                     <button type="submit" className="search-btn" aria-label="Search">
                       <Search size={19} strokeWidth={2.2} />
                     </button>
@@ -696,7 +879,8 @@ export default function Header({
                                   <div className="search-result-title">{prod.name}</div>
                                   <div className="search-result-price-row">
                                     <span className="search-result-price">
-                                      ₹ {(prod.price || 0).toLocaleString('en-IN', {
+                                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginRight: '4px' }}>MRP</span>
+                                      ₹ {getProductMrpPrice(prod).toLocaleString('en-IN', {
                                         minimumFractionDigits: 2
                                       })}
                                     </span>
@@ -760,7 +944,7 @@ export default function Header({
                 {currentUser ? (
                   <>
                     <button 
-                      className="action-btn logged-in-profile-btn" 
+                      className={`action-btn logged-in-profile-btn ${isCustomerMember ? 'has-member-star' : ''}`} 
                       aria-label="Customer Profile & Settings" 
                       title={`${userFullName} - Profile & Settings`}
                       onClick={() => onNavigateProfile && onNavigateProfile()}
@@ -769,6 +953,11 @@ export default function Header({
                         {userInitial}
                       </div>
                       <span className="profile-online-badge"></span>
+                      {isCustomerMember && (
+                        <span className="header-avatar-star-badge" title="Member Active" aria-label="Membership Star">
+                          <Star size={10} fill="#f59e0b" color="#d97706" />
+                        </span>
+                      )}
                     </button>
                   </>
                 ) : (
@@ -829,7 +1018,8 @@ export default function Header({
 
       {/* Sub-Navigation Bar - Hidden for Admin */}
       {currentView !== 'admin' && (
-        <nav className="sub-nav-bar">
+        <nav className={`sub-nav-bar ${isMegaMenuOpen ? 'has-drawer-open' : ''}`}>
+
           <div className="container sub-nav-container">
             {/* All Category Dropdown Trigger & Popup Menu */}
             <div className="category-menu-wrapper" ref={categoryMenuRef}>
@@ -855,10 +1045,17 @@ export default function Header({
                     <div className="category-popup-mobile-account-bar">
                       {currentUser ? (
                         <div className="mobile-drawer-user-info">
-                          <div className="mobile-drawer-avatar">{userInitial}</div>
+                          <div className="mobile-drawer-avatar-wrapper">
+                            <div className="mobile-drawer-avatar">{userInitial}</div>
+                            {isCustomerMember && (
+                              <span className="drawer-avatar-star-badge" title="Member Active" aria-label="Membership Star">
+                                <Star size={11} fill="#f59e0b" color="#d97706" />
+                              </span>
+                            )}
+                          </div>
                           <div className="mobile-drawer-meta">
                             <span className="mobile-drawer-username">{userFullName}</span>
-                            <span className="mobile-drawer-status">{isMember ? '★ Member Active' : 'Consumer'}</span>
+                            <span className="mobile-drawer-status">{isCustomerMember ? '★ Member Active' : 'Consumer'}</span>
                           </div>
                           <button
                             type="button"
@@ -1276,7 +1473,6 @@ export default function Header({
       )}
 
     {/* Official Atomy India Language/Region settings Modal (Exact match to user reference screenshot) */}
-    {/* Official Atomy India Language/Region settings Modal (Exact match to user reference screenshot) */}
     {isLangModalOpen && (
       <div className="lang-region-modal-overlay notranslate" translate="no" onClick={() => setIsLangModalOpen(false)}>
         <div
@@ -1334,6 +1530,190 @@ export default function Header({
                 );
               })}
             </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Zepto-Style Regional Delivery Hub & PIN Selector Modal */}
+    {isLocationModalOpen && (
+      <div className="lang-region-modal-overlay" onClick={() => setIsLocationModalOpen(false)}>
+        <div
+          className="lang-region-modal-card"
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: '440px', padding: '24px' }}
+        >
+          <div className="lang-region-modal-header" style={{ padding: '0 0 16px', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MapPin size={22} color="#00a3e0" />
+              <h2 className="lang-region-modal-title" style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                Select Delivery Location
+              </h2>
+            </div>
+            <button
+              type="button"
+              className="lang-region-close-btn"
+              onClick={() => setIsLocationModalOpen(false)}
+            >
+              <X size={22} />
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>
+              Choose your delivery PIN code to view <strong>live regional stock</strong> and dispatch directly from your nearest Atomy Regional Hub.
+            </p>
+
+            {/* Current Active Hub & Delivery Area Badge */}
+            <div style={{ padding: '12px 16px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', flexShrink: 0 }}></div>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0369a1' }}>
+                  Current Area: {getHubLabel(deliveryPincode, deliveryCity)}
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#0284c7', marginTop: '2px' }}>
+                  PIN Code: <strong>{deliveryPincode}</strong> (Live Regional Stock &amp; Direct Dispatch)
+                </div>
+              </div>
+            </div>
+
+            {/* Manual PIN Code Input with Instant Area Resolution */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                Enter Indian Delivery PIN Code
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="e.g. 635202, 635001, 110001"
+                  value={locationInput}
+                  onChange={(e) => setLocationInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSelectPincode(locationInput); }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    letterSpacing: '0.5px'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleSelectPincode(locationInput)}
+                  disabled={isLocating}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#00a3e0',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    cursor: isLocating ? 'not-allowed' : 'pointer',
+                    opacity: isLocating ? 0.7 : 1,
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {isLocating ? 'Verifying...' : 'Apply'}
+                </button>
+              </div>
+
+              {/* Optional Specific Post Area / Locality Selector */}
+              {availablePostAreas.length > 0 && (
+                <div style={{ marginTop: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155' }}>
+                      Available Areas in PIN {locationInput} (Select Locality):
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>
+                      District: <strong>{currentDistrict}</strong>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '120px', overflowY: 'auto' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSubArea('');
+                        handleSelectPincode(locationInput, null);
+                      }}
+                      style={{
+                        padding: '5px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        background: !selectedSubArea ? '#00a3e0' : '#ffffff',
+                        color: !selectedSubArea ? '#ffffff' : '#334155',
+                        border: !selectedSubArea ? '1px solid #00a3e0' : '1px solid #cbd5e1',
+                        borderRadius: '16px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      Entire {currentDistrict || 'District'}
+                    </button>
+                    {availablePostAreas.map((postName) => {
+                      const isCurrent = selectedSubArea === postName;
+                      return (
+                        <button
+                          key={postName}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSubArea(postName);
+                            handleSelectPincode(locationInput, postName);
+                          }}
+                          style={{
+                            padding: '5px 10px',
+                            fontSize: '11.5px',
+                            fontWeight: 600,
+                            background: isCurrent ? '#00a3e0' : '#ffffff',
+                            color: isCurrent ? '#ffffff' : '#334155',
+                            border: isCurrent ? '1px solid #00a3e0' : '1px solid #cbd5e1',
+                            borderRadius: '16px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {postName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Detect Live Location Button */}
+            <button
+              type="button"
+              onClick={handleDetectLiveLocation}
+              disabled={isLocating}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '11px 16px',
+                background: '#ffffff',
+                border: '1.5px solid #bae6fd',
+                borderRadius: '8px',
+                color: '#0284c7',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: isLocating ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Navigation size={15} color="#00a3e0" className={isLocating ? 'animate-spin' : ''} />
+              <span>{isLocating ? 'Detecting Live GPS Location...' : 'Use Current Live Location'}</span>
+            </button>
+
+            {locationStatusMsg && (
+              <div style={{ padding: '8px 12px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', fontSize: '12px', color: '#065f46', fontWeight: 600 }}>
+                {locationStatusMsg}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1441,7 +1821,8 @@ export default function Header({
                           <h4 className="mobile-search-result-title">{prod.name}</h4>
                           <div className="mobile-search-result-price-row">
                             <span className="mobile-search-result-price">
-                              ₹ {(prod.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginRight: '4px' }}>MRP</span>
+                              ₹ {getProductMrpPrice(prod).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                             {prod.pv && (
                               <span className="mobile-search-result-pv">

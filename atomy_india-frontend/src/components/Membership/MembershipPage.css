@@ -629,6 +629,7 @@
 
 .comparison-table {
   width: 100%;
+  min-width: 580px;
   border-collapse: collapse;
   text-align: left;
 }
@@ -668,6 +669,8 @@
   border-radius: 6px;
   font-weight: 800;
   font-size: 13px;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .comparison-table td.pv-col {
@@ -736,5 +739,13 @@
   .main-subscribe-btn {
     width: 100%;
     min-width: unset;
+  }
+  .comparison-table th,
+  .comparison-table td {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+  .comparison-table th {
+    white-space: nowrap;
   }
 }

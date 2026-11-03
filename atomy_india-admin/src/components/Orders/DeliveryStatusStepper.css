@@ -296,16 +296,57 @@
 .mover-wrapper.is-hidden {
   opacity: 0;
   visibility: hidden;
+  display: none;
 }
 
 .mover-wrapper.is-done {
   opacity: 0;
   visibility: hidden;
+  display: none;
 }
 
 .mover-wrapper.is-active {
-  opacity: 1;
-  visibility: visible;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  animation: liveMoverForwardDrive 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+@keyframes liveMoverForwardDrive {
+  0% {
+    left: 4%;
+    opacity: 0.15;
+    transform: translate(-50%, -75%) scale(0.92);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -75%) scale(1);
+  }
+  88% {
+    opacity: 1;
+    transform: translate(-50%, -75%) scale(1);
+  }
+  100% {
+    left: 96%;
+    opacity: 0.15;
+    transform: translate(-50%, -75%) scale(0.92);
+  }
+}
+
+.stepper-connector-track.is-active-track .connector-fill-dots {
+  border-top-color: #00A3E0 !important;
+  animation: liveTrackPulse 1.2s ease-in-out infinite alternate !important;
+}
+
+@keyframes liveTrackPulse {
+  0% {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 2px rgba(0, 163, 224, 0.4));
+  }
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 7px rgba(0, 163, 224, 0.95));
+  }
 }
 
 .mover-object {

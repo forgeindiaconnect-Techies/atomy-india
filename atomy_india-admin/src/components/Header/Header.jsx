@@ -95,40 +95,57 @@ export default function Header({
     }
   });
 
-  const handleDismissOrder = (rawId, e) => {
+  const handleDismissOrder = (orderOrId, e) => {
     if (e) e.stopPropagation();
-    if (!rawId) return;
-    const str = String(rawId);
-    const cleanId = str.replace(/^delayed_/, '');
+    if (!orderOrId) return;
     const nextSet = new Set(localDismissedIds);
-    nextSet.add(cleanId);
-    nextSet.add(`delayed_${cleanId}`);
+    const idsToDismiss = [];
+
+    if (typeof orderOrId === 'object') {
+      if (orderOrId.orderId) idsToDismiss.push(String(orderOrId.orderId));
+      if (orderOrId.id) idsToDismiss.push(String(orderOrId.id));
+      if (orderOrId._id) idsToDismiss.push(String(orderOrId._id));
+    } else {
+      const str = String(orderOrId);
+      const cleanId = str.replace(/^delayed_/, '');
+      idsToDismiss.push(cleanId);
+    }
+
+    idsToDismiss.forEach(id => {
+      nextSet.add(id);
+      nextSet.add(`delayed_${id}`);
+      if (onDismissNotif) {
+        onDismissNotif(`delayed_${id}`);
+        onDismissNotif(id);
+      }
+    });
+
     setLocalDismissedIds(nextSet);
     try {
       localStorage.setItem('atomy_admin_read_notifs_v3', JSON.stringify(Array.from(nextSet)));
     } catch {}
-    if (onDismissNotif) {
-      onDismissNotif(`delayed_${cleanId}`);
-      onDismissNotif(cleanId);
-    }
   };
 
   const handleClearAll = (e) => {
     if (e) e.stopPropagation();
     const nextSet = new Set(localDismissedIds);
     (overviewStats?.recentNewOrders || []).forEach(ro => {
-      const oid = String(ro.orderId || ro.id || '');
-      if (oid) {
-        nextSet.add(oid);
-        nextSet.add(`delayed_${oid}`);
-      }
+      [ro.orderId, ro.id, ro._id].filter(Boolean).forEach(id => {
+        nextSet.add(String(id));
+        nextSet.add(`delayed_${id}`);
+      });
     });
     (overviewStats?.delayedOrders || []).forEach(d => {
-      const oid = String(d.orderId || d.id || '');
-      if (oid) {
-        nextSet.add(oid);
-        nextSet.add(`delayed_${oid}`);
-      }
+      [d.orderId, d.id, d._id].filter(Boolean).forEach(id => {
+        nextSet.add(String(id));
+        nextSet.add(`delayed_${id}`);
+      });
+    });
+    (overviewStats?.allDelayedOrders || []).forEach(d => {
+      [d.orderId, d.id, d._id].filter(Boolean).forEach(id => {
+        nextSet.add(String(id));
+        nextSet.add(`delayed_${id}`);
+      });
     });
     setLocalDismissedIds(nextSet);
     try {
@@ -140,13 +157,23 @@ export default function Header({
   };
 
   const visibleRecentOrders = (overviewStats?.recentNewOrders || []).filter(ro => {
-    const oid = String(ro.orderId || ro.id || '');
-    return !localDismissedIds.has(oid) && !localDismissedIds.has(`delayed_${oid}`);
+    const oid1 = String(ro.orderId || '');
+    const oid2 = String(ro.id || '');
+    const oid3 = String(ro._id || '');
+    const isDismissed = (oid1 && (localDismissedIds.has(oid1) || localDismissedIds.has(`delayed_${oid1}`))) ||
+                        (oid2 && (localDismissedIds.has(oid2) || localDismissedIds.has(`delayed_${oid2}`))) ||
+                        (oid3 && (localDismissedIds.has(oid3) || localDismissedIds.has(`delayed_${oid3}`)));
+    return !isDismissed;
   });
 
   const visibleDelayedOrders = (overviewStats?.delayedOrders || []).filter(d => {
-    const oid = String(d.orderId || d.id || '');
-    return !localDismissedIds.has(oid) && !localDismissedIds.has(`delayed_${oid}`);
+    const oid1 = String(d.orderId || '');
+    const oid2 = String(d.id || '');
+    const oid3 = String(d._id || '');
+    const isDismissed = (oid1 && (localDismissedIds.has(oid1) || localDismissedIds.has(`delayed_${oid1}`))) ||
+                        (oid2 && (localDismissedIds.has(oid2) || localDismissedIds.has(`delayed_${oid2}`))) ||
+                        (oid3 && (localDismissedIds.has(oid3) || localDismissedIds.has(`delayed_${oid3}`)));
+    return !isDismissed;
   });
 
   const ticketsCount = overviewStats?.unreadTicketsCount || 0;
@@ -633,7 +660,7 @@ export default function Header({
                                     type="button"
                                     className="notif-dismiss-btn"
                                     title="Dismiss notification"
-                                    onClick={(e) => handleDismissOrder(orderId, e)}
+                                    onClick={(e) => handleDismissOrder(ro, e)}
                                   >
                                     <X size={14} />
                                   </button>
@@ -651,7 +678,7 @@ export default function Header({
                                   className="notif-item order-specific-item"
                                   style={{ borderLeft: '3px solid #ef4444', backgroundColor: '#fef2f2' }}
                                   onClick={() => {
-                                    handleDismissOrder(orderId);
+                                    handleDismissOrder(dOrder);
                                     onSelectNotificationTab && onSelectNotificationTab('orders', 'DELAYED', orderId);
                                     setIsAdminNotifOpen(false);
                                   }}
@@ -667,7 +694,7 @@ export default function Header({
                                     type="button"
                                     className="notif-dismiss-btn"
                                     title="Dismiss notification"
-                                    onClick={(e) => handleDismissOrder(orderId, e)}
+                                    onClick={(e) => handleDismissOrder(dOrder, e)}
                                   >
                                     <X size={14} />
                                   </button>

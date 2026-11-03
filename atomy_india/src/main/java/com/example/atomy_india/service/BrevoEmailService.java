@@ -4,6 +4,7 @@ import com.example.atomy_india.model.CustomerOrder;
 import com.example.atomy_india.model.OrderItem;
 import com.example.atomy_india.model.OrderTracking;
 import com.example.atomy_india.model.Membership;
+import com.example.atomy_india.model.DistributorUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,9 @@ public class BrevoEmailService {
 
     @Value("${brevo.storefront.url:http://localhost:5173}")
     private String storefrontUrl;
+
+    @Value("${brevo.admin.url:http://localhost:5174}")
+    private String adminUrl;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -461,6 +465,71 @@ public class BrevoEmailService {
                 + "</div>";
 
         sendEmailAsync(membership.getCustomerEmail(), name, subject, html);
+    }
+
+    
+        // =========================================================================
+    // 10. DISTRIBUTOR INVITATION & PORTAL CREDENTIALS EMAIL
+    // =========================================================================
+    public CompletableFuture<Boolean> sendDistributorInvitationEmail(DistributorUser distributor, String rawPassword) {
+        if (distributor == null || distributor.getEmail() == null || distributor.getEmail().trim().isEmpty()) {
+            log.warn("Cannot send distributor invitation: email is empty");
+            return CompletableFuture.completedFuture(false);
+        }
+
+        String recipientName = (distributor.getContactPerson() != null && !distributor.getContactPerson().trim().isEmpty())
+                ? distributor.getContactPerson().trim()
+                : (distributor.getBusinessName() != null ? distributor.getBusinessName() : "Regional Distributor Partner");
+
+        String hubName = (distributor.getBusinessName() != null && !distributor.getBusinessName().trim().isEmpty())
+                ? distributor.getBusinessName().trim() : "Atomy Regional Logistics Hub";
+        String pincode = (distributor.getPrimaryPincode() != null) ? distributor.getPrimaryPincode() : "Territory";
+        String pinsList = (distributor.getAssignedPincodes() != null && !distributor.getAssignedPincodes().isEmpty())
+                ? String.join(", ", distributor.getAssignedPincodes()) : pincode;
+        String commRate = (distributor.getCommissionRate() != null) ? String.format("%.1f", distributor.getCommissionRate()) : "7.5";
+        String loginPortalUrl = (adminUrl != null && !adminUrl.trim().isEmpty()) ? adminUrl.trim() : "http://localhost:5174";
+        String passwordDisplay = (rawPassword != null && !rawPassword.trim().isEmpty()) ? rawPassword.trim() : "Admin@123";
+
+        String subject = "Official Invitation: Regional Logistics Partner & Portal Access (PIN " + pincode + ")";
+
+        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
+                + "<div style=\"background:linear-gradient(135deg,#0284c7,#0369a1);padding:26px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
+                + "  <div style=\"background:rgba(255,255,255,0.2);display:inline-block;padding:4px 12px;border-radius:20px;color:#ffffff;font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;\">Territory Logistics Franchise</div>"
+                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;\">Regional Distributor Onboarding</h1>"
+                + "  <p style=\"color:#e0f2fe;margin:6px 0 0;font-size:13.5px;\">Atomy India Logistics Network &bull; " + escapeHtml(hubName) + "</p>"
+                + "</div>"
+                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
+                + "  <h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Dear " + escapeHtml(recipientName) + ",</h2>"
+                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">We are pleased to invite and onboard <strong>" + escapeHtml(hubName) + "</strong> as an authorized <strong>Atomy Regional Logistics & Territory Distributor</strong> partner for Indian Postal Code <strong>" + escapeHtml(pincode) + "</strong>.</p>"
+                + "  <div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #0284c7;border-radius:8px;padding:16px 20px;margin:20px 0;\">"
+                + "    <h4 style=\"margin:0 0 10px;color:#0369a1;font-size:14px;\">&#128273; Your Regional Sub-Admin Portal Credentials:</h4>"
+                + "    <table style=\"width:100%;font-size:13px;color:#334155;border-collapse:collapse;\">"
+                + "      <tr><td style=\"padding:5px 0;font-weight:600;width:150px;\">Portal Link:</td><td style=\"padding:5px 0;\"><a href=\"" + escapeHtml(loginPortalUrl) + "\" style=\"color:#0284c7;font-weight:bold;word-break:break-all;\">" + escapeHtml(loginPortalUrl) + "</a></td></tr>"
+                + "      <tr><td style=\"padding:5px 0;font-weight:600;\">Login ID / Email:</td><td style=\"padding:5px 0;font-family:monospace;font-weight:bold;color:#0f172a;\">" + escapeHtml(distributor.getEmail()) + "</td></tr>"
+                + "      <tr><td style=\"padding:5px 0;font-weight:600;\">Assigned Password:</td><td style=\"padding:5px 0;font-family:monospace;font-weight:bold;color:#0284c7;\">" + escapeHtml(passwordDisplay) + "</td></tr>"
+                + "      <tr><td style=\"padding:5px 0;font-weight:600;\">Distributor ID:</td><td style=\"padding:5px 0;font-family:monospace;color:#64748b;\">" + escapeHtml(distributor.getDistributorId()) + "</td></tr>"
+                + "    </table>"
+                + "  </div>"
+                + "  <div style=\"background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin:20px 0;\">"
+                + "    <h4 style=\"margin:0 0 10px;color:#1e293b;font-size:13.5px;\">&#128506;&#65039; Territory Franchised Coverage & Privileges:</h4>"
+                + "    <ul style=\"margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.75;\">"
+                + "      <li><strong>Franchised PIN Territory:</strong> " + escapeHtml(pinsList) + "</li>"
+                + "      <li><strong>Order Commission:</strong> " + escapeHtml(commRate) + "% on all customer orders fulfilled in your designated PIN areas.</li>"
+                + "      <li><strong>Operations Dashboard:</strong> Real-time order dispatch, tracking airway bill assignment, and territory customer insights.</li>"
+                + "    </ul>"
+                + "  </div>"
+                + "  <div style=\"text-align:center;margin:26px 0 16px;\">"
+                + "    <a href=\"" + escapeHtml(loginPortalUrl) + "\" style=\"background:#0284c7;color:#ffffff;padding:13px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;box-shadow:0 4px 6px -1px rgba(2,132,199,0.3);\">Access Distributor Portal &rarr;</a>"
+                + "  </div>"
+                + "  <hr style=\"border:none;border-top:1px solid #e2e8f0;margin:22px 0;\">"
+                + "  <p style=\"color:#94a3b8;font-size:12px;margin:0;text-align:center;\">Questions about your onboarding? Contact Central Super Admin at <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#0284c7;\">daggerking7828@gmail.com</a>.</p>"
+                + "</div>"
+                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
+                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Regional Logistics Network"
+                + "</div>"
+                + "</div>";
+
+        return sendEmailAsync(distributor.getEmail(), recipientName, subject, html);
     }
 
     // --- Utility JSON & HTML string escapers ---

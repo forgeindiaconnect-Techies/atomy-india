@@ -116,12 +116,18 @@ export default function AboutPage({ onNavigateHome, onNavigateBack, onNavigateVi
     e.preventDefault();
     if (!inquiryForm.name || !inquiryForm.email || !inquiryForm.message) return;
 
+    const phoneDigits = (inquiryForm.phone || '').replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      alert('Please enter a valid 10-digit Indian mobile number');
+      return;
+    }
+
     const ticketId = `TCK-${Date.now().toString().slice(-6)}`;
     const newTicket = {
       ticketId,
       customerName: inquiryForm.name.trim(),
       customerEmail: inquiryForm.email.trim(),
-      customerPhone: inquiryForm.phone.trim() || '+91 98000 00000',
+      customerPhone: phoneDigits,
       category: 'GENERAL_SUPPORT',
       priority: 'MEDIUM',
       subject: `General Inquiry from ${inquiryForm.name.trim()}`,
@@ -870,9 +876,14 @@ export default function AboutPage({ onNavigateHome, onNavigateBack, onNavigateVi
                     <input
                       type="tel"
                       required
-                      placeholder="+91 9876543210"
+                      placeholder="10-digit mobile number"
+                      maxLength={10}
+                      pattern="[0-9]{10}"
                       value={inquiryForm.phone}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, phone: e.target.value })}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setInquiryForm({ ...inquiryForm, phone: digits });
+                      }}
                     />
                   </div>
                   <div className="form-group">

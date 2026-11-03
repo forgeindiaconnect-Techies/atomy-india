@@ -65,6 +65,27 @@ public class CustomerOrder {
     @Field("estimated_delivery")
     private String estimatedDelivery;
 
+    @Field("assigned_distributor_id")
+    private String assignedDistributorId = "CENTRAL_SUPER_HUB";
+
+    @Field("assigned_distributor_name")
+    private String assignedDistributorName = "Central Super Admin Hub";
+
+    @Field("fulfillment_type")
+    private String fulfillmentType = "COURIER_DELIVERY"; // "STORE_PICKUP" or "COURIER_DELIVERY"
+
+    @Field("pickup_status")
+    private String pickupStatus; // "PENDING_PACKING", "READY_FOR_PICKUP", "COLLECTED"
+
+    @Field("hub_address")
+    private String hubAddress;
+
+    @Field("distributor_dispatch_status")
+    private String distributorDispatchStatus = "RECEIVED";
+
+    @Field("distributor_commission")
+    private BigDecimal distributorCommission = BigDecimal.ZERO;
+
     private List<OrderItem> items = new ArrayList<>();
 
     public enum PaymentMethod {
@@ -179,4 +200,25 @@ public class CustomerOrder {
 
     public String getEstimatedDelivery() { return estimatedDelivery; }
     public void setEstimatedDelivery(String estimatedDelivery) { this.estimatedDelivery = estimatedDelivery; }
+
+    public String getAssignedDistributorId() { return assignedDistributorId; }
+    public void setAssignedDistributorId(String assignedDistributorId) { this.assignedDistributorId = assignedDistributorId; }
+
+    public String getAssignedDistributorName() { return assignedDistributorName; }
+    public void setAssignedDistributorName(String assignedDistributorName) { this.assignedDistributorName = assignedDistributorName; }
+
+    public String getDistributorDispatchStatus() { return distributorDispatchStatus; }
+    public void setDistributorDispatchStatus(String distributorDispatchStatus) { this.distributorDispatchStatus = distributorDispatchStatus; }
+
+    public BigDecimal getDistributorCommission() { return distributorCommission; }
+    public void setDistributorCommission(BigDecimal distributorCommission) { this.distributorCommission = distributorCommission; }
+
+    public String getFulfillmentType() { return fulfillmentType; }
+    public void setFulfillmentType(String fulfillmentType) { this.fulfillmentType = fulfillmentType; }
+
+    public String getPickupStatus() { return pickupStatus; }
+    public void setPickupStatus(String pickupStatus) { this.pickupStatus = pickupStatus; }
+
+    public String getHubAddress() { return hubAddress; }
+    public void setHubAddress(String hubAddress) { this.hubAddress = hubAddress; }
 }

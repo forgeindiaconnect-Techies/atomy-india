@@ -227,9 +227,16 @@ export default function ProductDetailPage({
 
   const pricing = calculateProductPricing(product, isMember);
   const unitPrice = pricing.activePrice;
-  const totalPrice = unitPrice * qty;
+  const availableStock = product?.stockQuantity !== undefined ? Number(product.stockQuantity) : 50;
+  // Always keep at least 1 unit in reserve. If stock is 50, maximum orderable is 49.
+  // When stock is <= 1 (e.g. 49 sold), maxOrderable is 0 -> Out of Stock!
+  const maxOrderable = Math.max(0, availableStock - 1);
+  const isOutOfDelivery = product?.inStock === false || availableStock < 2 || maxOrderable < 1;
+  const maxStock = isOutOfDelivery ? 0 : maxOrderable;
+  const effectiveQty = isOutOfDelivery ? 0 : Math.min(qty, Math.max(1, maxStock));
+  const totalPrice = unitPrice * effectiveQty;
   const itemPv = pricing.pv || product.pv || officialData?.pv || 6700;
-  const totalPv = itemPv * qty;
+  const totalPv = itemPv * effectiveQty;
 
   // Lock body scroll and listen for Escape / Arrow keys when modal is open
   useEffect(() => {
@@ -326,6 +333,25 @@ export default function ProductDetailPage({
                 />
               )}
 
+              {isOutOfDelivery && (
+                <div style={{
+                  position: 'absolute',
+                  top: '12px',
+                  left: '12px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  zIndex: 4,
+                  letterSpacing: '0.5px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)'
+                }}>
+                  OUT OF STOCK
+                </div>
+              )}
+
               {/* Prev / Next Arrow Buttons overlay on image (matching Image 1 design) */}
               {currentImgIdx > 0 && (
                 <button
@@ -346,7 +372,7 @@ export default function ProductDetailPage({
                   setIsImgModalOpen(true);
                   setIsZoomed(false);
                 }}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', opacity: isOutOfDelivery ? 0.65 : 1, filter: isOutOfDelivery ? 'grayscale(20%)' : 'none' }}
                 title="Click to view enlarged image"
               />
 
@@ -612,17 +638,30 @@ export default function ProductDetailPage({
                       type="button"
                       className="stepper-btn-minus"
                       onClick={() => setQty((prev) => Math.max(1, prev - 1))}
-                      disabled={qty <= 1}
+                      disabled={qty <= 1 || isOutOfDelivery}
+                      style={(qty <= 1 || isOutOfDelivery) ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
                       aria-label="Decrease quantity"
                     >
                       −
                     </button>
-                    <span className="stepper-val-box">{qty}</span>
+                    <span className="stepper-val-box" style={isOutOfDelivery ? { color: '#ef4444' } : {}}>
+                      {isOutOfDelivery ? 0 : qty}
+                    </span>
                     <button
                       type="button"
                       className="stepper-btn-plus"
-                      onClick={() => setQty((prev) => prev + 1)}
+                      onClick={() => {
+                        if (isOutOfDelivery) return;
+                        if (qty >= maxStock) {
+                          alert(`Maximum orderable quantity reached (${maxStock} units). 1 unit must always remain in stock.`);
+                          return;
+                        }
+                        setQty((prev) => Math.min(maxStock, prev + 1));
+                      }}
+                      disabled={qty >= maxStock || isOutOfDelivery}
+                      style={(qty >= maxStock || isOutOfDelivery) ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
                       aria-label="Increase quantity"
+                      title={isOutOfDelivery ? "Out of Stock (less than 2 in stock)" : (qty >= maxStock ? `Max limit reached (${maxStock} units)` : "Increase quantity")}
                     >
                       +
                     </button>
@@ -667,28 +706,56 @@ export default function ProductDetailPage({
                 </div>
               </div>
 
+              {/* Regional Stock Availability Banner */}
+              <div style={{
+                margin: '12px 0',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                background: isOutOfDelivery ? '#fef2f2' : '#f0fdf4',
+                color: isOutOfDelivery ? '#991b1b' : '#166534',
+                border: isOutOfDelivery ? '1px solid #fecaca' : '1px solid #bbf7d0'
+              }}>
+                <MapPin size={15} color={isOutOfDelivery ? '#ef4444' : '#16a34a'} />
+                {isOutOfDelivery ? (
+                  <span>Out of stock in your area (PIN {product.regionalPincode || '110001'} • {product.regionalHubName || 'Regional Hub'}).</span>
+                ) : (
+                  <span>In Stock at {product.regionalHubName || 'Delhi Central Hub'} (PIN {product.regionalPincode || '110001'}) • Fast Regional Dispatch</span>
+                )}
+              </div>
+
               {/* Action Buttons: Add to Cart and Buy Now in the same row */}
               <div className="pdp-floating-action-buttons">
                 <button
                   type="button"
                   className="pdp-cart-btn"
+                  disabled={isOutOfDelivery}
+                  style={isOutOfDelivery ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' } : {}}
                   onClick={() => {
-                    onAddToCart && onAddToCart(product, qty);
-                    showToast(`Added ${qty} × ${product.name} to cart!`);
+                    if (isOutOfDelivery) return;
+                    onAddToCart && onAddToCart(product, effectiveQty);
+                    showToast(`Added ${effectiveQty} × ${product.name} to cart!`);
                   }}
                 >
                   <ShoppingCart size={18} />
-                  <span>Add to Cart</span>
+                  <span>{isOutOfDelivery ? 'Out of Stock' : 'Add to Cart'}</span>
                 </button>
 
                 <button
                   type="button"
                   className="pdp-buy-now-btn"
+                  disabled={isOutOfDelivery}
+                  style={isOutOfDelivery ? { background: '#94a3b8', cursor: 'not-allowed' } : {}}
                   onClick={() => {
-                    onBuyNow && onBuyNow(product, qty);
+                    if (isOutOfDelivery) return;
+                    onBuyNow && onBuyNow(product, effectiveQty);
                   }}
                 >
-                  Buy Now
+                  {isOutOfDelivery ? 'Out of Stock' : 'Buy Now'}
                 </button>
               </div>
             </div>
@@ -1361,17 +1428,30 @@ export default function ProductDetailPage({
                         type="button"
                         className="stepper-btn-minus"
                         onClick={() => setQty((prev) => Math.max(1, prev - 1))}
-                        disabled={qty <= 1}
+                        disabled={qty <= 1 || isOutOfDelivery}
+                        style={(qty <= 1 || isOutOfDelivery) ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
                         aria-label="Decrease quantity"
                       >
                         −
                       </button>
-                      <span className="stepper-val-box">{qty}</span>
+                      <span className="stepper-val-box" style={isOutOfDelivery ? { color: '#ef4444' } : {}}>
+                        {isOutOfDelivery ? 0 : qty}
+                      </span>
                       <button
                         type="button"
                         className="stepper-btn-plus"
-                        onClick={() => setQty((prev) => prev + 1)}
+                        onClick={() => {
+                          if (isOutOfDelivery) return;
+                          if (qty >= maxStock) {
+                            alert(`Maximum orderable quantity reached (${maxStock} units). 1 unit must always remain in stock.`);
+                            return;
+                          }
+                          setQty((prev) => Math.min(maxStock, prev + 1));
+                        }}
+                        disabled={qty >= maxStock || isOutOfDelivery}
+                        style={(qty >= maxStock || isOutOfDelivery) ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
                         aria-label="Increase quantity"
+                        title={isOutOfDelivery ? "Out of Stock (less than 2 in stock)" : (qty >= maxStock ? `Max limit reached (${maxStock} units)` : "Increase quantity")}
                       >
                         +
                       </button>
@@ -1421,23 +1501,29 @@ export default function ProductDetailPage({
                   <button
                     type="button"
                     className="pdp-cart-btn"
+                    disabled={isOutOfDelivery}
+                    style={isOutOfDelivery ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' } : {}}
                     onClick={() => {
-                      onAddToCart && onAddToCart(product, qty);
-                      showToast(`Added ${qty} × ${product.name} to cart!`);
+                      if (isOutOfDelivery) return;
+                      onAddToCart && onAddToCart(product, effectiveQty);
+                      showToast(`Added ${effectiveQty} × ${product.name} to cart!`);
                     }}
                   >
                     <ShoppingCart size={18} />
-                    <span>Add to Cart</span>
+                    <span>{isOutOfDelivery ? 'Out of Stock' : 'Add to Cart'}</span>
                   </button>
 
                   <button
                     type="button"
                     className="pdp-buy-now-btn"
+                    disabled={isOutOfDelivery}
+                    style={isOutOfDelivery ? { background: '#94a3b8', cursor: 'not-allowed' } : {}}
                     onClick={() => {
-                      onBuyNow && onBuyNow(product, qty);
+                      if (isOutOfDelivery) return;
+                      onBuyNow && onBuyNow(product, effectiveQty);
                     }}
                   >
-                    Buy Now
+                    {isOutOfDelivery ? 'Out of Stock' : 'Buy Now'}
                   </button>
                 </div>
               </div>

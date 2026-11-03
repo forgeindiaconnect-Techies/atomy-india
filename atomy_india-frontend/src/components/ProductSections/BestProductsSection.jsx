@@ -144,13 +144,32 @@ export default function BestProductsSection({
               const isLiked = favorites.some((f) => f.id === product.id);
               const stats = getProductStats(product, isLiked);
               const likesCount = stats.likes;
+              const isOutOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
 
               return (
-                <div key={product.id} className="product-card">
+                <div key={product.id} className="product-card" style={isOutOfStock ? { opacity: 0.6 } : {}}>
                   {/* Product Image Box */}
                   <div className="product-img-wrap">
                     {product.rank && (
                       <div className="product-rank-badge">{product.rank}</div>
+                    )}
+                    {isOutOfStock && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '8px',
+                        left: '8px',
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '3px 7px',
+                        borderRadius: '4px',
+                        zIndex: 3,
+                        letterSpacing: '0.4px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                      }}>
+                        OUT OF STOCK
+                      </div>
                     )}
                     {product.gstReduced && (
                       <img
@@ -165,13 +184,18 @@ export default function BestProductsSection({
                       className="product-img"
                       loading="lazy"
                       onClick={() => onProductClick && onProductClick(product)}
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: 'pointer', opacity: isOutOfStock ? 0.6 : 1, filter: isOutOfStock ? 'grayscale(20%)' : 'none' }}
                     />
                     <button
                       className="product-cart-quick-btn"
-                      onClick={() => onAddToCart && onAddToCart(product)}
-                      aria-label={`Add ${product.name} to cart`}
-                      title="Add to Cart"
+                      disabled={isOutOfStock}
+                      style={isOutOfStock ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                      onClick={() => {
+                        if (isOutOfStock) return;
+                        onAddToCart && onAddToCart(product);
+                      }}
+                      aria-label={isOutOfStock ? `${product.name} is out of stock in your area` : `Add ${product.name} to cart`}
+                      title={isOutOfStock ? "Out of Stock in your area" : "Add to Cart"}
                     >
                       <ShoppingCart size={18} />
                     </button>

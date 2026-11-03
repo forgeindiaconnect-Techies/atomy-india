@@ -8,6 +8,7 @@ import com.example.atomy_india.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/support")
@@ -18,7 +19,7 @@ public class CustomerSupportController {
     private CustomerService customerService;
 
     @GetMapping("/tickets")
-    public ResponseEntity<java.util.List<SupportTicket>> getTicketsByEmail(@RequestParam(required = false) String email) {
+    public ResponseEntity<List<SupportTicket>> getTicketsByEmail(@RequestParam(required = false) String email) {
         if (email != null && !email.trim().isEmpty()) {
             return ResponseEntity.ok(customerService.getTicketsByEmail(email.trim()));
         }

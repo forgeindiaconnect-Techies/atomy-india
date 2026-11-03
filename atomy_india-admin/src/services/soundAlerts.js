@@ -16,18 +16,25 @@ function getAudioContext() {
   return sharedAudioCtx;
 }
 
-// Auto-unlock WebAudio on initial window interaction across all events
+// Auto-unlock WebAudio strictly upon authentic user activation gesture (Chrome autoplay policy)
 if (typeof window !== 'undefined') {
   const unlockAudio = () => {
     try {
-      const ctx = getAudioContext();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume().catch(() => {});
+      if (!sharedAudioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) sharedAudioCtx = new AudioContextClass();
       }
+      if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume().catch(() => {});
+      }
+      // Remove once unlocked
+      ['click', 'keydown', 'pointerdown', 'touchstart'].forEach(ev => {
+        window.removeEventListener(ev, unlockAudio, true);
+      });
     } catch {}
   };
-  ['click', 'keydown', 'pointerdown', 'touchstart', 'scroll', 'focus', 'mousemove'].forEach(ev => {
-    window.addEventListener(ev, unlockAudio, { passive: true, once: ev === 'mousemove' });
+  ['click', 'keydown', 'pointerdown', 'touchstart'].forEach(ev => {
+    window.addEventListener(ev, unlockAudio, { capture: true, passive: true });
   });
 }
 

@@ -5,6 +5,7 @@ import com.example.atomy_india.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/tracking")
@@ -16,8 +17,8 @@ public class CustomerTrackingController {
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderTracking> trackOrder(@PathVariable String id) {
-        return customerService.getTracking(id)
-                .map(ResponseEntity::ok)
+        Optional<OrderTracking> tracking = customerService.getTracking(id);
+        return tracking.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 }

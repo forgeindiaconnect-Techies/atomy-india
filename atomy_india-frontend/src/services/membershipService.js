@@ -2,7 +2,7 @@
 // Manages single-class Atomy Distributor Membership, Monthly & Annual plans, DP / PV pricing logic
 // Synced with Spring Boot MySQL backend on port 8085
 
-const rawBackendUrl = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
+const rawBackendUrl = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
 const BACKEND_URL = rawBackendUrl.endsWith('/api') ? rawBackendUrl : `${rawBackendUrl}/api`;
 const API_BASE = `${BACKEND_URL}/membership`;
 const ADMIN_API_BASE = `${BACKEND_URL}/admin/membership`;
@@ -232,14 +232,17 @@ export function calculateProductPricing(product, isMember) {
     };
   }
 
-  const rawPrice = Number(product.price) || 0;
   const official = product.id ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
-  const mrp = Number(product.originalPrice) || (official?.mrp ? official.mrp : Math.round(rawPrice * 1.15));
-  const offerPrice = rawPrice;
+  const rawPrice = Number(product.price) > 0
+    ? Number(product.price)
+    : Number(product.originalPrice || official?.mrp || official?.dpPrice || 1000);
+
+  const mrp = Number(product.originalPrice) || Number(product.mrp) || (official?.mrp ? official.mrp : Math.round(rawPrice * 1.15));
+  const offerPrice = Number(product.price) > 0 ? Number(product.price) : (official?.mrp || mrp);
 
   // Use explicit DP price or official distributor price from live logged-in session, fallback ~18%
-  const dpPrice = Number(product.dpPrice || product.distributorPrice || official?.dpPrice) || Math.round(rawPrice * 0.82);
-  const pv = Number(product.pv || official?.pv) || Math.round(rawPrice * 4.5);
+  const dpPrice = Number(product.dpPrice || product.distributorPrice || official?.dpPrice) || Math.round((offerPrice || mrp) * 0.82);
+  const pv = Number(product.pv || official?.pv) || Math.round((offerPrice || mrp) * 4.5);
 
   const activePrice = isMember ? dpPrice : offerPrice;
   const showPv = true;
@@ -266,11 +269,15 @@ export function calculateProductPricing(product, isMember) {
  * Stores in MySQL Database through Spring Boot on port 8085!
  */
 export async function enrollMembership(user, plan = 'ANNUAL', paymentDetails = {}) {
-  if (!user) return null;
+  const effectiveUser = user || {
+    name: 'Atomy Member',
+    email: 'member@atomy.in',
+    phone: '+91 98000 00000'
+  };
   const registry = getMembersRegistry();
-  const email = (user.email || `${user.username || 'user'}@atomy.in`).toLowerCase();
-  const name = user.name || user.username || 'Atomy Customer';
-  const phone = user.phone || '+91 98000 00000';
+  const email = (effectiveUser.email || `${effectiveUser.username || 'user'}@atomy.in`).toLowerCase();
+  const name = effectiveUser.name || effectiveUser.username || 'Atomy Customer';
+  const phone = effectiveUser.phone || '+91 98000 00000';
 
   const settings = getMembershipSettings();
   const amountPaid = plan === 'MONTHLY' ? settings.monthlyFee : settings.annualFee;
@@ -291,12 +298,16 @@ export async function enrollMembership(user, plan = 'ANNUAL', paymentDetails = {
   let savedMember = null;
 
   try {
-    // 1. Post to MySQL database via Spring Boot
+    // 1. Post to MySQL database via Spring Boot with 3000ms timeout protection
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     const res = await fetch(`${API_BASE}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (res.ok) {
       savedMember = await res.json();

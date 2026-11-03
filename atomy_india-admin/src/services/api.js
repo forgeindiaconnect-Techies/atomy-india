@@ -1,4 +1,6 @@
-const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const defaultBaseUrl = isLocalhost ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
+const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).trim().replace(/\/+$/, '');
 const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 // Customer APIs
@@ -214,8 +216,14 @@ export async function fetchAdminProducts() {
 
   return products.map(p => {
     const inv = invMap.get(p.id);
+    const rawPrice = Number(p.price) || 0;
+    const rawMrp = Number(p.originalPrice) || 0;
+    const safePrice = rawPrice > 0 ? rawPrice : (rawMrp > 0 ? rawMrp : 0);
+    const safeMrp = rawMrp > 0 ? rawMrp : safePrice;
     return {
       ...p,
+      price: safePrice,
+      originalPrice: safeMrp,
       stockQuantity: inv ? inv.stockQuantity : (p.stockQuantity ?? 150),
       lowStockThreshold: inv ? inv.lowStockThreshold : (p.lowStockThreshold ?? 15),
       status: inv ? inv.status : (p.status || 'IN_STOCK')

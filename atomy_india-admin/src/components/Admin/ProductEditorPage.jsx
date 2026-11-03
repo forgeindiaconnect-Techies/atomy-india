@@ -56,18 +56,29 @@ export default function ProductEditorPage({
     return 0;
   };
 
-  const initialDiscount = initialData?.discountPercent !== undefined && initialData?.discountPercent !== null
-    ? initialData.discountPercent
-    : computeDiscount(initialData?.originalPrice || officialData.price || 14950, initialData?.price || 13000);
+  const initialMrp = Number(initialData?.originalPrice || officialData.originalPrice || initialData?.price || officialData.price || 0);
+  let initialPrice = Number(initialData?.price || officialData.price || initialMrp || 0);
+  if (initialPrice <= 0 && initialMrp > 0) {
+    initialPrice = initialMrp;
+  }
+
+  const initialDiscount = (initialData?.discountPercent !== undefined && initialData?.discountPercent !== null && initialData?.discountPercent !== '' && Number(initialData.discountPercent) > 0)
+    ? Number(initialData.discountPercent)
+    : computeDiscount(initialMrp, initialPrice);
+
+  if (initialDiscount > 0 && initialMrp > 0 && initialPrice >= initialMrp) {
+    initialPrice = Math.max(0, Math.round(initialMrp * (1 - initialDiscount / 100)));
+  }
 
   const [discountPercent, setDiscountPercent] = useState(initialDiscount);
 
+  const defaultPlaceholderImg = 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg';
   const initialGallery = (
     Array.isArray(initialData?.galleryImages) && initialData.galleryImages.length > 0
       ? initialData.galleryImages
       : (Array.isArray(officialData?.galleryImages) && officialData.galleryImages.length > 0
           ? officialData.galleryImages
-          : [initialData?.image || officialData?.baseImage || 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg'])
+          : [initialData?.image || officialData?.baseImage || defaultPlaceholderImg])
   ).filter(Boolean);
 
   const [galleryImages, setGalleryImages] = useState(initialGallery);
@@ -78,14 +89,14 @@ export default function ProductEditorPage({
     name: initialData?.name || officialData.name || '',
     categoryId: initialData?.categoryId || 'health',
     subcategory: initialData?.subcategory || '',
-    price: initialData?.price ?? (officialData.price || 13000),
-    originalPrice: initialData?.originalPrice ?? (officialData.originalPrice || officialData.price || 14950),
+    price: initialPrice,
+    originalPrice: initialMrp > 0 ? initialMrp : initialPrice,
     discountPercent: initialDiscount,
-    dpPrice: initialData?.dpPrice ?? (initialData?.distributorPrice || ''),
-    pv: initialData?.pv || officialData.pv || 80000,
-    stockQuantity: initialData?.stockQuantity || 50,
-    lowStockThreshold: initialData?.lowStockThreshold || 10,
-    image: initialData?.image || officialData.baseImage || (initialGallery[0] || 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg'),
+    dpPrice: initialData?.dpPrice ?? (initialData?.distributorPrice || officialData?.dpPrice || ''),
+    pv: initialData?.pv !== undefined && initialData?.pv !== null ? initialData.pv : (officialData.pv || 0),
+    stockQuantity: initialData?.stockQuantity !== undefined && initialData?.stockQuantity !== null ? initialData.stockQuantity : 50,
+    lowStockThreshold: initialData?.lowStockThreshold !== undefined && initialData?.lowStockThreshold !== null ? initialData.lowStockThreshold : 10,
+    image: initialData?.image || officialData.baseImage || (initialGallery[0] || defaultPlaceholderImg),
     description: initialData?.description || officialData.goodsDescHtml || '',
     features: initialData?.features || 'Absolute Quality, Absolute Price, Natural Botanical Ingredients',
     ingredients: initialData?.ingredients || 'Natural botanical extracts, patented herbal formulation',
@@ -105,14 +116,22 @@ export default function ProductEditorPage({
     const val = newDiscountVal === '' ? '' : Math.max(0, Math.min(100, Number(newDiscountVal)));
     setDiscountPercent(val);
     const mrp = Number(formData.originalPrice) || 0;
-    if (mrp > 0 && val !== '') {
-      const discountAmount = (mrp * Number(val)) / 100;
-      const computedPrice = Math.max(0, Math.round(mrp - discountAmount));
-      setFormData(prev => ({
-        ...prev,
-        price: computedPrice,
-        discountPercent: val
-      }));
+    if (mrp > 0) {
+      if (val !== '' && Number(val) > 0) {
+        const discountAmount = (mrp * Number(val)) / 100;
+        const computedPrice = Math.max(0, Math.round(mrp - discountAmount));
+        setFormData(prev => ({
+          ...prev,
+          price: computedPrice,
+          discountPercent: val
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          price: mrp,
+          discountPercent: val === '' ? '' : 0
+        }));
+      }
     } else {
       setFormData(prev => ({
         ...prev,
@@ -126,12 +145,17 @@ export default function ProductEditorPage({
     const mrp = newMrpVal === '' ? '' : Number(newMrpVal);
     setFormData(prev => {
       let updatedPrice = prev.price;
-      if (mrp !== '' && discountPercent !== '' && Number(discountPercent) > 0) {
-        const discountAmount = (Number(mrp) * Number(discountPercent)) / 100;
-        updatedPrice = Math.max(0, Math.round(Number(mrp) - discountAmount));
-      } else if (mrp !== '' && updatedPrice) {
-        const disc = computeDiscount(mrp, updatedPrice);
-        setDiscountPercent(disc);
+      const numMrp = Number(mrp) || 0;
+      if (numMrp > 0) {
+        if (discountPercent !== '' && Number(discountPercent) > 0) {
+          const discountAmount = (numMrp * Number(discountPercent)) / 100;
+          updatedPrice = Math.max(0, Math.round(numMrp - discountAmount));
+        } else if (Number(updatedPrice) > 0 && numMrp > Number(updatedPrice)) {
+          const disc = computeDiscount(numMrp, updatedPrice);
+          setDiscountPercent(disc);
+        } else {
+          updatedPrice = numMrp;
+        }
       }
       return {
         ...prev,
@@ -250,7 +274,7 @@ export default function ProductEditorPage({
 
   // Handle web photo URL prompt
   const handleInsertWebPhoto = () => {
-    const url = prompt('Enter the web image URL (https://...):', 'https://image.atomy.com/IN/goods/D00101/D00101_01.jpg');
+    const url = prompt('Enter the web image URL (https://...):', 'https://');
     if (url && url.trim()) {
       insertImageHtml(url.trim(), 'Atomy Brochure Graphic');
     }
@@ -416,13 +440,18 @@ export default function ProductEditorPage({
     const finalGallery = galleryImages.filter(Boolean);
     const finalCover = formData.image || finalGallery[0] || '';
 
+    const rawPrice = Number(formData.price) || 0;
+    const rawMrp = Number(formData.originalPrice) || 0;
+    const finalPrice = rawPrice > 0 ? rawPrice : (rawMrp > 0 ? rawMrp : 0);
+    const finalMrp = rawMrp > 0 ? rawMrp : finalPrice;
+
     onSave({
       ...formData,
       image: finalCover,
       galleryImages: finalGallery.length > 0 ? finalGallery : (finalCover ? [finalCover] : []),
       description: editorHtml,
-      price: Number(formData.price) || 0,
-      originalPrice: Number(formData.originalPrice) || 0,
+      price: finalPrice,
+      originalPrice: finalMrp,
       discountPercent: Number(discountPercent) || 0,
       dpPrice: formData.dpPrice ? Number(formData.dpPrice) : 0,
       pv: Number(formData.pv) || 0,

@@ -18,6 +18,7 @@ import CategoryPage from './components/CategoryPage/CategoryPage';
 import CheckoutModal from './components/Checkout/CheckoutModal';
 import TrackingModal from './components/Tracking/TrackingModal';
 import SignInPage from './components/Auth/SignInPage';
+import SignOutConfirmModal from './components/Auth/SignOutConfirmModal';
 import CustomerProfilePage from './components/Profile/CustomerProfilePage';
 import ProductDetailPage from './components/ProductDetail/ProductDetailPage';
 import FavoritesPage from './components/Favorites/FavoritesPage';
@@ -44,6 +45,7 @@ import {
   ALL_CATALOG_PRODUCTS
 } from './data/mockData';
 import { onCatalogUpdate, syncCatalogFromBackend } from './services/catalogSyncService';
+import { detectCustomerLiveLocation } from './services/locationService';
 import MembershipModal from './components/Membership/MembershipModal';
 import MembershipPage from './components/Membership/MembershipPage';
 import MembershipPaymentPage from './components/Membership/MembershipPaymentPage';
@@ -205,9 +207,20 @@ export default function App() {
   const [, setCatalogVersion] = useState(0);
 
   useEffect(() => {
+    // 1. Initial live catalog fetch
     syncCatalogFromBackend().then(() => {
       setCatalogVersion(v => v + 1);
     });
+
+    // 2. High-precision GPS auto-detection on first visit
+    try {
+      const alreadyDetected = localStorage.getItem('atomy_location_autodetected_v2');
+      if (!alreadyDetected) {
+        detectCustomerLiveLocation().then(() => {
+          setCatalogVersion(v => v + 1);
+        });
+      }
+    } catch {}
 
     const unsubscribe = onCatalogUpdate((updatedProd) => {
       setCatalogVersion(v => v + 1);
@@ -597,7 +610,9 @@ export default function App() {
     if (!currentUser?.email && !currentUser?.phone) return;
     const fetchUserOrders = async () => {
       try {
-        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
+        const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
+        const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBase).trim().replace(/\/+$/, '');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
         const queryParam = currentUser.email 
           ? `email=${encodeURIComponent(currentUser.email.trim())}` 
@@ -647,6 +662,12 @@ export default function App() {
               'DELIVERED': 'Delivered',
               'CANCELLED': 'Cancelled'
             };
+            const street = bo.shippingAddress || '';
+            const city = bo.city || '';
+            const state = bo.state || '';
+            const pin = bo.pincode || '';
+            const fullAddr = [street, city, state, pin ? `PIN: ${pin}` : ''].filter(Boolean).join(', ');
+
             return {
               orderId: bo.orderId,
               date: bo.createdAt,
@@ -663,16 +684,29 @@ export default function App() {
                            : bo.paymentMethod === 'NET_BANKING' ? 'Net Banking'
                            : bo.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on Delivery'
                            : (bo.paymentMethod || 'Online Payment'),
-            recipient: bo.customerName || currentUser.name || 'Customer',
-            customerName: bo.customerName || currentUser.name || 'Customer',
-            customerEmail: bo.customerEmail || currentUser.email,
-            phone: bo.customerPhone || currentUser.phone || '',
-            address: {
               recipient: bo.customerName || currentUser.name || 'Customer',
+              customerName: bo.customerName || currentUser.name || 'Customer',
+              customerEmail: bo.customerEmail || currentUser.email,
               phone: bo.customerPhone || currentUser.phone || '',
-              fullAddress: `${bo.shippingAddress || ''}, ${bo.city || ''}, ${bo.state || ''} - ${bo.pincode || ''}`
-            },
-            shippingAddress: `${bo.shippingAddress || ''}, ${bo.city || ''}, ${bo.state || ''} - ${bo.pincode || ''}`,
+              city: city,
+              state: state,
+              pincode: pin,
+              shippingAddress: {
+                recipient: bo.customerName || currentUser.name || 'Customer',
+                phone: bo.customerPhone || currentUser.phone || '',
+                address: fullAddr || street || 'Direct Delivery Destination',
+                fullAddress: fullAddr || street || 'Direct Delivery Destination',
+                street: street,
+                city: city,
+                state: state,
+                pincode: pin
+              },
+              address: {
+                recipient: bo.customerName || currentUser.name || 'Customer',
+                phone: bo.customerPhone || currentUser.phone || '',
+                address: fullAddr || street || 'Direct Delivery Destination',
+                fullAddress: fullAddr || street || 'Direct Delivery Destination'
+              },
             items: Array.isArray(bo.items) ? bo.items.map(it => ({
               id: it.productId,
               name: it.productName || it.name,
@@ -705,7 +739,10 @@ export default function App() {
     };
 
     fetchUserOrders();
-    const interval = setInterval(fetchUserOrders, 3000);
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchUserOrders();
+    }, 8000);
     return () => clearInterval(interval);
   }, [currentUser]);
 
@@ -752,11 +789,13 @@ export default function App() {
           };
           setPlacedOrders(prev =>
             prev.map(o =>
-              o.orderId === data.orderId
+              (o.orderId === data.orderId || o.id === data.orderId)
                 ? {
                     ...o,
                     status: statusMap[data.newStatus] || data.newStatus,
-                    orderStatus: data.newStatus
+                    orderStatus: data.newStatus,
+                    trackingNumber: data.trackingNumber || o.trackingNumber,
+                    courier: data.courier || o.courier
                   }
                 : o
             )
@@ -765,10 +804,30 @@ export default function App() {
       };
     } catch (e) {}
 
-    // Polling Spring Boot backend every 3.5 seconds for live order status changes
+    // Storage event listeners for multi-tab instantaneous sync
+    const handleStorageChange = (e) => {
+      if (e.key === 'atomy_placed_orders' && e.newValue) {
+        try {
+          const list = JSON.parse(e.newValue);
+          if (Array.isArray(list)) setPlacedOrders(list);
+        } catch (err) {}
+      }
+    };
+    const handleCustomOrdersSync = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setPlacedOrders(e.detail);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('atomy:orders-updated', handleCustomOrdersSync);
+
+    // Polling Spring Boot backend for live order status changes
     const pollInterval = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
-        const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
+        const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
+        const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBase).trim().replace(/\/+$/, '');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
         const res = await fetch(`${apiBase}/admin/orders`);
         if (!res.ok) return;
@@ -788,24 +847,55 @@ export default function App() {
             let changed = false;
             const updated = prev.map(o => {
               const bo = boMap.get(o.orderId);
-              if (bo && bo.orderStatus && bo.orderStatus !== o.orderStatus) {
-                changed = true;
-                return {
-                  ...o,
-                  status: statusMap[bo.orderStatus] || bo.orderStatus,
-                  orderStatus: bo.orderStatus
-                };
+              if (bo) {
+                const freshStatus = statusMap[bo.orderStatus] || bo.orderStatus || o.status;
+                const freshTracking = bo.tracking?.trackingNumber || bo.trackingNumber || o.trackingNumber;
+                const freshCourier = bo.tracking?.courierPartner || bo.courier || o.courier;
+                const freshItems = Array.isArray(bo.items) ? bo.items.map(it => ({
+                  id: it.productId,
+                  name: it.productName || it.name,
+                  image: it.productImage || it.image,
+                  price: Number(it.price) || 0,
+                  qty: it.quantity || it.qty || 1,
+                  pv: it.pv || Math.round((Number(it.price) || 0) * 4.5)
+                })) : o.items;
+                const freshTotal = Number(bo.totalAmount) || o.totalAmount;
+                const freshShipping = Number(bo.shippingFee !== undefined ? bo.shippingFee : (o.shippingFee || 0));
+
+                if (o.orderStatus !== bo.orderStatus || o.trackingNumber !== freshTracking || o.totalAmount !== freshTotal || JSON.stringify(o.items) !== JSON.stringify(freshItems)) {
+                  changed = true;
+                  return {
+                    ...o,
+                    status: freshStatus,
+                    orderStatus: bo.orderStatus,
+                    trackingNumber: freshTracking,
+                    courier: freshCourier,
+                    items: freshItems,
+                    totalAmount: freshTotal,
+                    grandTotal: freshTotal,
+                    shippingFee: freshShipping,
+                    subtotal: Math.max(0, freshTotal - freshShipping)
+                  };
+                }
               }
               return o;
             });
-            return changed ? updated : prev;
+            if (changed) {
+              try {
+                localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
+              } catch {}
+              return updated;
+            }
+            return prev;
           });
         }
       } catch (e) {}
-    }, 3500);
+    }, 3000);
 
     return () => {
       clearInterval(pollInterval);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('atomy:orders-updated', handleCustomOrdersSync);
       try { syncChannel && syncChannel.close(); } catch {}
     };
   }, []);
@@ -931,13 +1021,37 @@ export default function App() {
     handleNavigateHome();
   };
 
-  const handleLogout = () => {
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleRequestLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+  const handleLogout = handleRequestLogout;
+
+  const handleCancelLogout = () => {
+    setShowLogoutConfirm(false);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
     setCurrentUser(null);
     setMembershipData(null);
     try {
       localStorage.removeItem('atomy_current_user');
       localStorage.removeItem('atomy_current_membership_data');
+      localStorage.removeItem('atomy_user_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('currentUser');
+      sessionStorage.clear();
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('atomy:signed-out'));
     } catch {}
+
+    if (['profile', 'orders', 'order-sheet'].includes(currentView)) {
+      handleNavigateHome();
+    }
+
     showToast({
       title: 'Signed Out',
       message: 'You have signed out successfully.',
@@ -1109,19 +1223,48 @@ export default function App() {
 
   const handleAddToCart = (product, quantity = 1) => {
     if (!currentUser) return requireAuth('sign in or sign up to add items to your cart');
+    const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === product.id));
+    const availableStock = product.stockQuantity !== undefined 
+      ? Number(product.stockQuantity) 
+      : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+    // Always keep 1 unit reserved in warehouse stock
+    const maxOrderable = Math.max(0, availableStock - 1);
+
+    if (product.inStock === false || availableStock < 2 || maxOrderable < 1) {
+      showToast({
+        title: 'Out of Stock',
+        message: `${product.name} is out of stock in your area.`,
+        type: 'warning'
+      });
+      return;
+    }
+
     const addQty = typeof quantity === 'number' && quantity > 0 ? quantity : 1;
+    const existing = cart.find((item) => item.id === product.id);
+    const currentCartQty = existing ? existing.qty : 0;
+
+    if (currentCartQty + addQty > maxOrderable) {
+      showToast({
+        title: 'Order Limit Reached',
+        message: `Maximum allowed order is ${maxOrderable} units (${currentCartQty} already in cart). 1 unit must always remain in warehouse stock.`,
+        type: 'warning'
+      });
+      return;
+    }
+
     recordProductAddedToCart(product.id, addQty);
     const pricing = calculateProductPricing(product, isMember);
     const itemToCart = {
       ...product,
+      stockQuantity: availableStock,
       price: pricing.activePrice,
       isMemberPrice: isMember,
       pv: pricing.pv
     };
 
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
+      const exist = prev.find((item) => item.id === product.id);
+      if (exist) {
         return prev.map((item) =>
           item.id === product.id ? { ...item, ...itemToCart, qty: item.qty + addQty } : item
         );
@@ -1148,11 +1291,29 @@ export default function App() {
       } catch { return null; }
     })();
     if (!activeAuthUser) return requireAuth('sign in or sign up to order products');
-    const buyQty = typeof quantity === 'number' && quantity > 0 ? quantity : 1;
+    const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === product.id));
+    const availableStock = product.stockQuantity !== undefined 
+      ? Number(product.stockQuantity) 
+      : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+    // Always keep 1 unit reserved in warehouse stock
+    const maxOrderable = Math.max(0, availableStock - 1);
+
+    if (product.inStock === false || availableStock < 2 || maxOrderable < 1) {
+      showToast({
+        title: 'Out of Stock',
+        message: `${product.name} is out of stock in your area.`,
+        type: 'warning'
+      });
+      return;
+    }
+
+    const requestedQty = typeof quantity === 'number' && quantity > 0 ? quantity : 1;
+    const buyQty = Math.min(requestedQty, maxOrderable);
     recordProductAddedToCart(product.id, buyQty);
     const pricing = calculateProductPricing(product, isMember);
     const itemToCart = {
       ...product,
+      stockQuantity: availableStock,
       price: pricing.activePrice,
       isMemberPrice: isMember,
       pv: pricing.pv
@@ -1162,7 +1323,7 @@ export default function App() {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
         return prev.map((item) =>
-          item.id === product.id ? { ...item, ...itemToCart, qty: item.qty + buyQty } : item
+          item.id === product.id ? { ...item, ...itemToCart, qty: Math.min(maxOrderable, item.qty + buyQty) } : item
         );
       }
       return [...prev, { ...itemToCart, qty: buyQty }];
@@ -1175,6 +1336,33 @@ export default function App() {
       handleRemoveItem(id);
       return;
     }
+
+    const itemInCart = cart.find(item => item.id === id);
+    const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === id));
+    const availableStock = itemInCart?.stockQuantity !== undefined 
+      ? Number(itemInCart.stockQuantity) 
+      : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+    // Always keep 1 unit reserved in warehouse stock
+    const maxOrderable = Math.max(0, availableStock - 1);
+
+    if (itemInCart?.inStock === false || availableStock < 2 || maxOrderable < 1) {
+      showToast({
+        title: 'Out of Stock',
+        message: `${itemInCart?.name || 'Item'} is out of stock (less than 2 units in stock).`,
+        type: 'warning'
+      });
+      return;
+    }
+
+    if (newQty > maxOrderable) {
+      showToast({
+        title: 'Order Limit Reached',
+        message: `Maximum allowed limit is ${maxOrderable} units (1 unit must always remain in stock).`,
+        type: 'warning'
+      });
+      return;
+    }
+
     setCart((prev) =>
       prev.map((item) => (item.id === id ? { ...item, qty: newQty } : item))
     );
@@ -1245,7 +1433,7 @@ export default function App() {
         onSelectProduct={handleSelectProduct}
         onNavigateView={handleNavigateView}
         currentUser={currentUser}
-        onLogout={handleLogout}
+        onLogout={handleRequestLogout}
         onNavigateProfile={handleNavigateProfile}
         currentView={currentView}
         isMember={isMember}
@@ -1466,13 +1654,14 @@ export default function App() {
           <div className="shopping-body-wrapper profile-page-body-wrapper">
             <CustomerProfilePage
               currentUser={currentUser}
+              isMember={isMember}
               onUpdateUser={(updated) => {
                 setCurrentUser(updated);
                 try {
                   localStorage.setItem('atomy_current_user', JSON.stringify(updated));
                 } catch {}
               }}
-              onLogout={handleLogout}
+              onLogout={handleRequestLogout}
               onNavigateHome={handleNavigateHome}
               onNavigateBack={handleGoBack}
               placedOrders={userPlacedOrders}
@@ -1720,6 +1909,14 @@ export default function App() {
         onAddToCart={handleAddToCart}
         onBuyNow={handleBuyNow}
         currentView={currentView}
+      />
+
+      {/* Universal Sign Out Confirmation Modal (Desktop & Mobile View) */}
+      <SignOutConfirmModal
+        isOpen={showLogoutConfirm}
+        userName={currentUser?.name}
+        onConfirm={handleConfirmLogout}
+        onCancel={handleCancelLogout}
       />
 
       {/* Interactive Modern Toast Notification */}

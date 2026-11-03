@@ -5,6 +5,8 @@ public class DispatchOrderRequest {
     private String trackingNumber;  // e.g. "BLUEDART-84920491"
     private String estimatedDelivery; // e.g. "3-5 Business Days"
     private String initialLocation; // e.g. "Gurugram Fulfillment Center"
+    private String currentStatus;
+    private String orderStatus;
 
     public String getCourierPartner() { return courierPartner; }
     public void setCourierPartner(String courierPartner) { this.courierPartner = courierPartner; }
@@ -17,4 +19,10 @@ public class DispatchOrderRequest {
 
     public String getInitialLocation() { return initialLocation; }
     public void setInitialLocation(String initialLocation) { this.initialLocation = initialLocation; }
+
+    public String getCurrentStatus() { return currentStatus; }
+    public void setCurrentStatus(String currentStatus) { this.currentStatus = currentStatus; }
+
+    public String getOrderStatus() { return orderStatus; }
+    public void setOrderStatus(String orderStatus) { this.orderStatus = orderStatus; }
 }

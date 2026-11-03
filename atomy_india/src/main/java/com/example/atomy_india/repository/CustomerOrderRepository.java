@@ -17,6 +17,11 @@ public interface CustomerOrderRepository extends MongoRepository<CustomerOrder, 
     List<CustomerOrder> findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(String customerEmail);
     List<CustomerOrder> findByCustomerPhoneOrderByCreatedAtDesc(String customerPhone);
 
+    List<CustomerOrder> findByAssignedDistributorIdOrderByCreatedAtDesc(String assignedDistributorId);
+    List<CustomerOrder> findByAssignedDistributorIdAndOrderStatusOrderByCreatedAtDesc(String assignedDistributorId, CustomerOrder.OrderStatus status);
+    List<CustomerOrder> findByPincodeInOrderByCreatedAtDesc(List<String> pincodes);
+    long countByAssignedDistributorId(String assignedDistributorId);
+
     long countByOrderStatus(CustomerOrder.OrderStatus status);
 
     default BigDecimal calculateTotalRevenue() {

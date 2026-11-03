@@ -55,7 +55,7 @@ public class AdminService {
                             || (o.getOrderId() != null && o.getOrderId().toUpperCase().contains("TEST")))
                     .forEach(o -> {
                         orderRepository.delete(o);
-                        trackingRepository.findByOrderId(o.getOrderId()).ifPresent(trackingRepository::delete);
+                        trackingRepository.findAllByOrderId(o.getOrderId()).forEach(trackingRepository::delete);
                     });
         } catch (Exception ignored) {}
     }
@@ -67,7 +67,7 @@ public class AdminService {
         orderItemRepository.findAll().stream()
                 .filter(item -> cleanId.equals(item.getOrderId()))
                 .forEach(orderItemRepository::delete);
-        trackingRepository.findByOrderId(cleanId).ifPresent(trackingRepository::delete);
+        trackingRepository.findAllByOrderId(cleanId).forEach(trackingRepository::delete);
     }
 
     public void clearAllOrders() {
@@ -155,7 +155,7 @@ public class AdminService {
         }
 
         // Also sync tracking status if present
-        Optional<OrderTracking> trackingOpt = trackingRepository.findByOrderId(orderId);
+        Optional<OrderTracking> trackingOpt = trackingRepository.findFirstByOrderId(orderId);
         if (trackingOpt.isPresent()) {
             OrderTracking tracking = trackingOpt.get();
             tracking.setCurrentStatus(newStatus.name());
@@ -167,7 +167,7 @@ public class AdminService {
         // If order was transitioned to SHIPPED, notify customer via email
         if (newStatus == CustomerOrder.OrderStatus.SHIPPED) {
             try {
-                Optional<OrderTracking> trOpt = trackingRepository.findByOrderId(orderId);
+                Optional<OrderTracking> trOpt = trackingRepository.findFirstByOrderId(orderId);
                 brevoEmailService.sendOrderShipped(savedOrder, trOpt.orElse(null));
             } catch (Exception e) {}
         }
@@ -212,7 +212,7 @@ public class AdminService {
         order.setOrderStatus(CustomerOrder.OrderStatus.SHIPPED);
         orderRepository.save(order);
 
-        OrderTracking tracking = trackingRepository.findByOrderId(orderId)
+        OrderTracking tracking = trackingRepository.findFirstByOrderId(orderId)
                 .orElse(new OrderTracking(orderId, req.getTrackingNumber(), req.getCourierPartner(),
                         "SHIPPED", req.getInitialLocation(), req.getEstimatedDelivery(), "[]"));
 
@@ -264,7 +264,7 @@ public class AdminService {
 
     @Transactional
     public OrderTracking addTrackingCheckpoint(String orderId, AddCheckpointRequest req) {
-        OrderTracking tracking = trackingRepository.findByOrderId(orderId)
+        OrderTracking tracking = trackingRepository.findFirstByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Tracking record not found for order: " + orderId));
 
         if (req.getStatus() != null) {
@@ -332,9 +332,29 @@ public class AdminService {
     public Product saveOrUpdateProduct(Product product) {
         Product saved = productRepository.save(product);
 
-        // Ensure matching inventory record exists
-        if (!inventoryRepository.findByProductId(saved.getId()).isPresent()) {
-            Inventory inv = new Inventory(saved.getId(), saved.getName(), "SKU-" + saved.getId(), 50, 10);
+        // Ensure matching inventory record exists or synchronize existing inventory record
+        Optional<Inventory> invOpt = inventoryRepository.findByProductId(saved.getId());
+        if (invOpt.isPresent()) {
+            Inventory inv = invOpt.get();
+            inv.setProductName(saved.getName());
+            if (saved.getStockQuantity() != null) {
+                inv.setStockQuantity(saved.getStockQuantity());
+                if (saved.getStockQuantity() <= 0) {
+                    inv.setStatus(Inventory.StockStatus.OUT_OF_STOCK);
+                } else if (saved.getLowStockThreshold() != null && saved.getStockQuantity() <= saved.getLowStockThreshold()) {
+                    inv.setStatus(Inventory.StockStatus.LOW_STOCK);
+                } else {
+                    inv.setStatus(Inventory.StockStatus.IN_STOCK);
+                }
+            }
+            if (saved.getLowStockThreshold() != null && saved.getLowStockThreshold() > 0) {
+                inv.setLowStockThreshold(saved.getLowStockThreshold());
+            }
+            inventoryRepository.save(inv);
+        } else {
+            int initialStock = saved.getStockQuantity() != null ? saved.getStockQuantity() : 50;
+            int initialLow = saved.getLowStockThreshold() != null ? saved.getLowStockThreshold() : 10;
+            Inventory inv = new Inventory(saved.getId(), saved.getName(), "SKU-" + saved.getId(), initialStock, initialLow);
             inventoryRepository.save(inv);
         }
 
@@ -488,7 +508,7 @@ public class AdminService {
         CustomerOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
 
-        Optional<OrderTracking> trackingOpt = trackingRepository.findByOrderId(orderId);
+        Optional<OrderTracking> trackingOpt = trackingRepository.findFirstByOrderId(orderId);
         String courier = trackingOpt.map(OrderTracking::getCourierPartner).orElse("Blue Dart Express");
         String awb = trackingOpt.map(OrderTracking::getTrackingNumber).orElse("AWB-IN-" + order.getOrderId());
         String estDelivery = trackingOpt.map(OrderTracking::getEstimatedDelivery).orElse(null);

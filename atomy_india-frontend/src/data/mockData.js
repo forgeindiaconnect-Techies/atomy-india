@@ -183,9 +183,9 @@ export const BEST_PRODUCTS = [
     name: "Absolute Skincare Set",
     originalPrice: 20000.0,
     formattedOriginalPrice: "₹ 20,000.00",
-    price: 17000.0,
+    price: 17228.0,
     pv: 128000,
-    formattedPrice: "₹ 17,000.00",
+    formattedPrice: "₹ 17,228.00",
     discountPercent: "15%",pv: 128000,
     
     image: "https://image.atomy.com/IN/goods/D00207/org/036/260803000054036.jpg?w=480&h=480",
@@ -567,9 +567,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     name: "Absolute Skincare Set",
     originalPrice: 20000.0,
     formattedOriginalPrice: "₹ 20,000.00",
-    price: 17000.0,
+    price: 17228.0,
     pv: 128000,
-    formattedPrice: "₹ 17,000.00",
+    formattedPrice: "₹ 17,228.00",
     discountPercent: "15%",pv: 128000,
     
     image: "https://image.atomy.com/IN/goods/D00207/org/036/260803000054036.jpg?w=260&h=260",

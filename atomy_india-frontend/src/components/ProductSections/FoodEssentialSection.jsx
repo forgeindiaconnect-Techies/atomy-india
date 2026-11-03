@@ -33,10 +33,29 @@ export default function FoodEssentialSection({ onAddToCart, onProductClick, isMe
                 ? Number(String(product.discountPercent).replace(/[^0-9]/g, ''))
                 : (origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0);
               const hasOffer = discNum > 0 && origPrice > price;
+              const isOutOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
 
               return (
-                <div key={product.id} className="food-product-item">
-                  <div className="food-img-container">
+                <div key={product.id} className="food-product-item" style={isOutOfStock ? { opacity: 0.6 } : {}}>
+                  <div className="food-img-container" style={{ position: 'relative' }}>
+                    {isOutOfStock && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '6px',
+                        left: '6px',
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        zIndex: 3,
+                        letterSpacing: '0.4px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                      }}>
+                        OUT OF STOCK
+                      </div>
+                    )}
                     <div className="food-circle-img-wrap">
                       <img
                         src={product.image}
@@ -44,7 +63,7 @@ export default function FoodEssentialSection({ onAddToCart, onProductClick, isMe
                         className="food-product-img"
                         loading="lazy"
                         onClick={() => onProductClick && onProductClick(product)}
-                        style={{ cursor: 'pointer' }}
+                        style={{ cursor: 'pointer', opacity: isOutOfStock ? 0.6 : 1, filter: isOutOfStock ? 'grayscale(20%)' : 'none' }}
                       />
                     </div>
                     <div
@@ -68,9 +87,14 @@ export default function FoodEssentialSection({ onAddToCart, onProductClick, isMe
                       </h3>
                       <button
                         className="product-cart-quick-btn food-cart-btn"
-                        onClick={() => onAddToCart && onAddToCart(product)}
-                        aria-label={`Add ${product.name} to cart`}
-                        title="Add to Cart"
+                        disabled={isOutOfStock}
+                        style={isOutOfStock ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                        onClick={() => {
+                          if (isOutOfStock) return;
+                          onAddToCart && onAddToCart(product);
+                        }}
+                        aria-label={isOutOfStock ? `${product.name} is out of stock in your area` : `Add ${product.name} to cart`}
+                        title={isOutOfStock ? "Out of Stock in your area" : "Add to Cart"}
                       >
                         <ShoppingCart size={17} />
                       </button>

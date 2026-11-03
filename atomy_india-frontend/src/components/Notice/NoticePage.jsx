@@ -31,8 +31,24 @@ export default function NoticePage({ onNavigateHome, onNavigateView }) {
   const [activeTab, setActiveTab] = useState('member');
   const [searchField, setSearchField] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isTranslateOn, setIsTranslateOn] = useState(false);
+  const [isTranslateOn, setIsTranslateOn] = useState(() => {
+    try {
+      return localStorage.getItem('atomy_notice_translate') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [expandedNoticeId, setExpandedNoticeId] = useState(null);
+
+  const handleToggleTranslate = () => {
+    setIsTranslateOn((prev) => {
+      const nextVal = !prev;
+      try {
+        localStorage.setItem('atomy_notice_translate', String(nextVal));
+      } catch {}
+      return nextVal;
+    });
+  };
 
   // Tab counts
   const filteredNotices = useMemo(() => {
@@ -132,7 +148,7 @@ export default function NoticePage({ onNavigateHome, onNavigateView }) {
               <button
                 type="button"
                 className={`switch-toggle-pill ${isTranslateOn ? 'on' : ''}`}
-                onClick={() => setIsTranslateOn(!isTranslateOn)}
+                onClick={handleToggleTranslate}
                 aria-label="Toggle language translation"
               >
                 <span className="switch-slider-knob"></span>

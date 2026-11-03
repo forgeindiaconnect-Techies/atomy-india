@@ -14,55 +14,14 @@ function computeTargetStage(order) {
 }
 
 export default function DeliveryStatusStepper({ order }) {
-  // Target stage comes directly from the Admin's update (1 to 5)
+  // Target stage comes directly from the live order status (1 to 5)
   const targetStage = computeTargetStage(order);
+  const [currentStep, setCurrentStep] = useState(targetStage);
 
-  // currentStep starts at 1 and advances one by one to targetStage with 1.5s delay
-  const [currentStep, setCurrentStep] = useState(1);
-  const [lineProgress, setLineProgress] = useState(0); // 0% to 100% on active connector segment
-  const prevOrderIdRef = useRef(order?.orderId);
-
-  // When order changes, restart progression to targetStage
+  // Synchronize immediately whenever order status changes
   useEffect(() => {
-    if (order?.orderId !== prevOrderIdRef.current) {
-      prevOrderIdRef.current = order?.orderId;
-      setCurrentStep(1);
-      setLineProgress(0);
-    }
-  }, [order?.orderId]);
-
-  // Adjust immediately if target stage is set lower
-  useEffect(() => {
-    if (currentStep > targetStage) {
-      setCurrentStep(targetStage);
-      setLineProgress(100);
-    }
-  }, [targetStage, currentStep]);
-
-  // One by one stage progression with exact 1.5-second delay until reaching targetStage
-  useEffect(() => {
-    if (currentStep < targetStage) {
-      setLineProgress(0);
-      const startTime = Date.now();
-      const duration = 1500; // exact 1.5s delay requested per stage
-
-      const interval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const pct = Math.min(100, (elapsed / duration) * 100);
-        setLineProgress(pct);
-
-        if (elapsed >= duration) {
-          clearInterval(interval);
-          setCurrentStep((prev) => Math.min(targetStage, prev + 1));
-        }
-      }, 30);
-
-      return () => clearInterval(interval);
-    } else {
-      // Reached or already at admin's target stage
-      setLineProgress(100);
-    }
-  }, [currentStep, targetStage]);
+    setCurrentStep(targetStage);
+  }, [targetStage, order?.orderStatus, order?.status]);
 
   const stages = [
     { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
@@ -120,7 +79,7 @@ export default function DeliveryStatusStepper({ order }) {
                   <div className="stage-subtitle">{stage.sub}</div>
                   {isCurrent && (
                     <span className="stage-live-badge">
-                      {stage.num === 5 ? 'DELIVERED 🎉' : 'IN PROGRESS'}
+                      {stage.num === 5 ? 'DELIVERED 🎉' : 'LIVE TRANSIT ⚡'}
                     </span>
                   )}
                 </div>
@@ -128,7 +87,7 @@ export default function DeliveryStatusStepper({ order }) {
 
               {/* Connecting Dotted Line Segment with Moving Object */}
               {idx < stages.length - 1 && (
-                <div className={`stepper-connector-track ${currentStep > stage.num ? 'is-completed' : ''}`}>
+                <div className={`stepper-connector-track ${currentStep > stage.num ? 'is-completed' : currentStep === stage.num ? 'is-active-track' : ''}`}>
                   {/* Gray Dotted Line Track */}
                   <div className="connector-bg-dots" />
 
@@ -136,15 +95,10 @@ export default function DeliveryStatusStepper({ order }) {
                   <div
                     className="connector-fill-dots-wrap"
                     style={{
-                      width:
-                        currentStep > stage.num
-                          ? '100%'
-                          : currentStep === stage.num
-                          ? `${lineProgress}%`
-                          : '0%'
+                      width: currentStep > stage.num ? '100%' : currentStep === stage.num ? '100%' : '0%'
                     }}
                   >
-                    <div className="connector-fill-dots" />
+                    <div className={`connector-fill-dots ${currentStep === stage.num ? 'is-active-dots' : ''}`} />
                   </div>
 
                   {/* ========================================================
@@ -154,9 +108,6 @@ export default function DeliveryStatusStepper({ order }) {
                   {idx === 0 && (
                     <div
                       className={`mover-wrapper ${currentStep === 1 ? 'is-active' : currentStep > 1 ? 'is-done' : 'is-hidden'}`}
-                      style={{
-                        left: currentStep === 1 ? `${lineProgress}%` : currentStep > 1 ? '100%' : '0%'
-                      }}
                     >
                       <div className="mover-object message-mover">
                         <svg width="34" height="24" viewBox="0 0 34 24" fill="none">
@@ -178,9 +129,6 @@ export default function DeliveryStatusStepper({ order }) {
                   {idx === 1 && (
                     <div
                       className={`mover-wrapper ${currentStep === 2 ? 'is-active' : currentStep > 2 ? 'is-done' : 'is-hidden'}`}
-                      style={{
-                        left: currentStep === 2 ? `${lineProgress}%` : currentStep > 2 ? '100%' : '0%'
-                      }}
                     >
                       <div className="mover-object package-mover">
                         <svg width="34" height="30" viewBox="0 0 34 30" fill="none">
@@ -197,14 +145,11 @@ export default function DeliveryStatusStepper({ order }) {
 
                   {/* ========================================================
                       OBJECT 3: BLUE DART TRUCK (Stage 3 -> Stage 4)
-                      Proper tires grounded on dotted line - no flyaway wheels!
+                      Proper tires grounded on dotted line - continuous drive motion!
                      ======================================================== */}
                   {idx === 2 && (
                     <div
                       className={`mover-wrapper ${currentStep === 3 ? 'is-active' : currentStep > 3 ? 'is-done' : 'is-hidden'}`}
-                      style={{
-                        left: currentStep === 3 ? `${lineProgress}%` : currentStep > 3 ? '100%' : '0%'
-                      }}
                     >
                       <div className="mover-object truck-mover">
                         <svg width="56" height="32" viewBox="0 0 56 32" fill="none">
@@ -233,14 +178,11 @@ export default function DeliveryStatusStepper({ order }) {
 
                   {/* ========================================================
                       OBJECT 4: DELIVERY BOY ON BIKE (Stage 4 -> Stage 5)
-                      Proper tires grounded on dotted line - no flyaway wheels!
+                      Proper tires grounded on dotted line - continuous ride motion!
                      ======================================================== */}
                   {idx === 3 && (
                     <div
                       className={`mover-wrapper ${currentStep === 4 ? 'is-active' : currentStep > 4 ? 'is-done' : 'is-hidden'}`}
-                      style={{
-                        left: currentStep === 4 ? `${lineProgress}%` : currentStep > 4 ? '100%' : '0%'
-                      }}
                     >
                       <div className="mover-object bike-mover">
                         <svg width="52" height="36" viewBox="0 0 52 36" fill="none">

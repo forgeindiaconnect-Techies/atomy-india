@@ -44,7 +44,16 @@ public class CustomerService {
     private CustomerUserRepository customerUserRepository;
 
     @Autowired
+    private com.example.atomy_india.repository.IndiaPincodeRepository indiaPincodeRepository;
+
+    @Autowired
     private com.example.atomy_india.repository.CustomerNotificationRepository customerNotificationRepository;
+
+    @Autowired
+    private com.example.atomy_india.repository.DistributorInventoryRepository distributorInventoryRepository;
+
+    @Autowired
+    private com.example.atomy_india.repository.DistributorRepository distributorRepository;
 
     // --- Products & Categories ---
 
@@ -120,7 +129,9 @@ public class CustomerService {
             String effectiveId = product != null ? product.getId() : (!rawId.isEmpty() ? rawId : "PROD-" + UUID.randomUUID().toString().substring(0, 8));
             String effectiveName = product != null ? product.getName() : (itemDto.getName() != null ? itemDto.getName() : (itemDto.getProductName() != null ? itemDto.getProductName() : "Atomy Product " + effectiveId));
             String effectiveImage = product != null ? product.getImage() : (itemDto.getImage() != null ? itemDto.getImage() : "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg");
-            BigDecimal effectivePrice = product != null ? product.getPrice() : (itemDto.getPrice() != null ? itemDto.getPrice() : new BigDecimal("1000.00"));
+            BigDecimal effectivePrice = (itemDto.getPrice() != null && itemDto.getPrice().compareTo(BigDecimal.ZERO) > 0)
+                    ? itemDto.getPrice()
+                    : (product != null && product.getPrice() != null ? product.getPrice() : new BigDecimal("1000.00"));
             int qty = Math.max(1, itemDto.getQuantity());
 
             // Inventory check & deduction
@@ -190,6 +201,19 @@ public class CustomerService {
                 req.getPaymentMethod() != null ? req.getPaymentMethod() : CustomerOrder.PaymentMethod.ONLINE_UPI
         );
 
+        // Fulfillment Type & Direct Hub Pickup Handling
+        String fType = (req.getFulfillmentType() != null && !req.getFulfillmentType().trim().isEmpty())
+                ? req.getFulfillmentType().trim().toUpperCase()
+                : "COURIER_DELIVERY";
+        order.setFulfillmentType(fType);
+        if ("STORE_PICKUP".equals(fType)) {
+            order.setPickupStatus("PENDING_PACKING");
+            order.setShippingFee(BigDecimal.ZERO);
+            if (req.getHubAddress() != null && !req.getHubAddress().trim().isEmpty()) {
+                order.setHubAddress(req.getHubAddress().trim());
+            }
+        }
+
         // Determine static delivery date: 2 business days for standard nearby hub, 3 days for remote mountain/forest
         String addressText = (String.valueOf(req.getShippingAddress()) + " "
                 + String.valueOf(req.getCity()) + " "
@@ -204,6 +228,53 @@ public class CustomerService {
         order.setEstimatedDeliveryDate(staticDeliveryDateStr);
         order.setEstimatedDelivery(staticDeliveryTimeFrame);
 
+        // Auto-Route to local assigned distributor by shipping delivery PIN code
+        String pin = req.getPincode() != null ? req.getPincode().trim() : "";
+        if (!pin.isEmpty()) {
+            java.util.Optional<com.example.atomy_india.model.DistributorUser> distOpt = distributorRepository.findByPrimaryPincode(pin)
+                    .or(() -> distributorRepository.findByAssignedPincodesContaining(pin));
+
+            if (distOpt.isEmpty()) {
+                java.util.Optional<com.example.atomy_india.model.IndiaPincode> pinOpt = indiaPincodeRepository.findByPincode(pin);
+                if (pinOpt.isPresent() && pinOpt.get().getAssignedDistributorId() != null && !pinOpt.get().getAssignedDistributorId().trim().isEmpty()) {
+                    distOpt = distributorRepository.findByDistributorId(pinOpt.get().getAssignedDistributorId());
+                }
+            }
+
+            // 3. Dynamic Territory Fallback: If exact PIN is not mapped, check district/city in master pincodes database
+            if (distOpt.isEmpty()) {
+                java.util.Optional<com.example.atomy_india.model.IndiaPincode> pinOpt = indiaPincodeRepository.findByPincode(pin);
+                if (pinOpt.isPresent() && pinOpt.get().getDistrict() != null && !pinOpt.get().getDistrict().trim().isEmpty()) {
+                    String pinDistrict = pinOpt.get().getDistrict().trim();
+                    distOpt = distributorRepository.findAll().stream()
+                            .filter(d -> "ACTIVE".equalsIgnoreCase(d.getStatus()))
+                            .filter(d -> d.getCity() != null && (d.getCity().equalsIgnoreCase(pinDistrict) || pinDistrict.equalsIgnoreCase(d.getCity())))
+                            .findFirst();
+                }
+            }
+
+            if (distOpt.isPresent()) {
+                com.example.atomy_india.model.DistributorUser d = distOpt.get();
+                order.setAssignedDistributorId(d.getDistributorId());
+                order.setAssignedDistributorName(d.getBusinessName() != null ? d.getBusinessName() : "Regional Distributor");
+                if (order.getHubAddress() == null || order.getHubAddress().trim().isEmpty()) {
+                    order.setHubAddress(d.getHubAddress() != null && !d.getHubAddress().trim().isEmpty() 
+                            ? d.getHubAddress() 
+                            : (d.getCity() != null ? d.getCity() + ", " + d.getState() : "Regional Logistics Hub"));
+                }
+                double rate = d.getCommissionRate() > 0 ? d.getCommissionRate() : 8.0;
+                BigDecimal comm = finalTotal.multiply(BigDecimal.valueOf(rate)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                order.setDistributorCommission(comm);
+            } else {
+                order.setAssignedDistributorId("CENTRAL_SUPER_HUB");
+                order.setAssignedDistributorName("Central Super Admin Hub");
+            }
+        } else {
+            order.setAssignedDistributorId("CENTRAL_SUPER_HUB");
+            order.setAssignedDistributorName("Central Super Admin Hub");
+        }
+        order.setDistributorDispatchStatus("RECEIVED");
+
         for (OrderItem oi : orderItems) {
             if (oi.getId() == null || oi.getId().isEmpty()) {
                 oi.setId("ITEM-" + UUID.randomUUID().toString().substring(0, 8));
@@ -214,6 +285,22 @@ public class CustomerService {
 
         CustomerOrder savedOrder = orderRepository.save(order);
         orderItemRepository.saveAll(orderItems);
+
+        // Deduct regional warehouse stock from distributor inventory
+        if (!"CENTRAL_SUPER_HUB".equals(savedOrder.getAssignedDistributorId())) {
+            String distId = savedOrder.getAssignedDistributorId();
+            for (OrderItem oi : orderItems) {
+                String pId = oi.getProductId();
+                int qtyOrdered = oi.getQuantity();
+                distributorInventoryRepository.findByDistributorIdAndProductId(distId, pId).ifPresent(di -> {
+                    int updated = Math.max(0, di.getStockQuantity() - qtyOrdered);
+                    di.setStockQuantity(updated);
+                    di.setAvailable(updated > 0);
+                    di.setUpdatedAt(LocalDateTime.now());
+                    distributorInventoryRepository.save(di);
+                });
+            }
+        }
 
         // Initialize Live Order Tracking Record with Initial Checkpoint
         String trackingNumber = "ATMY-" + timestamp + "-" + (100000 + new Random().nextInt(900000));
@@ -279,13 +366,13 @@ public class CustomerService {
         String cleanId = orderIdOrTrackingNumber.trim();
 
         // 1. Check trackingRepository by Order ID
-        Optional<OrderTracking> byOrder = trackingRepository.findByOrderId(cleanId);
+        Optional<OrderTracking> byOrder = trackingRepository.findFirstByOrderId(cleanId);
         if (byOrder.isPresent()) {
             return byOrder;
         }
 
         // 2. Check trackingRepository by Tracking Number
-        Optional<OrderTracking> byTracking = trackingRepository.findByTrackingNumber(cleanId);
+        Optional<OrderTracking> byTracking = trackingRepository.findFirstByTrackingNumber(cleanId);
         if (byTracking.isPresent()) {
             return byTracking;
         }

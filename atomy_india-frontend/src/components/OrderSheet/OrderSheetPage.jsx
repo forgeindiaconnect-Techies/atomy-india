@@ -31,11 +31,16 @@ import {
   Ticket,
   Tag,
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
+  Store,
+  Printer,
+  FileText,
+  Phone,
+  Mail
 } from 'lucide-react';
 import './OrderSheetPage.css';
 import { fetchCouponsFromBackend, applyCouponBackend } from '../../services/couponService';
-import { createCustomerOrder, syncUnsyncedOrdersToBackend } from '../../services/api';
+import { createCustomerOrder, syncUnsyncedOrdersToBackend, fetchHubDetails } from '../../services/api';
 import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS, getRelatedProducts, getPopularProducts } from '../../data/mockData';
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
 import { calculateProductPricing } from '../../services/membershipService';
@@ -340,7 +345,26 @@ export default function OrderSheetPage({
     return cartItems.reduce((acc, item) => acc + item.qty, 0);
   }, [cartItems]);
 
+  const [fulfillmentType, setFulfillmentType] = useState('COURIER_DELIVERY'); // 'COURIER_DELIVERY' | 'STORE_PICKUP'
+  const [hubDetails, setHubDetails] = useState(null);
+  const [isLoadingHub, setIsLoadingHub] = useState(false);
+
+  // Fetch real-time Hub & Sub-Admin / Distributor Contact Details
+  useEffect(() => {
+    const pin = currentSelectedAddress?.pincode || localStorage.getItem('atomy_customer_delivery_pincode') || '635001';
+    setIsLoadingHub(true);
+    fetchHubDetails(pin)
+      .then(info => {
+        setHubDetails(info);
+        setIsLoadingHub(false);
+      })
+      .catch(() => {
+        setIsLoadingHub(false);
+      });
+  }, [currentSelectedAddress?.pincode, fulfillmentType]);
+
   // Free delivery rule: Delivery is FREE for orders above ₹ 4,500.00 OR if at least one product mentions Free Delivery.
+  // When Direct Hub Pickup is chosen, delivery fee is ALWAYS ₹0.00 (Free).
   // Otherwise, standard doorstep courier fee of ₹ 150.00 is charged.
   const hasFreeDeliveryProduct = useMemo(() => {
     return cartItems.length > 0 && cartItems.some(item => isItemFreeDelivery(item));
@@ -348,13 +372,48 @@ export default function OrderSheetPage({
 
   const isFreeDeliveryEligible = useMemo(() => {
     if (cartItems.length === 0) return false;
+    if (fulfillmentType === 'STORE_PICKUP') return true;
     return subtotal >= 4500 || hasFreeDeliveryProduct;
-  }, [subtotal, hasFreeDeliveryProduct, cartItems.length]);
+  }, [subtotal, hasFreeDeliveryProduct, cartItems.length, fulfillmentType]);
 
   const shippingFee = useMemo(() => {
     if (cartItems.length === 0) return 0;
+    if (fulfillmentType === 'STORE_PICKUP') return 0;
     return isFreeDeliveryEligible ? 0 : 150;
-  }, [cartItems.length, isFreeDeliveryEligible]);
+  }, [cartItems.length, isFreeDeliveryEligible, fulfillmentType]);
+
+  // Out of Delivery & Stock Limit Detection
+  // Always reserve at least 1 unit in stock: maximum orderable quantity is (stock - 1)
+  // If stock is 50, maximum orderable is 49. If remaining stock is <= 1, it is Out of Delivery / Out of Stock!
+  const outOfDeliveryItems = useMemo(() => {
+    return (cartItems || []).filter(item => {
+      const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
+        || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
+      const stockQty = item.stockQuantity !== undefined 
+        ? Number(item.stockQuantity) 
+        : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+      const maxOrderable = Math.max(0, stockQty - 1);
+      return item.inStock === false || stockQty < 2 || maxOrderable < 1 || item.qty > maxOrderable;
+    });
+  }, [cartItems]);
+
+  const hasOutOfDeliveryItems = outOfDeliveryItems.length > 0;
+
+  // Auto-clamp any cart item that exceeds maxOrderable (stock - 1) to protect 1 reserve unit
+  useEffect(() => {
+    if (!cartItems || cartItems.length === 0 || !onUpdateQty) return;
+    cartItems.forEach(item => {
+      const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
+        || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
+      const stockQty = item.stockQuantity !== undefined 
+        ? Number(item.stockQuantity) 
+        : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+      const maxOrderable = Math.max(0, stockQty - 1);
+      if (maxOrderable > 0 && item.qty > maxOrderable) {
+        onUpdateQty(item.id, maxOrderable);
+      }
+    });
+  }, [cartItems, onUpdateQty]);
 
   // Live Backend Coupons State (Stored/updated by admin in MongoDB)
   const [allStoreCoupons, setAllStoreCoupons] = useState([]);
@@ -836,6 +895,10 @@ export default function OrderSheetPage({
 
   // Step 1 -> Step 2: Proceed to Payment page
   const handleProceedToPayment = () => {
+    if (hasOutOfDeliveryItems) {
+      alert('One or more items in your cart are Out of Stock (stock is less than 2 units in your area) or exceed available warehouse stock. Please adjust or remove them to proceed.');
+      return;
+    }
     if (!currentSelectedAddress) {
       alert('Please add or select a delivery address before proceeding to payment.');
       return;
@@ -852,6 +915,11 @@ export default function OrderSheetPage({
   const handlePlaceOrder = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isProcessing) return;
+
+    if (hasOutOfDeliveryItems) {
+      alert('One or more items in your order are Out of Stock (stock is less than 2 units in your area) or exceed warehouse stock. Please remove them or adjust quantity.');
+      return;
+    }
 
     // Guard: Cancel and return if session has expired for online payments
     if (qrTimer <= 0 && paymentMethod !== 'COD') {
@@ -894,16 +962,22 @@ export default function OrderSheetPage({
         city,
         state,
         pincode,
+        fulfillmentType,
+        hubAddress: hubDetails?.hubAddress || null,
+        hubName: hubDetails?.hubName || null,
+        hubContact: hubDetails?.contactPerson || null,
+        hubPhone: hubDetails?.phone || null,
+        pickupStatus: fulfillmentType === 'STORE_PICKUP' ? 'PENDING_PACKING' : null,
         paymentMethod: springPaymentMethod,
-        shippingFee: effectiveShippingFee,
-        totalAmount: useWalletBalance ? finalPayableTotal : grandTotal,
+        shippingFee: Number(String(effectiveShippingFee || 0).replace(/[^0-9.-]/g, '')) || 0,
+        totalAmount: Number(String((useWalletBalance ? finalPayableTotal : grandTotal) || 0).replace(/[^0-9.-]/g, '')) || 0,
         couponCode: appliedCoupon?.code || null,
         couponDiscount: couponDiscount || 0,
         items: (cartItems && cartItems.length > 0 ? cartItems : []).map(it => ({
           productId: it.id || it.productId || '',
           name: it.name || it.productName || '',
           productName: it.name || it.productName || '',
-          price: Number(it.price) || 0,
+          price: Number(String(it.price || 0).replace(/[^0-9.-]/g, '')) || 0,
           image: it.image || it.productImage || '',
           quantity: it.qty || it.quantity || 1
         }))
@@ -952,6 +1026,16 @@ export default function OrderSheetPage({
         city,
         state,
         pincode,
+        fulfillmentType,
+        hubName: backendOrder?.assignedDistributorName || hubDetails?.hubName || 'Central Super Admin Hub',
+        hubAddress: hubDetails?.hubAddress || 'Central Logistics & Fulfillment Facility, National Corridor, India',
+        hubContactPerson: hubDetails?.contactPerson || 'National Logistics Desk',
+        hubPhone: hubDetails?.phone || '+91 1800 123 4567',
+        hubEmail: hubDetails?.email || 'support.india@atomy.com',
+        hubOperatingHours: hubDetails?.operatingHours || 'Mon – Sat: 9:00 AM – 8:00 PM',
+        assignedDistributorId: backendOrder?.assignedDistributorId || hubDetails?.distributorId || null,
+        assignedDistributorName: backendOrder?.assignedDistributorName || hubDetails?.hubName || null,
+        distributorCommission: backendOrder?.distributorCommission || 0,
         items: cartItems.map(it => ({ ...it })),
         subtotal,
         shippingFee: effectiveShippingFee,
@@ -1145,12 +1229,21 @@ export default function OrderSheetPage({
                           {cartItems.map((item) => {
                             const isFreeDeliv = isItemFreeDelivery(item);
                             const gstRate = getProductGstRate(item);
+                            const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
+                              || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
+                            const stockQty = item.stockQuantity !== undefined 
+                              ? Number(item.stockQuantity) 
+                              : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+                            // Always reserve at least 1 unit in stock: maximum orderable is stockQty - 1
+                            const maxOrderable = Math.max(0, stockQty - 1);
+                            const isOutOfDelivery = item.inStock === false || stockQty < 2 || maxOrderable < 1;
                             return (
-                              <div key={item.id} className="sheet-product-row">
+                              <div key={item.id} className="sheet-product-row" style={isOutOfDelivery ? { background: '#fff5f5', borderColor: '#fca5a5', opacity: 0.7 } : {}}>
                                 <div className="sheet-product-img">
                                   <img 
                                     src={item.image} 
                                     alt={item.name} 
+                                    style={isOutOfDelivery ? { opacity: 0.6, filter: 'grayscale(25%)' } : {}}
                                     onError={(e) => {
                                       e.target.onerror = null;
                                       e.target.src = 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480';
@@ -1161,6 +1254,11 @@ export default function OrderSheetPage({
                                   <h4 className="sheet-product-title">{item.name}</h4>
                                   <span className="sheet-product-code">{item.id}</span>
                                   <div className="sheet-product-badges-row">
+                                    {isOutOfDelivery && (
+                                      <span style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
+                                        Out of Stock
+                                      </span>
+                                    )}
                                     {isFreeDeliv ? (
                                       <span className="sheet-badge-free-delivery">Free Delivery</span>
                                     ) : (
@@ -1176,6 +1274,11 @@ export default function OrderSheetPage({
                                       <span className="meta-pv">PV {(item.pv * item.qty).toLocaleString('en-IN')}</span>
                                     )}
                                   </div>
+                                  {item.qty > maxOrderable && (
+                                    <div style={{ color: '#dc2626', fontSize: '11.5px', marginTop: '4px', fontWeight: 600 }}>
+                                      ⚠️ Maximum order limit is {maxOrderable} units (1 unit must remain in stock). Please decrease.
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Quantity Stepper */}
@@ -1196,14 +1299,21 @@ export default function OrderSheetPage({
                                     >
                                       <Minus size={13} />
                                     </button>
-                                    <span className="sheet-qty-num">{item.qty}</span>
+                                    <span className="sheet-qty-num" style={isOutOfDelivery ? { color: '#ef4444', textDecoration: 'line-through' } : {}}>{item.qty}</span>
                                     <button
                                       type="button"
                                       className="sheet-qty-btn plus"
+                                      disabled={isOutOfDelivery || item.qty >= maxOrderable}
+                                      style={(isOutOfDelivery || item.qty >= maxOrderable) ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
                                       onClick={() => {
+                                        if (isOutOfDelivery) return;
+                                        if (item.qty >= maxOrderable) {
+                                          alert(`Cannot increase quantity. Maximum orderable limit is ${maxOrderable} units (1 unit must always remain in stock).`);
+                                          return;
+                                        }
                                         if (onUpdateQty) onUpdateQty(item.id, item.qty + 1);
                                       }}
-                                      title="Increase quantity"
+                                      title={isOutOfDelivery ? "Out of Stock (less than 2 in stock)" : (item.qty >= maxOrderable ? `Maximum order limit reached (${maxOrderable} units)` : "Increase quantity")}
                                       aria-label="Increase quantity"
                                     >
                                       <Plus size={13} />
@@ -1244,21 +1354,216 @@ export default function OrderSheetPage({
                   )}
                 </div>
 
-                {/* Section 2: Delivery Address (Doorstep Courier Delivery) */}
+                {/* Section 2: Fulfillment & Delivery Method Selection */}
+                <div className="sheet-card fulfillment-selection-card">
+                  <div className="sheet-card-header">
+                    <div className="card-header-title">
+                      <Store size={20} color="#00A3E0" />
+                      <span>Fulfillment &amp; Delivery Method</span>
+                    </div>
+                  </div>
+
+                  <div className="sheet-card-body" style={{ padding: '16px 20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                      {/* Option 1: Doorstep Courier Delivery */}
+                      <div
+                        onClick={() => setFulfillmentType('COURIER_DELIVERY')}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          padding: '14px 16px',
+                          borderRadius: '10px',
+                          border: fulfillmentType === 'COURIER_DELIVERY' ? '2px solid #00a3e0' : '1.5px solid #e2e8f0',
+                          background: fulfillmentType === 'COURIER_DELIVERY' ? '#f0f9ff' : '#ffffff',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                              type="radio"
+                              name="fulfillmentMethod"
+                              checked={fulfillmentType === 'COURIER_DELIVERY'}
+                              onChange={() => setFulfillmentType('COURIER_DELIVERY')}
+                              style={{ cursor: 'pointer', accentColor: '#00a3e0' }}
+                            />
+                            <Truck size={18} color="#00a3e0" />
+                            <strong style={{ fontSize: '14px', color: '#0f172a' }}>Doorstep Courier Service</strong>
+                          </div>
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            background: isFreeDeliveryEligible ? '#ecfdf5' : '#fffbeb',
+                            color: isFreeDeliveryEligible ? '#059669' : '#d97706',
+                            border: isFreeDeliveryEligible ? '1px solid #a7f3d0' : '1px solid #fde68a'
+                          }}>
+                            {isFreeDeliveryEligible ? 'FREE Delivery' : '₹ 150.00 Delivery Fee'}
+                          </span>
+                        </div>
+                        <p style={{ margin: '0 0 6px 26px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
+                          Direct parcel dispatch to your shipping address via Blue Dart Express.
+                        </p>
+                        <div style={{ marginLeft: '26px', fontSize: '11.5px', color: '#0284c7', fontWeight: 600 }}>
+                          {subtotal >= 4500 
+                            ? '✓ Free Delivery eligible (Order above ₹ 4,500.00)' 
+                            : `• Orders below ₹4,500 incur standard ₹150 delivery fee (Add ₹ ${(4500 - subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })} for FREE)`}
+                        </div>
+                      </div>
+
+                      {/* Option 2: Direct Hub Store Pickup (Self-Pickup) */}
+                      <div
+                        onClick={() => setFulfillmentType('STORE_PICKUP')}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          padding: '14px 16px',
+                          borderRadius: '10px',
+                          border: fulfillmentType === 'STORE_PICKUP' ? '2px solid #10b981' : '1.5px solid #e2e8f0',
+                          background: fulfillmentType === 'STORE_PICKUP' ? '#f0fdf4' : '#ffffff',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                              type="radio"
+                              name="fulfillmentMethod"
+                              checked={fulfillmentType === 'STORE_PICKUP'}
+                              onChange={() => setFulfillmentType('STORE_PICKUP')}
+                              style={{ cursor: 'pointer', accentColor: '#10b981' }}
+                            />
+                            <Store size={18} color="#10b981" />
+                            <strong style={{ fontSize: '14px', color: '#0f172a' }}>Direct Hub Pickup (Self-Pickup)</strong>
+                          </div>
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            border: '1px solid #86efac'
+                          }}>
+                            FREE - ₹0 FEE
+                          </span>
+                        </div>
+                        <p style={{ margin: '0 0 6px 26px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
+                          Collect directly from your regional logistics hub. Hub distributor packs items &amp; holds for pickup.
+                        </p>
+                        <div style={{ marginLeft: '26px', fontSize: '11.5px', color: '#15803d', fontWeight: 600 }}>
+                          ✓ No delivery fee required • Present product invoice / Order ID at counter to collect parcel.
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Store Pickup Hub Info Notice Banner with Full Distributor / Sub-Admin Details */}
+                    {fulfillmentType === 'STORE_PICKUP' && (
+                      <div style={{
+                        marginTop: '16px',
+                        padding: '16px 18px',
+                        background: '#f0fdf4',
+                        border: '1.5px solid #86efac',
+                        borderRadius: '10px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                          <CheckCircle2 size={18} color="#16a34a" />
+                          <strong style={{ fontSize: '13.5px', color: '#14532d' }}>
+                            Direct Hub Pickup Active: Free Self-Collection (₹0 Delivery Fee)
+                          </strong>
+                        </div>
+
+                        {/* Hub Address & Sub-Admin Contact Card */}
+                        <div style={{
+                          background: '#ffffff',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '8px',
+                          padding: '14px 16px',
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                          gap: '14px'
+                        }}>
+                          {/* Hub Details */}
+                          <div>
+                            <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#16a34a', fontWeight: 700, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Store size={13} /> Designated Regional Hub
+                            </span>
+                            <h4 style={{ margin: '4px 0 6px', fontSize: '14px', color: '#0f172a', fontWeight: 700 }}>
+                              {hubDetails?.hubName || 'Central Super Admin Hub'}
+                            </h4>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                              <MapPin size={14} color="#0284c7" style={{ flexShrink: 0, marginTop: '2px' }} />
+                              <span>{hubDetails?.hubAddress || 'Central Logistics & Fulfillment Facility, National Corridor, India'}</span>
+                            </p>
+                          </div>
+
+                          {/* Hub Manager / Sub-Admin Contact */}
+                          <div style={{ borderLeft: '1px solid #f1f5f9', paddingLeft: '14px' }}>
+                            <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#0284c7', fontWeight: 700, letterSpacing: '0.5px' }}>
+                              Distributor / Hub Manager
+                            </span>
+                            <h5 style={{ margin: '4px 0 6px', fontSize: '13.5px', color: '#1e293b', fontWeight: 600 }}>
+                              {hubDetails?.contactPerson || 'National Logistics Desk'}
+                            </h5>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '12px', color: '#334155' }}>
+                              <a
+                                href={`tel:${(hubDetails?.phone || '+91 1800 123 4567').replace(/\s+/g, '')}`}
+                                style={{
+                                  color: '#0284c7',
+                                  textDecoration: 'none',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px'
+                                }}
+                                title="Click to call regional hub distributor"
+                              >
+                                <Phone size={13} /> {hubDetails?.phone || '+91 1800 123 4567'}
+                              </a>
+                              <span style={{ color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px' }}>
+                                <Clock size={13} /> {hubDetails?.operatingHours || 'Mon – Sat: 9:30 AM – 7:30 PM'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#15803d', lineHeight: 1.45 }}>
+                          ℹ️ The hub distributor will pack your products and keep them ready. Present your <strong>Product Invoice</strong> or <strong>Order ID</strong> at the hub counter to collect your parcel.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 3: Delivery Address / Contact Information */}
                 <div className="sheet-card">
                   <div className="sheet-card-header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                     <div className="card-header-title">
-                      <Truck size={20} color="#00A3E0" />
-                      <span>Delivery Address (Doorstep Courier Delivery)</span>
+                      {fulfillmentType === 'STORE_PICKUP' ? (
+                        <>
+                          <Store size={20} color="#00A3E0" />
+                          <span>Customer Contact &amp; Pickup Verification Details</span>
+                        </>
+                      ) : (
+                        <>
+                          <Truck size={20} color="#00A3E0" />
+                          <span>Delivery Address (Doorstep Courier Delivery)</span>
+                        </>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      className="btn-add-new-address"
-                      onClick={handleOpenAddAddress}
-                    >
-                      <Plus size={16} />
-                      <span>Add New Address</span>
-                    </button>
+                    {fulfillmentType === 'COURIER_DELIVERY' && (
+                      <button
+                        type="button"
+                        className="btn-add-new-address"
+                        onClick={handleOpenAddAddress}
+                      >
+                        <Plus size={16} />
+                        <span>Add New Address</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="sheet-card-body">
@@ -1433,7 +1738,9 @@ export default function OrderSheetPage({
                     )}
 
                     <div className="summary-line">
-                      <span className="line-label">Doorstep Delivery Fee</span>
+                      <span className="line-label">
+                        {fulfillmentType === 'STORE_PICKUP' ? 'Store Pickup Fee' : 'Doorstep Delivery Fee'}
+                      </span>
                       <span className="line-value">
                         {shippingFee === 0 ? (
                           <span className="free-tag">FREE</span>
@@ -1443,7 +1750,12 @@ export default function OrderSheetPage({
                       </span>
                     </div>
 
-                    {shippingFee === 0 ? (
+                    {fulfillmentType === 'STORE_PICKUP' ? (
+                      <div className="free-shipping-note" style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0' }}>
+                        <CheckCircle2 size={13} color="#10b981" />
+                        <span>Direct Hub Store Pickup Selected: Zero Delivery Fee (Collect with Invoice)</span>
+                      </div>
+                    ) : shippingFee === 0 ? (
                       <div className="free-shipping-note">
                         <CheckCircle2 size={13} color="#10b981" />
                         <span>
@@ -1636,14 +1948,34 @@ export default function OrderSheetPage({
                     </label>
                   </div>
 
+                  {/* Out of Delivery / Stock Alert Banner */}
+                  {hasOutOfDeliveryItems && (
+                    <div style={{
+                      background: '#fef2f2',
+                      border: '1px solid #fca5a5',
+                      borderRadius: '8px',
+                      padding: '12px 14px',
+                      margin: '12px 0',
+                      color: '#991b1b',
+                      fontSize: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
+                      <span>One or more items are <strong>Out of Stock</strong> (hub stock is less than 2 units in your area) or exceed available warehouse stock. Please adjust or remove them to proceed.</span>
+                    </div>
+                  )}
+
                   {/* Proceed to Payment CTA */}
                   <button
                     type="button"
                     className="place-order-submit-btn"
                     onClick={handleProceedToPayment}
-                    disabled={!currentSelectedAddress || !agreedTerms || cartItems.length === 0}
+                    disabled={!currentSelectedAddress || !agreedTerms || cartItems.length === 0 || hasOutOfDeliveryItems}
+                    style={hasOutOfDeliveryItems ? { background: '#94a3b8', cursor: 'not-allowed' } : {}}
                   >
-                    <span>Proceed to Payment</span>
+                    <span>{hasOutOfDeliveryItems ? 'Adjust Out of Stock Items' : 'Proceed to Payment'}</span>
                     <ChevronRight size={18} />
                   </button>
                 </div>
@@ -2408,14 +2740,18 @@ export default function OrderSheetPage({
               </div>
 
               <h2 className="completion-title">
-                {(placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cash') || (placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cod')
-                  ? 'Cash on Delivery Order Confirmed!'
-                  : 'Order Placed Successfully!'}
+                {placedOrderDetails?.fulfillmentType === 'STORE_PICKUP'
+                  ? 'Store Pickup Order Confirmed!'
+                  : ((placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cash') || (placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cod')
+                    ? 'Cash on Delivery Order Confirmed!'
+                    : 'Order Placed Successfully!')}
               </h2>
               <p className="completion-subtitle">
-                {(placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cash') || (placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cod')
-                  ? `Thank you for purchasing with Atomy India. Your order has been placed and is being prepared for doorstep dispatch. Payment of ₹${(placedOrderDetails?.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} will be collected upon parcel delivery.`
-                  : 'Thank you for purchasing with Atomy India. Your order has been placed and is being prepared for doorstep dispatch.'}
+                {placedOrderDetails?.fulfillmentType === 'STORE_PICKUP'
+                  ? 'Thank you for your order! Your items will be packed by your regional hub distributor with ₹0 delivery fee. Please present your product invoice or order number at the hub counter to collect your products.'
+                  : ((placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cash') || (placedOrderDetails?.paymentMethod || '').toLowerCase().includes('cod')
+                    ? `Thank you for purchasing with Atomy India. Your order has been placed and is being prepared for doorstep dispatch. Payment of ₹${(placedOrderDetails?.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} will be collected upon parcel delivery.`
+                    : 'Thank you for purchasing with Atomy India. Your order has been placed and is being prepared for doorstep dispatch.')}
               </p>
 
               {/* Order Quick Summary Card */}
@@ -2454,31 +2790,85 @@ export default function OrderSheetPage({
                     </span>
                   </div>
 
-                  {/* Delivery destination summary */}
-                  <div className="destination-summary-box">
-                    <MapPin size={18} color="#00A3E0" />
-                    <div>
-                      <strong>Delivery Destination:</strong>
-                      <p>{placedOrderDetails.address.fullAddress}</p>
-                      <span>Recipient: {placedOrderDetails.recipient} ({placedOrderDetails.phone})</span>
+                  {/* Delivery destination / Hub Pickup summary */}
+                  {placedOrderDetails.fulfillmentType === 'STORE_PICKUP' ? (
+                    <div className="destination-summary-box" style={{ background: '#f0fdf4', border: '1.5px solid #86efac', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Store size={22} color="#16a34a" />
+                        <div>
+                          <strong style={{ color: '#15803d', fontSize: '14px' }}>
+                            {placedOrderDetails.hubName || 'Atomy Regional Logistics Hub'} (Direct Store Pickup)
+                          </strong>
+                          <p style={{ margin: '2px 0 0', color: '#1e293b', fontSize: '13px', fontWeight: 600 }}>
+                            📍 {placedOrderDetails.hubAddress || `Regional Hub (PIN: ${placedOrderDetails.pincode})`}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12.5px', color: '#334155', background: '#ffffff', padding: '10px 12px', borderRadius: '6px', border: '1px solid #bbf7d0', marginTop: '4px' }}>
+                        <div>
+                          <span style={{ color: '#64748b' }}>Hub Manager: </span>
+                          <strong>{placedOrderDetails.hubContactPerson || 'Hub Manager'}</strong>
+                        </div>
+                        {placedOrderDetails.hubPhone && (
+                          <div>
+                            <span style={{ color: '#64748b' }}>Contact Number: </span>
+                            <a href={`tel:${placedOrderDetails.hubPhone.replace(/\s+/g, '')}`} style={{ color: '#0284c7', fontWeight: 600, textDecoration: 'none' }}>
+                              📞 {placedOrderDetails.hubPhone}
+                            </a>
+                          </div>
+                        )}
+                        <div>
+                          <span style={{ color: '#64748b' }}>Pickup Code / Order ID: </span>
+                          <strong style={{ color: '#0284c7' }}>#{placedOrderDetails.orderId}</strong>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#166534' }}>
+                        Authorized Collector: <strong>{placedOrderDetails.recipient || customerName}</strong> (+91 {placedOrderDetails.phone || customerPhone})
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="destination-summary-box">
+                      <MapPin size={18} color="#00A3E0" />
+                      <div>
+                        <strong>Delivery Destination:</strong>
+                        <p>{placedOrderDetails.address?.fullAddress || placedOrderDetails.address}</p>
+                        <span>Recipient: {placedOrderDetails.recipient} ({placedOrderDetails.phone})</span>
+                      </div>
+                    </div>
+                  )}
 
-                  {/* Prominent Estimated Delivery Date Box */}
-                  <div className="delivery-confirmed-eta-box">
-                    <div className="eta-icon-circle">
-                      <Truck size={22} color="#00A3E0" />
-                    </div>
-                    <div className="eta-content">
-                      <div className="eta-badge">Doorstep Express Delivery</div>
-                      <div className="eta-dates">
-                        Estimated Delivery: <strong>{placedOrderDetails.estimatedDeliveryDate || estimatedDeliveryInfo.dateRange}</strong>
+                  {/* Estimated Delivery / Store Pickup Banner */}
+                  {placedOrderDetails.fulfillmentType === 'STORE_PICKUP' ? (
+                    <div className="delivery-confirmed-eta-box" style={{ background: '#ecfdf5', borderColor: '#a7f3d0' }}>
+                      <div className="eta-icon-circle" style={{ background: '#10b981' }}>
+                        <Store size={22} color="#ffffff" />
                       </div>
-                      <div className="eta-sub">
-                        Standard transit: {placedOrderDetails.estimatedDelivery || estimatedDeliveryInfo.timeFrame} • Courier: {placedOrderDetails.courier || 'Blue Dart Express'} (Tracking: {placedOrderDetails.trackingNumber})
+                      <div className="eta-content">
+                        <div className="eta-badge" style={{ background: '#10b981' }}>Direct Hub Self-Pickup • ₹0 Fee</div>
+                        <div className="eta-dates" style={{ color: '#065f46' }}>
+                          Ready for Collection: <strong>Estimated Within 24 Hours</strong>
+                        </div>
+                        <div className="eta-sub" style={{ color: '#047857' }}>
+                          Present your printed invoice or Order ID #{placedOrderDetails.orderId} at the hub counter to collect your parcel.
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="delivery-confirmed-eta-box">
+                      <div className="eta-icon-circle">
+                        <Truck size={22} color="#00A3E0" />
+                      </div>
+                      <div className="eta-content">
+                        <div className="eta-badge">Doorstep Express Delivery</div>
+                        <div className="eta-dates">
+                          Estimated Delivery: <strong>{placedOrderDetails.estimatedDeliveryDate || estimatedDeliveryInfo.dateRange}</strong>
+                        </div>
+                        <div className="eta-sub">
+                          Standard transit: {placedOrderDetails.estimatedDelivery || estimatedDeliveryInfo.timeFrame} • Courier: {placedOrderDetails.courier || 'Blue Dart Express'} (Tracking: {placedOrderDetails.trackingNumber})
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Ordered Items List */}
                   <div className="confirmed-items-list">

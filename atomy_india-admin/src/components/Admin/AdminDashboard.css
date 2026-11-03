@@ -1494,11 +1494,26 @@
 
 .clear-search-btn {
   position: absolute;
-  right: 10px;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   background: transparent;
   border: none;
   color: #94a3b8;
   cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.clear-search-btn:hover {
+  background-color: #f1f5f9;
+  color: #334155;
 }
 
 .category-pill-group {

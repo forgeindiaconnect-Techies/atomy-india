@@ -867,6 +867,47 @@
   .cate-top-bar {
     padding: 20px 0 14px;
   }
+
+  /* Category Hero Slider Mobile Alignment (Bug 2) */
+  .cate-mnBn {
+    height: 220px !important;
+    min-height: 220px !important;
+    max-height: 220px !important;
+  }
+  .cate-mnBn .slideBx_txt {
+    left: 20px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    max-width: 62% !important;
+  }
+  .cate-mnBn .slideBx_txt_tit {
+    font-size: 20px !important;
+    line-height: 26px !important;
+  }
+  .cate-mnBn .slideBx_txt_sub {
+    font-size: 13px !important;
+    line-height: 18px !important;
+    margin-top: 6px !important;
+  }
+  .cate-mnBn .slideBx_txt_arw {
+    display: none !important;
+  }
+  .cate-mnBn .slideBx_img img {
+    object-position: right center !important;
+  }
+  .swiper-control.btn_bk {
+    display: none !important;
+  }
+
+  /* Category Product Cards - Add to Cart Button Alignment (Bug 1) */
+  .cate-cart-btn {
+    bottom: 8px !important;
+    right: 8px !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -882,5 +923,31 @@
   .cate-card-title {
     font-size: 13px;
     line-height: 1.35;
+  }
+
+  /* Extra compact category banner */
+  .cate-mnBn {
+    height: 195px !important;
+    min-height: 195px !important;
+    max-height: 195px !important;
+  }
+  .cate-mnBn .slideBx_txt {
+    left: 14px !important;
+    max-width: 64% !important;
+  }
+  .cate-mnBn .slideBx_txt_tit {
+    font-size: 17px !important;
+    line-height: 22px !important;
+  }
+  .cate-mnBn .slideBx_txt_sub {
+    font-size: 12px !important;
+    line-height: 16px !important;
+    margin-top: 4px !important;
+  }
+  .cate-cart-btn {
+    bottom: 6px !important;
+    right: 6px !important;
+    width: 34px !important;
+    height: 34px !important;
   }
 }

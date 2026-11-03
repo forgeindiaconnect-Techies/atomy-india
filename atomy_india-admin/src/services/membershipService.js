@@ -2,11 +2,11 @@
 // Manages single-class Atomy Distributor Membership, Monthly & Annual plans, and Member Registry
 // Synced with Spring Boot Backend & MongoDB Atlas database
 
-const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india.onrender.com/api').trim().replace(/\/+$/, '');
+const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
 const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 const ADMIN_MEMBERSHIP_API = `${API_BASE}/admin/membership`;
-const CLOUD_MEMBERSHIP_API = 'https://atomy-india.onrender.com/api/admin/membership';
+const CLOUD_MEMBERSHIP_API = 'https://atomy-india-lqsy.onrender.com/api/admin/membership';
 
 const SETTINGS_KEY = 'atomy_membership_settings';
 const MEMBERS_KEY = 'atomy_members_registry';

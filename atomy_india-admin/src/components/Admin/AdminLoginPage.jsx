@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import ficLogo from '../../assets/fic-symbol.png';
 import IndiaMap from '../Header/IndiaMap';
+import { loginAdminOrDistributor } from '../../services/distributorService';
 import './AdminLoginPage.css';
 
 export default function AdminLoginPage({ onLoginSuccess, onBackToStore }) {
@@ -24,7 +25,7 @@ export default function AdminLoginPage({ onLoginSuccess, onBackToStore }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -33,39 +34,29 @@ export default function AdminLoginPage({ onLoginSuccess, onBackToStore }) {
     const trimmedPass = password.trim();
 
     if (!trimmedUser || !trimmedPass) {
-      setErrorMsg('Please enter both your Admin ID/Email and password.');
+      setErrorMsg('Please enter both your Admin/Distributor ID and password.');
       return;
     }
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      // Authorized Administrative Credentials
-      const authorizedAdminUsers = [
-        'naveen.admin@atomy.com',
-        'admin@atomy.in',
-        'admin'
-      ];
-      const isValid = authorizedAdminUsers.includes(trimmedUser.toLowerCase()) && trimmedPass === 'admin123';
+    try {
+      const authUser = await loginAdminOrDistributor(trimmedUser, trimmedPass);
+      const isDistributor = authUser.role === 'DISTRIBUTOR_ADMIN';
 
-      if (!isValid) {
-        setIsLoading(false);
-        setErrorMsg('Invalid administrative credentials. Access denied. Please enter the authorized administrator email and password.');
-        return;
-      }
-
-      setSuccessMsg('Authentication verified. Loading Operations Console...');
+      setSuccessMsg(
+        isDistributor
+          ? `Authentication verified. Loading Regional Distributor Hub (${authUser.primaryPincode || 'Territory'})...`
+          : 'Authentication verified. Loading Operations Console...'
+      );
 
       const adminUser = {
-        name: trimmedUser.toLowerCase().includes('naveen') ? 'Naveen Sourabh Pal' : 'Atomy Operations Admin',
-        email: trimmedUser.includes('@') ? trimmedUser : `${trimmedUser}@atomy.in`,
-        role: 'Super Administrator',
-        employeeId: 'AT-IN-001',
-        department: 'E-Commerce Operations & Supply Chain',
-        location: 'Gurugram HQ, India',
-        twoFactorEnabled: true,
-        lastLogin: 'Just now (IST)',
-        sessionIp: '192.168.1.104 (Secure VPN)'
+        ...authUser,
+        name: authUser.name || authUser.contactPerson || authUser.businessName || 'Atomy Administrator',
+        email: authUser.email || (trimmedUser.includes('@') ? trimmedUser : `${trimmedUser}@atomy.in`),
+        role: authUser.role || 'SUPER_ADMIN',
+        roleTitle: isDistributor ? 'Regional Distributor Sub-Admin' : 'Super Administrator',
+        lastLogin: 'Just now (IST)'
       };
 
       if (rememberMe) {
@@ -87,8 +78,11 @@ export default function AdminLoginPage({ onLoginSuccess, onBackToStore }) {
         if (onLoginSuccess) {
           onLoginSuccess(adminUser);
         }
-      }, 500);
-    }, 600);
+      }, 400);
+    } catch (err) {
+      setIsLoading(false);
+      setErrorMsg(err.message || 'Invalid administrative credentials. Access denied.');
+    }
   };
 
   return (
