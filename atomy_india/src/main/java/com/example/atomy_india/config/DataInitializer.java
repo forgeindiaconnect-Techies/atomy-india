@@ -81,7 +81,14 @@ public class DataInitializer implements CommandLineRunner {
                 if (!mongoTemplate.collectionExists(col)) {
                     mongoTemplate.createCollection(col);
                 }
-            } catch (Exception ex) {
+                // 8. Reconcile Atomy Noni Drink D00170 tags to #GST REDUCED, #FREE DELIVERY
+            productRepository.findById("D00170").ifPresent(p -> {
+                p.setTags("#GST REDUCED, #FREE DELIVERY");
+                p.setGstReduced(true);
+                p.setFreeDelivery(true);
+                productRepository.save(p);
+            });
+        } catch (Exception ex) {
                 System.err.println("Notice: collection check for " + col + ": " + ex.getMessage());
             }
         }
@@ -257,6 +264,13 @@ public class DataInitializer implements CommandLineRunner {
                 }
                 System.out.println("Synchronized order_items collection with customer_orders.");
             }
+            // 8. Reconcile Atomy Noni Drink D00170 tags to #GST REDUCED, #FREE DELIVERY
+            productRepository.findById("D00170").ifPresent(p -> {
+                p.setTags("#GST REDUCED, #FREE DELIVERY");
+                p.setGstReduced(true);
+                p.setFreeDelivery(true);
+                productRepository.save(p);
+            });
         } catch (Exception ex) {
             System.err.println("Notice: sync order_items: " + ex.getMessage());
         }
@@ -517,7 +531,21 @@ public class DataInitializer implements CommandLineRunner {
                     }
                 }
             }
-        } catch (Exception ex) {
+            // 8. Reconcile Atomy Noni Drink D00170 tags to #GST REDUCED, #FREE DELIVERY
+            productRepository.findById("D00170").ifPresent(p -> {
+                p.setTags("#GST REDUCED, #FREE DELIVERY");
+                p.setGstReduced(true);
+                p.setFreeDelivery(true);
+                productRepository.save(p);
+            });
+                    // 8. Reconcile Atomy Noni Drink D00170 tags to remove improper #Immunity
+            productRepository.findById("D00170").ifPresent(prod -> {
+                prod.setTags("#GST REDUCED, #FREE DELIVERY");
+                prod.setGstReduced(true);
+                prod.setFreeDelivery(true);
+                productRepository.save(prod);
+            });
+} catch (Exception ex) {
             System.err.println("Notice: error seeding pincodes/distributors: " + (ex.getMessage() != null ? ex.getMessage() : ex.toString()));
         }
     }

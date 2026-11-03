@@ -160,11 +160,27 @@ export function mergeProductIntoCatalog(product) {
       ? Number(product.distributorPrice)
       : (official?.dpPrice ?? null));
 
-  const normalizedTags = Array.isArray(product.tags)
-    ? product.tags
-    : typeof product.tags === 'string'
-      ? product.tags.split(',').map(t => t.trim()).filter(Boolean)
-      : [];
+  const tagSet = new Set();
+  if (Array.isArray(product.tags)) {
+    product.tags.forEach(t => {
+      if (t) {
+        const clean = String(t).trim();
+        tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
+      }
+    });
+  } else if (typeof product.tags === 'string' && product.tags.trim()) {
+    product.tags.split(',').forEach(t => {
+      const clean = t.trim();
+      if (clean) tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
+    });
+  }
+  if (product.gstReduced) {
+    tagSet.add('#GST REDUCED');
+  }
+  if (product.freeDelivery) {
+    tagSet.add('#FREE DELIVERY');
+  }
+  const normalizedTags = Array.from(tagSet);
 
   const formattedPrice = `₹ ${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const formattedOriginalPrice = `₹ ${originalPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

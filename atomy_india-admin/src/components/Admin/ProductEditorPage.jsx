@@ -840,6 +840,37 @@ export default function ProductEditorPage({
                       );
                     })}
                   </div>
+                  <div style={{ marginTop: '10px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                      Configured Product Hashtags (Customizable):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. #GST REDUCED, #FREE DELIVERY"
+                      value={Array.isArray(formData.tags) ? formData.tags.join(', ') : (formData.tags || '')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const parsed = val.split(',').map(s => s.trim()).filter(Boolean);
+                        setFormData({
+                          ...formData,
+                          tags: parsed,
+                          gstReduced: parsed.some(t => t.toUpperCase().includes('GST')),
+                          freeDelivery: parsed.some(t => t.toUpperCase().includes('FREE DELIVERY'))
+                        });
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '7px 12px',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        color: '#1e293b'
+                      }}
+                    />
+                    <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '3px' }}>
+                      Tip: You can add or remove any custom hashtag here. Changes sync dynamically across Inventory and Customer Storefront.
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

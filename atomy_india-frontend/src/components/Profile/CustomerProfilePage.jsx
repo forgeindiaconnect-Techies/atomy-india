@@ -80,32 +80,14 @@ export default function CustomerProfilePage({
   
   // Profile edit form state
   const [profileForm, setProfileForm] = useState(() => {
-    const rawPhone = currentUser?.phone;
-    const finalPhone = (!rawPhone || rawPhone.includes('9876543210') || rawPhone.includes('98765 43210'))
-      ? '+91 93630 63276'
-      : rawPhone;
     return {
-      name: currentUser?.name || 'Customer',
+      name: currentUser?.fullName || currentUser?.name || 'Customer',
       email: currentUser?.email || 'customer@atomy.in',
-      phone: finalPhone,
+      phone: currentUser?.phone || '',
       gender: currentUser?.gender || 'Prefer not to say',
       dob: currentUser?.dob || '1995-08-15'
     };
   });
-
-  // Sync phone number to +91 93630 63276 if unassigned or default demo number
-  useEffect(() => {
-    if (currentUser) {
-      const p = currentUser.phone;
-      if (!p || p.includes('9876543210') || p.includes('98765 43210')) {
-        const updated = { ...currentUser, phone: '+91 93630 63276' };
-        if (onUpdateUser) {
-          onUpdateUser(updated);
-        }
-        setProfileForm(prev => ({ ...prev, phone: '+91 93630 63276' }));
-      }
-    }
-  }, [currentUser, onUpdateUser]);
 
 
 
@@ -406,7 +388,7 @@ export default function CustomerProfilePage({
       }
       return sum;
     }, 0);
-    const userPv = Number(currentUser?.pv) || (currentUser?.email?.includes('naveen') ? 319650 : 0);
+    const userPv = Number(currentUser?.pv || currentUser?.totalPv || 0);
     return Math.max(fromOrders, userPv);
   }, [placedOrders, currentUser]);
 
@@ -713,7 +695,7 @@ export default function CustomerProfilePage({
           <div className="profile-pv-stats-card">
             <div className="pv-stat-item">
               <span className="pv-stat-label">Personal PV</span>
-              <span className="pv-stat-value">{(availablePV > 0 ? availablePV : 319650).toLocaleString('en-IN')} PV</span>
+              <span className="pv-stat-value">{(availablePV || 0).toLocaleString('en-IN')} PV</span>
             </div>
             <div className="pv-stat-divider"></div>
             <div className="pv-stat-item">

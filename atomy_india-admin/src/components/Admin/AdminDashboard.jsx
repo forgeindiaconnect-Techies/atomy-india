@@ -2858,6 +2858,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                       Free Delivery
                                     </span>
                                   )}
+                                  {(Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? p.tags.split(',') : []))
+                                    .map(t => String(t).trim())
+                                    .filter(t => t && !t.toUpperCase().includes('GST') && !t.toUpperCase().includes('FREE DELIVERY'))
+                                    .map((tag, idx) => (
+                                      <span key={idx} style={{ fontSize: '10.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 7px', borderRadius: '4px' }}>
+                                        {tag.startsWith('#') ? tag : '#' + tag}
+                                      </span>
+                                    ))}
                                 </div>
                               </td>
                               <td>

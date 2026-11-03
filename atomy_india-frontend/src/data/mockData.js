@@ -352,7 +352,7 @@ export const BEST_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00170/org/350/260401000051350.jpg?w=480&h=480",
     gstReduced: true,
     likes: 184,
-    tags: ["#GST REDUCED", "#Immunity"],
+    tags: ["#GST REDUCED", "#FREE DELIVERY"],
     freeDelivery: true,
     categoryTab: ["RECOMMENDATION"],
     dpPrice: 4830.0,
@@ -1150,9 +1150,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1168,9 +1170,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1186,9 +1190,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       }
@@ -1207,9 +1213,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1225,9 +1233,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1243,9 +1253,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       }
@@ -1281,9 +1293,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -1299,9 +1313,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -1353,9 +1369,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1371,9 +1389,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1389,9 +1409,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": true
       },
@@ -1407,9 +1429,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1425,9 +1449,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -1464,9 +1490,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -1482,9 +1510,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -1518,9 +1548,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -1536,9 +1568,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1554,9 +1588,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1572,9 +1608,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": true
       },
@@ -1590,9 +1628,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -1608,9 +1648,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -2430,9 +2472,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Makeup",
         "category": "BEAUTY",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2576,9 +2620,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Health Food",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2594,9 +2640,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Health Food",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -2612,9 +2660,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Tea & Coffee",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       }
@@ -2633,9 +2683,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Health Food",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2651,9 +2703,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Health Food",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -2669,9 +2723,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Tea & Coffee",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       }
@@ -2719,9 +2775,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2737,9 +2795,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2755,9 +2815,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2773,9 +2835,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2791,9 +2855,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2809,9 +2875,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2827,9 +2895,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2863,9 +2933,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2919,9 +2991,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -2991,9 +3065,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3083,9 +3159,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3101,9 +3179,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3119,9 +3199,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3137,9 +3219,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3155,9 +3239,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3173,9 +3259,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3191,9 +3279,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3227,9 +3317,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3479,9 +3571,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       }
@@ -3909,9 +4003,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3927,9 +4023,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3945,9 +4043,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -3963,9 +4063,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -3981,9 +4083,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -4017,9 +4121,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -4035,9 +4141,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -4053,9 +4161,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -4071,9 +4181,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": true
       }
@@ -4091,9 +4203,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -4109,9 +4223,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -4127,9 +4243,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "All",
         "category": "HEMOHIM",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -4145,9 +4263,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -4163,9 +4283,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -4199,9 +4321,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -4217,9 +4341,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -4235,9 +4361,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -4253,9 +4381,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": true
       },
@@ -4271,9 +4401,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Supplements",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -4289,9 +4421,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Vegetarian",
         "category": "HEALTH",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -4901,9 +5035,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Makeup",
         "category": "BEAUTY",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5027,9 +5163,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Health Food",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5045,9 +5183,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Health Food",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -5063,9 +5203,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Tea & Coffee",
         "category": "FOOD",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": true,
         "isNonVeg": false
       },
@@ -5081,9 +5223,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5099,9 +5243,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5117,9 +5263,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5135,9 +5283,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5153,9 +5303,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5171,9 +5323,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5189,9 +5343,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5225,9 +5381,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },
@@ -5477,9 +5635,11 @@ export const CATEGORY_CONFIGS = {
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
         "tags": [
-          "#GST REDUCED"
+          "#GST REDUCED",
+          "#FREE DELIVERY"
         ],
         "gstReduced": true,
+        "freeDelivery": true,
         "isVeg": false,
         "isNonVeg": false
       },

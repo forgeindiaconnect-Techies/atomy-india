@@ -133,6 +133,63 @@ export default function CategoryPage({
     return <ProductPriceDisplay product={product} isMember={isMember} />;
   };
 
+  // Helper to resolve and render product hashtags (#GST REDUCED, #FREE DELIVERY, etc.)
+  const renderProductTags = (product) => {
+    if (!product) return null;
+    const tagSet = new Set();
+
+    // 1. Existing tags from catalog or backend
+    if (Array.isArray(product.tags)) {
+      product.tags.forEach(t => {
+        if (t) {
+          const clean = String(t).trim();
+          tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
+        }
+      });
+    } else if (typeof product.tags === 'string' && product.tags.trim()) {
+      product.tags.split(',').forEach(t => {
+        const clean = t.trim();
+        if (clean) tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
+      });
+    }
+
+    // 2. GST Reduced tag
+    if (product.gstReduced || product.isGstReduced) {
+      tagSet.add('#GST REDUCED');
+    }
+
+    // 3. Free Delivery tag
+    if (product.freeDelivery) {
+      tagSet.add('#FREE DELIVERY');
+    }
+
+    // 4. Fallback subtopic if tags are empty
+    if (tagSet.size === 0 && product.subTopic && product.subTopic !== 'All') {
+      tagSet.add(`#${product.subTopic}`);
+    }
+
+    const tags = Array.from(tagSet);
+    if (tags.length === 0) return null;
+
+    return (
+      <div className="cate-product-tags-row">
+        {tags.map((tag, tIdx) => {
+          const lower = tag.toLowerCase();
+          const isGst = lower.includes('gst');
+          const isFree = lower.includes('free delivery') || lower.includes('free_delivery');
+          return (
+            <span
+              key={tIdx}
+              className={`cate-product-tag ${isGst ? 'tag-gst' : ''} ${isFree ? 'tag-free-delivery' : ''}`}
+            >
+              {tag}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
   // Reset states when category changes
   useEffect(() => {
     setIsBannerTransitionEnabled(false);
@@ -621,6 +678,7 @@ export default function CategoryPage({
                         {product.name}
                       </h4>
                       {renderPricing(product)}
+                      {renderProductTags(product)}
                       {product.likes && (
                         <div className="cate-product-meta">
                           <span className="cate-likes-text">{product.likes}</span>
@@ -740,6 +798,7 @@ export default function CategoryPage({
                         {product.name}
                       </h4>
                       {renderPricing(product)}
+                      {renderProductTags(product)}
                       {product.likes && (
                         <div className="cate-product-meta">
                           <span className="cate-likes-text">{product.likes}</span>
@@ -873,6 +932,7 @@ export default function CategoryPage({
                     {product.name}
                   </h4>
                   {renderPricing(product)}
+                  {renderProductTags(product)}
                   {product.likes && (
                     <div className="cate-product-meta">
                       <span className="cate-likes-text">{product.likes}</span>

@@ -19,6 +19,8 @@ public class CustomerUser {
     @Field("full_name")
     private String fullName;
 
+    private String name;
+
     @Indexed(unique = true)
     private String username;
 
@@ -79,11 +81,31 @@ public class CustomerUser {
     }
 
     public String getFullName() {
-        return fullName;
+        if (fullName != null && !fullName.trim().isEmpty()) {
+            return fullName;
+        }
+        return name;
     }
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+        if (this.name == null || this.name.trim().isEmpty()) {
+            this.name = fullName;
+        }
+    }
+
+    public String getName() {
+        if (name != null && !name.trim().isEmpty()) {
+            return name;
+        }
+        return fullName;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        if (this.fullName == null || this.fullName.trim().isEmpty()) {
+            this.fullName = name;
+        }
     }
 
     public String getUsername() {

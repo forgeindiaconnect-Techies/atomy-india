@@ -936,8 +936,8 @@ export default function OrderSheetPage({
         } catch { return {}; }
       })();
       const customerName = currentUser?.name || currentUser?.fullName || storedUser?.name || storedUser?.fullName || currentSelectedAddress?.recipientName || 'Valued Customer';
-      const customerPhone = currentUser?.phone || storedUser?.phone || currentSelectedAddress?.recipientPhone || '9876543210';
-      const customerEmail = currentUser?.email || storedUser?.email || currentSelectedAddress?.email || 'naveen.mn7878@gmail.com';
+      const customerPhone = currentUser?.phone || storedUser?.phone || currentSelectedAddress?.recipientPhone || '';
+      const customerEmail = currentUser?.email || storedUser?.email || currentSelectedAddress?.email || '';
       const fullRecipientName = currentSelectedAddress?.recipientName || customerName;
       const fullRecipientPhone = currentSelectedAddress?.recipientPhone || customerPhone;
       const fullShippingAddress = currentSelectedAddress 

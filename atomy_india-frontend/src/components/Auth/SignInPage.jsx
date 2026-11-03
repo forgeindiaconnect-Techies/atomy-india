@@ -196,56 +196,10 @@ export default function SignInPage({
 
         onLoginSuccess && onLoginSuccess(userData, true);
       } else {
-        let loginRes = null;
-        let isOfflineFallback = false;
-        try {
-          loginRes = await loginCustomer({
-            usernameOrEmail: username.trim(),
-            password: password
-          });
-        } catch (apiErr) {
-          const errStr = String(apiErr?.message || '').toLowerCase();
-          if (errStr.includes('fetch') || errStr.includes('network') || errStr.includes('503') || errStr.includes('suspended') || errStr.includes('failed to fetch')) {
-            isOfflineFallback = true;
-          } else {
-            throw apiErr;
-          }
-        }
-
-        if (isOfflineFallback) {
-          // Gracefully authenticate user with offline fallback session when Render server is suspended
-          const inputVal = username.trim().toLowerCase();
-          let fallbackUser = null;
-          try {
-            const cached = JSON.parse(localStorage.getItem('atomy_current_user') || 'null');
-            if (cached && (cached.email?.toLowerCase() === inputVal || cached.username?.toLowerCase() === inputVal)) {
-              fallbackUser = cached;
-            }
-          } catch {}
-
-          if (!fallbackUser) {
-            const rawName = inputVal.includes('@') ? inputVal.split('@')[0].replace(/[._-]/g, ' ') : inputVal;
-            const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-            fallbackUser = {
-              id: `CUST-LOCAL-${Date.now().toString().slice(-6)}`,
-              customerId: `CUST-${new Date().toISOString().replace(/\D/g, '').slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
-              name: formattedName,
-              email: inputVal.includes('@') ? inputVal : `${inputVal}@example.com`,
-              username: inputVal.split('@')[0],
-              phone: '+919876543210',
-              isMember: true,
-              role: 'customer',
-              isOfflineSession: true
-            };
-          }
-
-          if (saveId) {
-            localStorage.setItem('atomy_saved_id', username.trim());
-          }
-          clearAdSuppressionForLogin();
-          onLoginSuccess && onLoginSuccess(fallbackUser, false);
-          return;
-        }
+        const loginRes = await loginCustomer({
+          usernameOrEmail: username.trim(),
+          password: password
+        });
 
         if (!loginRes || !loginRes.customer) {
           throw new Error(loginRes?.message || 'Invalid username or password.');
@@ -262,7 +216,7 @@ export default function SignInPage({
         const userData = {
           id: loginRes.customer.id,
           customerId: loginRes.customer.customerId,
-          name: loginRes.customer.fullName || username.trim(),
+          name: loginRes.customer.fullName || loginRes.customer.name || username.trim(),
           email: loginRes.customer.email,
           username: loginRes.customer.username || username.trim(),
           phone: loginRes.customer.phone || '',
