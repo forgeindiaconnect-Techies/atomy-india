@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   IndianRupee, 
   Package, 
@@ -16,8 +16,12 @@ import {
   ArrowRight,
   ShieldCheck,
   Send,
-  Eye
+  Eye,
+  Bell,
+  Settings
 } from 'lucide-react';
+import { INITIAL_ADMIN_PRODUCTS } from '../../data/defaultAdminProducts';
+import { fetchDistributorInventory } from '../../services/distributorService';
 import '../Admin/AdminDashboard.css';
 
 export default function DistributorOverviewTab({ 
@@ -28,12 +32,29 @@ export default function DistributorOverviewTab({
   onNavigateTab, 
   onSelectOrderForDispatch 
 }) {
+  const [products, setProducts] = useState(INITIAL_ADMIN_PRODUCTS || []);
+
+  const distId = String(distributor?.distributorId || distributor?.id || 'DIST-635002').toLowerCase();
+
+  useEffect(() => {
+    let isMounted = true;
+    const targetDistId = distributor?.distributorId || distributor?.id || 'DIST-635002';
+    fetchDistributorInventory(targetDistId)
+      .then(data => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setProducts(data);
+        }
+      })
+      .catch(err => {
+        console.warn('Using default catalog for hub overview:', err);
+      });
+    return () => { isMounted = false; };
+  }, [distributor?.distributorId, distributor?.id]);
+
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
   const validPins = new Set(Array.isArray(assignedPins) ? assignedPins : []);
   if (distributor?.primaryPincode) validPins.add(String(distributor.primaryPincode).trim());
   if (validPins.size === 0) validPins.add('635002');
-
-  const distId = String(distributor?.distributorId || distributor?.id || 'DIST-635002').toLowerCase();
 
   // Territory orders strictly for assigned PIN codes
   const territoryOrders = orders.filter(o => {
@@ -84,7 +105,28 @@ export default function DistributorOverviewTab({
     return new Date() > deadline;
   });
 
-  const recentOrders = territoryOrders.slice(0, 8);
+  const resolveOrderItems = (order) => {
+    if (!order) return [];
+    const rawItems = (Array.isArray(order.items) && order.items.length > 0)
+      ? order.items
+      : (Number(order.totalAmount) > 0 ? [{ price: order.totalAmount, qty: 1 }] : []);
+
+    return rawItems.map(it => {
+      const rawCode = String(it.productId || it.id || it.code || it.productCode || it.sku || '').trim();
+      const rawName = String(it.productName || it.name || it.title || '').trim();
+      const rawPrice = Number(it.unitPrice ?? it.price ?? 0);
+
+      const matched = 
+        (rawCode ? INITIAL_ADMIN_PRODUCTS.find(p => p && String(p.id).toLowerCase() === rawCode.toLowerCase()) : null) ||
+        (rawName ? INITIAL_ADMIN_PRODUCTS.find(p => p && p.name && p.name.toLowerCase() === rawName.toLowerCase()) : null) ||
+        (rawPrice > 0 ? INITIAL_ADMIN_PRODUCTS.find(p => Number(p.price) === rawPrice) : null);
+
+      return {
+        name: rawName || matched?.name || (rawCode ? `Atomy Product (${rawCode})` : 'Atomy Authentic Product'),
+        quantity: Number(it.quantity ?? it.qty ?? it.count ?? 1) || 1
+      };
+    });
+  };
 
   return (
     <div>
@@ -93,7 +135,7 @@ export default function DistributorOverviewTab({
         <div>
           <h2 className="content-title">Territory Overview &amp; Regional Hub KPIs</h2>
           <p className="content-subtitle">
-            Real-time fulfillment metrics, Blue Dart dispatch SLAs, and commission payouts for PIN: <strong>{distributor?.primaryPincode}</strong> ({distributor?.city || 'Regional Hub'}, {distributor?.state || 'India'})
+            Real-time fulfillment metrics, Blue Dart dispatch SLAs, and inventory management for PIN: <strong>{distributor?.primaryPincode}</strong> ({distributor?.city || 'Regional Hub'}, {distributor?.state || 'India'})
           </p>
         </div>
         <div className="heading-actions-cluster">
@@ -164,12 +206,12 @@ export default function DistributorOverviewTab({
           </div>
         </div>
 
-        {/* Card 3: Overall Total Sale & Commission */}
+        {/* Card 3: Overall Total Sale (Identical to Super Admin) */}
         <div 
           className="kpi-curve-card interactive-kpi-card" 
           style={{ '--accent-color': '#334155', cursor: 'pointer' }}
           onClick={() => onNavigateTab('finance')}
-          title="Open Commission Ledger"
+          title="Open Financial Ledger & Settlements"
         >
           <div className="kpi-curve-corner-accent"></div>
           <div className="kpi-curve-content">
@@ -178,7 +220,7 @@ export default function DistributorOverviewTab({
               ₹ {totalRev.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
             <div className="kpi-curve-sub">
-              Your Commission ({commRate}%): <strong style={{ color: '#15803d' }}>+₹{Math.round(totalComm).toLocaleString('en-IN')}</strong> • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Settlements →</span>
+              Total lifetime territory revenue across all orders • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Settlements →</span>
             </div>
           </div>
           <div className="kpi-curve-right-wing">
@@ -366,174 +408,114 @@ export default function DistributorOverviewTab({
             </div>
           </div>
         </div>
-
-        {/* Step 06: EARNED COMMISSION */}
-        <div
-          className="kpi-step-card"
-          style={{ '--step-bg': '#ecfdf5', '--step-color': '#059669' }}
-          onClick={() => onNavigateTab('finance')}
-          title="View Financial Commission Ledger"
-        >
-          <div className="kpi-step-top-header">
-            <div className="kpi-step-icon-badge">
-              <IndianRupee size={20} color="#059669" />
-            </div>
-            <div className="kpi-step-number">06</div>
-            <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
-              <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
-            </svg>
-          </div>
-          <div className="kpi-step-body">
-            <div className="kpi-step-title">EARNED COMM.</div>
-            <div className="kpi-step-val" style={{ color: '#059669' }}>
-              ₹{Math.round(totalComm).toLocaleString('en-IN')}
-            </div>
-            <div className="kpi-step-sub">{commRate}% Partner Rate</div>
-          </div>
-        </div>
       </div>
 
-      {/* 5. Recent Orders Table in Master Admin Card using .atomy-data-table */}
-      <div className="admin-card" style={{ marginBottom: '32px' }}>
-        <div className="card-title-row" style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
-          <div>
-            <h3 className="card-title" style={{ fontSize: '16.5px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-              Recent Territory Customer Orders
-            </h3>
-            <p className="card-subtitle" style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-              Live customer orders automatically routed to your regional hub based on delivery PIN code
-            </p>
+      {/* 5. Overview Details Split (Identical to Super Admin) */}
+      <div className="atomy-overview-split" style={{ marginBottom: '32px' }}>
+        {/* Left Box: Recent Customer Orders */}
+        <div className="atomy-card-box">
+          <div className="card-box-header">
+            <div className="box-title-group">
+              <Package size={18} color="#00A3E0" />
+              <h3>Recent Customer Orders</h3>
+            </div>
+            <button className="link-button" onClick={() => onNavigateTab('orders')}>
+              View All Orders ({territoryOrders.length}) →
+            </button>
           </div>
-          <button 
-            type="button" 
-            className="secondary-btn" 
-            onClick={() => onNavigateTab('orders')}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <span>View All ({orders.length})</span>
-            <ArrowRight size={14} />
-          </button>
+
+          {territoryOrders.length === 0 ? (
+            <div className="empty-box-note">No customer orders recorded in your territory yet.</div>
+          ) : (
+            <div className="recent-orders-list">
+              {territoryOrders.slice(0, 5).map((o) => (
+                <div
+                  key={o.orderId || o.id}
+                  className="recent-order-row clickable"
+                  onClick={() => {
+                    if (onSelectOrderForDispatch) onSelectOrderForDispatch(o);
+                    else onNavigateTab('orders');
+                  }}
+                  title="Click to view and dispatch order"
+                >
+                  <div className="recent-order-left">
+                    <span className="order-id-badge">{o.orderId || o.id}</span>
+                    <div className="customer-info-line">
+                      <strong>{o.customerName || 'Customer'}</strong> • {o.city || distributor?.city || 'Regional Hub'} ({new Date(o.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                    </div>
+                    <div className="order-items-snippet">
+                      {resolveOrderItems(o).map(it => `${it.name} (x${it.quantity})`).join(', ') || '1 item'}
+                    </div>
+                  </div>
+                  <div className="order-row-right">
+                    <span className="order-price">₹ {Number(o.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className={`status-badge ${(o.orderStatus || 'PLACED').toLowerCase()}`}>{o.orderStatus || 'PLACED'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {recentOrders.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>
-            <Package size={38} color="#cbd5e1" style={{ marginBottom: '10px' }} />
-            <p style={{ margin: 0, fontSize: '14px' }}>No orders recorded in your assigned PIN codes yet.</p>
+        {/* Right Box: Warehouse Stock Health & Quick Action Center */}
+        <div className="atomy-card-box">
+          <div className="card-box-header">
+            <div className="box-title-group">
+              <Boxes size={18} color="#00A3E0" />
+              <h3>Inventory &amp; Stock Health</h3>
+            </div>
+            <button className="link-button" onClick={() => onNavigateTab('inventory')}>
+              Manage Hub Stock →
+            </button>
           </div>
-        ) : (
-          <div className="atomy-table-responsive orders-table-wrapper">
-            <table className="atomy-data-table orders-data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '180px', minWidth: '180px' }}>Order ID &amp; Date</th>
-                  <th style={{ minWidth: '220px' }}>Customer &amp; Address</th>
-                  <th style={{ width: '110px', minWidth: '110px', textAlign: 'center' }}>Delivery PIN</th>
-                  <th style={{ width: '140px', minWidth: '140px', textAlign: 'center' }}>Order Status</th>
-                  <th style={{ width: '130px', minWidth: '130px', textAlign: 'right' }}>Total Amount</th>
-                  <th style={{ width: '130px', minWidth: '130px', textAlign: 'right' }}>Commission</th>
-                  <th style={{ width: '190px', minWidth: '190px' }}>Courier / Tracking</th>
-                  <th style={{ width: '120px', minWidth: '120px', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrders.map((o) => {
-                  const orderAmt = Number(o.totalAmount || 0);
-                  const isCancelled = String(o.orderStatus || '').toUpperCase() === 'CANCELLED';
-                  const earnedCommission = isCancelled ? 0 : ((orderAmt * commRate) / 100);
 
-                  const hasRealTracking = Boolean(o.tracking?.trackingNumber && !o.tracking.trackingNumber.startsWith('MOCK'));
-
-                  return (
-                    <tr key={o.orderId || o.id}>
-                      <td>
-                        <div className="order-id-badge">
-                          <span className="order-id-text">{o.orderId || o.id}</span>
-                        </div>
-                        <div className="order-date-text">
-                          {new Date(o.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="cell-primary-text">{o.customerName || 'Customer'}</div>
-                        <div className="cell-secondary-text">{o.city}, {o.state}</div>
-                      </td>
-
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="pincode-pill">
-                          {o.pincode}
-                        </span>
-                      </td>
-
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`payment-pill ${(o.orderStatus || 'PLACED').toLowerCase()}`}>
-                          {o.orderStatus || 'PLACED'}
-                        </span>
-                      </td>
-
-                      <td style={{ textAlign: 'right' }} className="cell-price-col">
-                        <span className="order-total-amount">
-                          ₹ {orderAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </td>
-
-                      <td style={{ textAlign: 'right' }} className="cell-price-col">
-                        {isCancelled ? (
-                          <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
-                            ₹0.00 (Cancelled)
-                          </span>
-                        ) : (
-                          <span style={{ fontWeight: 700, color: '#16a34a' }}>
-                            +₹{earnedCommission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        )}
-                      </td>
-
-                      <td>
-                        {hasRealTracking ? (
-                          <div>
-                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Truck size={12} /> {o.tracking.courierPartner || 'Blue Dart Express'}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
-                              AWB: <strong>{o.tracking.trackingNumber}</strong>
-                            </div>
-                          </div>
-                        ) : (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            fontSize: '11.5px',
-                            fontWeight: 600,
-                            background: '#f1f5f9',
-                            color: '#64748b'
-                          }}>
-                            Pending Dispatch
-                          </span>
-                        )}
-                      </td>
-
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          className="action-pill-btn tracking"
-                          onClick={() => onSelectOrderForDispatch(o)}
-                          title="Update Tracking / Dispatch Order"
-                        >
-                          <Send size={12} />
-                          <span>Dispatch</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="inv-health-list">
+            <div className="health-row">
+              <span>Total Registered Catalog SKUs</span>
+              <strong>{products.length}</strong>
+            </div>
+            <div className="health-row">
+              <span>In Stock Products</span>
+              <strong className="text-green">
+                {products.filter(p => Number(p.stockQuantity ?? 15) > (p.lowStockThreshold || 10)).length}
+              </strong>
+            </div>
+            <div className="health-row">
+              <span>Low Stock Warnings (&le; 10 units)</span>
+              <strong className="text-yellow">
+                {products.filter(p => Number(p.stockQuantity ?? 15) > 0 && Number(p.stockQuantity ?? 15) <= (p.lowStockThreshold || 10)).length}
+              </strong>
+            </div>
+            <div className="health-row">
+              <span>Out of Stock SKUs</span>
+              <strong className="text-red">
+                {products.filter(p => Number(p.stockQuantity ?? 15) === 0).length}
+              </strong>
+            </div>
           </div>
-        )}
+
+          <div className="quick-actions-box">
+            <div className="quick-actions-title">OPERATIONAL SHORTCUTS</div>
+            <div className="quick-btn-grid">
+              <button className="quick-action-tile" onClick={() => onNavigateTab('inventory')}>
+                <Boxes size={16} />
+                <span>Manage Stock</span>
+              </button>
+              <button className="quick-action-tile" onClick={() => onNavigateTab('orders')}>
+                <Bell size={16} />
+                <span>Review New ({placedCount})</span>
+              </button>
+              <button className="quick-action-tile" onClick={() => onNavigateTab('customers')}>
+                <Users size={16} />
+                <span>Customers ({customers.length})</span>
+              </button>
+              <button className="quick-action-tile" onClick={() => onNavigateTab('settings')}>
+                <Settings size={16} />
+                <span>Hub Settings</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
