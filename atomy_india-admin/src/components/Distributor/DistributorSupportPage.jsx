@@ -70,6 +70,7 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
     message: ''
   });
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [ticketPhoneError, setTicketPhoneError] = useState('');
 
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
   const territoryCustomerEmails = useMemo(() => {
@@ -400,13 +401,30 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
       return;
     }
 
+    const rawDigits = (newTicketForm.customerPhone || '').replace(/\D/g, '');
+    if (!rawDigits) {
+      showToast('Please provide Customer Mobile Number');
+      setTicketPhoneError('Mobile number is required');
+      return;
+    }
+    if (!['6', '7', '8', '9'].includes(rawDigits[0])) {
+      showToast('Mobile number must start only with 6, 7, 8, or 9');
+      setTicketPhoneError('Mobile number must start only with 6, 7, 8, or 9');
+      return;
+    }
+    if (rawDigits.length !== 10) {
+      showToast('Mobile number must be exactly 10 digits');
+      setTicketPhoneError('Mobile number must be exactly 10 digits');
+      return;
+    }
+
     setIsCreatingTicket(true);
     const newId = `TICK-${Date.now().toString().slice(-4)}`;
     const ticketPayload = {
       ticketId: newId,
       customerName: newTicketForm.customerName,
       customerEmail: newTicketForm.customerEmail,
-      customerPhone: newTicketForm.customerPhone || '+91 98000 00000',
+      customerPhone: rawDigits,
       orderId: newTicketForm.orderId || null,
       category: newTicketForm.category,
       priority: newTicketForm.priority,
@@ -439,6 +457,7 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
     setSelectedTicket(ticketPayload);
     setIsCreateModalOpen(false);
     setIsCreatingTicket(false);
+    setTicketPhoneError('');
     setNewTicketForm({
       customerName: '',
       customerEmail: '',
@@ -669,9 +688,9 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
               <>
                 {/* Thread Header */}
                 <div style={{ padding: '18px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <div className="thread-top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', padding: 0 }}>
+                    <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                         <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 800, color: '#0284c7', background: '#e0f2fe', padding: '3px 8px', borderRadius: '6px' }}>
                           #{selectedTicket.ticketId || selectedTicket.id}
                         </span>
@@ -684,17 +703,17 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
                           </span>
                         )}
                       </div>
-                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>
+                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0f172a', wordBreak: 'break-word' }}>
                         {selectedTicket.subject || 'Customer Support Request'}
                       </h3>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>Status:</span>
+                    <div className="thread-status-select-wrap" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Status:</span>
                       <select
                         value={selectedTicket.status}
                         onChange={(e) => handleUpdateStatus(selectedTicket.ticketId || selectedTicket.id, e.target.value)}
-                        style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700, background: '#ffffff', color: '#0f172a' }}
+                        style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700, background: '#ffffff', color: '#0f172a', minWidth: '140px' }}
                       >
                         <option value="OPEN">OPEN</option>
                         <option value="IN_PROGRESS">IN PROGRESS</option>
@@ -1008,7 +1027,7 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
                   <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>Record an offline call or inquiry received at your regional hub.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setIsCreateModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+              <button type="button" onClick={() => { setIsCreateModalOpen(false); setTicketPhoneError(''); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
                 <X size={20} />
               </button>
             </div>
@@ -1042,14 +1061,40 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Customer Phone Number</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Customer Phone Number *</label>
                   <input
                     type="tel"
-                    placeholder="+91 98765 43210"
+                    required
+                    placeholder="10-digit number (starts with 6, 7, 8, or 9)"
+                    maxLength={10}
                     value={newTicketForm.customerPhone}
-                    onChange={(e) => setNewTicketForm({ ...newTicketForm, customerPhone: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setNewTicketForm({ ...newTicketForm, customerPhone: val });
+                      if (!val) {
+                        setTicketPhoneError('');
+                      } else if (!['6', '7', '8', '9'].includes(val[0])) {
+                        setTicketPhoneError('Mobile number must start only with 6, 7, 8, or 9');
+                      } else if (val.length < 10) {
+                        setTicketPhoneError(`Enter 10 digits (${val.length}/10)`);
+                      } else {
+                        setTicketPhoneError('');
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: ticketPhoneError && !ticketPhoneError.includes('Enter 10') ? '1px solid #dc2626' : '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
                   />
+                  {ticketPhoneError && (
+                    <small style={{ color: ticketPhoneError.includes('Enter 10') ? '#64748b' : '#dc2626', fontSize: '11px', marginTop: '3px', display: 'block', fontWeight: 600 }}>
+                      {ticketPhoneError}
+                    </small>
+                  )}
                 </div>
 
                 <div>
@@ -1122,7 +1167,7 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
+                  onClick={() => { setIsCreateModalOpen(false); setTicketPhoneError(''); }}
                   style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
