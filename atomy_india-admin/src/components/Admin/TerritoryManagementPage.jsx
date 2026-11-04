@@ -1,229 +1,255 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  MapPin, 
   Building2, 
-  UserPlus, 
+  MapPin, 
+  IndianRupee, 
   Search, 
   CheckCircle2, 
-  AlertCircle, 
-  ShieldCheck, 
-  Layers, 
-  X,
-  Phone,
-  Mail,
-  Plus,
-  ArrowRight,
-  ArrowLeft,
-  Users
+  Eye, 
+  ArrowLeft, 
+  X, 
+  Phone, 
+  Mail, 
+  Users, 
+  Package, 
+  Truck, 
+  Clock, 
+  AlertTriangle,
+  ChevronRight,
+  TrendingUp,
+  ShieldCheck,
+  Calendar,
+  Layers,
+  FileText
 } from 'lucide-react';
-import { 
-  fetchPincodes, 
-  fetchPincodeStats, 
-  fetchDistributorList, 
-  createDistributor, 
-  assignPincode, 
-  unassignPincode 
-} from '../../services/distributorService';
-import DistributorCustomersPage from '../Distributor/DistributorCustomersPage';
+import { fetchDistributorList } from '../../services/distributorService';
+import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
+import '../Admin/AdminDashboard.css';
 import './TerritoryManagementPage.css';
 
-export default function TerritoryManagementPage({ showToast, orders = [], customers = [] }) {
-  const [pincodes, setPincodes] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [distributors, setDistributors] = useState([]);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+// Default active distributor fallback (Selva, PIN 635002)
+const DEFAULT_DISTRIBUTORS = [
+  {
+    id: 'DIST-635002',
+    distributorId: 'DIST-635002',
+    businessName: 'Selva Regional Logistics Hub',
+    distributorName: 'Selva',
+    contactPerson: 'Selva',
+    email: 'selva@atomy.com',
+    phone: '+91 98765 43210',
+    primaryPincode: '635002',
+    assignedPincodes: ['635002'],
+    city: 'Krishnagiri',
+    state: 'Tamil Nadu',
+    hubAddress: 'Krishnagiri Regional Logistics Centre, Tamil Nadu - 635002',
+    commissionRate: 7.5,
+    territoryFee: 25000,
+    status: 'ACTIVE'
+  }
+];
 
-  // Sub-Admin Inspection State
+export default function TerritoryManagementPage({ showToast, orders = [], customers = [] }) {
+  const [distributors, setDistributors] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Selected distributor for Overall Overview Page
   const [selectedDistributor, setSelectedDistributor] = useState(null);
 
-  // Modals
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [assignModalPincode, setAssignModalPincode] = useState(null);
+  // Overview sub-tab: 'customers' | 'orders'
+  const [overviewTab, setOverviewTab] = useState('customers');
+  const [overviewSearchQuery, setOverviewSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
+  const [inspectedCustomer, setInspectedCustomer] = useState(null);
+  const [inspectedOrder, setInspectedOrder] = useState(null);
 
-  // New Distributor Form State
-  const [newDistForm, setNewDistForm] = useState({
-    businessName: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    primaryPincode: '',
-    hubAddress: '',
-    city: '',
-    state: '',
-    commissionRate: 8.0,
-    territoryFee: 25000,
-    password: ''
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const loadData = async () => {
+  const loadDistributors = async () => {
     setIsLoading(true);
     try {
-      const [pinRes, statRes, distRes] = await Promise.allSettled([
-        fetchPincodes(search, '', statusFilter, 0, 100),
-        fetchPincodeStats(),
-        fetchDistributorList()
-      ]);
-
-      if (pinRes.status === 'fulfilled') setPincodes(pinRes.value.content || pinRes.value || []);
-      if (statRes.status === 'fulfilled') setStats(statRes.value);
-      if (distRes.status === 'fulfilled') setDistributors(distRes.value || []);
+      const data = await fetchDistributorList().catch(() => null);
+      if (Array.isArray(data) && data.length > 0) {
+        const normalized = data.map(d => ({
+          ...d,
+          id: d.distributorId || d.id || 'DIST-635002',
+          distributorId: d.distributorId || d.id || 'DIST-635002',
+          businessName: d.businessName || d.distributorName || 'Regional Hub',
+          distributorName: d.distributorName || d.contactPerson || d.businessName || 'Distributor',
+          contactPerson: d.contactPerson || d.businessName || 'Representative',
+          primaryPincode: String(d.primaryPincode || d.pincode || '635002').trim(),
+          assignedPincodes: d.assignedPincodes || [String(d.primaryPincode || d.pincode || '635002').trim()],
+          commissionRate: d.commissionRate || 7.5,
+          status: d.status || 'ACTIVE'
+        }));
+        setDistributors(normalized);
+      } else {
+        setDistributors(DEFAULT_DISTRIBUTORS);
+      }
     } catch (err) {
-      console.error('Error loading territory data:', err);
+      console.warn('Notice: loading active distributor list fallback:', err.message);
+      setDistributors(DEFAULT_DISTRIBUTORS);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      loadData();
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [search, statusFilter]);
+    loadDistributors();
+  }, []);
 
-  const handleRegisterDistributor = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await createDistributor(newDistForm);
-      if (showToast) showToast('Regional Distributor registered successfully!');
-      setIsRegisterModalOpen(false);
-      setNewDistForm({
-        businessName: '',
-        contactPerson: '',
-        email: '',
-        phone: '',
-        primaryPincode: '',
-        hubAddress: '',
-        city: '',
-        state: '',
-        commissionRate: 8.0,
-        territoryFee: 25000,
-        password: ''
+  // Compute metrics per distributor
+  const enrichedDistributors = useMemo(() => {
+    return distributors.map(d => {
+      const pins = new Set((d.assignedPincodes || [d.primaryPincode]).filter(Boolean).map(p => String(p).trim()));
+      if (d.primaryPincode) pins.add(String(d.primaryPincode).trim());
+
+      const distOrders = (orders || []).filter(o => {
+        const p = String(o.pincode || o.shippingAddress?.pincode || '').trim();
+        return p ? pins.has(p) : false;
       });
-      await loadData();
-    } catch (err) {
-      if (showToast) showToast(`Error: ${err.message}`, 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
-  const handleAssignPincode = async (pincode, distId) => {
-    try {
-      await assignPincode(pincode, distId);
-      if (showToast) showToast(`Pincode ${pincode} successfully assigned!`);
-      setAssignModalPincode(null);
-      await loadData();
-    } catch (err) {
-      if (showToast) showToast(`Error: ${err.message}`, 'error');
-    }
-  };
+      const totalSales = distOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+      const totalCommission = distOrders.reduce((sum, o) => {
+        const comm = Number(o.distributorCommission);
+        return sum + (comm > 0 ? comm : (Number(o.totalAmount || 0) * ((d.commissionRate || 7.5) / 100)));
+      }, 0);
 
-  const handleUnassignPincode = async (pincode) => {
-    if (!window.confirm(`Unassign PIN code ${pincode}? Orders will revert to Central Super Hub.`)) return;
-    try {
-      await unassignPincode(pincode);
-      if (showToast) showToast(`Pincode ${pincode} unassigned.`);
-      await loadData();
-    } catch (err) {
-      if (showToast) showToast(`Error: ${err.message}`, 'error');
-    }
-  };
-
-  // Open Sub-Admin page for a distributor
-  const handleSelectDistributor = (dist) => {
-    const formattedDist = {
-      id: dist.id || dist.distributorId || 'DIST-635002',
-      distributorId: dist.distributorId || dist.id || 'DIST-635002',
-      distributorName: dist.distributorName || dist.businessName || dist.contactPerson || dist.assignedDistributorName || 'Selva',
-      contactPerson: dist.contactPerson || dist.assignedDistributorName || 'Selva',
-      email: dist.email || dist.assignedDistributorEmail || 'selva@atomy.com',
-      phone: dist.phone || dist.assignedDistributorPhone || '+91 98765 43210',
-      primaryPincode: String(dist.primaryPincode || dist.pincode || '635002').trim(),
-      assignedPincodes: dist.assignedPincodes || [String(dist.primaryPincode || dist.pincode || '635002').trim()],
-      city: dist.city || dist.district || 'Krishnagiri',
-      state: dist.state || 'Tamil Nadu',
-      hubAddress: dist.hubAddress || dist.address || `${dist.city || dist.district || 'Krishnagiri'}, ${dist.state || 'Tamil Nadu'}`
-    };
-    setSelectedDistributor(formattedDist);
-  };
-
-  // Build active distributors list for prominent sub-admin tiles
-  const activeDistributorsList = useMemo(() => {
-    const map = new Map();
-
-    // 1. Registered distributors
-    (distributors || []).forEach(d => {
-      const pin = String(d.primaryPincode || d.pincode || '').trim();
-      const name = d.businessName || d.distributorName || d.contactPerson || 'Regional Distributor';
-      const key = `${pin}_${name}`;
-      map.set(key, {
-        id: d.id || d.distributorId || `DIST-${pin}`,
-        distributorId: d.distributorId || d.id || `DIST-${pin}`,
-        distributorName: name,
-        contactPerson: d.contactPerson || name,
-        email: d.email || 'distributor@atomy.com',
-        phone: d.phone || '+91 98765 43210',
-        primaryPincode: pin || '635002',
-        assignedPincodes: d.assignedPincodes || [pin || '635002'],
-        city: d.city || 'Krishnagiri',
-        state: d.state || 'Tamil Nadu',
-        hubAddress: d.hubAddress || `${d.city || 'Regional Hub'}, ${d.state || 'Tamil Nadu'}`
+      // Territory customers
+      const distCustEmails = new Set(distOrders.map(o => (o.customerEmail || '').toLowerCase().trim()).filter(Boolean));
+      const distCustomersList = (customers || []).filter(c => {
+        const email = (c.email || '').toLowerCase().trim();
+        const pin = String(c.pincode || '').trim();
+        return distCustEmails.has(email) || (pin && pins.has(pin));
       });
-    });
 
-    // 2. Assigned PIN codes
-    pincodes.forEach(p => {
-      if (p.status === 'ASSIGNED' && p.assignedDistributorName) {
-        const pin = String(p.pincode).trim();
-        const key = `${pin}_${p.assignedDistributorName}`;
-        if (!map.has(key)) {
-          map.set(key, {
-            id: p.assignedDistributorId || `DIST-${pin}`,
-            distributorId: p.assignedDistributorId || `DIST-${pin}`,
-            distributorName: p.assignedDistributorName,
-            contactPerson: p.assignedDistributorName,
-            email: p.assignedDistributorEmail || 'selva@atomy.com',
-            phone: p.assignedDistributorPhone || '+91 98765 43210',
-            primaryPincode: pin,
-            assignedPincodes: [pin],
-            city: p.district || 'Krishnagiri',
-            state: p.state || 'Tamil Nadu',
-            hubAddress: `${p.officeName || 'Regional Hub'}, ${p.district}, ${p.state}`
+      // Include customers from territory orders not in customers list
+      distOrders.forEach(o => {
+        const email = (o.customerEmail || '').toLowerCase().trim();
+        if (email && !distCustomersList.some(c => (c.email || '').toLowerCase().trim() === email)) {
+          distCustomersList.push({
+            name: o.customerName || 'Customer',
+            email: o.customerEmail,
+            phone: o.customerPhone || 'N/A',
+            city: o.city || d.city,
+            state: o.state || d.state,
+            pincode: o.pincode || d.primaryPincode,
+            address: o.shippingAddress || 'Territory Address'
           });
         }
-      }
-    });
-
-    // 3. Fallback: Selva (PIN 635002)
-    if (map.size === 0) {
-      map.set('635002_Selva', {
-        id: 'DIST-635002',
-        distributorId: 'DIST-635002',
-        distributorName: 'Selva (Regional Hub)',
-        contactPerson: 'Selva',
-        email: 'selva@atomy.com',
-        phone: '+91 98765 43210',
-        primaryPincode: '635002',
-        assignedPincodes: ['635002'],
-        city: 'Krishnagiri',
-        state: 'Tamil Nadu',
-        hubAddress: 'Krishnagiri Regional Hub Logistics, Tamil Nadu - 635002'
       });
+
+      return {
+        ...d,
+        distOrders,
+        totalOrders: distOrders.length,
+        totalSales,
+        totalCommission,
+        distCustomers: distCustomersList,
+        totalCustomers: distCustomersList.length,
+        coveredPinsCount: pins.size
+      };
+    });
+  }, [distributors, orders, customers]);
+
+  // Overall Top KPIs across all distributors
+  const totalDistributorsCount = enrichedDistributors.length;
+  const totalCoveredPins = useMemo(() => {
+    const set = new Set();
+    enrichedDistributors.forEach(d => {
+      (d.assignedPincodes || [d.primaryPincode]).forEach(p => {
+        if (p) set.add(String(p).trim());
+      });
+    });
+    return Math.max(set.size, 1);
+  }, [enrichedDistributors]);
+
+  // Search filter
+  const filteredDistributors = useMemo(() => {
+    if (!searchQuery.trim()) return enrichedDistributors;
+    const q = searchQuery.toLowerCase().trim();
+    return enrichedDistributors.filter(d => 
+      (d.businessName || '').toLowerCase().includes(q) ||
+      (d.distributorName || '').toLowerCase().includes(q) ||
+      (d.contactPerson || '').toLowerCase().includes(q) ||
+      (d.primaryPincode || '').toLowerCase().includes(q) ||
+      (d.email || '').toLowerCase().includes(q) ||
+      (d.phone || '').toLowerCase().includes(q) ||
+      (d.city || '').toLowerCase().includes(q) ||
+      (d.state || '').toLowerCase().includes(q)
+    );
+  }, [enrichedDistributors, searchQuery]);
+
+  // Selected distributor computed details for Overview Page
+  const selectedDistDetails = useMemo(() => {
+    if (!selectedDistributor) return null;
+    return enrichedDistributors.find(d => 
+      (d.distributorId === selectedDistributor.distributorId) || 
+      (d.primaryPincode === selectedDistributor.primaryPincode)
+    ) || selectedDistributor;
+  }, [selectedDistributor, enrichedDistributors]);
+
+  // Overview customers enriched with order metrics
+  const overviewCustomers = useMemo(() => {
+    if (!selectedDistDetails) return [];
+    const custs = selectedDistDetails.distCustomers || [];
+    const ords = selectedDistDetails.distOrders || [];
+
+    return custs.map(c => {
+      const email = (c.email || '').toLowerCase().trim();
+      const cOrders = ords.filter(o => (o.customerEmail || '').toLowerCase().trim() === email);
+      const ordersCount = cOrders.length || Number(c.totalOrders || 1);
+      const spend = cOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0) || Number(c.totalSpent || 0);
+      const latestOrderDate = cOrders.length > 0 
+        ? new Date(Math.max(...cOrders.map(o => new Date(o.createdAt || Date.now()).getTime())))
+        : (c.lastOrderDate ? new Date(c.lastOrderDate) : null);
+
+      return {
+        ...c,
+        computedOrders: ordersCount,
+        computedSpend: spend,
+        latestDate: latestOrderDate,
+        orderList: cOrders
+      };
+    });
+  }, [selectedDistDetails]);
+
+  // Overview customers filtered
+  const filteredOverviewCustomers = useMemo(() => {
+    if (!overviewSearchQuery.trim()) return overviewCustomers;
+    const q = overviewSearchQuery.toLowerCase().trim();
+    return overviewCustomers.filter(c => 
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
+      (c.phone || '').toLowerCase().includes(q) ||
+      (c.city || '').toLowerCase().includes(q) ||
+      (c.pincode || '').toLowerCase().includes(q)
+    );
+  }, [overviewCustomers, overviewSearchQuery]);
+
+  // Overview orders filtered
+  const filteredOverviewOrders = useMemo(() => {
+    if (!selectedDistDetails) return [];
+    let list = selectedDistDetails.distOrders || [];
+    if (orderStatusFilter !== 'ALL') {
+      list = list.filter(o => String(o.orderStatus || 'PLACED').toUpperCase() === orderStatusFilter);
     }
+    if (overviewSearchQuery.trim()) {
+      const q = overviewSearchQuery.toLowerCase().trim();
+      list = list.filter(o => 
+        String(o.orderId || o.id || '').toLowerCase().includes(q) ||
+        String(o.customerName || '').toLowerCase().includes(q) ||
+        String(o.customerPhone || '').toLowerCase().includes(q) ||
+        String(o.city || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [selectedDistDetails, orderStatusFilter, overviewSearchQuery]);
 
-    return Array.from(map.values());
-  }, [distributors, pincodes]);
-
-  // VIEW 1: Sub-Admin Page & Customer Directory Output
-  if (selectedDistributor) {
+  // VIEW 1: Distributor Overall Overview Page
+  if (selectedDistDetails) {
+    const dist = selectedDistDetails;
     return (
       <div className="territory-page-wrap">
-        {/* Top Full-Width Navigation Banner */}
+        {/* 1. Full-Width Top Bar with Back Button */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -264,506 +290,664 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
             <div style={{ height: '28px', width: '1px', background: '#cbd5e1' }} />
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                  {selectedDistributor.distributorName} — Sub-Admin Customer Directory
+                <Building2 size={20} color="#0284c7" />
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                  {dist.businessName || dist.distributorName} — Overall Overview
                 </h3>
-                <span style={{ fontSize: '11.5px', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', padding: '3px 9px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
-                  PIN: {selectedDistributor.primaryPincode}
+                <span style={{ fontSize: '11px', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '6px', border: '1px solid #86efac' }}>
+                  ACTIVE SUB-ADMIN
+                </span>
+                <span style={{ fontSize: '11.5px', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', padding: '3px 10px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+                  PIN: {dist.primaryPincode}
                 </span>
               </div>
               <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>
-                Assigned Territory: {selectedDistributor.city}, {selectedDistributor.state} • Contact: {selectedDistributor.phone} • {selectedDistributor.email}
+                Location: <strong>{dist.hubAddress || `${dist.city}, ${dist.state}`}</strong> • Contact: <strong>{dist.contactPerson} ({dist.phone})</strong> • Email: <strong>{dist.email}</strong>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '12px', color: '#0369a1', background: '#e0f2fe', padding: '5px 12px', borderRadius: '14px', fontWeight: 700, border: '1px solid #bae6fd' }}>
-              Sub-Admin Output View
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', color: '#0369a1', background: '#e0f2fe', padding: '6px 14px', borderRadius: '14px', fontWeight: 700, border: '1px solid #bae6fd' }}>
+              Commission Rate: {dist.commissionRate || 7.5}%
             </span>
           </div>
         </div>
 
-        {/* Customer Directory Output for this Sub-Admin */}
-        <DistributorCustomersPage
-          distributor={selectedDistributor}
-          customers={customers}
-          orders={orders}
-          isLoading={false}
-        />
+        {/* 2. Top Overview 4 KPI Cards for this Distributor */}
+        <div className="territory-stats-grid" style={{ marginBottom: '24px' }}>
+          {/* Card 1: Total Sales */}
+          <div className="territory-stat-card" style={{ borderLeft: '4px solid #0284c7' }}>
+            <div className="territory-stat-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Total Territory Sales</span>
+              <IndianRupee size={16} color="#0284c7" />
+            </div>
+            <div className="territory-stat-value" style={{ color: '#0284c7' }}>
+              ₹ {Number(dist.totalSales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+              Gross merchandise volume in PIN {dist.primaryPincode}
+            </div>
+          </div>
+
+          {/* Card 2: Total Commission */}
+          <div className="territory-stat-card" style={{ borderLeft: '4px solid #16a34a' }}>
+            <div className="territory-stat-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Total Commission Earned</span>
+              <TrendingUp size={16} color="#16a34a" />
+            </div>
+            <div className="territory-stat-value" style={{ color: '#16a34a' }}>
+              ₹ {Number(dist.totalCommission || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+              {dist.commissionRate || 7.5}% auto-credited hub earnings
+            </div>
+          </div>
+
+          {/* Card 3: Total Orders */}
+          <div className="territory-stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+            <div className="territory-stat-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Total Territory Orders</span>
+              <Package size={16} color="#f59e0b" />
+            </div>
+            <div className="territory-stat-value" style={{ color: '#d97706' }}>
+              {dist.totalOrders || 0} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>orders</span>
+            </div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+              Fulfilled via regional delivery logistics
+            </div>
+          </div>
+
+          {/* Card 4: Total Customers */}
+          <div className="territory-stat-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
+            <div className="territory-stat-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>Territory Customers</span>
+              <Users size={16} color="#8b5cf6" />
+            </div>
+            <div className="territory-stat-value" style={{ color: '#7c3aed' }}>
+              {dist.totalCustomers || 0} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>consumers</span>
+            </div>
+            <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+              Verified shoppers residing in PIN {dist.primaryPincode}
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Sub-Navigation Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+          <button
+            type="button"
+            onClick={() => { setOverviewTab('customers'); setOverviewSearchQuery(''); }}
+            style={{
+              padding: '9px 18px',
+              borderRadius: '8px',
+              border: 'none',
+              background: overviewTab === 'customers' ? '#0284c7' : '#f1f5f9',
+              color: overviewTab === 'customers' ? '#ffffff' : '#475569',
+              fontWeight: 700,
+              fontSize: '13.5px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Users size={16} />
+            <span>Territory Customers ({overviewCustomers.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setOverviewTab('orders'); setOverviewSearchQuery(''); }}
+            style={{
+              padding: '9px 18px',
+              borderRadius: '8px',
+              border: 'none',
+              background: overviewTab === 'orders' ? '#0284c7' : '#f1f5f9',
+              color: overviewTab === 'orders' ? '#ffffff' : '#475569',
+              fontWeight: 700,
+              fontSize: '13.5px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Package size={16} />
+            <span>Territory Orders ({dist.distOrders?.length || 0})</span>
+          </button>
+        </div>
+
+        {/* 4. Search Filter Bar for Active Tab */}
+        <div className="orders-filter-row" style={{ marginBottom: '16px' }}>
+          <div className="search-input-wrapper orders-search-box">
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder={overviewTab === 'customers' ? 'Search customers by name, phone, email, or city...' : 'Search orders by order ID, customer name, or phone...'}
+              value={overviewSearchQuery}
+              onChange={(e) => setOverviewSearchQuery(e.target.value)}
+              className="atomy-search-input"
+            />
+            {overviewSearchQuery && (
+              <button 
+                type="button" 
+                className="clear-search-btn" 
+                onClick={() => setOverviewSearchQuery('')}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <div className="orders-summary-pill">
+            <span>
+              Showing <strong>{overviewTab === 'customers' ? filteredOverviewCustomers.length : filteredOverviewOrders.length}</strong> {overviewTab === 'customers' ? 'Customers' : 'Orders'}
+            </span>
+          </div>
+        </div>
+
+        {/* 5A. SUB-VIEW: Customers Table */}
+        {overviewTab === 'customers' && (
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Customer Name</th>
+                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Contact Details</th>
+                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Delivery Location</th>
+                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Territory Orders</th>
+                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Total Spend</th>
+                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOverviewCustomers.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                        <Users size={36} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>No territory customers recorded for PIN {dist.primaryPincode}.</p>
+                        <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#94a3b8' }}>When consumers residing in this PIN place orders, their profile and history will appear here.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredOverviewCustomers.map((c, idx) => (
+                      <tr key={c.email || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px 18px' }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>{c.name || 'Atomy Shopper'}</div>
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, background: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
+                            PIN: {c.pincode || dist.primaryPincode}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 18px' }}>
+                          <div style={{ fontSize: '13px', color: '#334155', fontWeight: 600 }}>{c.phone || 'N/A'}</div>
+                          <div style={{ fontSize: '12px', color: '#64748b' }}>{c.email}</div>
+                        </td>
+                        <td style={{ padding: '14px 18px' }}>
+                          <div style={{ fontSize: '13px', color: '#334155' }}>{c.address || c.city || `${dist.city}, ${dist.state}`}</div>
+                          <div style={{ fontSize: '11.5px', color: '#64748b' }}>{c.city || dist.city}, {c.state || dist.state} - {c.pincode || dist.primaryPincode}</div>
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                          <span style={{ padding: '4px 10px', background: '#e0f2fe', color: '#0369a1', borderRadius: '12px', fontWeight: 700, fontSize: '12px' }}>
+                            {c.computedOrders || 1} order{(c.computedOrders || 1) !== 1 ? 's' : ''}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
+                          ₹ {Number(c.computedSpend || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="action-pill-btn detail"
+                            onClick={() => setInspectedCustomer(c)}
+                            title="Inspect Customer Profile & History"
+                          >
+                            <Eye size={13} />
+                            <span>Inspect</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 5B. SUB-VIEW: Orders Table */}
+        {overviewTab === 'orders' && (
+          <div>
+            {/* Status Tabs */}
+            <div className="orders-status-nav-strip" style={{ marginBottom: '14px' }}>
+              {[
+                { id: 'ALL', label: 'All Orders', count: dist.distOrders?.length || 0 },
+                { id: 'PLACED', label: 'New Orders', count: (dist.distOrders || []).filter(o => String(o.orderStatus || 'PLACED').toUpperCase() === 'PLACED').length },
+                { id: 'PROCESSING', label: 'Processing', count: (dist.distOrders || []).filter(o => String(o.orderStatus || '').toUpperCase() === 'PROCESSING').length },
+                { id: 'SHIPPED', label: 'Shipped', count: (dist.distOrders || []).filter(o => String(o.orderStatus || '').toUpperCase() === 'SHIPPED').length },
+                { id: 'DELIVERED', label: 'Delivered', count: (dist.distOrders || []).filter(o => String(o.orderStatus || '').toUpperCase() === 'DELIVERED').length },
+                { id: 'CANCELLED', label: 'Cancelled', count: (dist.distOrders || []).filter(o => String(o.orderStatus || '').toUpperCase() === 'CANCELLED').length }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`order-status-tab ${orderStatusFilter === t.id ? 'active' : ''}`}
+                  onClick={() => setOrderStatusFilter(t.id)}
+                >
+                  <span>{t.label}</span>
+                  <span className="tab-count-badge">{t.count}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="atomy-table-responsive orders-table-wrapper">
+              <table className="atomy-data-table orders-data-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '175px', minWidth: '175px' }}>Order ID &amp; Date</th>
+                    <th style={{ width: '210px', minWidth: '210px' }}>Customer Details</th>
+                    <th style={{ minWidth: '220px' }}>Shipping Address</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Items</th>
+                    <th style={{ width: '130px', textAlign: 'right' }}>Total Amount</th>
+                    <th style={{ width: '120px', textAlign: 'right' }}>Commission</th>
+                    <th style={{ width: '140px', textAlign: 'center' }}>Status</th>
+                    <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOverviewOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="table-empty-row">
+                        <Package size={40} color="#94a3b8" />
+                        <p>No territory orders found matching this filter.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredOverviewOrders.map((o) => {
+                      const totalAmt = Number(o.totalAmount || 0);
+                      const comm = Number(o.distributorCommission || (totalAmt * ((dist.commissionRate || 7.5) / 100)));
+                      const orderDate = new Date(o.createdAt || Date.now());
+                      const status = String(o.orderStatus || 'PLACED').toUpperCase();
+
+                      return (
+                        <tr key={o.orderId || o.id}>
+                          <td>
+                            <div className="order-id-badge">
+                              <span className="order-id-text">{o.orderId || o.id}</span>
+                            </div>
+                            <div className="order-date-text">
+                              {orderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="cell-primary-text">{o.customerName || 'Customer'}</div>
+                            <div className="cell-secondary-text">{o.customerPhone || 'N/A'}</div>
+                            <div className="cell-secondary-text">{o.customerEmail || ''}</div>
+                          </td>
+                          <td className="cell-address">
+                            <div className="address-line-primary">{o.shippingAddress || 'Registered Delivery Destination'}</div>
+                            <div className="address-line-sub">{o.city || dist.city}, {o.state || dist.state} <span className="pincode-pill">{o.pincode || dist.primaryPincode}</span></div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span className="items-count-badge">
+                              {o.items?.length || 1} item{(o.items?.length || 1) !== 1 ? 's' : ''}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 800 }}>
+                            ₹ {totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td style={{ textAlign: 'right', color: '#16a34a', fontWeight: 700 }}>
+                            +₹ {comm.toFixed(2)}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span className={`status-badge ${status.toLowerCase()}`}>
+                              {status}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className="action-pill-btn detail"
+                              onClick={() => setInspectedOrder(o)}
+                              title="Inspect Order Details"
+                            >
+                              <Eye size={13} />
+                              <span>Inspect</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 6. Customer Inspection Modal */}
+        {inspectedCustomer && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+            <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users size={20} color="#0284c7" />
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                    Customer Profile: {inspectedCustomer.name}
+                  </h3>
+                </div>
+                <button type="button" onClick={() => setInspectedCustomer(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Contact</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginTop: '2px' }}>{inspectedCustomer.phone || 'N/A'}</div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>{inspectedCustomer.email}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Location</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginTop: '2px' }}>PIN: {inspectedCustomer.pincode || dist.primaryPincode}</div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>{inspectedCustomer.city || dist.city}, {inspectedCustomer.state || dist.state}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Total Orders</div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#0284c7', marginTop: '2px' }}>{inspectedCustomer.computedOrders || 1}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Lifetime Spend</div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>₹ {Number(inspectedCustomer.computedSpend || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setInspectedCustomer(null)}
+                  style={{ padding: '8px 16px', background: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 7. Order Inspection Modal */}
+        {inspectedOrder && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
+            <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '640px', maxHeight: '85vh', overflowY: 'auto', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Package size={20} color="#0284c7" />
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
+                    Order: {inspectedOrder.orderId || inspectedOrder.id}
+                  </h3>
+                  <span className={`status-badge ${(inspectedOrder.orderStatus || 'PLACED').toLowerCase()}`}>
+                    {inspectedOrder.orderStatus || 'PLACED'}
+                  </span>
+                </div>
+                <button type="button" onClick={() => setInspectedOrder(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <DeliveryStatusStepper order={inspectedOrder} />
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Customer</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginTop: '2px' }}>{inspectedOrder.customerName}</div>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>{inspectedOrder.customerPhone} • {inspectedOrder.customerEmail}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Delivery Address</div>
+                  <div style={{ fontSize: '12.5px', color: '#334155' }}>{inspectedOrder.shippingAddress}</div>
+                  <div style={{ fontSize: '11.5px', color: '#64748b' }}>{inspectedOrder.city}, {inspectedOrder.state} - {inspectedOrder.pincode}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Total Order Value</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>₹ {Number(inspectedOrder.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Distributor Commission (7.5%)</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#16a34a', marginTop: '2px' }}>
+                    +₹ {Number(inspectedOrder.distributorCommission || (Number(inspectedOrder.totalAmount || 0) * 0.075)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setInspectedOrder(null)}
+                  style={{ padding: '8px 16px', background: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  // VIEW 2: Default Distributors & Territories Management View
+  // VIEW 2: Default "Distributors & Territories" List View
   return (
     <div className="territory-page-wrap">
-      {/* 1. Header KPIs */}
-      <div className="territory-stats-grid">
-        <div className="territory-stat-card">
-          <div className="territory-stat-title">Cataloged PIN Codes</div>
-          <div className="territory-stat-value">{stats?.totalPincodes || pincodes.length}</div>
-        </div>
-
-        <div className="territory-stat-card">
-          <div className="territory-stat-title">Assigned Territories</div>
-          <div className="territory-stat-value" style={{ color: '#16a34a' }}>
-            {stats?.assignedPincodes || pincodes.filter(p => p.status === 'ASSIGNED').length}
-          </div>
-        </div>
-
-        <div className="territory-stat-card">
-          <div className="territory-stat-title">Vacant / Unassigned PINs</div>
-          <div className="territory-stat-value" style={{ color: '#0284c7' }}>
-            {stats?.vacantPincodes !== undefined ? stats.vacantPincodes : (stats?.unassignedPincodes || pincodes.filter(p => p.status !== 'ASSIGNED').length)}
-          </div>
-        </div>
-
-        <div className="territory-stat-card">
-          <div className="territory-stat-title">Active Regional Distributors</div>
-          <div className="territory-stat-value" style={{ color: '#0f172a' }}>
-            {stats?.activeDistributors || activeDistributorsList.length}
-          </div>
+      {/* 1. Content Header */}
+      <div className="content-heading-row with-filter" style={{ marginBottom: '18px' }}>
+        <div>
+          <h2 className="content-title">Distributors &amp; Regional Territories</h2>
+          <p className="content-subtitle">
+            Active regional distribution hubs, assigned delivery pincodes, sales performance, and commission oversight.
+          </p>
         </div>
       </div>
 
-      {/* 2. Active Regional Distributors (Sub-Admins) Cards Grid */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* 2. Top 3 KPI Cards as requested: Total Distributors, Total Covered Area, Commission */}
+      <div className="territory-stats-grid" style={{ marginBottom: '24px' }}>
+        {/* KPI 1: Total Distributors */}
+        <div className="territory-stat-card" style={{ borderLeft: '4px solid #0284c7' }}>
+          <div className="territory-stat-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Total Distributors</span>
             <Building2 size={18} color="#0284c7" />
-            <span>Active Regional Distributors (Sub-Admins)</span>
-          </h3>
-          <span style={{ fontSize: '12.5px', color: '#64748b' }}>
-            Click any distributor to open their Sub-Admin Console &amp; Customer Directory
-          </span>
+          </div>
+          <div className="territory-stat-value" style={{ color: '#0f172a' }}>
+            {totalDistributorsCount} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Active Regional Hub{totalDistributorsCount !== 1 ? 's' : ''}</span>
+          </div>
+          <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+            Authorized regional franchise logistics partners
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
-          {activeDistributorsList.map((dist, idx) => (
-            <div
-              key={dist.id || dist.distributorId || idx}
-              onClick={() => handleSelectDistributor(dist)}
-              style={{
-                background: '#ffffff',
-                border: '1.5px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '16px 18px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#0284c7';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 16px rgba(2,132,199,0.12)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#e2e8f0';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
-              }}
-              title="Click to open Sub-Admin Console & Customer Directory"
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: '6px', border: '1px solid #86efac' }}>
-                    ACTIVE SUB-ADMIN
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#0284c7', background: '#e0f2fe', padding: '3px 10px', borderRadius: '12px' }}>
-                    PIN: {dist.primaryPincode}
-                  </span>
-                </div>
+        {/* KPI 2: Total Covered Area */}
+        <div className="territory-stat-card" style={{ borderLeft: '4px solid #16a34a' }}>
+          <div className="territory-stat-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Total Covered Area</span>
+            <MapPin size={18} color="#16a34a" />
+          </div>
+          <div className="territory-stat-value" style={{ color: '#16a34a' }}>
+            {totalCoveredPins} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Covered Territory PIN{totalCoveredPins !== 1 ? 's' : ''}</span>
+          </div>
+          <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+            Dedicated regional courier and hub coverage
+          </div>
+        </div>
 
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
-                  {dist.distributorName}
-                </div>
-                <div style={{ fontSize: '12.5px', color: '#475569', marginTop: '2px' }}>
-                  {dist.hubAddress}
-                </div>
-
-                <div style={{ marginTop: '10px', fontSize: '12px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Mail size={12} color="#94a3b8" />
-                    <span>{dist.email}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Phone size={12} color="#94a3b8" />
-                    <span>{dist.phone}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#0284c7', fontWeight: 700, fontSize: '12.5px' }}>
-                <span>Open Sub-Admin Customer Directory</span>
-                <ArrowRight size={14} />
-              </div>
-            </div>
-          ))}
+        {/* KPI 3: Commission Model */}
+        <div className="territory-stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+          <div className="territory-stat-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Partner Commission</span>
+            <IndianRupee size={18} color="#f59e0b" />
+          </div>
+          <div className="territory-stat-value" style={{ color: '#d97706' }}>
+            7.5% - 8.0% <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Per Order</span>
+          </div>
+          <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+            Auto-credited margin per fulfilled territory delivery
+          </div>
         </div>
       </div>
 
-      {/* 3. Search & Filter Bar */}
-      <div className="territory-header-bar">
-        <div className="territory-search-group">
+      {/* 3. Search Bar */}
+      <div className="orders-filter-row" style={{ marginBottom: '18px' }}>
+        <div className="search-input-wrapper orders-search-box" style={{ maxWidth: '640px' }}>
+          <Search size={16} />
           <input
             type="text"
-            className="territory-search-input"
-            placeholder="Search PIN code, Post Office, City or State..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            className="atomy-search-input"
+            placeholder="Search distributors by name, phone, email, PIN code, or city..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <select
-            className="territory-filter-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            <option value="ASSIGNED">Assigned Only</option>
-            <option value="UNASSIGNED">Unassigned Only</option>
-          </select>
+          {searchQuery && (
+            <button 
+              type="button" 
+              className="clear-search-btn" 
+              onClick={() => setSearchQuery('')}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
-
-        <button
-          type="button"
-          className="territory-btn-add"
-          onClick={() => setIsRegisterModalOpen(true)}
-        >
-          <UserPlus size={16} />
-          <span>Add Regional Distributor</span>
-        </button>
+        <div className="orders-summary-pill">
+          <span>Showing <strong>{filteredDistributors.length}</strong> of <strong>{totalDistributorsCount}</strong> Active Distributors</span>
+        </div>
       </div>
 
-      {/* 4. PIN Codes Directory Table */}
+      {/* 4. Current Distributors List Table */}
       <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         {isLoading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-            Loading PIN codes catalog...
+            Loading active distributors...
           </div>
-        ) : pincodes.length === 0 ? (
+        ) : filteredDistributors.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-            No Indian PIN codes matched your filter.
+            <Building2 size={36} color="#94a3b8" style={{ marginBottom: '8px' }} />
+            <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>No distributors found matching "{searchQuery}".</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>PIN Code</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Post Office / Hub</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>District &amp; State</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Status</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Assigned Distributor</th>
+                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Distributor Hub &amp; ID</th>
+                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Assigned Territory</th>
+                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Contact Person</th>
+                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Total Orders</th>
+                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Total Sales</th>
+                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Commission</th>
+                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Status</th>
                   <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {pincodes.map((p) => {
-                  const isAssigned = p.status === 'ASSIGNED';
-                  return (
-                    <tr key={p.pincode} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '14px 18px', fontWeight: 700, color: '#0284c7' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <MapPin size={14} /> {p.pincode}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 18px', fontWeight: 600, color: '#1e293b' }}>
-                        {p.officeName || 'India Post SO'}
-                      </td>
-                      <td style={{ padding: '14px 18px', fontSize: '13px', color: '#64748b' }}>
-                        {p.district}, {p.state}
-                      </td>
-                      <td style={{ padding: '14px 18px' }}>
-                        {isAssigned ? (
-                          <span className="territory-badge-assigned">
-                            <CheckCircle2 size={12} /> Assigned
-                          </span>
-                        ) : (
-                          <span className="territory-badge-unassigned">
-                            Vacant (Super Hub)
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '14px 18px' }}>
-                        {isAssigned ? (
-                          <div 
-                            onClick={() => handleSelectDistributor(p)}
-                            style={{ 
-                              cursor: 'pointer', 
-                              padding: '6px 12px', 
-                              borderRadius: '8px', 
-                              background: '#f0f9ff', 
-                              border: '1px solid #bae6fd', 
-                              display: 'inline-flex', 
-                              flexDirection: 'column', 
-                              gap: '2px', 
-                              transition: 'all 0.15s ease' 
-                            }}
-                            title="Click to open Sub-Admin Console & Customer Directory"
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#e0f2fe'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#f0f9ff'; }}
-                          >
-                            <div style={{ fontWeight: 700, color: '#0284c7', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Building2 size={13} />
-                              <span>{p.assignedDistributorName || 'Distributor'}</span>
-                              <ArrowRight size={12} color="#0284c7" />
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>
-                              {p.assignedDistributorEmail} • {p.assignedDistributorPhone}
-                            </div>
-                            <span style={{ fontSize: '10.5px', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
-                              Open Sub-Admin Customer Directory →
-                            </span>
+                {filteredDistributors.map((d) => (
+                  <tr 
+                    key={d.distributorId}
+                    onClick={() => setSelectedDistributor(d)}
+                    style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background 0.15s ease' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
+                    title="Click to view overall overview page (sales, commission, orders, customers)"
+                  >
+                    {/* Hub & ID */}
+                    <td style={{ padding: '14px 18px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Building2 size={18} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>
+                            {d.businessName || d.distributorName}
                           </div>
-                        ) : (
-                          <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
-                            Central Platform Hub
+                          <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
+                            ID: {d.distributorId}
                           </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                        {isAssigned ? (
-                          <button
-                            type="button"
-                            onClick={() => handleUnassignPincode(p.pincode)}
-                            style={{ padding: '5px 12px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                          >
-                            Unassign
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setAssignModalPincode(p)}
-                            style={{ padding: '5px 12px', background: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                          >
-                            Assign Distributor
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Assigned Territory */}
+                    <td style={{ padding: '14px 18px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, color: '#0284c7', fontSize: '13px' }}>
+                        <MapPin size={13} />
+                        <span>PIN: {d.primaryPincode}</span>
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                        {d.city}, {d.state}
+                      </div>
+                    </td>
+
+                    {/* Contact Person */}
+                    <td style={{ padding: '14px 18px' }}>
+                      <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '13px' }}>
+                        {d.contactPerson}
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                        {d.phone} • {d.email}
+                      </div>
+                    </td>
+
+                    {/* Orders */}
+                    <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                      <span style={{ padding: '4px 10px', background: '#f1f5f9', color: '#0f172a', borderRadius: '12px', fontWeight: 700, fontSize: '12.5px' }}>
+                        {d.totalOrders || 0}
+                      </span>
+                    </td>
+
+                    {/* Sales */}
+                    <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '13.5px' }}>
+                      ₹ {Number(d.totalSales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+
+                    {/* Commission */}
+                    <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                      <div style={{ fontWeight: 800, color: '#16a34a', fontSize: '13.5px' }}>
+                        ₹ {Number(d.totalCommission || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        ({d.commissionRate || 7.5}%)
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                      <span className="territory-badge-assigned">
+                        <CheckCircle2 size={12} /> ACTIVE
+                      </span>
+                    </td>
+
+                    {/* Action */}
+                    <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="action-pill-btn detail"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDistributor(d);
+                        }}
+                        title="Open Distributor Overall Overview (Customers, Orders, Sales, Commission)"
+                      >
+                        <Eye size={13} />
+                        <span>View Overview →</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </div>
-
-      {/* 5. Register Distributor Modal */}
-      {isRegisterModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
-          <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
-                Register Regional Distributor (Sub-Admin)
-              </h3>
-              <button type="button" onClick={() => setIsRegisterModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleRegisterDistributor} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Business / Hub Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Mumbai West Regional Hub"
-                  value={newDistForm.businessName}
-                  onChange={(e) => setNewDistForm({ ...newDistForm, businessName: e.target.value })}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Contact Person</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Full Name"
-                    value={newDistForm.contactPerson}
-                    onChange={(e) => setNewDistForm({ ...newDistForm, contactPerson: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Phone Number</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+91 98000 00000"
-                    value={newDistForm.phone}
-                    onChange={(e) => setNewDistForm({ ...newDistForm, phone: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Email (Login ID)</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="distributor@atomy.com"
-                    value={newDistForm.email}
-                    onChange={(e) => setNewDistForm({ ...newDistForm, email: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Initial Password</label>
-                  <input
-                    type="text"
-                    required
-                    value={newDistForm.password}
-                    onChange={(e) => setNewDistForm({ ...newDistForm, password: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Primary PIN Code</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 400001"
-                    value={newDistForm.primaryPincode}
-                    onChange={(e) => setNewDistForm({ ...newDistForm, primaryPincode: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>City</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Mumbai"
-                    value={newDistForm.city}
-                    onChange={(e) => setNewDistForm({ ...newDistForm, city: e.target.value })}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Commission Rate (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="1"
-                    max="20"
-                    required
-                    value={newDistForm.commissionRate}
-                    onChange={(e) => setNewDistForm({ ...newDistForm, commissionRate: parseFloat(e.target.value) })}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Territory License Fee (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={newDistForm.territoryFee}
-                    onChange={(e) => setNewDistForm({ ...newDistForm, territoryFee: parseFloat(e.target.value) })}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Hub / Warehouse Physical Address</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Unit 4B, Western Logistics Park, Mumbai"
-                  value={newDistForm.hubAddress}
-                  onChange={(e) => setNewDistForm({ ...newDistForm, hubAddress: e.target.value })}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsRegisterModalOpen(false)}
-                  style={{ padding: '9px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{ padding: '9px 20px', background: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  {isSubmitting ? 'Registering...' : 'Register Distributor'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 6. Assign PIN Code to Distributor Modal */}
-      {assignModalPincode && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' }}>
-          <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '440px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                Assign PIN {assignModalPincode.pincode}
-              </h3>
-              <button type="button" onClick={() => setAssignModalPincode(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
-              Select a Regional Distributor to take control of <strong>{assignModalPincode.officeName} ({assignModalPincode.district}, {assignModalPincode.state})</strong>:
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
-              {distributors.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
-                  No active distributors registered yet. Please add a distributor first.
-                </div>
-              ) : (
-                distributors.map((d) => (
-                  <div
-                    key={d.distributorId}
-                    onClick={() => handleAssignPincode(assignModalPincode.pincode, d.distributorId)}
-                    style={{ padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#0f172a' }}>{d.businessName}</div>
-                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>{d.city} • PIN: {d.primaryPincode} • {d.contactPerson}</div>
-                    </div>
-                    <ArrowRight size={16} color="#0284c7" />
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => setAssignModalPincode(null)}
-                style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

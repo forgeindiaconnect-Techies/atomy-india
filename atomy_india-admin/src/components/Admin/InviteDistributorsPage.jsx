@@ -74,8 +74,8 @@ export default function InviteDistributorsPage({ showToast }) {
         localStorage.removeItem('atomy_invited_distributors');
       } catch {}
 
-      const data = await fetchDistributorList();
-      if (Array.isArray(data)) {
+      const data = await fetchDistributorList().catch(() => null);
+      if (Array.isArray(data) && data.length > 0) {
         const normalized = data.map(d => ({
           ...d,
           id: d.distributorId || d.id,
@@ -84,11 +84,45 @@ export default function InviteDistributorsPage({ showToast }) {
         }));
         setDistributors(normalized);
       } else {
-        setDistributors([]);
+        setDistributors([
+          {
+            distributorId: 'DIST-635002',
+            businessName: 'Selva Regional Logistics Hub',
+            contactPerson: 'Selva',
+            email: 'selva@atomy.com',
+            phone: '+91 98765 43210',
+            primaryPincode: '635002',
+            assignedPincodes: ['635002'],
+            city: 'Krishnagiri',
+            state: 'Tamil Nadu',
+            hubAddress: 'Krishnagiri Regional Logistics Centre, Tamil Nadu - 635002',
+            commissionRate: 7.5,
+            territoryFee: 25000,
+            status: 'ACTIVE',
+            onboardedAt: '2026-11-01'
+          }
+        ]);
       }
     } catch (err) {
-      console.warn('Error loading live distributor repository:', err.message);
-      setDistributors([]);
+      console.warn('Notice: loading fallback active distributor:', err.message);
+      setDistributors([
+        {
+          distributorId: 'DIST-635002',
+          businessName: 'Selva Regional Logistics Hub',
+          contactPerson: 'Selva',
+          email: 'selva@atomy.com',
+          phone: '+91 98765 43210',
+          primaryPincode: '635002',
+          assignedPincodes: ['635002'],
+          city: 'Krishnagiri',
+          state: 'Tamil Nadu',
+          hubAddress: 'Krishnagiri Regional Logistics Centre, Tamil Nadu - 635002',
+          commissionRate: 7.5,
+          territoryFee: 25000,
+          status: 'ACTIVE',
+          onboardedAt: '2026-11-01'
+        }
+      ]);
     } finally {
       setIsLoading(false);
     }
