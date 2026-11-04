@@ -239,6 +239,66 @@ export default function ProductDetailPage({
   const totalPv = itemPv * effectiveQty;
 
   // Lock body scroll and listen for Escape / Arrow keys when modal is open
+  const resolveProductHashtags = (prod) => {
+    if (!prod) return [];
+    const tagSet = new Set();
+
+    // 1. Existing tags from product object
+    if (Array.isArray(prod.tags)) {
+      prod.tags.forEach(t => {
+        if (t && typeof t === 'string' && t.trim()) {
+          const clean = t.trim();
+          tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
+        }
+      });
+    } else if (typeof prod.tags === 'string' && prod.tags.trim()) {
+      prod.tags.split(',').forEach(t => {
+        const clean = t.trim();
+        if (clean) tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
+      });
+    }
+
+    // 2. GST Reduced tag
+    if (prod.gstReduced || prod.isGstReduced) {
+      tagSet.add('#GST REDUCED');
+    }
+
+    // 3. Keyword-derived meaningful hashtags based on product characteristics
+    const nameLower = (prod.name || '').toLowerCase();
+    if (nameLower.includes('brightening')) tagSet.add('#Brightening');
+    if (nameLower.includes('moisturizing') || nameLower.includes('hydra')) tagSet.add('#Moisturizing');
+    if (nameLower.includes('firming')) tagSet.add('#Firming');
+    if (nameLower.includes('mask')) tagSet.add('#SheetMask');
+    if (nameLower.includes('sunscreen') || nameLower.includes('sun') || nameLower.includes('uv')) tagSet.add('#SunProtection');
+    if (nameLower.includes('hemohim')) { tagSet.add('#Immunity'); tagSet.add('#HealthSupplement'); }
+    if (nameLower.includes('probiotics')) { tagSet.add('#GutHealth'); tagSet.add('#Probiotics'); }
+    if (nameLower.includes('omega')) { tagSet.add('#HeartHealth'); tagSet.add('#Omega3'); }
+    if (nameLower.includes('vitamin c')) tagSet.add('#Antioxidant');
+    if (nameLower.includes('cleanser') || nameLower.includes('deep clean') || nameLower.includes('foam')) tagSet.add('#DeepCleansing');
+    if (nameLower.includes('shampoo') || nameLower.includes('hair') || nameLower.includes('scalp')) tagSet.add('#HairCare');
+    if (nameLower.includes('toothpaste') || nameLower.includes('toothbrush') || nameLower.includes('oral')) tagSet.add('#OralCare');
+    if (nameLower.includes('absolute')) tagSet.add('#AntiAging');
+    if (nameLower.includes('lutein')) tagSet.add('#EyeHealth');
+    if (nameLower.includes('spirulina')) tagSet.add('#Superfood');
+    if (nameLower.includes('bb cream') || nameLower.includes('pact') || nameLower.includes('cushion') || nameLower.includes('lip')) tagSet.add('#MakeupEssential');
+
+    // 4. SubTopic tag
+    if (prod.subTopic && prod.subTopic !== 'All') {
+      const cleanSub = prod.subTopic.trim();
+      tagSet.add(cleanSub.startsWith('#') ? cleanSub : `#${cleanSub}`);
+    }
+
+    // 5. Category tag
+    if (prod.category && typeof prod.category === 'string') {
+      const cleanCat = prod.category.trim();
+      if (cleanCat && !cleanCat.toUpperCase().startsWith('ALL')) {
+        tagSet.add(cleanCat.startsWith('#') ? cleanCat : `#${cleanCat}`);
+      }
+    }
+
+    return Array.from(tagSet);
+  };
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isImgModalOpen) return;
@@ -477,9 +537,23 @@ export default function ProductDetailPage({
               </div>
             </div>
 
-            {/* Free Delivery Bordered Badge (matches Screenshot 1) */}
+            {/* Free Delivery Bordered Badge & Product Hashtags */}
             <div className="pdp-badge-line">
               <span className="pdp-free-deliv-pill">Free Delivery</span>
+              {resolveProductHashtags(product).map((tag, tIdx) => {
+                const lower = tag.toLowerCase();
+                const isGst = lower.includes('gst');
+                const isFree = lower.includes('free delivery') || lower.includes('free_delivery');
+                if (isFree) return null;
+                return (
+                  <span
+                    key={tIdx}
+                    className={`pdp-hashtag-pill ${isGst ? 'tag-gst' : ''}`}
+                  >
+                    {tag}
+                  </span>
+                );
+              })}
             </div>
 
             {/* Product Title (matches Screenshot 1) */}
