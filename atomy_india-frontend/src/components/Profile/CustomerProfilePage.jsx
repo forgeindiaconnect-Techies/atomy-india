@@ -473,8 +473,11 @@ export default function CustomerProfilePage({
     setIsAddingAddress(true);
     setIsLocationDetected(false);
     setAvailableAreas([]);
+    const hasHome = addresses.some(a => (a.tag || a.type || '').toLowerCase().trim() === 'home');
+    const hasOffice = addresses.some(a => (a.tag || a.type || '').toLowerCase().trim() === 'office');
+    const defaultType = !hasHome ? 'Home' : (!hasOffice ? 'Office' : 'Other');
     setNewAddressForm({
-      type: 'Home',
+      type: defaultType,
       fullName: currentUser?.name || '',
       phone: currentUser?.phone ? currentUser.phone.replace(/^\+91/, '').trim() : '',
       street: '',
@@ -506,6 +509,21 @@ export default function CustomerProfilePage({
   const handleSaveAddress = (e) => {
     e.preventDefault();
     if (!newAddressForm.street || !newAddressForm.city || !newAddressForm.pincode) return;
+
+    const normalizedTag = (newAddressForm.type || 'Home').toLowerCase().trim();
+    if (normalizedTag === 'home') {
+      const hasDuplicateHome = addresses.some(a => a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === 'home');
+      if (hasDuplicateHome) {
+        alert('A Home address is already saved. You can only save one Home address. You can update your existing Home address, delete it to add a new one, or select "Other".');
+        return;
+      }
+    } else if (normalizedTag === 'office') {
+      const hasDuplicateOffice = addresses.some(a => a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === 'office');
+      if (hasDuplicateOffice) {
+        alert('An Office address is already saved. You can only save one Office address. You can update your existing Office address, delete it to add a new one, or select "Other".');
+        return;
+      }
+    }
 
     if (editingAddressId) {
       setAddresses(prev => prev.map(a => {
@@ -1489,9 +1507,21 @@ export default function CustomerProfilePage({
                         value={newAddressForm.type}
                         onChange={(e) => setNewAddressForm({ ...newAddressForm, type: e.target.value })}
                       >
-                        <option value="Home">Home (7 AM - 9 PM delivery)</option>
-                        <option value="Office">Office (10 AM - 6 PM delivery)</option>
-                        <option value="Other">Other</option>
+                        {(() => {
+                          const hasHome = addresses.some(a => a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === 'home');
+                          const hasOffice = addresses.some(a => a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === 'office');
+                          return (
+                            <>
+                              <option value="Home" disabled={hasHome}>
+                                Home (7 AM - 9 PM delivery){hasHome ? ' - Already Saved (1 max)' : ''}
+                              </option>
+                              <option value="Office" disabled={hasOffice}>
+                                Office (10 AM - 6 PM delivery){hasOffice ? ' - Already Saved (1 max)' : ''}
+                              </option>
+                              <option value="Other">Other (Unlimited locations)</option>
+                            </>
+                          );
+                        })()}
                       </select>
                     </div>
 

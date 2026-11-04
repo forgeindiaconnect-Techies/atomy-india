@@ -793,8 +793,13 @@ export default function OrderSheetPage({
     setLocationFeedback(null);
     setIsLocationDetected(false);
     setDetectedLocationName('');
+
+    const hasHome = addresses.some(a => (a.tag || a.type || '').toLowerCase().trim() === 'home');
+    const hasOffice = addresses.some(a => (a.tag || a.type || '').toLowerCase().trim() === 'office');
+    const defaultTag = !hasHome ? 'Home' : (!hasOffice ? 'Office' : 'Other');
+
     setAddressForm({
-      tag: 'Home',
+      tag: defaultTag,
       recipientName: currentUser?.name || '',
       recipientPhone: currentUser?.phone ? currentUser.phone.replace(/^\+91/, '').trim() : '',
       alternatePhone: '',
@@ -861,6 +866,21 @@ export default function OrderSheetPage({
     if (!addressForm.recipientName.trim() || !addressForm.recipientPhone.trim() || !addressForm.pincode.trim() || !addressForm.addressLine1.trim()) {
       alert('Please fill in all mandatory fields marked with *');
       return;
+    }
+
+    const normalizedTag = (addressForm.tag || 'Home').toLowerCase().trim();
+    if (normalizedTag === 'home') {
+      const hasDuplicateHome = addresses.some(a => a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === 'home');
+      if (hasDuplicateHome) {
+        alert('A Home address is already saved. You can only save one Home address. You can update your existing Home address, delete it to add a new one, or select "Other".');
+        return;
+      }
+    } else if (normalizedTag === 'office') {
+      const hasDuplicateOffice = addresses.some(a => a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === 'office');
+      if (hasDuplicateOffice) {
+        alert('An Office address is already saved. You can only save one Office address. You can update your existing Office address, delete it to add a new one, or select "Other".');
+        return;
+      }
     }
 
     if (editingAddressId) {
@@ -3000,18 +3020,45 @@ export default function OrderSheetPage({
                 <div className="address-tag-select-row">
                   <span className="tag-row-label">Address Type:</span>
                   <div className="tag-options-pills">
-                    {['Home', 'Office', 'Other'].map(type => (
-                      <button
-                        key={type}
-                        type="button"
-                        className={`btn-tag-pill ${addressForm.tag === type ? 'active' : ''}`}
-                        onClick={() => setAddressForm(prev => ({ ...prev, tag: type }))}
-                      >
-                        {type}
-                      </button>
-                    ))}
+                    {['Home', 'Office', 'Other'].map(type => {
+                      const isTaken = type !== 'Other' && addresses.some(a =>
+                        a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === type.toLowerCase()
+                      );
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          disabled={isTaken}
+                          className={`btn-tag-pill ${addressForm.tag === type ? 'active' : ''} ${isTaken ? 'disabled' : ''}`}
+                          onClick={() => {
+                            if (isTaken) return;
+                            setAddressForm(prev => ({ ...prev, tag: type }));
+                          }}
+                          title={isTaken ? `${type} address is already saved. Only 1 ${type} address is allowed. You can edit or delete your existing ${type} address.` : ''}
+                        >
+                          {type}
+                          {isTaken && <span className="tag-saved-hint">(Saved)</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+
+                {/* Informative limit notice for Home & Office single-save rule */}
+                {(() => {
+                  const hasHome = addresses.some(a => a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === 'home');
+                  const hasOffice = addresses.some(a => a.id !== editingAddressId && (a.tag || a.type || '').toLowerCase().trim() === 'office');
+                  if (hasHome && hasOffice) {
+                    return <p className="address-type-limit-note">ℹ Home &amp; Office addresses are already saved (1 each). New addresses can be added under <strong>Other</strong>.</p>;
+                  }
+                  if (hasHome) {
+                    return <p className="address-type-limit-note">ℹ 1 Home address already exists. Choose <strong>Office</strong> or <strong>Other</strong>, or edit your existing Home address.</p>;
+                  }
+                  if (hasOffice) {
+                    return <p className="address-type-limit-note">ℹ 1 Office address already exists. Choose <strong>Home</strong> or <strong>Other</strong>, or edit your existing Office address.</p>;
+                  }
+                  return null;
+                })()}
 
                 {/* Recipient Name & Phone */}
                 <div className="form-grid-2col">
