@@ -579,15 +579,34 @@
 }
 
 .finance-status-select {
-  padding: 8px 12px;
+  padding: 8px 36px 8px 14px;
   font-size: 13px;
-  font-weight: 500;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  font-weight: 600;
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1;
   border-radius: 8px;
   color: #1e293b;
   outline: none;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2300A3E0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.18s ease;
+}
+
+.finance-status-select:hover {
+  border-color: #00A3E0;
+  background-color: #f8fafc;
+}
+
+.finance-status-select:focus {
+  border-color: #00A3E0;
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.15);
 }
 
 /* Finance Table */

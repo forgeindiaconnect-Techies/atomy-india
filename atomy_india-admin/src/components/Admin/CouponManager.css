@@ -159,18 +159,35 @@
 }
 
 .filter-select {
-  padding: 8px 12px;
-  border-radius: 7px;
-  border: 1px solid #cbd5e1;
+  padding: 8px 38px 8px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
   background-color: #ffffff;
-  font-size: 12.5px;
+  font-size: 13px;
+  font-weight: 600;
   color: #0f172a;
   outline: none;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2300A3E0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.18s ease;
+  min-width: 140px;
+}
+
+.filter-select:hover {
+  border-color: #00A3E0;
+  background-color: #f8fafc;
 }
 
 .filter-select:focus {
   border-color: #00A3E0;
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.15);
 }
 
 /* 3. Empty State */
@@ -574,5 +591,31 @@
 
   .rules-matrix-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .coupon-filters-strip {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .coupon-filter-dropdowns {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .filter-group {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 135px;
+  }
+
+  .filter-group select {
+    width: 100%;
+  }
+
+  .filter-group:last-child {
+    flex: 1 1 100%;
   }
 }
