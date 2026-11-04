@@ -725,13 +725,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
               )}
 
               {activeTab === 'finance' && (
-                <div className="admin-tab-content">
-                  <DistributorFinancePage
-                    stats={stats}
-                    orders={orders}
-                    distributor={currentDist}
-                  />
-                </div>
+                <DistributorFinancePage
+                  stats={stats}
+                  orders={orders}
+                  distributor={currentDist}
+                  onNavigateToOrders={() => setActiveTab('orders')}
+                  onNavigateToSupport={() => setActiveTab('support')}
+                />
               )}
 
               {activeTab === 'settings' && (
