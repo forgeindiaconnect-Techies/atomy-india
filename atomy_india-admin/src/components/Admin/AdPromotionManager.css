@@ -596,11 +596,87 @@
 
 .ad-modal-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 12px;
-  padding-top: 16px;
+  gap: 14px;
+  margin-top: 24px;
+  padding-top: 18px;
+  padding-bottom: 8px;
   border-top: 1px solid #e2e8f0;
+}
+
+.ad-modal-footer .atomy-btn-secondary,
+.ad-modal-footer .atomy-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  min-height: 42px;
+  min-width: 115px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.ad-modal-footer .atomy-btn-primary {
+  background-color: #00A3E0;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.25);
+}
+
+.ad-modal-footer .atomy-btn-primary:hover {
+  background-color: #0284c7;
+  transform: translateY(-1px);
+}
+
+.ad-modal-footer .atomy-btn-secondary {
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.ad-modal-footer .atomy-btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+@media (max-width: 640px) {
+  .ad-modal-backdrop {
+    padding: 12px;
+  }
+
+  .ad-modal-dialog {
+    max-height: 94vh;
+    border-radius: 14px;
+  }
+
+  .ad-modal-header {
+    padding: 16px 18px;
+  }
+
+  .ad-modal-body {
+    padding: 18px 18px 24px 18px;
+  }
+
+  .ad-modal-footer {
+    margin-top: 22px;
+    padding-top: 18px;
+    padding-bottom: 8px;
+    gap: 12px;
+  }
+
+  .ad-modal-footer .atomy-btn-secondary,
+  .ad-modal-footer .atomy-btn-primary {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 11px 16px;
+    font-size: 14px;
+  }
 }
 
 /* Multi-Banner Pop-up Admin Preview (Matches user reference Image 2) */
