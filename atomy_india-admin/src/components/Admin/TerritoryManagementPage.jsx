@@ -823,8 +823,8 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
         </div>
       </div>
 
-      {/* 4. Current Distributors List Table */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      {/* 4. Current Distributors List Table (Merged seamlessly with page, Commission column moved inside Overview) */}
+      <div style={{ width: '100%', overflowX: 'auto', marginTop: '8px' }}>
         {isLoading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
             Loading active distributors...
@@ -835,117 +835,104 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
             <p style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>No distributors found matching "{searchQuery}".</p>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Distributor Hub &amp; ID</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Assigned Territory</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Contact Person</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Total Orders</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Total Sales</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Commission</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Status</th>
-                  <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Action</th>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #e2e8f0', background: 'transparent' }}>
+                <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', minWidth: '220px' }}>Distributor Hub &amp; ID</th>
+                <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', minWidth: '180px' }}>Assigned Territory</th>
+                <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', minWidth: '220px' }}>Contact Person</th>
+                <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center', minWidth: '110px' }}>Total Orders</th>
+                <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right', minWidth: '130px' }}>Total Sales</th>
+                <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center', minWidth: '110px' }}>Status</th>
+                <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right', minWidth: '140px' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDistributors.map((d) => (
+                <tr 
+                  key={d.distributorId}
+                  onClick={() => setSelectedDistributor(d)}
+                  style={{ borderBottom: '1px solid #e2e8f0', cursor: 'pointer', transition: 'background 0.15s ease' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  title="Click to view overall overview page (sales, commission, orders, customers)"
+                >
+                  {/* Hub & ID */}
+                  <td style={{ padding: '16px 18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Building2 size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14.5px' }}>
+                          {d.businessName || d.distributorName}
+                        </div>
+                        <span style={{ fontSize: '11.5px', color: '#64748b', fontFamily: 'monospace' }}>
+                          ID: {d.distributorId}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Assigned Territory */}
+                  <td style={{ padding: '16px 18px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, color: '#0284c7', fontSize: '13px' }}>
+                      <MapPin size={14} />
+                      <span>PIN: {d.primaryPincode}</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      {d.city}, {d.state}
+                    </div>
+                  </td>
+
+                  {/* Contact Person */}
+                  <td style={{ padding: '16px 18px' }}>
+                    <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '13.5px' }}>
+                      {d.contactPerson}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      {d.phone} • {d.email}
+                    </div>
+                  </td>
+
+                  {/* Orders */}
+                  <td style={{ padding: '16px 18px', textAlign: 'center' }}>
+                    <span style={{ padding: '4px 12px', background: '#e2e8f0', color: '#0f172a', borderRadius: '12px', fontWeight: 700, fontSize: '13px' }}>
+                      {d.totalOrders || 0}
+                    </span>
+                  </td>
+
+                  {/* Sales */}
+                  <td style={{ padding: '16px 18px', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>
+                    ₹ {Number(d.totalSales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </td>
+
+                  {/* Status */}
+                  <td style={{ padding: '16px 18px', textAlign: 'center' }}>
+                    <span className="territory-badge-assigned">
+                      <CheckCircle2 size={12} /> ACTIVE
+                    </span>
+                  </td>
+
+                  {/* Action */}
+                  <td style={{ padding: '16px 18px', textAlign: 'right' }}>
+                    <button
+                      type="button"
+                      className="action-pill-btn detail"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDistributor(d);
+                      }}
+                      title="Open Distributor Overall Overview (Customers, Orders, Sales, Commission)"
+                    >
+                      <Eye size={13} />
+                      <span>View Overview →</span>
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredDistributors.map((d) => (
-                  <tr 
-                    key={d.distributorId}
-                    onClick={() => setSelectedDistributor(d)}
-                    style={{ borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background 0.15s ease' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
-                    title="Click to view overall overview page (sales, commission, orders, customers)"
-                  >
-                    {/* Hub & ID */}
-                    <td style={{ padding: '14px 18px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Building2 size={18} />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '14px' }}>
-                            {d.businessName || d.distributorName}
-                          </div>
-                          <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
-                            ID: {d.distributorId}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Assigned Territory */}
-                    <td style={{ padding: '14px 18px' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 700, color: '#0284c7', fontSize: '13px' }}>
-                        <MapPin size={13} />
-                        <span>PIN: {d.primaryPincode}</span>
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-                        {d.city}, {d.state}
-                      </div>
-                    </td>
-
-                    {/* Contact Person */}
-                    <td style={{ padding: '14px 18px' }}>
-                      <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '13px' }}>
-                        {d.contactPerson}
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                        {d.phone} • {d.email}
-                      </div>
-                    </td>
-
-                    {/* Orders */}
-                    <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                      <span style={{ padding: '4px 10px', background: '#f1f5f9', color: '#0f172a', borderRadius: '12px', fontWeight: 700, fontSize: '12.5px' }}>
-                        {d.totalOrders || 0}
-                      </span>
-                    </td>
-
-                    {/* Sales */}
-                    <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '13.5px' }}>
-                      ₹ {Number(d.totalSales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
-
-                    {/* Commission */}
-                    <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                      <div style={{ fontWeight: 800, color: '#16a34a', fontSize: '13.5px' }}>
-                        ₹ {Number(d.totalCommission || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </div>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>
-                        ({d.commissionRate || 7.5}%)
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                      <span className="territory-badge-assigned">
-                        <CheckCircle2 size={12} /> ACTIVE
-                      </span>
-                    </td>
-
-                    {/* Action */}
-                    <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        className="action-pill-btn detail"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDistributor(d);
-                        }}
-                        title="Open Distributor Overall Overview (Customers, Orders, Sales, Commission)"
-                      >
-                        <Eye size={13} />
-                        <span>View Overview →</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
