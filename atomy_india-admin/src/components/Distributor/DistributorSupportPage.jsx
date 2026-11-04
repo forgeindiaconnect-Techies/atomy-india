@@ -19,8 +19,16 @@ import {
   ChevronRight,
   ExternalLink,
   MapPin,
-  Sparkles
+  Sparkles,
+  RotateCcw,
+  AlertTriangle,
+  Truck,
+  IndianRupee
 } from 'lucide-react';
+import {
+  processDistributorRefund,
+  processDistributorReplacement
+} from '../../services/distributorService';
 import '../Admin/AdminDashboard.css';
 
 const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
@@ -36,6 +44,18 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
   const [replyMessage, setReplyMessage] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Refund & Replacement Action States
+  const [refundModalOrder, setRefundModalOrder] = useState(null);
+  const [refundReason, setRefundReason] = useState('Customer requested refund via support ticket');
+  const [restockInventory, setRestockInventory] = useState(true);
+  const [isProcessingRefund, setIsProcessingRefund] = useState(false);
+
+  const [replacementModalOrder, setReplacementModalOrder] = useState(null);
+  const [replacementProductId, setReplacementProductId] = useState('');
+  const [replacementReason, setReplacementReason] = useState('Damaged during delivery / package crushed');
+  const [replacementNotes, setReplacementNotes] = useState('');
+  const [isProcessingReplacement, setIsProcessingReplacement] = useState(false);
 
   // Modal: Log New Inquiry
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -236,6 +256,140 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
   // Quick Template Auto-Fill
   const handleApplyTemplate = (text) => {
     setReplyMessage(text);
+  };
+
+  const distId = distributor?.distributorId || distributor?.id || 'DIST-635002';
+
+  // Find matching order in territory orders for selected ticket
+  const matchedOrder = useMemo(() => {
+    if (!selectedTicket) return null;
+    if (selectedTicket.orderId) {
+      const byId = (orders || []).find(o => String(o.orderId || o.id).toLowerCase() === String(selectedTicket.orderId).toLowerCase());
+      if (byId) return byId;
+    }
+    if (selectedTicket.customerEmail) {
+      const byEmail = (orders || []).find(o => (o.customerEmail || '').toLowerCase() === selectedTicket.customerEmail.toLowerCase());
+      if (byEmail) return byEmail;
+    }
+    return null;
+  }, [selectedTicket, orders]);
+
+  const handleConfirmRefund = async () => {
+    if (!refundModalOrder) return;
+    setIsProcessingRefund(true);
+    const orderId = refundModalOrder.orderId || refundModalOrder.id;
+    try {
+      await processDistributorRefund(orderId, distId, {
+        reason: refundReason,
+        restockInventory
+      });
+
+      if (selectedTicket) {
+        const resolutionMsg = {
+          messageId: `MSG-RES-${Date.now()}`,
+          sender: 'ADMIN',
+          senderName: `${distributor?.businessName || 'Regional Hub'} (Authorized Action)`,
+          message: `✅ RETURN & REFUND APPROVED: A full refund of ₹${Number(refundModalOrder.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} has been processed for Order #${orderId}. Reason: ${refundReason}.${restockInventory ? ' Returned items have been restocked into Krishnagiri Hub Inventory.' : ''}`,
+          timestamp: new Date().toISOString()
+        };
+
+        const ticketId = selectedTicket.ticketId || selectedTicket.id;
+        try {
+          await fetch(`${API_BASE}/admin/support/tickets/${encodeURIComponent(ticketId)}/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(resolutionMsg)
+          });
+          await fetch(`${API_BASE}/admin/support/tickets/${encodeURIComponent(ticketId)}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'RESOLVED' })
+          });
+        } catch (e) {
+          console.warn('Ticket sync error:', e);
+        }
+
+        setTickets(prev => prev.map(t => {
+          if ((t.ticketId || t.id) === ticketId) {
+            return {
+              ...t,
+              status: 'RESOLVED',
+              messages: [...(t.messages || []), resolutionMsg],
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return t;
+        }));
+      }
+
+      showToast(`Return & Refund processed successfully for Order #${orderId}!`);
+      setRefundModalOrder(null);
+    } catch (err) {
+      console.error('Failed to process refund:', err);
+      showToast(err.message || 'Failed to process refund');
+    } finally {
+      setIsProcessingRefund(false);
+    }
+  };
+
+  const handleConfirmReplacement = async () => {
+    if (!replacementModalOrder) return;
+    setIsProcessingReplacement(true);
+    const orderId = replacementModalOrder.orderId || replacementModalOrder.id;
+    try {
+      await processDistributorReplacement(orderId, distId, {
+        productId: replacementProductId,
+        quantity: 1,
+        reason: replacementReason,
+        notes: replacementNotes
+      });
+
+      if (selectedTicket) {
+        const resolutionMsg = {
+          messageId: `MSG-REP-${Date.now()}`,
+          sender: 'ADMIN',
+          senderName: `${distributor?.businessName || 'Regional Hub'} (Authorized Action)`,
+          message: `🔄 REPLACEMENT UNIT DISPATCHED: A replacement unit has been dispatched from Krishnagiri Hub stock for Order #${orderId}. Reason: ${replacementReason}.${replacementNotes ? ' Dispatch note: ' + replacementNotes : ''}`,
+          timestamp: new Date().toISOString()
+        };
+
+        const ticketId = selectedTicket.ticketId || selectedTicket.id;
+        try {
+          await fetch(`${API_BASE}/admin/support/tickets/${encodeURIComponent(ticketId)}/reply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(resolutionMsg)
+          });
+          await fetch(`${API_BASE}/admin/support/tickets/${encodeURIComponent(ticketId)}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'RESOLVED' })
+          });
+        } catch (e) {
+          console.warn('Ticket sync error:', e);
+        }
+
+        setTickets(prev => prev.map(t => {
+          if ((t.ticketId || t.id) === ticketId) {
+            return {
+              ...t,
+              status: 'RESOLVED',
+              messages: [...(t.messages || []), resolutionMsg],
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return t;
+        }));
+      }
+
+      showToast(`Replacement dispatched successfully for Order #${orderId}!`);
+      setReplacementModalOrder(null);
+    } catch (err) {
+      console.error('Failed to dispatch replacement:', err);
+      showToast(err.message || 'Failed to dispatch replacement');
+    } finally {
+      setIsProcessingReplacement(false);
+    }
   };
 
   // Handle Create Manual Ticket
@@ -582,6 +736,153 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
                   </div>
                 </div>
 
+                {/* Order Return & Replacement Action Desk */}
+                {(matchedOrder || selectedTicket.orderId || selectedTicket.category === 'REFUND_REQUEST' || selectedTicket.category === 'DAMAGED_PRODUCT') && (
+                  <div style={{
+                    margin: '12px 18px',
+                    padding: '14px 18px',
+                    background: '#f8fafc',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '8px',
+                        background: '#e0f2fe',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#0284c7'
+                      }}>
+                        <Package size={20} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>
+                            Order #{matchedOrder ? (matchedOrder.orderId || matchedOrder.id) : (selectedTicket.orderId || 'Select Order')}
+                          </strong>
+                          {matchedOrder && (
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              background: String(matchedOrder.orderStatus).toUpperCase() === 'REFUNDED' ? '#fee2e2' : '#dcfce7',
+                              color: String(matchedOrder.orderStatus).toUpperCase() === 'REFUNDED' ? '#dc2626' : '#15803d'
+                            }}>
+                              {matchedOrder.orderStatus || 'PLACED'}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                          {matchedOrder ? (
+                            <span>
+                              Amount: <strong style={{ color: '#0f172a' }}>₹ {Number(matchedOrder.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                              {' • '}{(matchedOrder.items || []).length} item{(matchedOrder.items || []).length !== 1 ? 's' : ''}
+                              {' • '}PIN: {matchedOrder.pincode}
+                            </span>
+                          ) : (
+                            <span>Select a territory order below to issue refund or replacement</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      {(!matchedOrder || (orders || []).length > 1) && (
+                        <select
+                          value={matchedOrder ? (matchedOrder.orderId || matchedOrder.id) : ''}
+                          onChange={(e) => {
+                            const found = orders.find(o => (o.orderId || o.id) === e.target.value);
+                            if (found && selectedTicket) {
+                              setSelectedTicket(prev => ({ ...prev, orderId: found.orderId || found.id }));
+                            }
+                          }}
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '12px',
+                            background: '#ffffff',
+                            color: '#334155'
+                          }}
+                        >
+                          <option value="">{matchedOrder ? 'Switch Order...' : 'Select Territory Order...'}</option>
+                          {(orders || []).map(o => (
+                            <option key={o.orderId || o.id} value={o.orderId || o.id}>
+                              #{o.orderId || o.id} - ₹{Number(o.totalAmount || 0).toFixed(0)} ({o.customerName || 'Customer'})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      {matchedOrder && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplacementModalOrder(matchedOrder);
+                              setReplacementProductId('');
+                              setReplacementReason('Damaged during delivery / package crushed');
+                              setReplacementNotes('');
+                            }}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              background: '#7c3aed',
+                              color: '#ffffff',
+                              fontSize: '12.5px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer'
+                            }}
+                            title="Dispatch replacement unit from hub stock"
+                          >
+                            <RefreshCw size={14} />
+                            <span>Dispatch Replacement</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRefundModalOrder(matchedOrder);
+                              setRefundReason('Customer requested refund via support ticket');
+                              setRestockInventory(true);
+                            }}
+                            style={{
+                              padding: '7px 14px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              background: '#dc2626',
+                              color: '#ffffff',
+                              fontSize: '12.5px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: 'pointer'
+                            }}
+                            title="Process return & refund to customer"
+                          >
+                            <RotateCcw size={14} />
+                            <span>Process Return &amp; Refund</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Messages Stream */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '20px', maxHeight: '420px', display: 'flex', flexDirection: 'column', gap: '14px', background: '#fafafa' }}>
                   {(!selectedTicket.messages || selectedTicket.messages.length === 0) ? (
@@ -835,6 +1136,204 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Return & Refund Modal */}
+      {refundModalOrder && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(3px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <RotateCcw size={18} color="#dc2626" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>Process Return &amp; Refund</h3>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>Order #{refundModalOrder.orderId || refundModalOrder.id}</div>
+                </div>
+              </div>
+              <button type="button" onClick={() => setRefundModalOrder(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #e2e8f0', fontSize: '13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: '#64748b' }}>Customer:</span>
+                <strong>{refundModalOrder.customerName || 'Customer'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748b' }}>Refund Amount:</span>
+                <strong style={{ color: '#dc2626', fontSize: '14px' }}>₹ {Number(refundModalOrder.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Return &amp; Refund Reason</label>
+              <select
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              >
+                <option value="Customer requested refund via support ticket">Customer requested refund via support ticket</option>
+                <option value="Customer returned product to regional hub">Customer returned product to regional hub</option>
+                <option value="Customer rejected delivery at doorstep">Customer rejected delivery at doorstep</option>
+                <option value="Defective / damaged item returned">Defective / damaged item returned</option>
+                <option value="Order cancelled by customer before delivery">Order cancelled by customer before delivery</option>
+                <option value="Incorrect address / uncontactable customer">Incorrect address / uncontactable customer</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', background: '#ecfdf5', padding: '10px 14px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
+              <input
+                type="checkbox"
+                id="restockInventoryCheckboxSupport"
+                checked={restockInventory}
+                onChange={(e) => setRestockInventory(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: '#10b981', cursor: 'pointer' }}
+              />
+              <label htmlFor="restockInventoryCheckboxSupport" style={{ fontSize: '12.5px', color: '#065f46', fontWeight: 600, cursor: 'pointer' }}>
+                Automatically Restock Items into Hub Inventory
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setRefundModalOrder(null)}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRefund}
+                disabled={isProcessingRefund}
+                style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#dc2626', color: '#ffffff', fontSize: '13px', fontWeight: 600, cursor: isProcessingRefund ? 'not-allowed' : 'pointer', opacity: isProcessingRefund ? 0.7 : 1 }}
+              >
+                {isProcessingRefund ? 'Processing...' : 'Confirm Return & Refund'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Replacement Modal */}
+      {replacementModalOrder && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(3px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '540px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <RefreshCw size={18} color="#7c3aed" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>Issue Replacement Unit</h3>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>Order #{replacementModalOrder.orderId || replacementModalOrder.id}</div>
+                </div>
+              </div>
+              <button type="button" onClick={() => setReplacementModalOrder(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Select Product to Replace</label>
+              <select
+                value={replacementProductId}
+                onChange={(e) => setReplacementProductId(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              >
+                <option value="">All Items in Order (Full Replacement)</option>
+                {(replacementModalOrder.items || []).map((it, idx) => (
+                  <option key={it.productId || idx} value={it.productId}>
+                    {it.productName || it.name || `Item ${idx + 1}`} (Qty: {it.quantity || 1})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Replacement Reason</label>
+              <select
+                value={replacementReason}
+                onChange={(e) => setReplacementReason(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+              >
+                <option value="Damaged during delivery / package crushed">Damaged during delivery / package crushed</option>
+                <option value="Bottle seal leakage / defective container">Bottle seal leakage / defective container</option>
+                <option value="Wrong product SKU dispatched by mistake">Wrong product SKU dispatched by mistake</option>
+                <option value="Customer complaint verified & approved">Customer complaint verified & approved</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Hub Dispatch Notes (Optional)</label>
+              <textarea
+                value={replacementNotes}
+                onChange={(e) => setReplacementNotes(e.target.value)}
+                placeholder="e.g. Dispatched new sealed box via Blue Dart Express, AWB will follow."
+                rows={2}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', resize: 'vertical' }}
+              />
+              <span style={{ fontSize: '11.5px', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                * Replacement item will be automatically deducted from your hub stock inventory.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setReplacementModalOrder(null)}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReplacement}
+                disabled={isProcessingReplacement}
+                style={{ padding: '8px 18px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: '#ffffff', fontSize: '13px', fontWeight: 600, cursor: isProcessingReplacement ? 'not-allowed' : 'pointer', opacity: isProcessingReplacement ? 0.7 : 1 }}
+              >
+                {isProcessingReplacement ? 'Dispatching...' : 'Dispatch Replacement'}
+              </button>
+            </div>
           </div>
         </div>
       )}

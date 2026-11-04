@@ -86,6 +86,15 @@ public class CustomerOrder {
     @Field("distributor_commission")
     private BigDecimal distributorCommission = BigDecimal.ZERO;
 
+    @Field("return_status")
+    private String returnStatus; // "NONE", "RETURN_REQUESTED", "RETURNED_AND_REFUNDED", "REPLACEMENT_DISPATCHED"
+
+    @Field("return_reason")
+    private String returnReason;
+
+    @Field("replacement_notes")
+    private String replacementNotes;
+
     private List<OrderItem> items = new ArrayList<>();
 
     public enum PaymentMethod {
@@ -221,4 +230,13 @@ public class CustomerOrder {
 
     public String getHubAddress() { return hubAddress; }
     public void setHubAddress(String hubAddress) { this.hubAddress = hubAddress; }
+
+    public String getReturnStatus() { return returnStatus; }
+    public void setReturnStatus(String returnStatus) { this.returnStatus = returnStatus; }
+
+    public String getReturnReason() { return returnReason; }
+    public void setReturnReason(String returnReason) { this.returnReason = returnReason; }
+
+    public String getReplacementNotes() { return replacementNotes; }
+    public void setReplacementNotes(String replacementNotes) { this.replacementNotes = replacementNotes; }
 }

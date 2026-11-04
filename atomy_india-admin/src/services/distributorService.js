@@ -285,3 +285,31 @@ export async function removeProductFromInventory(distributorId, productId) {
   }
   return res.json();
 }
+
+export async function processDistributorRefund(orderId, distributorId, payload = {}) {
+  const url = `${API_BASE}/distributor/orders/${encodeURIComponent(orderId)}/refund?distributorId=${encodeURIComponent(distributorId)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to process return and refund');
+  }
+  return res.json();
+}
+
+export async function processDistributorReplacement(orderId, distributorId, payload = {}) {
+  const url = `${API_BASE}/distributor/orders/${encodeURIComponent(orderId)}/replacement?distributorId=${encodeURIComponent(distributorId)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to issue replacement');
+  }
+  return res.json();
+}

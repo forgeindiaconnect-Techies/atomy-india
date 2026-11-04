@@ -241,17 +241,7 @@ public class CustomerService {
                 }
             }
 
-            // 3. Dynamic Territory Fallback: If exact PIN is not mapped, check district/city in master pincodes database
-            if (distOpt.isEmpty()) {
-                java.util.Optional<com.example.atomy_india.model.IndiaPincode> pinOpt = indiaPincodeRepository.findByPincode(pin);
-                if (pinOpt.isPresent() && pinOpt.get().getDistrict() != null && !pinOpt.get().getDistrict().trim().isEmpty()) {
-                    String pinDistrict = pinOpt.get().getDistrict().trim();
-                    distOpt = distributorRepository.findAll().stream()
-                            .filter(d -> "ACTIVE".equalsIgnoreCase(d.getStatus()))
-                            .filter(d -> d.getCity() != null && (d.getCity().equalsIgnoreCase(pinDistrict) || pinDistrict.equalsIgnoreCase(d.getCity())))
-                            .findFirst();
-                }
-            }
+            // Strict PIN routing only: orders are never assigned across different PIN codes via city/district fallback.
 
             if (distOpt.isPresent()) {
                 com.example.atomy_india.model.DistributorUser d = distOpt.get();

@@ -45,6 +45,9 @@ public class AdminService {
     @Autowired
     private BrevoEmailService brevoEmailService;
 
+    @Autowired
+    private com.example.atomy_india.repository.DistributorInventoryRepository distributorInventoryRepository;
+
     // --- 1. Dashboard Overview Metrics ---
 
     @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
@@ -149,9 +152,35 @@ public class AdminService {
         CustomerOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
 
+        CustomerOrder.OrderStatus prevStatus = order.getOrderStatus();
         order.setOrderStatus(newStatus);
         if (newStatus == CustomerOrder.OrderStatus.DELIVERED && order.getPaymentStatus() == CustomerOrder.PaymentStatus.PENDING) {
             order.setPaymentStatus(CustomerOrder.PaymentStatus.PAID);
+        }
+
+        // If order was cancelled and wasn't cancelled before, restore distributor stock
+        if (newStatus == CustomerOrder.OrderStatus.CANCELLED && prevStatus != CustomerOrder.OrderStatus.CANCELLED) {
+            String distId = order.getAssignedDistributorId();
+            if (distId != null && !"CENTRAL_SUPER_HUB".equals(distId)) {
+                List<OrderItem> items = order.getItems();
+                if (items == null || items.isEmpty()) {
+                    items = orderItemRepository.findAll().stream()
+                            .filter(i -> orderId.equals(i.getOrderId()))
+                            .collect(java.util.stream.Collectors.toList());
+                }
+                if (items != null) {
+                    for (OrderItem oi : items) {
+                        String pId = oi.getProductId();
+                        int qty = oi.getQuantity() > 0 ? oi.getQuantity() : 1;
+                        distributorInventoryRepository.findByDistributorIdAndProductId(distId, pId).ifPresent(di -> {
+                            di.setStockQuantity(di.getStockQuantity() + qty);
+                            di.setAvailable(true);
+                            di.setUpdatedAt(LocalDateTime.now());
+                            distributorInventoryRepository.save(di);
+                        });
+                    }
+                }
+            }
         }
 
         // Also sync tracking status if present

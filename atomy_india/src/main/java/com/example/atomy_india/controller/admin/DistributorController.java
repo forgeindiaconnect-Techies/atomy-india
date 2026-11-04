@@ -24,6 +24,8 @@ public class DistributorController {
     private final ProductRepository productRepository;
     private final DistributorInventoryRepository inventoryRepository;
     private final IndiaPincodeRepository indiaPincodeRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final CustomerNotificationRepository notificationRepository;
 
     public DistributorController(DistributorRepository distributorRepository,
                                  CustomerOrderRepository customerOrderRepository,
@@ -31,7 +33,9 @@ public class DistributorController {
                                  AdminService adminService,
                                  ProductRepository productRepository,
                                  DistributorInventoryRepository inventoryRepository,
-                                 IndiaPincodeRepository indiaPincodeRepository) {
+                                 IndiaPincodeRepository indiaPincodeRepository,
+                                 OrderItemRepository orderItemRepository,
+                                 CustomerNotificationRepository notificationRepository) {
         this.distributorRepository = distributorRepository;
         this.customerOrderRepository = customerOrderRepository;
         this.trackingRepository = trackingRepository;
@@ -39,6 +43,8 @@ public class DistributorController {
         this.productRepository = productRepository;
         this.inventoryRepository = inventoryRepository;
         this.indiaPincodeRepository = indiaPincodeRepository;
+        this.orderItemRepository = orderItemRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     private Optional<DistributorUser> findDistributor(String identifier) {
@@ -337,6 +343,239 @@ public class DistributorController {
         ));
     }
 
+    private void appendTrackingCheckpoint(OrderTracking tracking, String status, String location, String desc) {
+        String safeDesc = desc != null ? desc.replace("\"", "\\\"") : "";
+        String safeLoc = location != null ? location.replace("\"", "\\\"") : "";
+        String newEntry = "{\"timestamp\":\"" + LocalDateTime.now() + "\",\"status\":\"" + status
+                + "\",\"location\":\"" + safeLoc
+                + "\",\"description\":\"" + safeDesc + "\"}";
+        String json = tracking.getCheckpointsJson();
+        if (json == null || json.trim().isEmpty() || json.equals("[]")) {
+            tracking.setCheckpointsJson("[" + newEntry + "]");
+        } else if (json.endsWith("]")) {
+            tracking.setCheckpointsJson(json.substring(0, json.length() - 1) + "," + newEntry + "]");
+        }
+    }
+
+    private void restockOrderInventory(CustomerOrder order, String distId) {
+        List<OrderItem> items = order.getItems();
+        if (items == null || items.isEmpty()) {
+            items = orderItemRepository.findAll().stream()
+                    .filter(i -> order.getOrderId().equals(i.getOrderId()))
+                    .collect(Collectors.toList());
+        }
+        if (items != null) {
+            for (OrderItem oi : items) {
+                String pId = oi.getProductId();
+                int qty = oi.getQuantity() > 0 ? oi.getQuantity() : 1;
+                inventoryRepository.findByDistributorIdAndProductId(distId, pId).ifPresentOrElse(di -> {
+                    di.setStockQuantity(di.getStockQuantity() + qty);
+                    di.setAvailable(true);
+                    di.setUpdatedAt(LocalDateTime.now());
+                    inventoryRepository.save(di);
+                }, () -> {
+                    DistributorInventory di = new DistributorInventory(distId, pId, qty);
+                    di.setAvailable(true);
+                    di.setUpdatedAt(LocalDateTime.now());
+                    inventoryRepository.save(di);
+                });
+            }
+        }
+    }
+
+    @PostMapping("/orders/{orderId}/refund")
+    public ResponseEntity<?> processRefund(
+            @PathVariable String orderId,
+            @RequestParam String distributorId,
+            @RequestBody(required = false) Map<String, Object> body) {
+        Optional<DistributorUser> distOpt = findDistributor(distributorId);
+        if (distOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Distributor not found"));
+        }
+        DistributorUser dist = distOpt.get();
+
+        Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Order not found: " + orderId));
+        }
+        CustomerOrder order = orderOpt.get();
+
+        List<String> pincodes = dist.getAssignedPincodes() != null ? dist.getAssignedPincodes() : Collections.emptyList();
+        if (!matchesTerritory(order, dist.getDistributorId(), pincodes)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Order does not belong to your assigned territory."));
+        }
+
+        String reason = (body != null && body.get("reason") != null && !body.get("reason").toString().trim().isEmpty())
+                ? body.get("reason").toString().trim()
+                : "Customer returned product to regional hub";
+        boolean restock = (body == null || body.get("restockInventory") == null)
+                || Boolean.parseBoolean(body.get("restockInventory").toString());
+
+        if (restock && order.getOrderStatus() != CustomerOrder.OrderStatus.CANCELLED) {
+            restockOrderInventory(order, dist.getDistributorId());
+        }
+
+        order.setOrderStatus(CustomerOrder.OrderStatus.CANCELLED);
+        order.setPaymentStatus(CustomerOrder.PaymentStatus.REFUNDED);
+        order.setReturnStatus("RETURNED_AND_REFUNDED");
+        order.setReturnReason(reason);
+        order.setDistributorCommission(BigDecimal.ZERO);
+        order.setUpdatedAt(LocalDateTime.now());
+        CustomerOrder savedOrder = customerOrderRepository.save(order);
+
+        // Update tracking checkpoints
+        Optional<OrderTracking> trOpt = trackingRepository.findFirstByOrderId(orderId);
+        if (trOpt.isPresent()) {
+            OrderTracking tracking = trOpt.get();
+            tracking.setCurrentStatus("REFUNDED");
+            String hubLoc = dist.getHubAddress() != null && !dist.getHubAddress().trim().isEmpty() ? dist.getHubAddress() : dist.getCity() + " Hub";
+            tracking.setCurrentLocation(hubLoc);
+            appendTrackingCheckpoint(tracking, "REFUNDED", hubLoc,
+                    "Return accepted and refund processed by Regional Hub (" + dist.getBusinessName() + "). Note: " + reason);
+            trackingRepository.save(tracking);
+        }
+
+        // Notify customer
+        if (savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().trim().isEmpty()) {
+            try {
+                notificationRepository.save(new CustomerNotification(
+                        savedOrder.getCustomerEmail().trim().toLowerCase(),
+                        "Refund Processed for Order #" + orderId,
+                        "Your return has been received and refund approved by the local hub (" + dist.getBusinessName() + "). Reason: " + reason,
+                        "order_refunded",
+                        orderId
+                ));
+            } catch (Exception ignored) {}
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Order #" + orderId + " has been marked as RETURNED & REFUNDED. Hub inventory restocked.",
+                "order", savedOrder
+        ));
+    }
+
+    @PostMapping("/orders/{orderId}/replacement")
+    public ResponseEntity<?> processReplacement(
+            @PathVariable String orderId,
+            @RequestParam String distributorId,
+            @RequestBody(required = false) Map<String, Object> body) {
+        Optional<DistributorUser> distOpt = findDistributor(distributorId);
+        if (distOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Distributor not found"));
+        }
+        DistributorUser dist = distOpt.get();
+
+        Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Order not found: " + orderId));
+        }
+        CustomerOrder order = orderOpt.get();
+
+        List<String> pincodes = dist.getAssignedPincodes() != null ? dist.getAssignedPincodes() : Collections.emptyList();
+        if (!matchesTerritory(order, dist.getDistributorId(), pincodes)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Order does not belong to your assigned territory."));
+        }
+
+        String reason = (body != null && body.get("reason") != null && !body.get("reason").toString().trim().isEmpty())
+                ? body.get("reason").toString().trim()
+                : "Damaged / defective item replaced";
+        String notes = (body != null && body.get("notes") != null) ? body.get("notes").toString().trim() : "";
+        String productId = (body != null && body.get("productId") != null) ? body.get("productId").toString().trim() : null;
+        int quantity = 1;
+        if (body != null && body.get("quantity") != null) {
+            try {
+                quantity = Integer.parseInt(body.get("quantity").toString());
+            } catch (Exception ignored) {}
+        }
+
+        List<OrderItem> itemsToReplace = new ArrayList<>();
+        List<OrderItem> allItems = order.getItems();
+        if (allItems == null || allItems.isEmpty()) {
+            allItems = orderItemRepository.findAll().stream()
+                    .filter(i -> order.getOrderId().equals(i.getOrderId()))
+                    .collect(Collectors.toList());
+        }
+
+        if (productId != null && !productId.isEmpty()) {
+            for (OrderItem it : allItems) {
+                if (productId.equalsIgnoreCase(it.getProductId())) {
+                    itemsToReplace.add(it);
+                    break;
+                }
+            }
+        } else {
+            itemsToReplace.addAll(allItems);
+        }
+
+        if (itemsToReplace.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No matching product item found in this order to replace."));
+        }
+
+        // Verify stock in distributor hub inventory
+        for (OrderItem it : itemsToReplace) {
+            int needQty = (productId != null) ? quantity : (it.getQuantity() > 0 ? it.getQuantity() : 1);
+            Optional<DistributorInventory> diOpt = inventoryRepository.findByDistributorIdAndProductId(dist.getDistributorId(), it.getProductId());
+            int available = diOpt.map(DistributorInventory::getStockQuantity).orElse(0);
+            if (available < needQty) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Insufficient hub inventory for " + it.getProductName() + " (Available: " + available + ", Required: " + needQty + "). Please restock first."
+                ));
+            }
+        }
+
+        // Deduct replacement stock from hub inventory
+        for (OrderItem it : itemsToReplace) {
+            int needQty = (productId != null) ? quantity : (it.getQuantity() > 0 ? it.getQuantity() : 1);
+            inventoryRepository.findByDistributorIdAndProductId(dist.getDistributorId(), it.getProductId()).ifPresent(di -> {
+                int updated = Math.max(0, di.getStockQuantity() - needQty);
+                di.setStockQuantity(updated);
+                di.setAvailable(updated > 0);
+                di.setUpdatedAt(LocalDateTime.now());
+                inventoryRepository.save(di);
+            });
+        }
+
+        // Update Order record
+        order.setReturnStatus("REPLACEMENT_DISPATCHED");
+        order.setReplacementNotes(reason + (notes.isEmpty() ? "" : " | Note: " + notes));
+        order.setDistributorDispatchStatus("REPLACEMENT_DISPATCHED");
+        order.setOrderStatus(CustomerOrder.OrderStatus.SHIPPED);
+        order.setUpdatedAt(LocalDateTime.now());
+        CustomerOrder savedOrder = customerOrderRepository.save(order);
+
+        // Update tracking checkpoints
+        Optional<OrderTracking> trOpt = trackingRepository.findFirstByOrderId(orderId);
+        if (trOpt.isPresent()) {
+            OrderTracking tracking = trOpt.get();
+            tracking.setCurrentStatus("REPLACEMENT_IN_TRANSIT");
+            String hubLoc = dist.getHubAddress() != null && !dist.getHubAddress().trim().isEmpty() ? dist.getHubAddress() : dist.getCity() + " Hub";
+            tracking.setCurrentLocation(hubLoc);
+            appendTrackingCheckpoint(tracking, "REPLACEMENT_DISPATCHED", hubLoc,
+                    "Replacement dispatched from Regional Hub (" + dist.getBusinessName() + "). Reason: " + reason);
+            trackingRepository.save(tracking);
+        }
+
+        // Notify customer
+        if (savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().trim().isEmpty()) {
+            try {
+                notificationRepository.save(new CustomerNotification(
+                        savedOrder.getCustomerEmail().trim().toLowerCase(),
+                        "Replacement Dispatched for Order #" + orderId,
+                        "Your regional hub (" + dist.getBusinessName() + ") has dispatched a replacement unit. Reason: " + reason,
+                        "order_replacement",
+                        orderId
+                ));
+            } catch (Exception ignored) {}
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Replacement successfully dispatched. Hub inventory updated.",
+                "order", savedOrder
+        ));
+    }
+
     @GetMapping("/customers")
     public ResponseEntity<?> getCustomers(@RequestParam String distributorId) {
         Optional<DistributorUser> distOpt = findDistributor(distributorId);
@@ -553,43 +792,40 @@ public class DistributorController {
     }
 
     private boolean matchesTerritory(CustomerOrder o, String distId, List<String> assignedPincodes) {
-        if (o == null) return false;
-        if (distId != null && distId.equalsIgnoreCase(o.getAssignedDistributorId())) {
+        if (o == null || distId == null) return false;
+        Optional<DistributorUser> distOpt = findDistributor(distId);
+        if (distOpt.isEmpty()) return false;
+        DistributorUser dist = distOpt.get();
+
+        Set<String> validPins = new HashSet<>();
+        if (dist.getPrimaryPincode() != null && !dist.getPrimaryPincode().trim().isEmpty()) {
+            validPins.add(dist.getPrimaryPincode().trim());
+        }
+        if (assignedPincodes != null) {
+            for (String p : assignedPincodes) {
+                if (p != null && !p.trim().isEmpty()) validPins.add(p.trim());
+            }
+        }
+        if (dist.getAssignedPincodes() != null) {
+            for (String p : dist.getAssignedPincodes()) {
+                if (p != null && !p.trim().isEmpty()) validPins.add(p.trim());
+            }
+        }
+
+        String orderPin = o.getPincode() != null ? o.getPincode().trim() : "";
+        if (orderPin.isEmpty()) return false;
+
+        // Strict PIN match: each pin code is distinct (e.g. 635002 vs 635122)
+        if (validPins.contains(orderPin)) {
             return true;
         }
-        if (o.getPincode() != null) {
-            String p = o.getPincode().trim();
-            if (assignedPincodes != null && assignedPincodes.contains(p)) {
-                return true;
-            }
-            // Check in indiaPincode master if assigned to this distributor
-            Optional<IndiaPincode> pinDoc = indiaPincodeRepository.findByPincode(p);
-            if (pinDoc.isPresent() && distId != null && distId.equalsIgnoreCase(pinDoc.get().getAssignedDistributorId())) {
-                return true;
-            }
+
+        // Also check if IndiaPincode master explicitly assigned this pin
+        Optional<IndiaPincode> pinDoc = indiaPincodeRepository.findByPincode(orderPin);
+        if (pinDoc.isPresent() && distId.equalsIgnoreCase(pinDoc.get().getAssignedDistributorId())) {
+            return true;
         }
-        // 3-digit postal zone prefix match (e.g. 635xxx, 110xxx, 560xxx) or city match
-        if (distId != null) {
-            Optional<DistributorUser> distOpt = findDistributor(distId);
-            if (distOpt.isPresent()) {
-                DistributorUser dist = distOpt.get();
-                String primaryPin = dist.getPrimaryPincode();
-                if (o.getPincode() != null && primaryPin != null) {
-                    String p = o.getPincode().trim();
-                    String pp = primaryPin.trim();
-                    if (p.length() >= 3 && pp.length() >= 3 && p.substring(0, 3).equals(pp.substring(0, 3))) {
-                        return true;
-                    }
-                }
-                if (o.getCity() != null && dist.getCity() != null) {
-                    String oc = o.getCity().trim().toLowerCase();
-                    String dc = dist.getCity().trim().toLowerCase();
-                    if (!oc.isEmpty() && (oc.equals(dc) || oc.contains(dc) || dc.contains(oc))) {
-                        return true;
-                    }
-                }
-            }
-        }
+
         return false;
     }
 

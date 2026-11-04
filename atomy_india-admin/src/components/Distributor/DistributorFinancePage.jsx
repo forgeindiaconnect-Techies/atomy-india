@@ -11,7 +11,8 @@ import {
   X,
   FileText,
   AlertTriangle,
-  XCircle
+  XCircle,
+  RotateCcw
 } from 'lucide-react';
 import '../Admin/AdminDashboard.css';
 
@@ -26,27 +27,49 @@ export default function DistributorFinancePage({
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
   const commRate = Number(distributor?.commissionRate || 8.0);
 
-  // Filter out cancelled orders for revenue and commission calculations
-  const activeOrders = orders.filter(o => String(o.orderStatus || '').toUpperCase() !== 'CANCELLED');
+  // Filter refunded orders
+  const refundedOrders = orders.filter(o => {
+    const st = String(o.orderStatus || '').toUpperCase();
+    const retSt = String(o.returnStatus || '').toUpperCase();
+    return st === 'REFUNDED' || retSt === 'REFUNDED' || (st === 'CANCELLED' && o.returnReason);
+  });
+  const refundedRev = refundedOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+
+  // Filter out cancelled and refunded orders for revenue and commission calculations
+  const activeOrders = orders.filter(o => {
+    const st = String(o.orderStatus || '').toUpperCase();
+    const retSt = String(o.returnStatus || '').toUpperCase();
+    return st !== 'CANCELLED' && st !== 'REFUNDED' && retSt !== 'REFUNDED';
+  });
   const activeRev = activeOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
   const totalComm = (activeRev * commRate) / 100;
 
-  const deliveredOrders = orders.filter(o => String(o.orderStatus || '').toUpperCase() === 'DELIVERED');
+  const deliveredOrders = activeOrders.filter(o => String(o.orderStatus || '').toUpperCase() === 'DELIVERED');
   const deliveredRev = deliveredOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
   const deliveredComm = (deliveredRev * commRate) / 100;
 
-  const inTransitOrders = orders.filter(o => {
+  const inTransitOrders = activeOrders.filter(o => {
     const st = String(o.orderStatus || '').toUpperCase();
     return st === 'SHIPPED' || st === 'OUT_FOR_DELIVERY' || st === 'PROCESSING' || st === 'PLACED';
   });
   const inTransitRev = inTransitOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
   const inTransitComm = (inTransitRev * commRate) / 100;
 
+  const cancelledOrders = orders.filter(o => {
+    const st = String(o.orderStatus || '').toUpperCase();
+    const retSt = String(o.returnStatus || '').toUpperCase();
+    return st === 'CANCELLED' && !o.returnReason && retSt !== 'REFUNDED';
+  });
+
   const filteredOrders = orders.filter(o => {
     const st = String(o.orderStatus || 'PLACED').toUpperCase();
-    if (statusFilter === 'DELIVERED' && st !== 'DELIVERED') return false;
-    if (statusFilter === 'IN_TRANSIT' && st !== 'SHIPPED' && st !== 'OUT_FOR_DELIVERY' && st !== 'PROCESSING' && st !== 'PLACED') return false;
-    if (statusFilter === 'CANCELLED' && st !== 'CANCELLED') return false;
+    const retSt = String(o.returnStatus || '').toUpperCase();
+    const isRefunded = st === 'REFUNDED' || retSt === 'REFUNDED' || (st === 'CANCELLED' && Boolean(o.returnReason));
+
+    if (statusFilter === 'DELIVERED' && (st !== 'DELIVERED' || isRefunded)) return false;
+    if (statusFilter === 'IN_TRANSIT' && (isRefunded || (st !== 'SHIPPED' && st !== 'OUT_FOR_DELIVERY' && st !== 'PROCESSING' && st !== 'PLACED'))) return false;
+    if (statusFilter === 'CANCELLED' && (st !== 'CANCELLED' || isRefunded)) return false;
+    if (statusFilter === 'REFUNDED' && !isRefunded) return false;
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -61,10 +84,13 @@ export default function DistributorFinancePage({
   const handleExportCSV = () => {
     const headers = ['Order ID', 'Date', 'Customer', 'PIN', 'Gross Amount (INR)', 'Commission Rate (%)', 'Commission (INR)', 'Fulfillment Status', 'Settlement Status'];
     const rows = filteredOrders.map(o => {
-      const isCanc = String(o.orderStatus || '').toUpperCase() === 'CANCELLED';
-      const isDeliv = String(o.orderStatus || '').toUpperCase() === 'DELIVERED';
+      const st = String(o.orderStatus || '').toUpperCase();
+      const retSt = String(o.returnStatus || '').toUpperCase();
+      const isRef = st === 'REFUNDED' || retSt === 'REFUNDED' || (st === 'CANCELLED' && Boolean(o.returnReason));
+      const isCanc = st === 'CANCELLED' && !isRef;
+      const isDeliv = st === 'DELIVERED' && !isRef;
       const gross = Number(o.totalAmount || 0);
-      const comm = isCanc ? 0 : ((gross * commRate) / 100);
+      const comm = (isCanc || isRef) ? 0 : ((gross * commRate) / 100);
 
       return [
         o.orderId || o.id,
@@ -74,8 +100,8 @@ export default function DistributorFinancePage({
         gross.toFixed(2),
         commRate,
         comm.toFixed(2),
-        o.orderStatus || 'PLACED',
-        isCanc ? 'VOID / CANCELLED' : isDeliv ? 'SETTLED' : 'IN_PIPELINE'
+        isRef ? 'REFUNDED' : (o.orderStatus || 'PLACED'),
+        isRef ? 'REFUNDED / REVERSED' : isCanc ? 'VOID / CANCELLED' : isDeliv ? 'SETTLED' : 'IN_PIPELINE'
       ];
     });
 
@@ -170,6 +196,7 @@ export default function DistributorFinancePage({
         <div 
           className="kpi-curve-card interactive-kpi-card" 
           style={{ '--accent-color': '#ea580c', cursor: 'pointer' }}
+          onClick={() => setStatusFilter(statusFilter === 'IN_TRANSIT' ? 'ALL' : 'IN_TRANSIT')}
           title="Commission Tied to Shipments Currently in Fulfillment Pipeline"
         >
           <div className="kpi-curve-corner-accent"></div>
@@ -191,6 +218,75 @@ export default function DistributorFinancePage({
             </div>
           </div>
         </div>
+
+        {/* Card 4: Refunded / Voided Orders */}
+        <div 
+          className="kpi-curve-card interactive-kpi-card" 
+          style={{ '--accent-color': '#dc2626', cursor: 'pointer' }}
+          onClick={() => setStatusFilter(statusFilter === 'REFUNDED' ? 'ALL' : 'REFUNDED')}
+          title="Orders returned and refunded - Reversed Commission"
+        >
+          <div className="kpi-curve-corner-accent"></div>
+          <div className="kpi-curve-content">
+            <div className="kpi-curve-tag">REFUNDED &amp; VOIDED</div>
+            <div className="kpi-curve-val" style={{ color: '#dc2626' }}>
+              ₹ {Math.round(refundedRev).toLocaleString('en-IN')}
+            </div>
+            <div className="kpi-curve-sub">
+              <strong>{refundedOrders.length} order{refundedOrders.length !== 1 ? 's' : ''}</strong> refunded • Reversed commission
+            </div>
+          </div>
+          <div className="kpi-curve-right-wing">
+            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#fee2e2" />
+            </svg>
+            <div className="kpi-curve-icon-badge">
+              <RotateCcw size={22} color="#dc2626" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2.5 Quick Status Filter Buttons */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+        {[
+          { id: 'ALL', label: 'All Transactions', count: orders.length },
+          { id: 'DELIVERED', label: 'Delivered / Settled', count: deliveredOrders.length },
+          { id: 'IN_TRANSIT', label: 'In Pipeline', count: inTransitOrders.length },
+          { id: 'CANCELLED', label: 'Cancelled', count: cancelledOrders.length },
+          { id: 'REFUNDED', label: 'Refunded & Returned', count: refundedOrders.length }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setStatusFilter(tab.id)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: '20px',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: statusFilter === tab.id ? 'none' : '1px solid #cbd5e1',
+              background: statusFilter === tab.id 
+                ? (tab.id === 'REFUNDED' ? '#dc2626' : tab.id === 'CANCELLED' ? '#64748b' : '#0284c7')
+                : '#ffffff',
+              color: statusFilter === tab.id ? '#ffffff' : '#475569',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>{tab.label}</span>
+            <span style={{
+              background: statusFilter === tab.id ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
+              padding: '1px 6px',
+              borderRadius: '10px',
+              fontSize: '11px'
+            }}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
       </div>
 
       {/* 3. Filter and Search Bar */}
@@ -244,10 +340,13 @@ export default function DistributorFinancePage({
               </tr>
             ) : (
               filteredOrders.map((o) => {
-                const isCancelled = String(o.orderStatus || '').toUpperCase() === 'CANCELLED';
-                const isDelivered = String(o.orderStatus || '').toUpperCase() === 'DELIVERED';
+                const st = String(o.orderStatus || '').toUpperCase();
+                const retSt = String(o.returnStatus || '').toUpperCase();
+                const isRefunded = st === 'REFUNDED' || retSt === 'REFUNDED' || (st === 'CANCELLED' && Boolean(o.returnReason));
+                const isCancelled = (st === 'CANCELLED') && !isRefunded;
+                const isDelivered = (st === 'DELIVERED') && !isRefunded;
                 const gross = Number(o.totalAmount || 0);
-                const comm = isCancelled ? 0 : ((gross * commRate) / 100);
+                const comm = (isCancelled || isRefunded) ? 0 : ((gross * commRate) / 100);
 
                 return (
                   <tr key={o.orderId || o.id}>
@@ -274,7 +373,7 @@ export default function DistributorFinancePage({
                     </td>
 
                     <td style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                      <span style={{ fontWeight: 600, color: isRefunded ? '#dc2626' : '#0f172a' }}>
                         ₹ {gross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     </td>
@@ -284,7 +383,11 @@ export default function DistributorFinancePage({
                     </td>
 
                     <td style={{ textAlign: 'right' }} className="cell-price-col">
-                      {isCancelled ? (
+                      {isRefunded ? (
+                        <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600, fontStyle: 'italic' }}>
+                          ₹0.00 (Reversed)
+                        </span>
+                      ) : isCancelled ? (
                         <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
                           ₹0.00
                         </span>
@@ -296,13 +399,34 @@ export default function DistributorFinancePage({
                     </td>
 
                     <td style={{ textAlign: 'center' }}>
-                      <span className={`payment-pill ${(o.orderStatus || 'PLACED').toLowerCase()}`}>
-                        {o.orderStatus || 'PLACED'}
-                      </span>
+                      {isRefunded ? (
+                        <span className="payment-pill" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', fontWeight: 700 }}>
+                          REFUNDED
+                        </span>
+                      ) : (
+                        <span className={`payment-pill ${(o.orderStatus || 'PLACED').toLowerCase()}`}>
+                          {o.orderStatus || 'PLACED'}
+                        </span>
+                      )}
                     </td>
 
                     <td style={{ textAlign: 'center' }}>
-                      {isCancelled ? (
+                      {isRefunded ? (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 10px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: '#fee2e2',
+                          color: '#dc2626',
+                          border: '1px solid #fca5a5'
+                        }}>
+                          <RotateCcw size={11} color="#dc2626" /> Refunded / Void
+                        </span>
+                      ) : isCancelled ? (
                         <span style={{
                           display: 'inline-flex',
                           alignItems: 'center',

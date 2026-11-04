@@ -96,6 +96,17 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     });
   };
 
+  const matchesDistributorTerritory = (o) => {
+    if (!o) return false;
+    const pin = String(o.pincode || o.shippingAddress?.pincode || '').trim();
+    const validPins = new Set(Array.isArray(assignedPins) ? assignedPins : []);
+    if (currentDist?.primaryPincode) validPins.add(String(currentDist.primaryPincode).trim());
+    if (validPins.size === 0) validPins.add('635002');
+
+    // Strict PIN code matching: only orders in the distributor's assigned PIN codes
+    return pin ? validPins.has(pin) : false;
+  };
+
   const loadDashboardData = async (isBackground = false) => {
     if (!isBackground) setIsLoading(true);
     try {
@@ -111,7 +122,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       }
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
       if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
-        const freshOrders = ordersRes.value;
+        // Strict territory filtering: only orders belonging to assigned PIN codes
+        const freshOrders = ordersRes.value.filter(matchesDistributorTerritory);
         setOrders(freshOrders);
 
         // Detect newly arrived orders not in initial load
@@ -144,30 +156,6 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     // 1. Setup real-time BroadcastChannel listeners
     let orderChannel = null;
     let syncChannel = null;
-
-    const matchesDistributorTerritory = (o) => {
-      if (!o) return false;
-      const orderDistId = String(o.assignedDistributorId || '').trim().toLowerCase();
-      if (orderDistId && distId && orderDistId === distId.toLowerCase()) {
-        return true;
-      }
-      const pin = String(o.pincode || '').trim();
-      if (pin && Array.isArray(assignedPins) && assignedPins.includes(pin)) {
-        return true;
-      }
-      // Dynamic postal zone prefix match (e.g. 635xxx, 110xxx, 560xxx)
-      const primaryPin = String(currentDist?.primaryPincode || '').trim();
-      if (pin.length >= 3 && primaryPin.length >= 3 && pin.slice(0, 3) === primaryPin.slice(0, 3)) {
-        return true;
-      }
-      // Dynamic city/district match
-      const distCity = (currentDist?.city || '').trim().toLowerCase();
-      const orderCity = (o.city || '').trim().toLowerCase();
-      if (distCity && orderCity && (distCity === orderCity || orderCity.includes(distCity) || distCity.includes(orderCity))) {
-        return true;
-      }
-      return false;
-    };
 
     try {
       if (typeof BroadcastChannel !== 'undefined') {
@@ -700,6 +688,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     onUpdateTracking={handleUpdateTracking}
                     onUpdateOrderStatus={handleUpdateOrderStatus}
                     onOpenTrackingModal={(order) => setSelectedOrderForTracking(order)}
+                    onRefreshOrders={loadDashboardData}
                     isLoading={isLoading}
                   />
                 </div>

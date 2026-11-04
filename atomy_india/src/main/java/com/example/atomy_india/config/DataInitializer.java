@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.time.LocalDateTime;
 
 @Component
@@ -291,10 +292,7 @@ public class DataInitializer implements CommandLineRunner {
             });
 
             // Ensure Selva's hub (DIST-635002) is registered as the active regional distributor for Krishnagiri
-            List<String> selvaTerritoryPins = Arrays.asList(
-                    "635001", "635002", "635101", "635104", "635109",
-                    "635115", "635201", "635202", "635203", "635204", "635206", "635207"
-            );
+            List<String> selvaTerritoryPins = Collections.singletonList("635002");
             if (distributorRepository.findByDistributorId("DIST-635002").isEmpty()) {
                 DistributorUser selva = new DistributorUser(
                         "DIST-635002",
@@ -328,7 +326,7 @@ public class DataInitializer implements CommandLineRunner {
             // Ensure india_pincodes resets any legacy demo hub links to VACANT
             indiaPincodeRepository.findAll().forEach(pin -> {
                 String assignedId = pin.getAssignedDistributorId();
-                if (assignedId != null && demoDistributorIds.contains(assignedId)) {
+                if (assignedId != null && (demoDistributorIds.contains(assignedId) || ("DIST-635002".equalsIgnoreCase(assignedId) && !"635002".equals(pin.getPincode())))) {
                     pin.setAssignedDistributorId(null);
                     pin.setAssignedDistributorName(null);
                     pin.setAssignedDistributorEmail(null);
@@ -352,16 +350,31 @@ public class DataInitializer implements CommandLineRunner {
                 indiaPincodeRepository.save(pinObj);
             }
 
-            // Re-route Krishnagiri territory orders (including 635202 order ORD-20261103-2640) to Selva (DIST-635002)
-            Query krishnagiriOrders = new Query(Criteria.where("pincode").regex("^635"));
+            // Route ONLY orders with PIN 635002 to Selva (DIST-635002)
+            Query selvaOrders = new Query(Criteria.where("pincode").is("635002"));
             Update updateDist = new Update()
                     .set("assignedDistributorId", "DIST-635002")
                     .set("assigned_distributor_id", "DIST-635002")
                     .set("assignedDistributorName", "Selva Atomy Regional Hub")
-                    .set("assigned_distributor_name", "Selva Atomy Regional Hub")
-                    .set("distributorDispatchStatus", "RECEIVED")
-                    .set("distributor_dispatch_status", "RECEIVED");
-            mongoTemplate.updateMulti(krishnagiriOrders, updateDist, "customer_orders");
+                    .set("assigned_distributor_name", "Selva Atomy Regional Hub");
+            mongoTemplate.updateMulti(selvaOrders, updateDist, "customer_orders");
+
+            // Reassign any non-635002 orders previously mapped to DIST-635002 back to CENTRAL_SUPER_HUB
+            Query nonSelvaOrders = new Query(new Criteria().andOperator(
+                    Criteria.where("pincode").ne("635002"),
+                    new Criteria().orOperator(
+                            Criteria.where("assignedDistributorId").is("DIST-635002"),
+                            Criteria.where("assigned_distributor_id").is("DIST-635002")
+                    )
+            ));
+            Update resetDist = new Update()
+                    .set("assignedDistributorId", "CENTRAL_SUPER_HUB")
+                    .set("assigned_distributor_id", "CENTRAL_SUPER_HUB")
+                    .set("assignedDistributorName", "Central Super Admin Hub")
+                    .set("assigned_distributor_name", "Central Super Admin Hub")
+                    .set("distributorCommission", BigDecimal.ZERO)
+                    .set("distributor_commission", BigDecimal.ZERO);
+            mongoTemplate.updateMulti(nonSelvaOrders, resetDist, "customer_orders");
 
             // Deduplicate order_tracking documents to avoid Spring Data non-unique result exceptions
             try {

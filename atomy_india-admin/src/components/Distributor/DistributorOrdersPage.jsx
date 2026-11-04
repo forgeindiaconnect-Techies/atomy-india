@@ -24,7 +24,9 @@ import {
   Download
 } from 'lucide-react';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
-import { updateDistributorPickupStatus } from '../../services/distributorService';
+import { 
+  updateDistributorPickupStatus
+} from '../../services/distributorService';
 import '../Admin/AdminDashboard.css';
 import './DistributorOrdersPage.css';
 
@@ -75,6 +77,7 @@ export default function DistributorOrdersPage({
   onUpdateTracking, 
   onUpdateOrderStatus,
   onOpenTrackingModal,
+  onRefreshOrders,
   isLoading 
 }) {
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
@@ -124,8 +127,6 @@ export default function DistributorOrdersPage({
       statusText: `Delivery Target: ${targetDateStr}`
     };
   };
-
-  const delayedOrders = orders.filter(o => getOrderDeliverySLA(o).isDelayed);
 
   // Official Atomy India Tax Invoice HTML generator
   const generateInvoiceHtml = (order) => {
@@ -352,21 +353,41 @@ export default function DistributorOrdersPage({
     }
   };
 
+  const validPins = React.useMemo(() => {
+    const set = new Set(Array.isArray(assignedPins) ? assignedPins : []);
+    if (distributor?.primaryPincode) set.add(String(distributor.primaryPincode).trim());
+    if (set.size === 0) set.add('635002');
+    return set;
+  }, [assignedPins, distributor]);
+
+  const currentDistId = String(distributor?.distributorId || distributor?.id || 'DIST-635002').toLowerCase();
+
+  // Territory orders strictly for assigned PIN codes
+  const territoryOrders = React.useMemo(() => {
+    return orders.filter(o => {
+      const p = String(o.pincode || o.shippingAddress?.pincode || '').trim();
+      return p ? validPins.has(p) : false;
+    });
+  }, [orders, validPins]);
+
+  // Delayed orders within territory
+  const delayedOrders = territoryOrders.filter(o => getOrderDeliverySLA(o).isDelayed);
+
   // Status Filter options
   const statusTabs = [
-    { id: 'ALL', label: 'All Orders', count: orders.length },
-    { id: 'PLACED', label: 'New Orders', count: orders.filter(o => String(o.orderStatus || 'PLACED').toUpperCase() === 'PLACED').length },
-    { id: 'PROCESSING', label: 'Processing', count: orders.filter(o => String(o.orderStatus || '').toUpperCase() === 'PROCESSING').length },
-    { id: 'SHIPPED', label: 'In Transit & Shipped', count: orders.filter(o => {
+    { id: 'ALL', label: 'All Orders', count: territoryOrders.length },
+    { id: 'PLACED', label: 'New Orders', count: territoryOrders.filter(o => String(o.orderStatus || 'PLACED').toUpperCase() === 'PLACED').length },
+    { id: 'PROCESSING', label: 'Processing', count: territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() === 'PROCESSING').length },
+    { id: 'SHIPPED', label: 'In Transit & Shipped', count: territoryOrders.filter(o => {
       const st = String(o.orderStatus || '').toUpperCase();
       return st === 'SHIPPED' || st === 'OUT_FOR_DELIVERY';
     }).length },
-    { id: 'DELIVERED', label: 'Delivered', count: orders.filter(o => String(o.orderStatus || '').toUpperCase() === 'DELIVERED').length },
-    { id: 'CANCELLED', label: 'Cancelled', count: orders.filter(o => String(o.orderStatus || '').toUpperCase() === 'CANCELLED').length },
+    { id: 'DELIVERED', label: 'Delivered', count: territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() === 'DELIVERED').length },
+    { id: 'CANCELLED', label: 'Cancelled', count: territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() === 'CANCELLED').length },
     { id: 'DELAYED', label: '⚠️ Delayed Deliveries', count: delayedOrders.length, isDelayedTab: true }
   ];
 
-  const filteredOrders = orders.filter((o) => {
+  const filteredOrders = territoryOrders.filter((o) => {
     const st = String(o.orderStatus || 'PLACED').toUpperCase();
     const sla = getOrderDeliverySLA(o);
 
@@ -766,6 +787,38 @@ export default function DistributorOrdersPage({
 
           {/* Fullscreen Body Content (Covers entire screen) */}
           <div className="inspection-fullscreen-content">
+            {/* Return / Replacement Status Alert Banner */}
+            {selectedOrderDetail.returnStatus && (
+              <div className="inspection-card" style={{
+                background: selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? '#fef2f2' : '#f5f3ff',
+                border: `1px solid ${selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? '#fecaca' : '#ddd6fe'}`,
+                borderRadius: '12px',
+                padding: '16px 22px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
+              }}>
+                {selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? (
+                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <RotateCcw size={20} color="#dc2626" />
+                  </div>
+                ) : (
+                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <RefreshCw size={20} color="#7c3aed" />
+                  </div>
+                )}
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? '#991b1b' : '#5b21b6' }}>
+                    {selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? 'ORDER RETURNED & REFUNDED' : 'REPLACEMENT UNIT DISPATCHED'}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#475569', marginTop: '3px' }}>
+                    {selectedOrderDetail.returnReason || selectedOrderDetail.replacementNotes || 'Processed directly by Regional Hub'}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Live Animated Delivery Stepper */}
             <div className="inspection-card stepper-card">
               <DeliveryStatusStepper order={selectedOrderDetail} />
@@ -1006,7 +1059,7 @@ export default function DistributorOrdersPage({
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 {selectedOrderDetail.fulfillmentType !== 'STORE_PICKUP' && (
                   <button
                     type="button"

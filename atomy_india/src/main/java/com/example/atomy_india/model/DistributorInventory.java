@@ -38,6 +38,16 @@ public class DistributorInventory {
 
     public DistributorInventory() {}
 
+    public DistributorInventory(String distributorId, String productId, int stockQuantity) {
+        this.id = distributorId + "_" + productId;
+        this.distributorId = distributorId;
+        this.productId = productId;
+        this.stockQuantity = Math.max(0, stockQuantity);
+        this.lowStockThreshold = 10;
+        this.isAvailable = this.stockQuantity > 0;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public DistributorInventory(String distributorId, String pincode, String productId, String productName, String sku, int stockQuantity, int lowStockThreshold) {
         this.id = distributorId + "_" + productId;
         this.distributorId = distributorId;

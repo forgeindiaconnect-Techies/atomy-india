@@ -28,42 +28,55 @@ export default function DistributorOverviewTab({
   onNavigateTab, 
   onSelectOrderForDispatch 
 }) {
+  const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
+  const validPins = new Set(Array.isArray(assignedPins) ? assignedPins : []);
+  if (distributor?.primaryPincode) validPins.add(String(distributor.primaryPincode).trim());
+  if (validPins.size === 0) validPins.add('635002');
+
+  const distId = String(distributor?.distributorId || distributor?.id || 'DIST-635002').toLowerCase();
+
+  // Territory orders strictly for assigned PIN codes
+  const territoryOrders = orders.filter(o => {
+    const p = String(o.pincode || o.shippingAddress?.pincode || '').trim();
+    return p ? validPins.has(p) : false;
+  });
+
   const commRate = Number(distributor?.commissionRate || 8.0);
-  const totalRev = Number(stats?.totalRevenue || orders.filter(o => String(o.orderStatus || '').toUpperCase() !== 'CANCELLED').reduce((sum, o) => sum + Number(o.totalAmount || 0), 0));
+  const totalRev = Number(stats?.totalRevenue || territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() !== 'CANCELLED').reduce((sum, o) => sum + Number(o.totalAmount || 0), 0));
   const totalComm = Number(stats?.totalCommission || (totalRev * commRate) / 100);
 
   // Today's orders in territory
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const todayOrders = orders.filter(o => {
+  const todayOrders = territoryOrders.filter(o => {
     const d = new Date(o.createdAt || Date.now());
     return d >= startOfToday;
   });
 
   const todaySale = todayOrders.filter(o => String(o.orderStatus || '').toUpperCase() !== 'CANCELLED').reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
 
-  const placedCount = orders.filter(o => {
+  const placedCount = territoryOrders.filter(o => {
     const st = String(o.orderStatus || 'PLACED').toUpperCase();
     return st === 'PLACED' || st === 'NEW';
   }).length;
 
-  const processingCount = orders.filter(o => {
+  const processingCount = territoryOrders.filter(o => {
     const st = String(o.orderStatus || '').toUpperCase();
     return st === 'PROCESSING';
   }).length;
 
-  const shippedCount = orders.filter(o => {
+  const shippedCount = territoryOrders.filter(o => {
     const st = String(o.orderStatus || '').toUpperCase();
     return st === 'SHIPPED' || st === 'OUT_FOR_DELIVERY';
   }).length;
 
-  const deliveredCount = orders.filter(o => {
+  const deliveredCount = territoryOrders.filter(o => {
     const st = String(o.orderStatus || '').toUpperCase();
     return st === 'DELIVERED';
   }).length;
 
-  const delayedOrders = orders.filter(o => {
+  const delayedOrders = territoryOrders.filter(o => {
     const st = String(o.orderStatus || 'PLACED').toUpperCase();
     if (st === 'DELIVERED' || st === 'CANCELLED') return false;
     const base = new Date(o.createdAt || Date.now());
@@ -71,8 +84,7 @@ export default function DistributorOverviewTab({
     return new Date() > deadline;
   });
 
-  const recentOrders = orders.slice(0, 8);
-  const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
+  const recentOrders = territoryOrders.slice(0, 8);
 
   return (
     <div>
