@@ -681,17 +681,16 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
               )}
 
               {activeTab === 'orders' && (
-                <div className="admin-tab-content">
-                  <DistributorOrdersPage
-                    orders={orders}
-                    distributor={currentDist}
-                    onUpdateTracking={handleUpdateTracking}
-                    onUpdateOrderStatus={handleUpdateOrderStatus}
-                    onOpenTrackingModal={(order) => setSelectedOrderForTracking(order)}
-                    onRefreshOrders={loadDashboardData}
-                    isLoading={isLoading}
-                  />
-                </div>
+                <DistributorOrdersPage
+                  orders={orders}
+                  distributor={currentDist}
+                  onUpdateTracking={handleUpdateTracking}
+                  onUpdateOrderStatus={handleUpdateOrderStatus}
+                  onOpenTrackingModal={(order) => setSelectedOrderForTracking(order)}
+                  onRefreshOrders={loadDashboardData}
+                  showToast={showToast}
+                  isLoading={isLoading}
+                />
               )}
 
               {activeTab === 'customers' && (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Package, 
   Truck, 
@@ -21,12 +21,16 @@ import {
   FileText,
   Printer,
   ArrowLeft,
-  Download
+  Download,
+  RotateCcw,
+  RefreshCw
 } from 'lucide-react';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
 import { 
-  updateDistributorPickupStatus
-} from '../../services/distributorService';
+  sendDelayApologyEmail,
+  triggerAllDelayedEmails
+} from '../../services/api';
+import { INITIAL_ADMIN_PRODUCTS } from '../../data/defaultAdminProducts';
 import '../Admin/AdminDashboard.css';
 import './DistributorOrdersPage.css';
 
@@ -58,17 +62,9 @@ export const resolveOrderDestination = (order) => {
   if (state && !street.toLowerCase().includes(state.toLowerCase())) parts.push(state);
   if (pincode && !street.includes(pincode)) parts.push(`PIN: ${pincode}`);
 
-  const fullAddress = parts.length > 0 ? parts.join(', ') : [city, state, pincode ? `PIN: ${pincode}` : ''].filter(Boolean).join(', ') || 'Direct Customer Delivery Destination';
+  const fullAddress = parts.length > 0 ? parts.join(', ') : [city, state, pincode ? `PIN: ${pincode}` : ''].filter(Boolean).join(', ') || 'Registered Delivery Destination';
 
-  return {
-    recipient,
-    phone,
-    street: street || fullAddress,
-    city,
-    state,
-    pincode,
-    fullAddress
-  };
+  return { recipient, phone, street, city, state, pincode, fullAddress };
 };
 
 export default function DistributorOrdersPage({ 
@@ -78,6 +74,7 @@ export default function DistributorOrdersPage({
   onUpdateOrderStatus,
   onOpenTrackingModal,
   onRefreshOrders,
+  showToast,
   isLoading 
 }) {
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
@@ -96,36 +93,145 @@ export default function DistributorOrdersPage({
 
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
 
-  // SLA calculation helper identical to Super Admin
-  const getOrderDeliverySLA = (order) => {
-    const st = String(order?.orderStatus || 'PLACED').toUpperCase();
-    if (st === 'DELIVERED') {
-      return { isDelivered: true, isDelayed: false, statusText: 'Delivered' };
-    }
-    if (st === 'CANCELLED') {
-      return { isCancelled: true, isDelayed: false, statusText: 'Cancelled' };
-    }
-
-    const created = new Date(order?.createdAt || Date.now());
-    // 2 days SLA for regional hub territory
-    const slaTarget = new Date(created.getTime() + 2 * 24 * 60 * 60 * 1000);
-    const now = new Date();
-    const isDelayed = now > slaTarget;
-    const diffDays = Math.max(1, Math.round((now - slaTarget) / (1000 * 60 * 60 * 24)));
-
-    const targetDateStr = slaTarget.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short'
+  const validPins = useMemo(() => {
+    const set = new Set();
+    assignedPins.forEach(p => {
+      if (p) set.add(String(p).trim());
     });
+    if (distributor?.primaryPincode) {
+      set.add(String(distributor.primaryPincode).trim());
+    }
+    if (set.size === 0) set.add('635002');
+    return set;
+  }, [assignedPins, distributor]);
+
+  // Strict territory filtering for assigned PIN codes
+  const territoryOrders = useMemo(() => {
+    return orders.filter(o => {
+      const p = String(o.pincode || o.shippingAddress?.pincode || '').trim();
+      return p ? validPins.has(p) : false;
+    });
+  }, [orders, validPins]);
+
+  // Remote terrain detection helper
+  const isRemoteTerrain = (order) => {
+    if (!order) return false;
+    const text = `${order.shippingAddress || ''} ${order.city || ''} ${order.state || ''} ${order.pincode || ''}`.toLowerCase();
+    return /forest|mountain|hills?|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur/i.test(text);
+  };
+
+  // Extract immutable order creation date
+  const getOrderBaseDate = (order) => {
+    if (!order) return new Date();
+    const raw = order.createdAt || order.date || order.orderDate;
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d;
+    }
+    if (order.orderId && /^ORD-(\d{4})(\d{2})(\d{2})/i.test(order.orderId)) {
+      const m = order.orderId.match(/^ORD-(\d{4})(\d{2})(\d{2})/i);
+      if (m) {
+        const y = parseInt(m[1], 10);
+        const mo = parseInt(m[2], 10) - 1;
+        const da = parseInt(m[3], 10);
+        return new Date(y, mo, da, 12, 0, 0);
+      }
+    }
+    return new Date();
+  };
+
+  // Static immutable estimated delivery timeline
+  const getFormattedEstimatedDelivery = (order) => {
+    if (!order) return 'Within 2 Days (Nearby Hub Fulfillment)';
+    const isRemote = isRemoteTerrain(order);
+    const days = isRemote ? 3 : 2;
+    const base = getOrderBaseDate(order);
+    const dTarget = new Date(base);
+    dTarget.setDate(dTarget.getDate() + days);
+    const targetStr = dTarget.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${targetStr} (${isRemote ? 'Within 3 Days • Mountain/Forest' : 'Within 2 Days • Nearby Hub'})`;
+  };
+
+  // Exact SLA delivery logic identical to Super Admin
+  const getOrderDeliverySLA = (order) => {
+    if (!order) return { isDelayed: false, targetDate: null, targetDateStr: '', delayDays: 0, daysLeft: 0, statusText: 'On Schedule' };
+    
+    const isDelivered = String(order.orderStatus || '').toUpperCase() === 'DELIVERED';
+    const isCancelled = String(order.orderStatus || '').toUpperCase() === 'CANCELLED';
+
+    const base = getOrderBaseDate(order);
+    const isRemote = isRemoteTerrain(order);
+    const slaDays = isRemote ? 3 : 2;
+
+    const targetDate = new Date(base);
+    targetDate.setDate(targetDate.getDate() + slaDays);
+
+    const now = new Date();
+    const diffTime = now.getTime() - targetDate.getTime();
+    const delayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    const isDelayed = !isDelivered && !isCancelled && now > targetDate;
 
     return {
-      isDelivered: false,
-      isCancelled: false,
       isDelayed,
-      delayDays: diffDays,
-      targetDateStr,
-      statusText: `Delivery Target: ${targetDateStr}`
+      isDelivered,
+      isCancelled,
+      isRemote,
+      slaDays,
+      slaLabel: isRemote ? '3-Day SLA (Mountain/Forest)' : '2-Day SLA (Nearby Hub)',
+      targetDate,
+      targetDateStr: targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      delayDays: Math.max(1, delayDays),
+      daysLeft: Math.max(0, daysLeft),
+      statusText: isDelivered 
+        ? 'Delivered' 
+        : isCancelled 
+        ? 'Cancelled' 
+        : isDelayed 
+        ? `Delayed by ${Math.max(1, delayDays)} day${delayDays > 1 ? 's' : ''}` 
+        : daysLeft === 0 
+        ? 'Due Today' 
+        : `${daysLeft} day${daysLeft > 1 ? 's' : ''} left`
     };
+  };
+
+  // Robust resolver for order items with images, PV, SKU, and unit prices
+  const resolveOrderItems = (order) => {
+    if (!order) return [];
+    const rawItems = (Array.isArray(order.items) && order.items.length > 0)
+      ? order.items
+      : (Number(order.totalAmount) > 0 ? [{ price: order.totalAmount, qty: 1 }] : []);
+
+    return rawItems.map(it => {
+      const rawCode = String(it.productId || it.id || it.code || it.productCode || it.sku || '').trim();
+      const rawName = String(it.productName || it.name || it.title || '').trim();
+      const rawPrice = Number(it.unitPrice ?? it.price ?? 0);
+
+      const matched = 
+        (rawCode ? INITIAL_ADMIN_PRODUCTS.find(p => p && String(p.id).toLowerCase() === rawCode.toLowerCase()) : null) ||
+        (rawName ? INITIAL_ADMIN_PRODUCTS.find(p => p && p.name && p.name.toLowerCase() === rawName.toLowerCase()) : null) ||
+        (rawPrice > 0 ? INITIAL_ADMIN_PRODUCTS.find(p => Number(p.price) === rawPrice) : null);
+
+      const resolvedName = rawName || matched?.name || (rawCode ? `Atomy Product (${rawCode})` : 'Atomy Authentic Product');
+      const resolvedCode = rawCode || matched?.id || '-';
+      const resolvedQty = Number(it.quantity ?? it.qty ?? it.count ?? 1) || 1;
+      const resolvedUnitPrice = rawPrice > 0 ? rawPrice : Number(matched?.price || 0);
+      const rawPv = Number(it.pv ?? it.pointValue ?? 0);
+      const resolvedPv = rawPv > 0 ? rawPv : Number(matched?.pv || 0);
+      const resolvedImage = it.productImage || it.image || it.img || matched?.image || "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
+      const resolvedSubtotal = resolvedUnitPrice * resolvedQty;
+
+      return {
+        name: resolvedName,
+        code: resolvedCode,
+        quantity: resolvedQty,
+        unitPrice: resolvedUnitPrice,
+        pv: resolvedPv,
+        image: resolvedImage,
+        subtotal: resolvedSubtotal
+      };
+    });
   };
 
   // Official Atomy India Tax Invoice HTML generator
@@ -144,36 +250,19 @@ export default function DistributorOrdersPage({
     const merchandiseSubtotal = Math.max(0, totalAmount - shippingFee);
     const taxableAmount = (merchandiseSubtotal / 1.18).toFixed(2);
     const gstAmount = (merchandiseSubtotal - parseFloat(taxableAmount)).toFixed(2);
-    const rawItems = order.items && order.items.length > 0 
-      ? order.items 
-      : [{ name: 'Atomy Product Order', quantity: 1, price: merchandiseSubtotal }];
-
-    const items = rawItems.map(it => {
-      let price = Number(it.price || it.unitPrice || 0);
-      if (rawItems.length === 1 && merchandiseSubtotal > 0) {
-        price = merchandiseSubtotal / (it.quantity || it.qty || 1);
-      }
-      return { ...it, price };
-    });
+    const items = resolveOrderItems(order);
 
     const itemsHtml = items.map((it, idx) => {
-      const itPrice = Number(it.price || it.unitPrice || 0);
-      const itQty = it.quantity || 1;
-      const itTotal = itPrice * itQty;
-      const itTaxable = (itTotal / 1.18).toFixed(2);
-      const itGst = (itTotal - parseFloat(itTaxable)).toFixed(2);
       return `
         <tr>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">${idx + 1}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">
-            <strong>${it.productName || it.name || 'Atomy Product'}</strong>
-            ${it.sku ? `<div style="font-size: 11px; color: #64748b;">SKU: ${it.sku}</div>` : ''}
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px;">${idx + 1}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px;">
+            <strong>${it.name}</strong><br/>
+            <span style="font-size: 10.5px; color: #64748b;">Code: ${it.code}</span>
           </td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: center;">${itQty}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: right;">₹ ${itPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: right;">₹ ${parseFloat(itTaxable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: right;">18% (₹ ${parseFloat(itGst).toLocaleString('en-IN', { minimumFractionDigits: 2 })})</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; text-align: right; font-weight: bold;">₹ ${itTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; text-align: center;">${it.quantity}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; text-align: right;">₹ ${Number(it.unitPrice).toFixed(2)}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px; text-align: right;">₹ ${Number(it.subtotal).toFixed(2)}</td>
         </tr>
       `;
     }).join('');
@@ -182,118 +271,129 @@ export default function DistributorOrdersPage({
       <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="utf-8" />
         <title>Tax Invoice - ${invoiceNo}</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 36px; font-size: 13px; line-height: 1.5; }
+          @page { size: A4 portrait; margin: 15mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #0f172a; margin: 0; padding: 20px; font-size: 13px; line-height: 1.45; }
+          .invoice-box { max-width: 800px; margin: auto; border: 1px solid #cbd5e1; padding: 28px; border-radius: 8px; }
           .header-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-          .title-area { font-size: 24px; font-weight: 800; color: #00a3e0; letter-spacing: -0.5px; }
-          .sub-badge { display: inline-block; background: #e0f2fe; color: #0284c7; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; margin-top: 4px; }
-          .address-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 24px; }
+          .header-table td { vertical-align: top; }
+          .brand-title { font-size: 24px; font-weight: 800; color: #00A3E0; letter-spacing: -0.5px; }
+          .brand-subtitle { font-size: 11.5px; color: #475569; font-weight: 600; margin-top: 2px; }
+          .invoice-title { font-size: 20px; font-weight: 800; color: #0f172a; text-align: right; }
+          .invoice-meta { font-size: 12px; color: #475569; text-align: right; margin-top: 4px; }
+          .section-divider { border-top: 2px solid #00A3E0; margin: 18px 0; }
+          .grid-2 { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          .grid-2 td { width: 50%; vertical-align: top; padding: 6px 10px; font-size: 12px; }
+          .box-panel { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 14px; }
+          .box-title { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
           .items-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-          .items-table th { background: #f1f5f9; padding: 10px; text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; border-bottom: 2px solid #cbd5e1; }
-          .summary-card { width: 340px; margin-left: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 30px; }
-          .summary-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
-          .grand-total-row { border-top: 2px solid #00a3e0; margin-top: 6px; padding-top: 8px; font-weight: 800; font-size: 16px; color: #0284c7; }
-          .print-btn-bar { margin-bottom: 24px; text-align: right; }
-          .btn-print { background: #00a3e0; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
-          @media print {
-            .print-btn-bar { display: none; }
-            body { padding: 0; }
-          }
+          .items-table th { background: #f1f5f9; padding: 10px; text-align: left; font-size: 11.5px; text-transform: uppercase; color: #475569; border-bottom: 2px solid #cbd5e1; }
+          .summary-table { width: 45%; margin-left: auto; border-collapse: collapse; margin-bottom: 24px; }
+          .summary-table td { padding: 6px 10px; font-size: 12px; }
+          .summary-table tr.total-row td { font-size: 15px; font-weight: 800; color: #00A3E0; border-top: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; }
+          .footer-note { font-size: 11px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 24px; }
         </style>
       </head>
       <body>
-        <div class="print-btn-bar">
-          <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
-        </div>
-        <table class="header-table">
-          <tr>
-            <td style="width: 60%;">
-              <div class="title-area">ATOMY INDIA</div>
-              <div style="font-size: 12px; color: #475569; margin-top: 2px;">Atomy Enterprise India Pvt. Ltd. • Official Tax Invoice</div>
-              <span class="sub-badge">ORIGINAL FOR RECIPIENT</span>
-            </td>
-            <td style="width: 40%; text-align: right;">
-              <div style="font-size: 16px; font-weight: 700; color: #0f172a;">${invoiceNo}</div>
-              <div style="font-size: 12px; color: #64748b;">Order Ref: ${orderId}</div>
-              <div style="font-size: 12px; color: #64748b;">Invoice Date: ${orderDate}</div>
-              <div style="font-size: 11px; color: #0284c7; font-weight: 600; margin-top: 4px;">GSTIN: 33AAACA0101A1Z5</div>
-            </td>
-          </tr>
-        </table>
-
-        <div class="address-card">
-          <table style="width: 100%; border-collapse: collapse;">
+        <div class="invoice-box">
+          <table class="header-table">
             <tr>
-              <td style="width: 50%; vertical-align: top; padding-right: 14px;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Dispatched By (Regional Hub):</div>
-                <strong style="color: #0f172a;">${distributor?.hubName || distributor?.businessName || 'Regional Hub'}</strong><br/>
-                <span>Distributor ID: ${distributor?.id || distributor?.distributorId || 'N/A'} (PIN: ${distributor?.primaryPincode || 'N/A'})</span><br/>
-                <span>${[distributor?.address || distributor?.hubAddress, distributor?.city, distributor?.state].filter(Boolean).join(', ') || 'Regional Logistics Center'}</span><br/>
-                <span>Phone: ${distributor?.phone || distributor?.contactPersonPhone || 'N/A'}</span>
+              <td>
+                <div class="brand-title">ATOMY INDIA</div>
+                <div class="brand-subtitle">Atomy Enterprise India Private Limited • Regional Logistics Hub</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+                  Hub Distributor: <strong>${distributor?.distributorName || 'Regional Hub'}</strong> (${distributor?.primaryPincode || 'PIN 635002'})<br/>
+                  GSTIN: <strong>33AAACA0101A1Z5</strong> | PAN: AAACA0101A
+                </div>
               </td>
-              <td style="width: 50%; vertical-align: top; padding-left: 14px; border-left: 1px solid #e2e8f0;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Billed &amp; Shipped To (Customer):</div>
-                <strong style="color: #0f172a;">${dest.recipient}</strong><br/>
-                <span>${dest.fullAddress}</span><br/>
-                <span>Contact: ${dest.phone || order.customerPhone || 'N/A'}${order.customerEmail ? ' • ' + order.customerEmail : ''}</span>
+              <td>
+                <div class="invoice-title">TAX INVOICE</div>
+                <div class="invoice-meta">
+                  Invoice No: <strong>${invoiceNo}</strong><br/>
+                  Date: <strong>${orderDate}</strong><br/>
+                  Order Ref: <strong>${orderId}</strong>
+                </div>
               </td>
             </tr>
           </table>
-        </div>
 
-        <table class="items-table">
-          <thead>
+          <div class="section-divider"></div>
+
+          <table class="grid-2">
             <tr>
-              <th style="width: 35px;">#</th>
-              <th>Product Description</th>
-              <th style="width: 50px; text-align: center;">Qty</th>
-              <th style="width: 100px; text-align: right;">Unit Price</th>
-              <th style="width: 100px; text-align: right;">Taxable Val</th>
-              <th style="width: 110px; text-align: right;">GST Rate</th>
-              <th style="width: 110px; text-align: right;">Total Amount</th>
+              <td>
+                <div class="box-panel">
+                  <div class="box-title">Billed &amp; Dispatched By</div>
+                  <strong>Atomy India Regional Hub Logistics</strong><br/>
+                  ${distributor?.distributorName || 'Regional Hub'}<br/>
+                  ${[distributor?.address || distributor?.hubAddress, distributor?.city, distributor?.state].filter(Boolean).join(', ')}<br/>
+                  Territory PIN: ${distributor?.primaryPincode || '635002'}<br/>
+                  Phone: ${distributor?.contactPhone || distributor?.phone || '+91 98765 43210'}
+                </div>
+              </td>
+              <td>
+                <div class="box-panel">
+                  <div class="box-title">Customer Shipping Destination</div>
+                  <strong>${dest.recipient}</strong><br/>
+                  ${dest.street || dest.fullAddress}<br/>
+                  ${dest.city ? `${dest.city}, ` : ''}${dest.state || ''} ${dest.pincode ? `PIN: ${dest.pincode}` : ''}<br/>
+                  Phone: ${dest.phone || 'N/A'}<br/>
+                  Email: ${order.customerEmail || 'N/A'}
+                </div>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
+          </table>
 
-        <div class="summary-card">
-          <div class="summary-row">
-            <span style="color: #64748b;">Merchandise Subtotal:</span>
-            <span>₹ ${merchandiseSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div class="summary-row">
-            <span style="color: #64748b;">Taxable Net Amount:</span>
-            <span>₹ ${parseFloat(taxableAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div class="summary-row">
-            <span style="color: #64748b;">CGST (9%):</span>
-            <span>₹ ${(parseFloat(gstAmount) / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div class="summary-row">
-            <span style="color: #64748b;">SGST (9%):</span>
-            <span>₹ ${(parseFloat(gstAmount) / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div class="summary-row">
-            <span style="color: #64748b;">Shipping &amp; Delivery Fee:</span>
-            <span>${shippingFee > 0 ? `₹ ${shippingFee.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '<span style="color: #16a34a; font-weight: 600;">FREE (Atomy Hub Delivery)</span>'}</span>
-          </div>
-          <div class="summary-row grand-total-row">
-            <span>Invoice Grand Total:</span>
-            <span>₹ ${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width: 35px;">#</th>
+                <th>Item Description</th>
+                <th style="text-align: center; width: 60px;">Qty</th>
+                <th style="text-align: right; width: 110px;">Unit Rate (₹)</th>
+                <th style="text-align: right; width: 120px;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
 
-        <div style="margin-top: 40px; padding-top: 14px; border-top: 1px solid #cbd5e1; font-size: 11px; color: #64748b; display: flex; justify-content: space-between; align-items: flex-end;">
-          <div>
-            <strong>Payment Status:</strong> ${order.paymentStatus || 'PAID'} (${order.paymentMethod || 'ONLINE UPI'})<br/>
-            <span>This is a computer-generated tax invoice issued by Atomy Enterprise India Authorized Regional Hub.</span>
+          <table class="summary-table">
+            <tr>
+              <td style="color: #64748b;">Taxable Subtotal:</td>
+              <td style="text-align: right; font-weight: 600;">₹ ${taxableAmount}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b;">CGST (9%):</td>
+              <td style="text-align: right;">₹ ${(parseFloat(gstAmount) / 2).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b;">SGST (9%):</td>
+              <td style="text-align: right;">₹ ${(parseFloat(gstAmount) / 2).toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="color: #64748b;">Shipping / Delivery:</td>
+              <td style="text-align: right; color: ${shippingFee > 0 ? '#0f172a' : '#16a34a'};">
+                ${shippingFee > 0 ? `₹ ${shippingFee.toFixed(2)}` : 'FREE'}
+              </td>
+            </tr>
+            <tr class="total-row">
+              <td>Total Payable:</td>
+              <td style="text-align: right;">₹ ${totalAmount.toFixed(2)}</td>
+            </tr>
+          </table>
+
+          <div class="box-panel" style="margin-top: 14px; font-size: 11.5px; line-height: 1.5;">
+            <strong>Payment Mode:</strong> ${order.paymentMethod ? order.paymentMethod.replace(/_/g, ' ') : 'ONLINE UPI'} • Status: <strong style="color: #16a34a;">PAID (CONFIRMED)</strong><br/>
+            <strong>Logistics Partner:</strong> ${order.courier || order.tracking?.courierPartner || 'Blue Dart Express'} • AWB: <strong>${order.tracking?.trackingNumber || 'ATMY-' + orderId}</strong>
           </div>
-          <div style="text-align: right;">
-            <div style="font-weight: 700; color: #0f172a;">For Atomy Enterprise India Pvt. Ltd.</div>
-            <div style="margin-top: 24px; font-size: 11px; color: #94a3b8;">Authorized Signatory / Hub Dispatch Seal</div>
+
+          <div class="footer-note">
+            This is a computer-generated official tax invoice authorized under Atomy Enterprise India Pvt. Ltd.<br/>
+            Regional Hub Dispatch Certification • For inquiries: support@atomyindia.com | 1800-123-ATOMY
           </div>
         </div>
       </body>
@@ -301,84 +401,40 @@ export default function DistributorOrdersPage({
     `;
   };
 
-  // Official Atomy India Tax Invoice print preview handler
-  const handlePrintInvoice = (order) => {
-    if (!order) return;
-    const printWindow = window.open('', '_blank', 'width=880,height=920');
-    if (!printWindow) {
-      alert('Pop-up blocked. Please allow pop-ups to view/print the invoice.');
-      return;
-    }
-    const html = generateInvoiceHtml(order);
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 400);
-  };
-
-  // Official Atomy India Tax Invoice download handler (PDF/HTML download + instant print dialog)
   const handleDownloadInvoice = (order) => {
-    if (!order) return;
-    const orderId = order.orderId || order.id || 'ORDER';
-    const html = generateInvoiceHtml(order);
-    
-    // 1. Direct file download
     try {
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Atomy_Tax_Invoice_${orderId}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.warn('File download error:', e);
-    }
-
-    // 2. Open printable window with auto-trigger for system Save-as-PDF
-    const printWindow = window.open('', '_blank', 'width=880,height=920');
-    if (printWindow) {
+      const orderId = order.orderId || order.id || 'order';
+      const html = generateInvoiceHtml(order);
+      const printWindow = window.open('', '_blank', 'width=850,height=900');
+      if (!printWindow) {
+        alert('Please allow popups to download / print the invoice.');
+        return;
+      }
       printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
+      printWindow.focus();
       setTimeout(() => {
-        printWindow.focus();
         printWindow.print();
-      }, 400);
+      }, 500);
+    } catch (e) {
+      console.error('Failed to trigger invoice download:', e);
     }
   };
 
-  const validPins = React.useMemo(() => {
-    const set = new Set(Array.isArray(assignedPins) ? assignedPins : []);
-    if (distributor?.primaryPincode) set.add(String(distributor.primaryPincode).trim());
-    if (set.size === 0) set.add('635002');
-    return set;
-  }, [assignedPins, distributor]);
-
-  const currentDistId = String(distributor?.distributorId || distributor?.id || 'DIST-635002').toLowerCase();
-
-  // Territory orders strictly for assigned PIN codes
-  const territoryOrders = React.useMemo(() => {
-    return orders.filter(o => {
-      const p = String(o.pincode || o.shippingAddress?.pincode || '').trim();
-      return p ? validPins.has(p) : false;
-    });
-  }, [orders, validPins]);
+  const handlePrintInvoice = (order) => {
+    handleDownloadInvoice(order);
+  };
 
   // Delayed orders within territory
   const delayedOrders = territoryOrders.filter(o => getOrderDeliverySLA(o).isDelayed);
 
-  // Status Filter options
+  // Status Filter options identical to Super Admin
   const statusTabs = [
     { id: 'ALL', label: 'All Orders', count: territoryOrders.length },
     { id: 'PLACED', label: 'New Orders', count: territoryOrders.filter(o => String(o.orderStatus || 'PLACED').toUpperCase() === 'PLACED').length },
     { id: 'PROCESSING', label: 'Processing', count: territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() === 'PROCESSING').length },
-    { id: 'SHIPPED', label: 'In Transit & Shipped', count: territoryOrders.filter(o => {
+    { id: 'SHIPPED', label: 'Shipped & Out for Delivery', count: territoryOrders.filter(o => {
       const st = String(o.orderStatus || '').toUpperCase();
       return st === 'SHIPPED' || st === 'OUT_FOR_DELIVERY';
     }).length },
@@ -426,35 +482,42 @@ export default function DistributorOrdersPage({
       if (selectedOrderDetail && (selectedOrderDetail.orderId === orderId || selectedOrderDetail.id === orderId)) {
         setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newStatus }));
       }
+      if (showToast) showToast(`Order ${orderId} status updated to ${newStatus}`);
     } catch (e) {
       console.error('Failed to change status:', e);
+      if (showToast) showToast(`Failed to update status: ${e.message}`);
     }
   };
 
-  const handleUpdatePickup = async (orderId, newPickupStatus) => {
+  const handleSendDelayApologyEmail = async (orderId, customerEmail) => {
     try {
-      await updateDistributorPickupStatus(orderId, distributor?.distributorId || distributor?.id || '', newPickupStatus);
-      if (onUpdateTracking) {
-        await onUpdateTracking(orderId, {
-          orderStatus: newPickupStatus === 'COLLECTED' ? 'DELIVERED' : 'PROCESSING',
-          pickupStatus: newPickupStatus,
-          statusNote: newPickupStatus === 'COLLECTED' 
-            ? 'Customer presented invoice and collected parcel from hub counter.' 
-            : 'Items packed and marked ready for customer hub pickup.'
-        });
-      }
-    } catch (e) {
-      console.error('Failed to update pickup status:', e);
+      if (showToast) showToast(`Sending delay apology email to ${customerEmail || 'customer'}...`);
+      await sendDelayApologyEmail(orderId);
+      if (showToast) showToast(`✓ Apology email successfully sent to ${customerEmail || 'customer'}!`);
+      if (onRefreshOrders) onRefreshOrders();
+    } catch (err) {
+      if (showToast) showToast(`Failed to send apology email: ${err.message}`);
+    }
+  };
+
+  const handleTriggerAllDelayEmails = async () => {
+    try {
+      if (showToast) showToast('Scanning delayed territory orders and dispatching apology emails...');
+      const res = await triggerAllDelayedEmails();
+      if (showToast) showToast(`✓ ${res.emailsSent || 0} apology email(s) dispatched to delayed customers!`);
+      if (onRefreshOrders) onRefreshOrders();
+    } catch (err) {
+      if (showToast) showToast(`Error: ${err.message}`);
     }
   };
 
   return (
     <div className="admin-tab-content">
-      {/* 1. Content Heading Row with Delayed Badge */}
+      {/* 1. Content Heading Row with Delayed Badge (Identical to Super Admin) */}
       <div className="content-heading-row with-filter">
         <div>
           <h2 className="content-title">
-            Customer Orders &amp; Regional Hub Logistics
+            Customer Orders &amp; Logistics Fulfillment
             {delayedOrders.length > 0 && (
               <span style={{
                 marginLeft: '12px',
@@ -476,12 +539,12 @@ export default function DistributorOrdersPage({
             )}
           </h2>
           <p className="content-subtitle">
-            Inspect direct customer orders in your assigned PIN code ({distributor?.primaryPincode}), manage Blue Dart dispatch tracking, and monitor SLA delivery deadlines.
+            Inspect orders placed by direct consumers in your assigned hub territory ({distributor?.primaryPincode || 'PIN 635002'}), update delivery stages, and dispatch courier tracking.
           </p>
         </div>
       </div>
 
-      {/* 2. Orders Status Nav Strip */}
+      {/* 2. Orders Status Nav Strip (Identical to Super Admin) */}
       <div className="orders-status-nav-strip">
         {statusTabs.map((tab) => (
           <button
@@ -496,7 +559,7 @@ export default function DistributorOrdersPage({
         ))}
       </div>
 
-      {/* 3. Search and Summary Filter Row */}
+      {/* 3. Orders Search & Summary Filter Bar (Identical to Super Admin) */}
       <div className="orders-filter-row">
         <div className="search-input-wrapper orders-search-box">
           <Search size={16} />
@@ -518,38 +581,49 @@ export default function DistributorOrdersPage({
           )}
         </div>
         <div className="orders-summary-pill">
-          <span>Showing <strong>{filteredOrders.length}</strong> of <strong>{orders.length}</strong> Territory Orders</span>
+          <span>Showing <strong>{filteredOrders.length}</strong> of <strong>{territoryOrders.length}</strong> Orders</span>
         </div>
       </div>
 
-      {/* 4. Delayed Orders SLA Control Bar */}
+      {/* 4. Delayed Orders Control & Batch Apology Notification Bar (Identical to Super Admin) */}
       {orderStatusFilter === 'DELAYED' && (
         <div className="delayed-orders-management-bar">
           <div className="delayed-mgmt-left">
             <AlertTriangle size={20} color="#dc2626" style={{ marginTop: '2px', flexShrink: 0 }} />
             <div>
-              <strong>Regional Delivery SLA Control ({delayedOrders.length} Delayed Orders)</strong>
+              <strong>Delayed Orders Delivery Window SLA Control ({delayedOrders.length} Delayed Orders)</strong>
               <p>
-                Orders exceeding the 48-hour delivery SLA trigger automated tracking notifications. Please dispatch tracking information or coordinate with your local delivery courier immediately.
+                Automated background scans trigger every 4 hours to send apology emails to customers whose shipments exceed 2 days (dispatched from nearby regional hubs) or 3 days (remote mountain/forest areas with limited transport). You can also click below to manually trigger or resend apology emails.
               </p>
             </div>
           </div>
+          {filteredOrders.length > 0 && (
+            <button
+              type="button"
+              className="trigger-all-delayed-btn"
+              onClick={handleTriggerAllDelayEmails}
+              title="Send Apology Email to All Delayed Customers"
+            >
+              <Mail size={14} />
+              <span>Dispatch Apology to All ({filteredOrders.length})</span>
+            </button>
+          )}
         </div>
       )}
 
-      {/* 5. Orders Data Table */}
+      {/* 5. Orders Data Table (Exact Super Admin columns, styling, and action pills) */}
       <div className="atomy-table-responsive orders-table-wrapper">
         <table className="atomy-data-table orders-data-table">
           <thead>
             <tr>
-              <th style={{ width: '185px', minWidth: '185px' }}>Order ID &amp; Date</th>
-              <th style={{ width: '220px', minWidth: '220px' }}>Customer Details</th>
+              <th style={{ width: '175px', minWidth: '175px' }}>Order ID &amp; Date</th>
+              <th style={{ width: '210px', minWidth: '210px' }}>Customer Details</th>
               <th style={{ minWidth: '240px' }}>Shipping Destination</th>
-              <th style={{ width: '120px', minWidth: '120px', textAlign: 'center' }}>Items</th>
+              <th style={{ width: '120px', minWidth: '120px', textAlign: 'center' }}>Items Ordered</th>
               <th style={{ width: '140px', minWidth: '140px', textAlign: 'right' }}>Total Amount</th>
               <th style={{ width: '130px', minWidth: '130px', textAlign: 'center' }}>Payment</th>
               <th style={{ width: '190px', minWidth: '190px', textAlign: 'center' }}>Fulfillment Status</th>
-              <th style={{ width: '210px', minWidth: '210px', textAlign: 'right' }}>Actions</th>
+              <th style={{ width: '220px', minWidth: '220px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -557,7 +631,7 @@ export default function DistributorOrdersPage({
               <tr>
                 <td colSpan={8} className="table-empty-row">
                   <Package size={40} color="#94a3b8" />
-                  <p>No territory orders found matching the selected filter.</p>
+                  <p>No customer orders found in this category.</p>
                 </td>
               </tr>
             ) : (
@@ -565,6 +639,10 @@ export default function DistributorOrdersPage({
                 const sla = getOrderDeliverySLA(o);
                 const orderDate = new Date(o.createdAt || Date.now());
                 const currentStatus = String(o.orderStatus || 'PLACED').toUpperCase();
+                const dest = resolveOrderDestination(o);
+                const resolvedItems = resolveOrderItems(o);
+                const totalAmt = Number(o.totalAmount || 0);
+                const hubCommission = Number(o.distributorCommission || (totalAmt * 0.075));
 
                 return (
                   <tr key={o.orderId || o.id}>
@@ -591,48 +669,29 @@ export default function DistributorOrdersPage({
                           <CheckCircle2 size={11} color="#15803d" /> Delivered
                         </span>
                       ) : sla.isCancelled ? null : sla.isDelayed ? (
-                        <span className="sla-badge delayed" title={`Target was ${sla.targetDateStr}`}>
+                        <span className="sla-badge delayed" title={`Target was ${sla.targetDateStr} (${sla.slaDays}d SLA)`}>
                           <AlertTriangle size={11} color="#dc2626" /> Overdue ({sla.delayDays}d)
                         </span>
                       ) : (
                         <span className="sla-badge on-schedule" title={`Delivery target: ${sla.targetDateStr}`}>
-                          <Clock size={11} color="#15803d" /> On Schedule
+                          <Clock size={11} color="#15803d" /> {sla.statusText}
                         </span>
                       )}
-
-                      <div style={{ marginTop: '5px' }}>
-                        {o.fulfillmentType === 'STORE_PICKUP' ? (
-                          <span style={{ fontSize: '10.5px', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '2px 7px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac' }}>
-                            <Store size={11} /> DIRECT PICKUP
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '10.5px', fontWeight: 600, background: '#e0f2fe', color: '#0369a1', padding: '2px 7px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bae6fd' }}>
-                            <Truck size={11} /> COURIER
-                          </span>
-                        )}
-                      </div>
                     </td>
 
                     <td>
                       <div className="cell-primary-text">{o.customerName || 'Customer'}</div>
                       <div className="cell-secondary-text">{o.customerPhone || 'N/A'}</div>
-                      <div className="cell-secondary-text">{o.customerEmail}</div>
+                      <div className="cell-secondary-text">{o.customerEmail || ''}</div>
                     </td>
 
                     <td className="cell-address">
-                      {(() => {
-                        const oDest = resolveOrderDestination(o);
-                        return (
-                          <>
-                            <div className="address-line-primary" title={oDest.fullAddress}>
-                              {oDest.street || oDest.fullAddress}
-                            </div>
-                            <div className="address-line-sub">
-                              {oDest.city || distributor?.city}, {oDest.state || distributor?.state} <span className="pincode-pill">{oDest.pincode}</span>
-                            </div>
-                          </>
-                        );
-                      })()}
+                      <div className="address-line-primary" title={dest.fullAddress}>
+                        {dest.street || dest.fullAddress}
+                      </div>
+                      <div className="address-line-sub">
+                        {dest.city}, {dest.state} <span className="pincode-pill">{dest.pincode}</span>
+                      </div>
                       <div style={{
                         fontSize: '11px',
                         color: sla.isDelayed ? '#dc2626' : '#0284c7',
@@ -645,24 +704,41 @@ export default function DistributorOrdersPage({
                         {sla.isDelayed ? <AlertTriangle size={12} color="#dc2626" /> : <Truck size={12} />}
                         <span>
                           {sla.isDelayed ? (
-                            <><strong>Last SLA Date: {sla.targetDateStr}</strong> ({sla.delayDays}d late)</>
+                            <><strong>Last Date: {sla.targetDateStr}</strong> ({sla.delayDays}d late)</>
                           ) : (
-                            <>Target SLA: {sla.targetDateStr}</>
+                            <>Deadline: {sla.targetDateStr || getFormattedEstimatedDelivery(o)}</>
                           )}
                         </span>
                       </div>
+                      {sla.isDelayed && (
+                        <div style={{
+                          fontSize: '11px',
+                          color: o.delayEmailSent ? '#16a34a' : '#ea580c',
+                          fontWeight: 600,
+                          marginTop: '3px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}>
+                          {o.delayEmailSent ? <CheckCircle2 size={11} color="#16a34a" /> : <Mail size={11} color="#ea580c" />}
+                          <span>{o.delayEmailSent ? 'Apology email dispatched' : 'Apology email pending'}</span>
+                        </div>
+                      )}
                     </td>
 
                     <td style={{ textAlign: 'center' }}>
                       <span className="items-count-badge">
-                        {o.items?.length || 1} item{(o.items?.length || 1) !== 1 ? 's' : ''}
+                        {resolvedItems.length} item{resolvedItems.length !== 1 ? 's' : ''}
                       </span>
                     </td>
 
                     <td style={{ textAlign: 'right' }} className="cell-price-col">
                       <span className="order-total-amount">
-                        ₹ {Number(o.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹ {totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
+                      <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, marginTop: '2px' }}>
+                        +₹ {hubCommission.toFixed(2)} Hub Margin
+                      </div>
                     </td>
 
                     <td style={{ textAlign: 'center' }}>
@@ -678,7 +754,7 @@ export default function DistributorOrdersPage({
                         className={`status-select ${currentStatus.toLowerCase()}`}
                       >
                         <option value="PLACED">PLACED (New)</option>
-                        <option value="PROCESSING">PROCESSING</option>
+                        <option value="PROCESSING">PROCESSING (Pending)</option>
                         <option value="SHIPPED">SHIPPED</option>
                         <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY</option>
                         <option value="DELIVERED">DELIVERED</option>
@@ -692,51 +768,31 @@ export default function DistributorOrdersPage({
                           type="button"
                           className="action-pill-btn detail"
                           onClick={() => setSelectedOrderDetail(o)}
-                          title="Inspect Order Items & Invoice"
+                          title="Inspect Full Order Line Items & Invoice"
                         >
                           <Eye size={13} />
                           <span>Inspect</span>
                         </button>
 
-                        {o.fulfillmentType === 'STORE_PICKUP' ? (
-                          (currentStatus !== 'DELIVERED' && o.pickupStatus !== 'COLLECTED') ? (
-                            o.pickupStatus === 'READY_FOR_PICKUP' ? (
-                              <button
-                                type="button"
-                                className="action-pill-btn"
-                                style={{ background: '#10b981', color: '#ffffff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                onClick={() => handleUpdatePickup(o.orderId || o.id, 'COLLECTED')}
-                                title="Customer arrived with invoice: verify and hand over parcel"
-                              >
-                                <Check size={13} />
-                                <span>Hand Over</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="action-pill-btn"
-                                style={{ background: '#0284c7', color: '#ffffff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                onClick={() => handleUpdatePickup(o.orderId || o.id, 'READY_FOR_PICKUP')}
-                                title="Pack items and mark ready for customer pickup"
-                              >
-                                <Package size={13} />
-                                <span>Pack for Pickup</span>
-                              </button>
-                            )
-                          ) : (
-                            <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                              <CheckCircle2 size={12} /> Collected
-                            </span>
-                          )
-                        ) : (
+                        <button
+                          type="button"
+                          className="action-pill-btn tracking"
+                          onClick={() => onOpenTrackingModal && onOpenTrackingModal(o)}
+                          title="Update Courier Tracking Details"
+                        >
+                          <Truck size={13} />
+                          <span>Tracking</span>
+                        </button>
+
+                        {sla.isDelayed && (
                           <button
                             type="button"
-                            className="action-pill-btn tracking"
-                            onClick={() => onOpenTrackingModal && onOpenTrackingModal(o)}
-                            title="Update Courier / Blue Dart Tracking"
+                            className={`action-pill-btn apology ${o.delayEmailSent ? 'sent' : ''}`}
+                            onClick={() => handleSendDelayApologyEmail(o.orderId || o.id, o.customerEmail)}
+                            title={o.delayEmailSent ? `Apology email sent. Click to resend.` : 'Send Customer Delay Apology Email'}
                           >
-                            <Truck size={13} />
-                            <span>Tracking</span>
+                            <Mail size={13} />
+                            <span>{o.delayEmailSent ? 'Resend' : 'Send Apology'}</span>
                           </button>
                         )}
                       </div>
@@ -749,7 +805,7 @@ export default function DistributorOrdersPage({
         </table>
       </div>
 
-      {/* 6. Full-Page Order Inspection & Live Stepper (Dedicated View matching Super Admin) */}
+      {/* 6. Full-Page Order Inspection & Live Stepper (Dedicated View Exactly matching Super Admin) */}
       {selectedOrderDetail && (
         <div className="order-inspection-fullscreen-page">
           {/* Top Fullscreen Header Bar */}
@@ -761,7 +817,7 @@ export default function DistributorOrdersPage({
                 onClick={() => setSelectedOrderDetail(null)}
               >
                 <ArrowLeft size={18} />
-                <span>Back to Territory Orders</span>
+                <span>Back to All Orders</span>
               </button>
               <div className="inspection-topbar-divider" />
               <div className="inspection-order-headline">
@@ -774,11 +830,44 @@ export default function DistributorOrdersPage({
             </div>
 
             <div className="inspection-topbar-right">
+              <button
+                type="button"
+                className="inspection-topbar-btn courier-btn"
+                onClick={() => {
+                  const o = selectedOrderDetail;
+                  setSelectedOrderDetail(null);
+                  if (onOpenTrackingModal) onOpenTrackingModal(o);
+                }}
+              >
+                <Truck size={15} />
+                <span>Courier Tracking Details</span>
+              </button>
+
+              <button
+                type="button"
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: 600, fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                onClick={() => handleDownloadInvoice(selectedOrderDetail)}
+                title="Download Official Tax Invoice as PDF"
+              >
+                <Download size={14} />
+                <span>Download Invoice</span>
+              </button>
+
+              <button
+                type="button"
+                style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '8px 14px', borderRadius: '8px', fontWeight: 600, fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                onClick={() => handlePrintInvoice(selectedOrderDetail)}
+                title="Print / Save Tax Invoice"
+              >
+                <Printer size={14} />
+                <span>Print Invoice</span>
+              </button>
+
               <button 
                 type="button" 
                 className="inspection-topbar-close-btn" 
                 onClick={() => setSelectedOrderDetail(null)}
-                title="Close and return to territory orders"
+                title="Close and return to orders"
               >
                 <X size={20} />
               </button>
@@ -787,165 +876,189 @@ export default function DistributorOrdersPage({
 
           {/* Fullscreen Body Content (Covers entire screen) */}
           <div className="inspection-fullscreen-content">
-            {/* Return / Replacement Status Alert Banner */}
-            {selectedOrderDetail.returnStatus && (
-              <div className="inspection-card" style={{
-                background: selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? '#fef2f2' : '#f5f3ff',
-                border: `1px solid ${selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? '#fecaca' : '#ddd6fe'}`,
-                borderRadius: '12px',
-                padding: '16px 22px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
-              }}>
-                {selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? (
-                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <RotateCcw size={20} color="#dc2626" />
-                  </div>
-                ) : (
-                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <RefreshCw size={20} color="#7c3aed" />
-                  </div>
-                )}
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '14px', color: selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? '#991b1b' : '#5b21b6' }}>
-                    {selectedOrderDetail.returnStatus === 'RETURNED_AND_REFUNDED' ? 'ORDER RETURNED & REFUNDED' : 'REPLACEMENT UNIT DISPATCHED'}
-                  </div>
-                  <div style={{ fontSize: '13px', color: '#475569', marginTop: '3px' }}>
-                    {selectedOrderDetail.returnReason || selectedOrderDetail.replacementNotes || 'Processed directly by Regional Hub'}
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Live Animated Delivery Stepper */}
             <div className="inspection-card stepper-card">
               <DeliveryStatusStepper order={selectedOrderDetail} />
             </div>
 
-            {/* Customer & Delivery Meta Grid */}
+            {/* Customer & Delivery Meta Grid (4 Cards identical to Super Admin) */}
             <div className="order-meta-info-grid">
-              <div className="meta-info-card">
-                <div className="meta-card-label">CUSTOMER DETAILS</div>
-                <div className="meta-card-main">{resolveOrderDestination(selectedOrderDetail).recipient}</div>
-                <div className="meta-card-sub">{resolveOrderDestination(selectedOrderDetail).phone || selectedOrderDetail.customerPhone || 'No Phone'}</div>
-                <div className="meta-card-sub">{selectedOrderDetail.customerEmail || 'No Email'}</div>
-              </div>
-
-              <div className="meta-info-card">
-                <div className="meta-card-label">DELIVERY DESTINATION</div>
-                <div className="meta-card-main" style={{ whiteSpace: 'normal', lineHeight: '1.45', fontSize: '13px', fontWeight: 600 }}>
-                  {resolveOrderDestination(selectedOrderDetail).fullAddress}
-                </div>
-                <div className="meta-card-sub" style={{ marginTop: '4px' }}>
-                  PIN: <strong>{resolveOrderDestination(selectedOrderDetail).pincode}</strong> • Territory: {resolveOrderDestination(selectedOrderDetail).city}, {resolveOrderDestination(selectedOrderDetail).state}
-                </div>
-              </div>
-
-              <div className="meta-info-card">
-                <div className="meta-card-label">PAYMENT & SETTLEMENT</div>
-                <div className="meta-card-main">
-                  ₹ {Number(selectedOrderDetail.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </div>
-                <div className="meta-card-sub">
-                  Method: {selectedOrderDetail.paymentMethod || 'ONLINE UPI'} • {selectedOrderDetail.paymentStatus || 'PAID'}
-                </div>
-                {selectedOrderDetail.distributorCommission && (
-                  <div className="meta-card-sub" style={{ color: '#16a34a', fontWeight: 600, marginTop: '4px' }}>
-                    Your Hub Commission: ₹ {Number(selectedOrderDetail.distributorCommission).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </div>
-                )}
-              </div>
-
               {(() => {
+                const dest = resolveOrderDestination(selectedOrderDetail);
                 const sla = getOrderDeliverySLA(selectedOrderDetail);
+                const totalAmt = Number(selectedOrderDetail.totalAmount || 0);
+                const hubCommission = Number(selectedOrderDetail.distributorCommission || (totalAmt * 0.075));
+
                 return (
-                  <div
-                    className="meta-info-card"
-                    style={sla.isDelayed ? { border: '1px solid #fecaca', background: '#fff5f5' } : {}}
-                  >
-                    <div className="meta-card-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>REGIONAL DELIVERY SLA</span>
+                  <>
+                    <div className="meta-info-card">
+                      <div className="meta-card-label">CUSTOMER DETAILS</div>
+                      <div className="meta-card-main">{dest.recipient}</div>
+                      <div className="meta-card-sub">{dest.phone || selectedOrderDetail.customerPhone || 'N/A'}</div>
+                      <div className="meta-card-sub">{selectedOrderDetail.customerEmail || 'N/A'}</div>
+                    </div>
+
+                    <div className="meta-info-card">
+                      <div className="meta-card-label">DELIVERY DESTINATION</div>
+                      <div className="meta-card-main">{dest.street || dest.fullAddress}</div>
+                      <div className="meta-card-sub">{dest.city}, {dest.state} - {dest.pincode}</div>
+                    </div>
+
+                    <div className="meta-info-card">
+                      <div className="meta-card-label">PAYMENT &amp; STATUS</div>
+                      <div className="meta-card-main">
+                        ₹ {totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="meta-card-sub">
+                        Method: {selectedOrderDetail.paymentMethod || 'ONLINE UPI'} • {selectedOrderDetail.paymentStatus || 'PAID'}
+                      </div>
+                      <div className="meta-card-sub" style={{ color: '#16a34a', fontWeight: 600, marginTop: '3px' }}>
+                        Hub Margin: ₹ {hubCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
+
+                    <div
+                      className="meta-info-card"
+                      style={sla.isDelayed ? { border: '1px solid #fecaca', background: '#fff5f5' } : {}}
+                    >
+                      <div className="meta-card-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>DELIVERY SLA &amp; DEADLINE</span>
+                        {sla.isDelayed && (
+                          <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <AlertTriangle size={12} color="#dc2626" /> OVERDUE ({sla.delayDays}D)
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className="meta-card-main"
+                        style={{ color: sla.isDelayed ? '#dc2626' : '#00A3E0', fontWeight: 700 }}
+                      >
+                        {sla.targetDateStr ? `Deadline: ${sla.targetDateStr}` : getFormattedEstimatedDelivery(selectedOrderDetail)}
+                      </div>
+                      <div className="meta-card-sub">
+                        Status: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#15803d' }}>{sla.statusText}</strong> ({sla.slaDays}-Day SLA) • Carrier: {selectedOrderDetail.courier || selectedOrderDetail.tracking?.courierPartner || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
+                      </div>
                       {sla.isDelayed && (
-                        <span style={{ color: '#dc2626', fontWeight: 800, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <AlertTriangle size={12} color="#dc2626" /> OVERDUE ({sla.delayDays}D)
-                        </span>
+                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ fontSize: '11.5px', color: selectedOrderDetail.delayEmailSent ? '#16a34a' : '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {selectedOrderDetail.delayEmailSent ? (
+                              <>
+                                <CheckCircle2 size={13} color="#16a34a" />
+                                <span>Apology Dispatched ({selectedOrderDetail.delayEmailSentAt ? new Date(selectedOrderDetail.delayEmailSentAt).toLocaleDateString('en-IN') : 'Sent'})</span>
+                              </>
+                            ) : (
+                              <>
+                                <Mail size={13} color="#b91c1c" />
+                                <span>Customer not yet notified</span>
+                              </>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="apology-modal-action-btn"
+                            onClick={() => handleSendDelayApologyEmail(selectedOrderDetail.orderId || selectedOrderDetail.id, selectedOrderDetail.customerEmail)}
+                          >
+                            <Mail size={12} />
+                            <span>{selectedOrderDetail.delayEmailSent ? 'Resend Apology Email' : 'Send Apology Email Now'}</span>
+                          </button>
+                        </div>
                       )}
                     </div>
-                    <div
-                      className="meta-card-main"
-                      style={{ color: sla.isDelayed ? '#dc2626' : '#00A3E0', fontWeight: 700 }}
-                    >
-                      {sla.targetDateStr ? `Target Date: ${sla.targetDateStr}` : '48-Hour Territory SLA'}
-                    </div>
-                    <div className="meta-card-sub">
-                      Status: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#15803d' }}>{sla.statusText}</strong> • Carrier: {selectedOrderDetail.courier || selectedOrderDetail.tracking?.courierPartner || 'Blue Dart Express'} {selectedOrderDetail.tracking?.trackingNumber ? `(${selectedOrderDetail.tracking.trackingNumber})` : ''}
-                    </div>
-                  </div>
+                  </>
                 );
               })()}
             </div>
 
-            {/* Items Table Card */}
+            {/* Items Table Card (Identical to Super Admin) */}
             <div className="inspection-card items-card">
               <div className="order-items-detail-title">
-                Purchased Line Items ({((selectedOrderDetail.items && selectedOrderDetail.items.length) || 1)} Items)
+                Purchased Items Breakdown ({resolveOrderItems(selectedOrderDetail).length} Items)
               </div>
               <div className="atomy-table-responsive">
                 <table className="atomy-data-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '45%' }}>Item Description</th>
-                      <th style={{ textAlign: 'center', width: '15%' }}>Quantity</th>
-                      <th style={{ textAlign: 'right', width: '20%' }}>Unit Price</th>
-                      <th style={{ textAlign: 'right', width: '20%' }}>Subtotal</th>
+                      <th style={{ width: '70px' }}>Item</th>
+                      <th>Product Name</th>
+                      <th>Product Code</th>
+                      <th>Quantity</th>
+                      <th>Unit Price</th>
+                      <th>PV</th>
+                      <th style={{ textAlign: 'right' }}>Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(() => {
-                      const totalAmt = Number(selectedOrderDetail.totalAmount || 0);
-                      const shipFee = Number(selectedOrderDetail.shippingFee || 0);
-                      const merchSubtotal = Math.max(0, totalAmt - shipFee);
-                      const rawItems = (selectedOrderDetail.items && selectedOrderDetail.items.length > 0)
-                        ? selectedOrderDetail.items
-                        : [{ productName: 'Atomy Product Order', quantity: 1, price: merchSubtotal }];
-                      return rawItems.map((item, idx) => {
-                        let itPrice = Number(item.price || item.unitPrice || 0);
-                        const itQty = Number(item.quantity || item.qty || 1);
-                        if (rawItems.length === 1 && merchSubtotal > 0) {
-                          itPrice = merchSubtotal / itQty;
-                        }
-                        const itTotal = itPrice * itQty;
-                        return (
-                          <tr key={idx}>
-                            <td>
-                              <div style={{ fontWeight: 600, color: '#0f172a' }}>{item.productName || item.name || 'Atomy Product'}</div>
-                              {item.sku && <span style={{ fontSize: '11.5px', color: '#64748b' }}>SKU: {item.sku}</span>}
-                            </td>
-                            <td style={{ textAlign: 'center', fontWeight: 700 }}>{itQty}</td>
-                            <td style={{ textAlign: 'right', color: '#475569' }}>
-                              ₹ {itPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
-                              ₹ {itTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </td>
-                          </tr>
-                        );
-                      });
-                    })()}
+                    {resolveOrderItems(selectedOrderDetail).map((it, idx) => (
+                      <tr key={idx}>
+                        <td>
+                          <img
+                            src={it.image}
+                            alt={it.name}
+                            className="table-product-thumb"
+                            onError={(e) => {
+                              e.currentTarget.src = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <strong>{it.name}</strong>
+                        </td>
+                        <td className="mono-col">{it.code}</td>
+                        <td><span className="qty-tag">{it.quantity}</span></td>
+                        <td>₹ {Number(it.unitPrice).toLocaleString('en-IN')}</td>
+                        <td>{Number(it.pv).toLocaleString('en-IN')} PV</td>
+                        <td style={{ textAlign: 'right' }} className="cell-price">
+                          ₹ {Number(it.subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={3} style={{ textAlign: 'right', fontWeight: 700, padding: '14px 16px', background: '#f8fafc' }}>
-                        Grand Total (Inclusive of GST):
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 800, fontSize: '16px', color: '#00A3E0', padding: '14px 16px', background: '#f8fafc' }}>
-                        ₹ {Number(selectedOrderDetail.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  </tfoot>
                 </table>
+              </div>
+            </div>
+
+            {/* Status Update Control Bar */}
+            <div className="inspection-card status-actions-card">
+              <div className="status-update-control">
+                <label className="status-update-label">Update Order Status:</label>
+                <select
+                  value={String(selectedOrderDetail.orderStatus || 'PLACED').toUpperCase()}
+                  onChange={(e) => {
+                    const newSt = e.target.value;
+                    handleStatusChange(selectedOrderDetail.orderId || selectedOrderDetail.id, newSt);
+                    setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newSt }));
+                  }}
+                  className="atomy-dropdown status-modal-dropdown"
+                >
+                  <option value="PLACED">PLACED (New Order)</option>
+                  <option value="PROCESSING">PROCESSING (Warehouse Packed)</option>
+                  <option value="SHIPPED">SHIPPED (In Transit)</option>
+                  <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY (Local Hub)</option>
+                  <option value="DELIVERED">DELIVERED (Customer Received)</option>
+                  <option value="CANCELLED">CANCELLED (Cancelled &amp; Refunded)</option>
+                </select>
+              </div>
+
+              <div className="modal-actions-right">
+                <button
+                  type="button"
+                  className="order-footer-btn courier-btn"
+                  onClick={() => {
+                    const o = selectedOrderDetail;
+                    setSelectedOrderDetail(null);
+                    if (onOpenTrackingModal) onOpenTrackingModal(o);
+                  }}
+                >
+                  <Truck size={15} />
+                  <span>Update Logistics Tracking</span>
+                </button>
+                <button 
+                  type="button" 
+                  className="order-footer-btn done-btn" 
+                  onClick={() => setSelectedOrderDetail(null)}
+                >
+                  <span>Close Inspection</span>
+                </button>
               </div>
             </div>
 
@@ -1034,47 +1147,6 @@ export default function DistributorOrdersPage({
                   </div>
                 );
               })()}
-            </div>
-
-            {/* Quick Status / Dispatch Action Strip in Inspector */}
-            <div className="inspection-card" style={{ padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#334155' }}>Update Live Fulfillment Status:</span>
-                <select
-                  value={String(selectedOrderDetail.orderStatus || 'PLACED').toUpperCase()}
-                  onChange={(e) => {
-                    const newSt = e.target.value;
-                    handleStatusChange(selectedOrderDetail.orderId || selectedOrderDetail.id, newSt);
-                    setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newSt }));
-                  }}
-                  className={`status-select ${String(selectedOrderDetail.orderStatus || 'PLACED').toLowerCase()}`}
-                  style={{ minWidth: '170px', padding: '8px 12px', fontSize: '13px', fontWeight: 700, borderRadius: '8px' }}
-                >
-                  <option value="PLACED">PLACED (New)</option>
-                  <option value="PROCESSING">PROCESSING</option>
-                  <option value="SHIPPED">SHIPPED</option>
-                  <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY</option>
-                  <option value="DELIVERED">DELIVERED</option>
-                  <option value="CANCELLED">CANCELLED</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                {selectedOrderDetail.fulfillmentType !== 'STORE_PICKUP' && (
-                  <button
-                    type="button"
-                    className="action-pill-btn tracking"
-                    onClick={() => {
-                      const o = selectedOrderDetail;
-                      if (onOpenTrackingModal) onOpenTrackingModal(o);
-                    }}
-                    style={{ padding: '9px 18px', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                  >
-                    <Truck size={16} />
-                    <span>Update Courier &amp; Tracking Details</span>
-                  </button>
-                )}
-              </div>
             </div>
           </div>
         </div>
