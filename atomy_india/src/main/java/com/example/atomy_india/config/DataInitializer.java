@@ -527,13 +527,4 @@ public class DataInitializer implements CommandLineRunner {
             System.err.println("Notice: error seeding pincodes/distributors: " + (ex.getMessage() != null ? ex.getMessage() : ex.toString()));
         }
     }
-
-    private IndiaPincode createUnassignedPincode(String pin, String office, String district, String state, String division, String circle,
-                                                 java.math.BigDecimal fee, Double comm) {
-        IndiaPincode p = new IndiaPincode(pin, office, district, state, division, circle);
-        p.setStatus("UNASSIGNED");
-        p.setTerritoryFee(fee);
-        p.setCommissionRate(comm);
-        return p;
-    }
 }
