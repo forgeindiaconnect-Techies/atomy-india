@@ -2177,6 +2177,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         {/* Left Master Sidebar - Clean text, no notification pills */}
         <aside className="admin-master-sidebar">
           <nav className="sidebar-nav-menu">
+            {/* 1. Overview */}
             <button
               className={`sidebar-nav-button ${activeTab === 'overview' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('overview'); setIsEditingProductView(false); }}
@@ -2185,6 +2186,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <span>Overview & KPIs</span>
             </button>
 
+            {/* 2. Inventory */}
             <button
               className={`sidebar-nav-button ${(activeTab === 'inventory' || isEditingProductView) ? 'active' : ''}`}
               onClick={() => { setActiveTab('inventory'); setIsEditingProductView(false); }}
@@ -2193,22 +2195,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <span>{isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Catalog'}</span>
             </button>
 
-            <button
-              className={`sidebar-nav-button ${activeTab === 'orders' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => { setActiveTab('orders'); setIsEditingProductView(false); }}
-            >
-              <Package size={20} />
-              <span>Customer Orders</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'finance' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => { setActiveTab('finance'); setIsEditingProductView(false); }}
-            >
-              <IndianRupee size={20} />
-              <span>Finance & Settlements</span>
-            </button>
-
+            {/* 3. Distributor / Territories */}
             <button
               className={`sidebar-nav-button ${activeTab === 'territories' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('territories'); setIsEditingProductView(false); }}
@@ -2217,6 +2204,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <span>Distributors & Territories</span>
             </button>
 
+            {/* 4. Invite Distributor */}
             <button
               className={`sidebar-nav-button ${activeTab === 'invite-distributors' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('invite-distributors'); setIsEditingProductView(false); }}
@@ -2225,14 +2213,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <span>Invite Distributors</span>
             </button>
 
-            <button
-              className={`sidebar-nav-button ${activeTab === 'customers' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => { setActiveTab('customers'); setIsEditingProductView(false); }}
-            >
-              <Users size={20} />
-              <span>Customer Directory</span>
-            </button>
-
+            {/* 5. Membership & Privileges */}
             <button
               className={`sidebar-nav-button ${activeTab === 'membership' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('membership'); setIsEditingProductView(false); }}
@@ -2241,22 +2222,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <span>Membership & Privileges</span>
             </button>
 
-            <button
-              className={`sidebar-nav-button ${activeTab === 'coupons' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => { setActiveTab('coupons'); setIsEditingProductView(false); }}
-            >
-              <Ticket size={20} />
-              <span>Coupons & Offers</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'support' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => { setActiveTab('support'); setIsEditingProductView(false); }}
-            >
-              <Headphones size={20} />
-              <span>Customer Support Desk</span>
-            </button>
-
+            {/* 6. Ads & Banners */}
             <button
               className={`sidebar-nav-button ${activeTab === 'floating-ad' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('floating-ad'); setIsEditingProductView(false); }}
@@ -2265,6 +2231,16 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <span>Ads & Banner Promotions</span>
             </button>
 
+            {/* 7. Coupons */}
+            <button
+              className={`sidebar-nav-button ${activeTab === 'coupons' && !isEditingProductView ? 'active' : ''}`}
+              onClick={() => { setActiveTab('coupons'); setIsEditingProductView(false); }}
+            >
+              <Ticket size={20} />
+              <span>Coupons & Offers</span>
+            </button>
+
+            {/* 8. Settings */}
             <button
               className={`sidebar-nav-button ${activeTab === 'settings' && !isEditingProductView ? 'active' : ''}`}
               onClick={() => { setActiveTab('settings'); setIsEditingProductView(false); }}
@@ -3260,7 +3236,11 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               TAB: REGIONAL DISTRIBUTORS & INDIA PINCODE TERRITORIES
               ======================================================== */}
               {activeTab === 'territories' && !isEditingProductView && (
-                <TerritoryManagementPage showToast={showToast} />
+                <TerritoryManagementPage 
+                  showToast={showToast} 
+                  orders={orders} 
+                  customers={customersList} 
+                />
               )}
 
               {/* ========================================================
