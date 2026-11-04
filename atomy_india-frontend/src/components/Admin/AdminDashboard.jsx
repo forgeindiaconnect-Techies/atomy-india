@@ -251,6 +251,7 @@ export default function AdminDashboard({ onBackToStore }) {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [adminReplyText, setAdminReplyText] = useState('');
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
+  const [ticketPhoneError, setTicketPhoneError] = useState('');
   const [newTicketForm, setNewTicketForm] = useState({
     customerName: '',
     customerEmail: '',
@@ -1436,12 +1437,30 @@ export default function AdminDashboard({ onBackToStore }) {
       showToast('Please provide Customer Name and Subject');
       return;
     }
+
+    const rawDigits = (newTicketForm.customerPhone || '').replace(/\D/g, '');
+    if (!rawDigits) {
+      showToast('Please provide Customer Mobile Number');
+      setTicketPhoneError('Mobile number is required');
+      return;
+    }
+    if (!['6', '7', '8', '9'].includes(rawDigits[0])) {
+      showToast('Mobile number must start only with 6, 7, 8, or 9');
+      setTicketPhoneError('Mobile number must start only with 6, 7, 8, or 9');
+      return;
+    }
+    if (rawDigits.length !== 10) {
+      showToast('Mobile number must be exactly 10 digits');
+      setTicketPhoneError('Mobile number must be exactly 10 digits');
+      return;
+    }
+
     const ticketId = `TCK-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
     const newTicket = {
       ticketId,
       customerName: newTicketForm.customerName.trim(),
       customerEmail: newTicketForm.customerEmail.trim() || 'customer@atomy.com',
-      customerPhone: newTicketForm.customerPhone.trim() || '+91 98000 00000',
+      customerPhone: rawDigits,
       subject: newTicketForm.subject.trim(),
       category: newTicketForm.category || 'COURIER_TRACKING',
       priority: newTicketForm.priority || 'MEDIUM',
@@ -1466,6 +1485,7 @@ export default function AdminDashboard({ onBackToStore }) {
       // ignore
     }
     setIsNewTicketModalOpen(false);
+    setTicketPhoneError('');
     setNewTicketForm({
       customerName: '',
       customerEmail: '',
@@ -2657,15 +2677,15 @@ export default function AdminDashboard({ onBackToStore }) {
                     {selectedTicket ? (
                       <div className="thread-wrapper">
                         <div className="thread-top-bar">
-                          <div>
+                          <div style={{ flex: '1 1 240px', minWidth: 0 }}>
                             <span className="mono-ticket">{selectedTicket.ticketId}</span>
-                            <h3 className="thread-main-subject">{selectedTicket.subject}</h3>
-                            <div className="thread-customer-meta">
+                            <h3 className="thread-main-subject" style={{ wordBreak: 'break-word' }}>{selectedTicket.subject}</h3>
+                            <div className="thread-customer-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
                               <span>Customer: <strong>{selectedTicket.customerName}</strong> ({selectedTicket.customerEmail}, {selectedTicket.customerPhone})</span>
                               {selectedTicket.orderId && (
                                 <button
                                   className="link-button"
-                                  style={{ marginLeft: '12px', color: '#00A3E0', fontWeight: '700', background: 'none', border: 'none', cursor: 'pointer' }}
+                                  style={{ color: '#00A3E0', fontWeight: '700', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                                   onClick={() => {
                                     setActiveTab('orders');
                                     setOrderSearchQuery(selectedTicket.orderId);
@@ -2678,11 +2698,12 @@ export default function AdminDashboard({ onBackToStore }) {
                           </div>
 
                           <div className="thread-status-select-wrap">
-                            <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Status:</label>
+                            <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Status:</label>
                             <select
                               value={selectedTicket.status}
                               onChange={(e) => handleUpdateTicketStatus(selectedTicket.ticketId, e.target.value)}
                               className="atomy-dropdown"
+                              style={{ minWidth: '140px', fontWeight: 700 }}
                             >
                               <option value="OPEN">OPEN</option>
                               <option value="IN_PROGRESS">IN PROGRESS</option>
@@ -3636,14 +3657,14 @@ export default function AdminDashboard({ onBackToStore }) {
           MODAL: LOG NEW CUSTOMER SUPPORT TICKET
           ======================================================== */}
       {isNewTicketModalOpen && (
-        <div className="modal-backdrop-overlay" onClick={() => setIsNewTicketModalOpen(false)}>
+        <div className="modal-backdrop-overlay" onClick={() => { setIsNewTicketModalOpen(false); setTicketPhoneError(''); }}>
           <div className="atomy-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="atomy-modal-header">
               <div className="modal-title-cluster">
                 <Headphones size={20} color="#00A3E0" />
                 <h3>Log New Customer Support Ticket</h3>
               </div>
-              <button className="atomy-modal-close" onClick={() => setIsNewTicketModalOpen(false)}>
+              <button className="atomy-modal-close" onClick={() => { setIsNewTicketModalOpen(false); setTicketPhoneError(''); }}>
                 &times;
               </button>
             </div>
@@ -3662,14 +3683,34 @@ export default function AdminDashboard({ onBackToStore }) {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Customer Mobile Phone</label>
+                  <label>Customer Mobile Phone *</label>
                   <input
-                    type="text"
-                    placeholder="e.g. +91 98112 34567"
+                    type="tel"
+                    required
+                    placeholder="10-digit number (starts with 6, 7, 8, or 9)"
+                    maxLength={10}
                     value={newTicketForm.customerPhone}
-                    onChange={(e) => setNewTicketForm({ ...newTicketForm, customerPhone: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setNewTicketForm({ ...newTicketForm, customerPhone: val });
+                      if (!val) {
+                        setTicketPhoneError('');
+                      } else if (!['6', '7', '8', '9'].includes(val[0])) {
+                        setTicketPhoneError('Mobile number must start only with 6, 7, 8, or 9');
+                      } else if (val.length < 10) {
+                        setTicketPhoneError(`Enter 10 digits (${val.length}/10)`);
+                      } else {
+                        setTicketPhoneError('');
+                      }
+                    }}
                     className="atomy-form-input"
+                    style={ticketPhoneError && !ticketPhoneError.includes('Enter 10') ? { borderColor: '#dc2626' } : {}}
                   />
+                  {ticketPhoneError && (
+                    <small style={{ color: ticketPhoneError.includes('Enter 10') ? '#64748b' : '#dc2626', fontSize: '11.5px', marginTop: '3px', display: 'block', fontWeight: 600 }}>
+                      {ticketPhoneError}
+                    </small>
+                  )}
                 </div>
               </div>
 
@@ -3750,7 +3791,7 @@ export default function AdminDashboard({ onBackToStore }) {
               </div>
 
               <div className="modal-actions-right" style={{ marginTop: '20px' }}>
-                <button type="button" className="atomy-btn-secondary" onClick={() => setIsNewTicketModalOpen(false)}>
+                <button type="button" className="atomy-btn-secondary" onClick={() => { setIsNewTicketModalOpen(false); setTicketPhoneError(''); }}>
                   Cancel
                 </button>
                 <button type="submit" className="atomy-btn-primary">

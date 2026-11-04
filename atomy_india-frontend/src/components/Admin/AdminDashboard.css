@@ -2201,6 +2201,8 @@ select.atomy-dropdown:focus,
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
   background-color: #ffffff;
 }
 
@@ -2222,6 +2224,45 @@ select.atomy-dropdown:focus,
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .atomy-support-split {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  .atomy-tickets-sidebar {
+    max-height: 240px;
+    border-right: none;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .atomy-ticket-thread-pane {
+    height: auto;
+    min-height: 520px;
+  }
+
+  .thread-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .thread-status-select-wrap {
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px dashed #e2e8f0;
+  }
+
+  .thread-status-select-wrap select {
+    flex: 1;
+    max-width: 200px;
+  }
 }
 
 .atomy-messages-stream {
