@@ -354,6 +354,7 @@ export default function MembershipManagementPage() {
           <div className="plans-dual-grid">
             {/* Monthly Plan Card */}
             <div className="plan-setting-card">
+              <div className="plan-recommended-tag standard">STANDARD ACCESS</div>
               <div className="plan-card-header">
                 <div className="plan-icon-wrap monthly">
                   <Clock size={20} />
@@ -393,7 +394,7 @@ export default function MembershipManagementPage() {
                   </div>
                   <div className="perk-bullet">
                     <CheckCircle2 size={14} color="#16a34a" />
-                    <span>Billed monthly with flexible cancellation</span>
+                    <span>Billed monthly with flexible cancellation anytime</span>
                   </div>
                 </div>
               </div>
@@ -441,7 +442,7 @@ export default function MembershipManagementPage() {
                   </div>
                   <div className="perk-bullet">
                     <CheckCircle2 size={14} color="#16a34a" />
-                    <span>Save 30% compared to monthly plan billing</span>
+                    <span>Save over 30% compared to monthly plan billing</span>
                   </div>
                 </div>
               </div>
