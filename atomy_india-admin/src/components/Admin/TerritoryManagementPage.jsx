@@ -45,10 +45,10 @@ export default function TerritoryManagementPage({ showToast }) {
     primaryPincode: '',
     hubAddress: '',
     city: '',
-    state: 'Delhi',
+    state: '',
     commissionRate: 8.0,
     territoryFee: 25000,
-    password: 'Admin@123'
+    password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -93,10 +93,10 @@ export default function TerritoryManagementPage({ showToast }) {
         primaryPincode: '',
         hubAddress: '',
         city: '',
-        state: 'Delhi',
+        state: '',
         commissionRate: 8.0,
         territoryFee: 25000,
-        password: 'Admin@123'
+        password: ''
       });
       await loadData();
     } catch (err) {
@@ -147,7 +147,7 @@ export default function TerritoryManagementPage({ showToast }) {
         <div className="territory-stat-card">
           <div className="territory-stat-title">Vacant / Unassigned PINs</div>
           <div className="territory-stat-value" style={{ color: '#0284c7' }}>
-            {stats?.unassignedPincodes || pincodes.filter(p => p.status !== 'ASSIGNED').length}
+            {stats?.vacantPincodes !== undefined ? stats.vacantPincodes : (stats?.unassignedPincodes || pincodes.filter(p => p.status !== 'ASSIGNED').length)}
           </div>
         </div>
 

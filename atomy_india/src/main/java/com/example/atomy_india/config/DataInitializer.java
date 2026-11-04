@@ -393,47 +393,12 @@ public class DataInitializer implements CommandLineRunner {
                 }
             } catch (Exception ignored) {}
 
-            // 2. Seed Indian PIN codes if catalog is empty
-            if (indiaPincodeRepository.count() == 0) {
-                List<IndiaPincode> pincodes = new ArrayList<>();
-
-                // Delhi primary PIN codes
-                pincodes.add(createUnassignedPincode("110001", "Connaught Place SO", "New Delhi", "Delhi", "New Delhi Central", "Delhi Circle", new BigDecimal("25000"), 7.5));
-                pincodes.add(createUnassignedPincode("110002", "Darya Ganj SO", "Central Delhi", "Delhi", "Central Division", "Delhi Circle", new BigDecimal("20000"), 7.5));
-                pincodes.add(createUnassignedPincode("110003", "Aliganj SO", "South Delhi", "Delhi", "South Division", "Delhi Circle", new BigDecimal("20000"), 7.5));
-                pincodes.add(createUnassignedPincode("110006", "Chandni Chowk SO", "North Delhi", "Delhi", "North Division", "Delhi Circle", new BigDecimal("22000"), 7.5));
-
-                // Bengaluru primary PIN codes
-                pincodes.add(createUnassignedPincode("560001", "Bengaluru GPO", "Bengaluru Urban", "Karnataka", "Bangalore East", "Karnataka Circle", new BigDecimal("30000"), 8.0));
-                pincodes.add(createUnassignedPincode("560002", "City Market SO", "Bengaluru Urban", "Karnataka", "Bangalore West", "Karnataka Circle", new BigDecimal("25000"), 8.0));
-                pincodes.add(createUnassignedPincode("560004", "Basavanagudi SO", "Bengaluru Urban", "Karnataka", "Bangalore South", "Karnataka Circle", new BigDecimal("25000"), 8.0));
-                pincodes.add(createUnassignedPincode("560025", "Richmond Town SO", "Bengaluru Urban", "Karnataka", "Bangalore East", "Karnataka Circle", new BigDecimal("25000"), 8.0));
-                pincodes.add(createUnassignedPincode("560034", "Koramangala SO", "Bengaluru Urban", "Karnataka", "Bangalore South", "Karnataka Circle", new BigDecimal("30000"), 8.0));
-
-                // Vacant / Super Platform Hub PINs
-                pincodes.add(createUnassignedPincode("400001", "Mumbai GPO", "Mumbai", "Maharashtra", "Mumbai Division", "Maharashtra Circle", new BigDecimal("35000"), 8.5));
-                pincodes.add(createUnassignedPincode("400050", "Bandra West SO", "Mumbai Suburban", "Maharashtra", "Mumbai West", "Maharashtra Circle", new BigDecimal("30000"), 8.0));
-                pincodes.add(createUnassignedPincode("411001", "Pune GPO", "Pune", "Maharashtra", "Pune Division", "Maharashtra Circle", new BigDecimal("25000"), 7.5));
-                pincodes.add(createUnassignedPincode("600001", "Chennai GPO", "Chennai", "Tamil Nadu", "Chennai Central", "Tamil Nadu Circle", new BigDecimal("28000"), 7.5));
-                pincodes.add(createUnassignedPincode("600018", "Alwarpet SO", "Chennai", "Tamil Nadu", "Chennai South", "Tamil Nadu Circle", new BigDecimal("25000"), 7.5));
-                pincodes.add(createUnassignedPincode("700001", "Kolkata GPO", "Kolkata", "West Bengal", "Kolkata Division", "West Bengal Circle", new BigDecimal("25000"), 7.0));
-                pincodes.add(createUnassignedPincode("700020", "Bhowanipore SO", "Kolkata", "West Bengal", "Kolkata South", "West Bengal Circle", new BigDecimal("22000"), 7.0));
-                pincodes.add(createUnassignedPincode("500001", "Hyderabad GPO", "Hyderabad", "Telangana", "Hyderabad Division", "Telangana Circle", new BigDecimal("28000"), 8.0));
-                pincodes.add(createUnassignedPincode("500034", "Banjara Hills SO", "Hyderabad", "Telangana", "Hyderabad South", "Telangana Circle", new BigDecimal("28000"), 8.0));
-                pincodes.add(createUnassignedPincode("380001", "Ahmedabad GPO", "Ahmedabad", "Gujarat", "Ahmedabad Division", "Gujarat Circle", new BigDecimal("25000"), 7.5));
-                pincodes.add(createUnassignedPincode("380015", "Vastrapur SO", "Ahmedabad", "Gujarat", "Ahmedabad West", "Gujarat Circle", new BigDecimal("25000"), 7.5));
-                pincodes.add(createUnassignedPincode("302001", "Jaipur GPO", "Jaipur", "Rajasthan", "Jaipur Division", "Rajasthan Circle", new BigDecimal("20000"), 7.0));
-                pincodes.add(createUnassignedPincode("226001", "Lucknow GPO", "Lucknow", "Uttar Pradesh", "Lucknow Division", "Uttar Pradesh Circle", new BigDecimal("20000"), 7.0));
-                pincodes.add(createUnassignedPincode("122001", "Gurugram HO", "Gurugram", "Haryana", "Gurgaon Division", "Haryana Circle", new BigDecimal("25000"), 7.5));
-                pincodes.add(createUnassignedPincode("201301", "Noida Sector 16 HO", "Gautam Buddha Nagar", "Uttar Pradesh", "Noida Division", "Uttar Pradesh Circle", new BigDecimal("25000"), 7.5));
-                pincodes.add(createUnassignedPincode("682001", "Kochi GPO", "Ernakulam", "Kerala", "Ernakulam Division", "Kerala Circle", new BigDecimal("22000"), 7.0));
-                pincodes.add(createUnassignedPincode("160017", "Chandigarh Sector 17 HO", "Chandigarh", "Chandigarh", "Chandigarh Division", "Punjab Circle", new BigDecimal("25000"), 7.5));
-                pincodes.add(createUnassignedPincode("800001", "Patna GPO", "Patna", "Bihar", "Patna Division", "Bihar Circle", new BigDecimal("18000"), 6.5));
-                pincodes.add(createUnassignedPincode("781001", "Guwahati GPO", "Kamrup", "Assam", "Guwahati Division", "Assam Circle", new BigDecimal("18000"), 6.5));
-
-                indiaPincodeRepository.saveAll(pincodes);
-                System.out.println("Seeded India Post PIN codes catalog.");
-            }
+            // 2. Clean up any unassigned legacy demo PIN codes so only legitimate assigned distributor territories exist
+            indiaPincodeRepository.findAll().forEach(pin -> {
+                if (!"ASSIGNED".equalsIgnoreCase(pin.getStatus())) {
+                    indiaPincodeRepository.delete(pin);
+                }
+            });
 
             // 3. Purge orphaned demo records from distributor_inventory collection in MongoDB
             // Only remove records from demo hubs (DIST-DEL-110001, DIST-BLR-560001, etc.) or distributors that no longer exist
