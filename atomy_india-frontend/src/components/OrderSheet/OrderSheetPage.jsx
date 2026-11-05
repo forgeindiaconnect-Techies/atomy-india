@@ -1045,6 +1045,7 @@ export default function OrderSheetPage({
       };
 
       const isCod = paymentMethod === 'COD';
+      const isPickupOrder = fulfillmentType === 'STORE_PICKUP';
       const generatedOrderId = `ORD-${new Date().toISOString().replace(/\D/g, '').slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`;
       orderPayload.orderId = generatedOrderId;
 
@@ -1065,10 +1066,13 @@ export default function OrderSheetPage({
         paymentStatus: isCod ? 'PENDING' : 'PAID',
         orderStatus: 'PLACED',
         syncedToBackend: Boolean(backendOrder),
-        estimatedDelivery: estimatedDeliveryInfo.timeFrame,
-        estimatedDeliveryDate: estimatedDeliveryInfo.dateRange,
-        courier: 'Blue Dart Express (Assigned)',
-        trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+        fulfillmentType: fulfillmentType,
+        isPickup: isPickupOrder,
+        pickupStatus: isPickupOrder ? 'PENDING_PACKING' : null,
+        estimatedDelivery: isPickupOrder ? 'Direct Counter Pickup' : estimatedDeliveryInfo.timeFrame,
+        estimatedDeliveryDate: isPickupOrder ? 'Available at Hub Counter' : estimatedDeliveryInfo.dateRange,
+        courier: isPickupOrder ? 'Direct Hub Pickup' : 'Blue Dart Express (Assigned)',
+        trackingNumber: isPickupOrder ? `PICKUP-${assignedOrderId}` : `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
         paymentMethod: paymentMethod === 'UPI' ? 'UPI (Google Pay / PhonePe)' 
                      : paymentMethod === 'CARD' ? 'Credit / Debit Card'
                      : paymentMethod === 'NETBANKING' ? `Net Banking (${selectedBank})`

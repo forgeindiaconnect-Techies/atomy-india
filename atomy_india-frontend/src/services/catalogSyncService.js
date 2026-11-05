@@ -393,9 +393,9 @@ if (typeof window !== 'undefined') {
 
   // Active real-time polling to sync regional stock changes
   setInterval(() => {
-    if (document.hidden) return;
+    if (typeof document !== 'undefined' && document.hidden) return;
     syncCatalogFromBackend();
-  }, 5000);
+  }, 45000);
 
   // Sync immediately when customer switches to this tab or window
   window.addEventListener('focus', () => {

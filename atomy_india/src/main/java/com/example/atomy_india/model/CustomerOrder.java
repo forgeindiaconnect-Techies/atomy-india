@@ -117,6 +117,7 @@ public class CustomerOrder {
     public enum OrderStatus {
         PLACED,
         PROCESSING,
+        READY_FOR_PICKUP,
         SHIPPED,
         OUT_FOR_DELIVERY,
         DELIVERED,

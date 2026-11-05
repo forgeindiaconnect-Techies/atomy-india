@@ -188,8 +188,9 @@ if (typeof window !== 'undefined') {
 
   // 3. Regular live heartbeat polling (every 3 seconds)
   setInterval(() => {
+    if (typeof document !== 'undefined' && document.hidden) return;
     fetchRemoteAdConfig();
-  }, 3000);
+  }, 60000);
 
   // Clear any legacy persistent storage so fresh loads and refreshes always show automatically
   try {

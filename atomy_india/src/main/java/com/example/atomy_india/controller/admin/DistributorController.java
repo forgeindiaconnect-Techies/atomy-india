@@ -185,6 +185,9 @@ public class DistributorController {
             orderMap.put("shippingFee", o.getShippingFee());
             orderMap.put("assignedDistributorId", o.getAssignedDistributorId());
             orderMap.put("assignedDistributorName", o.getAssignedDistributorName());
+            orderMap.put("fulfillmentType", o.getFulfillmentType());
+            orderMap.put("pickupStatus", o.getPickupStatus());
+            orderMap.put("hubAddress", o.getHubAddress());
             orderMap.put("distributorCommission", o.getDistributorCommission());
             orderMap.put("distributorDispatchStatus", o.getDistributorDispatchStatus());
             orderMap.put("estimatedDeliveryDate", o.getEstimatedDeliveryDate());

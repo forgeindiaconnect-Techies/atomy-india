@@ -158,6 +158,7 @@ if (typeof window !== 'undefined') {
   });
 
   setInterval(() => {
+    if (typeof document !== 'undefined' && document.hidden) return;
     syncPromotionsFromBackend();
-  }, 4000);
+  }, 60000);
 }

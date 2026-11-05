@@ -668,17 +668,28 @@ export default function App() {
               const pin = bo.pincode || '';
               const fullAddr = [street, city, state, pin ? `PIN: ${pin}` : ''].filter(Boolean).join(', ');
 
+              const isStorePickup = bo.fulfillmentType === 'STORE_PICKUP' || 
+                                    Boolean(bo.pickupStatus && bo.pickupStatus !== 'NONE') ||
+                                    (typeof bo.shippingAddress === 'string' && bo.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+                                    (typeof bo.shippingAddress === 'string' && bo.shippingAddress.toLowerCase().includes('direct hub pickup'));
+
               return {
+                ...bo,
                 orderId: bo.orderId,
                 date: bo.createdAt,
                 orderDate: bo.createdAt ? bo.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
                 status: orderStatusMap[bo.orderStatus] || bo.orderStatus || placedStatus,
                 paymentStatus: bo.paymentStatus || (isCodOrder ? 'PENDING' : 'PAID'),
                 orderStatus: bo.orderStatus || 'PLACED',
-                estimatedDelivery: 'Within 2 Days (Dispatched from Nearby Hub)',
-                estimatedDeliveryDate: 'Within 2 Days (Nearby Hub)',
-                courier: 'Blue Dart Express (Assigned)',
-                trackingNumber: bo.trackingNumber || bo.tracking?.trackingNumber || getStableAwb(bo.orderId),
+                fulfillmentType: isStorePickup ? 'STORE_PICKUP' : (bo.fulfillmentType || 'COURIER_DELIVERY'),
+                isPickup: isStorePickup,
+                pickupStatus: bo.pickupStatus || (isStorePickup ? 'PENDING_PACKING' : null),
+                hubName: bo.assignedDistributorName || 'Atomy Regional Logistics Hub',
+                hubAddress: bo.hubAddress || (isStorePickup ? fullAddr : null),
+                estimatedDelivery: isStorePickup ? 'Direct Counter Pickup' : 'Within 2 Days (Dispatched from Nearby Hub)',
+                estimatedDeliveryDate: isStorePickup ? 'Available at Hub Counter' : 'Within 2 Days (Nearby Hub)',
+                courier: isStorePickup ? 'Direct Hub Pickup' : (bo.courier || 'Blue Dart Express (Assigned)'),
+                trackingNumber: bo.trackingNumber || bo.tracking?.trackingNumber || (isStorePickup ? `PICKUP-${bo.orderId}` : getStableAwb(bo.orderId)),
                 paymentMethod: bo.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)'
                   : bo.paymentMethod === 'CREDIT_DEBIT_CARD' ? 'Credit / Debit Card'
                     : bo.paymentMethod === 'NET_BANKING' ? 'Net Banking'
@@ -742,7 +753,7 @@ export default function App() {
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
       fetchUserOrders();
-    }, 8000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [currentUser]);
 

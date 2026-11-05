@@ -189,8 +189,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
     // 2. Real-time background sync polling every 5 seconds
     const pollInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       loadDashboardData(true);
-    }, 5000);
+    }, 15000);
 
     return () => {
       if (orderChannel) orderChannel.close();

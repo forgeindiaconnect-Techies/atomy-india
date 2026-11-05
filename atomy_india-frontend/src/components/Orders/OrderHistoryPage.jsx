@@ -120,6 +120,32 @@ export const resolveOrderDestination = (order) => {
   const recipient = order.customerName || order.recipient || order.shippingAddress?.recipient || order.address?.recipient || 'Customer';
   const phone = order.customerPhone || order.phone || order.shippingAddress?.phone || order.address?.phone || '';
   
+  const isPickupOrder = Boolean(
+    order.fulfillmentType === 'STORE_PICKUP' ||
+    order.shippingMethod === 'STORE_PICKUP' ||
+    order.isPickup === true ||
+    (order.pickupStatus && order.pickupStatus !== 'NONE') ||
+    (typeof order.shippingAddress === 'string' && order.shippingAddress.toLowerCase().includes('direct hub pickup')) ||
+    (typeof order.shippingAddress === 'string' && order.shippingAddress.toLowerCase().includes('direct store pickup'))
+  );
+
+  if (isPickupOrder) {
+    const hubName = order.hubName || order.assignedDistributorName || 'Atomy Regional Logistics Hub';
+    const hubAddr = order.hubAddress || (typeof order.shippingAddress === 'string' ? order.shippingAddress : '') || 'Regional Logistics Hub Desk';
+    const cCity = order.city || 'Krishnagiri';
+    const cState = order.state || 'Tamil Nadu';
+    const cPin = order.pincode || '635002';
+    return {
+      recipient,
+      phone,
+      street: `${hubName} — ${hubAddr}`,
+      city: cCity,
+      state: cState,
+      pincode: cPin,
+      fullAddress: `Pickup Counter: ${hubName} — ${hubAddr} (In-Person Collection)`
+    };
+  }
+
   let street = '';
   if (typeof order.shippingAddress === 'string' && order.shippingAddress.trim()) {
     street = order.shippingAddress.trim();
@@ -282,16 +308,32 @@ export default function OrderHistoryPage({
       }
       const reconciledSubtotal = rawItems.reduce((sum, it) => sum + (it.price * it.qty), 0);
 
+      const isStorePickupOrder = Boolean(
+        o.fulfillmentType === 'STORE_PICKUP' ||
+        o.shippingMethod === 'STORE_PICKUP' ||
+        o.isPickup === true ||
+        (o.pickupStatus && o.pickupStatus !== 'NONE') ||
+        (typeof o.shippingAddress === 'string' && o.shippingAddress.toLowerCase().includes('direct hub pickup')) ||
+        (typeof o.shippingAddress === 'string' && o.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+        (o.hubName && !o.courier)
+      );
+
       const dest = resolveOrderDestination(o);
 
       return {
+        ...o,
         orderId: oId,
         orderDate: o.date ? o.date.split('T')[0] : (o.orderDate || new Date().toISOString().split('T')[0]),
         status: status,
         paymentStatus: paymentStatus,
+        fulfillmentType: isStorePickupOrder ? 'STORE_PICKUP' : (o.fulfillmentType || 'COURIER_DELIVERY'),
+        isPickup: isStorePickupOrder,
+        pickupStatus: o.pickupStatus || (isStorePickupOrder ? 'PENDING_PACKING' : null),
+        hubName: o.hubName || o.assignedDistributorName || 'Atomy Regional Logistics Hub',
+        hubAddress: o.hubAddress || (isStorePickupOrder ? dest.fullAddress : null),
         statusStep: status === 'Delivered' ? 5 : status === 'In Transit' ? 3 : status === 'Preparing Shipment' ? 2 : status === 'Cancelled' ? 0 : 1,
-        courier: o.courier || (status === 'Payment Completed' || status === 'Cash on Delivery' ? 'Awaiting Allocation' : 'Blue Dart Express'),
-        trackingNumber: o.trackingNumber || '',
+        courier: isStorePickupOrder ? 'Direct Hub Pickup' : (o.courier || (status === 'Payment Completed' || status === 'Cash on Delivery' ? 'Awaiting Allocation' : 'Blue Dart Express')),
+        trackingNumber: o.trackingNumber || (isStorePickupOrder ? `PICKUP-${oId}` : ''),
         paymentMethod: o.paymentMethod || 'Online Payment',
         replacementRequested: override.replacementRequested || o.replacementRequested || false,
         returnRequested: override.returnRequested || o.returnRequested || false,

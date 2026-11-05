@@ -184,8 +184,9 @@ if (typeof window !== 'undefined') {
   });
 
   setInterval(() => {
+    if (typeof document !== 'undefined' && document.hidden) return;
     fetchRemoteAdConfig();
-  }, 3000);
+  }, 60000);
 }
 
 export function isAdSuppressedForToday() {

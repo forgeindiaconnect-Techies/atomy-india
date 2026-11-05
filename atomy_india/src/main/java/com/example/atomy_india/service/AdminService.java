@@ -154,6 +154,13 @@ public class AdminService {
 
         CustomerOrder.OrderStatus prevStatus = order.getOrderStatus();
         order.setOrderStatus(newStatus);
+        if (newStatus == CustomerOrder.OrderStatus.READY_FOR_PICKUP) {
+            order.setPickupStatus("READY_FOR_PICKUP");
+        } else if (newStatus == CustomerOrder.OrderStatus.DELIVERED && "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType())) {
+            order.setPickupStatus("COLLECTED");
+        } else if (newStatus == CustomerOrder.OrderStatus.PROCESSING && "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType())) {
+            order.setPickupStatus("PENDING_PACKING");
+        }
         if (newStatus == CustomerOrder.OrderStatus.DELIVERED && order.getPaymentStatus() == CustomerOrder.PaymentStatus.PENDING) {
             order.setPaymentStatus(CustomerOrder.PaymentStatus.PAID);
         }
