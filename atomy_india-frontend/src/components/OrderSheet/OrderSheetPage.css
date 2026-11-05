@@ -370,6 +370,129 @@
   border-radius: 4px;
 }
 
+/* Out of Delivery & Regional Hub Stock Alert Styles */
+.sheet-product-row.out-of-delivery-row {
+  background-color: #fef2f2 !important;
+  border-left: 3px solid #ef4444 !important;
+  border-color: #fecaca !important;
+}
+
+.sheet-badge-out-of-stock {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.sheet-item-stock-alert {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.08);
+}
+
+.stock-alert-text-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.stock-alert-icon {
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.stock-alert-msg {
+  font-size: 12px;
+  font-weight: 600;
+  color: #991b1b;
+  line-height: 1.4;
+}
+
+.sheet-item-alert-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sheet-item-alert-remove-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.sheet-address-stock-warning-banner {
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-left: 4px solid #e11d48;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sheet-address-stock-warning-banner .warning-body strong {
+  display: block;
+  font-size: 13px;
+  color: #9f1239;
+  margin-bottom: 2px;
+}
+
+.sheet-address-stock-warning-banner .warning-body p {
+  margin: 0;
+  font-size: 12px;
+  color: #be123c;
+  line-height: 1.4;
+}
+
+.sheet-stock-alert-callout {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-left: 4px solid #dc2626;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.sheet-stock-alert-callout .alert-callout-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: #991b1b;
+  line-height: 1.4;
+}
+
+.sheet-stock-alert-callout .alert-callout-text strong {
+  font-size: 12.5px;
+  color: #7f1d1d;
+}
+
 /* Stepper & Remove Action Cell */
 .sheet-product-stepper-cell {
   display: flex;

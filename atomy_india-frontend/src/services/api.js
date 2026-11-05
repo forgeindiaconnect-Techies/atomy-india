@@ -1,3 +1,5 @@
+import { ALL_CATALOG_PRODUCTS } from '../data/mockData';
+
 const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const defaultBaseUrl = isLocalhost ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
 const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).trim().replace(/\/+$/, '');
@@ -62,18 +64,62 @@ export async function fetchHubDetails(pincode) {
   }
   return {
     found: false,
-    distributorId: 'CENTRAL_SUPER_HUB',
-    hubName: 'Central Super Admin Hub',
-    hubAddress: 'Central Logistics & Fulfillment Facility, National Corridor, India',
+    distributorId: null,
+    hubName: 'No Regional Hub Available',
+    hubAddress: 'No regional hub currently serves this delivery PIN code.',
     contactPerson: 'Logistics Desk',
     phone: '+91 1800 123 4567',
     email: 'support.india@atomy.com',
     pincode: pin,
-    city: 'National Fulfillment Center',
+    city: 'Unavailable',
     state: 'India',
-    operatingHours: 'Mon – Sat: 9:00 AM – 8:00 PM',
-    pickupInstructions: 'Direct dispatch from central logistics facility.'
+    isDeliverable: false
   };
+}
+
+export async function checkPincodeInventory(pincode) {
+  const pin = String(pincode || '').trim();
+  if (!pin) return { isDeliverable: true, itemsStock: {} };
+
+  try {
+    const res = await fetch(`${API_BASE}/products?pincode=${encodeURIComponent(pin)}`);
+    if (res.ok) {
+      const products = await res.json();
+      if (Array.isArray(products) && products.length > 0) {
+        const prodMap = {};
+        let anyInStock = false;
+        products.forEach(p => {
+          const qty = p.stockQuantity !== undefined ? Number(p.stockQuantity) : 0;
+          const inStk = Boolean(p.inStock) && qty >= 2;
+          if (inStk) anyInStock = true;
+          prodMap[p.id] = {
+            stockQuantity: qty,
+            inStock: inStk,
+            hubId: p.regionalHubId,
+            hubName: p.regionalHubName
+          };
+        });
+        return { isDeliverable: anyInStock, itemsStock: prodMap, raw: products };
+      }
+    }
+  } catch (err) {
+    console.debug('checkPincodeInventory quiet note:', err?.message || err);
+  }
+
+  // Fallback if backend is offline / remote error:
+  // Only known assigned distributor PINs (like 635002, 11*, 56*) have inventory.
+  // Other PINs (like 635202 without an assigned hub) have 0 stock.
+  const hasKnownHub = pin === '635002' || pin.startsWith('11') || pin.startsWith('56');
+  const prodMap = {};
+  if (Array.isArray(ALL_CATALOG_PRODUCTS)) {
+    ALL_CATALOG_PRODUCTS.forEach(p => {
+      prodMap[p.id] = {
+        stockQuantity: hasKnownHub ? (p.stockQuantity !== undefined ? Number(p.stockQuantity) : 50) : 0,
+        inStock: hasKnownHub ? (p.inStock !== false) : false
+      };
+    });
+  }
+  return { isDeliverable: hasKnownHub, itemsStock: prodMap };
 }
 
 export async function createCustomerOrder(orderData) {

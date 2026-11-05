@@ -96,11 +96,11 @@ public class CustomerProductController {
                 }
             } else {
                 for (Product p : products) {
-                    p.setRegionalHubId("CENTRAL_SUPER_HUB");
-                    p.setRegionalHubName("Central Super Admin Hub");
+                    p.setRegionalHubId(null);
+                    p.setRegionalHubName(null);
                     p.setRegionalPincode(cleanPin);
-                    p.setStockQuantity(50);
-                    p.setInStock(true);
+                    p.setStockQuantity(0);
+                    p.setInStock(false);
                 }
             }
         }
@@ -140,11 +140,11 @@ public class CustomerProductController {
                 p.setRegionalHubName(dist.getBusinessName());
                 p.setRegionalPincode(cleanPin);
             } else {
-                p.setRegionalHubId("CENTRAL_SUPER_HUB");
-                p.setRegionalHubName("Central Super Admin Hub");
+                p.setRegionalHubId(null);
+                p.setRegionalHubName(null);
                 p.setRegionalPincode(cleanPin);
-                p.setStockQuantity(50);
-                p.setInStock(true);
+                p.setStockQuantity(0);
+                p.setInStock(false);
             }
         }
 

@@ -160,17 +160,19 @@ public class PublicPincodeController {
             res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the hub counter to collect your packed items.");
         } else {
             res.put("found", false);
-            res.put("distributorId", "CENTRAL_SUPER_HUB");
-            res.put("hubName", "Central Super Admin Hub");
-            res.put("contactPerson", "National Logistics Operations");
+            res.put("distributorId", null);
+            res.put("hubName", "No Regional Hub Available");
+            res.put("contactPerson", "Regional Delivery Desk");
             res.put("phone", "+91 1800 123 4567");
             res.put("email", "support.india@atomy.com");
             res.put("pincode", pin.isEmpty() ? "110001" : pin);
-            res.put("city", "National Logistics Center");
+            res.put("city", "Unavailable");
             res.put("state", "India");
-            res.put("hubAddress", "Central Distribution Facility, Logistics Corridor, India");
-            res.put("operatingHours", "Mon – Sat: 9:00 AM – 8:00 PM");
-            res.put("pickupInstructions", "Doorstep express dispatch from Central Super Admin Hub.");
+            res.put("hubAddress", "No regional distributor hub currently serves PIN " + pin);
+            res.put("operatingHours", "N/A");
+            res.put("pickupInstructions", "Delivery is currently unavailable for this PIN code.");
+            res.put("isDeliverable", false);
+            res.put("message", "Delivery is currently not available for PIN " + pin);
         }
         return ResponseEntity.ok(res);
     }

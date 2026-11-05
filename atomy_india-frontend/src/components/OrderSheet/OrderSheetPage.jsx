@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import './OrderSheetPage.css';
 import { fetchCouponsFromBackend, applyCouponBackend } from '../../services/couponService';
-import { createCustomerOrder, syncUnsyncedOrdersToBackend, fetchHubDetails } from '../../services/api';
+import { createCustomerOrder, syncUnsyncedOrdersToBackend, fetchHubDetails, checkPincodeInventory } from '../../services/api';
 import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS, getRelatedProducts, getPopularProducts } from '../../data/mockData';
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
 import { calculateProductPricing } from '../../services/membershipService';
@@ -382,20 +382,60 @@ export default function OrderSheetPage({
     return isFreeDeliveryEligible ? 0 : 150;
   }, [cartItems.length, isFreeDeliveryEligible, fulfillmentType]);
 
+  // Dynamic Stock & Delivery Verification for Selected Delivery PIN Code
+  const [deliveryPinStock, setDeliveryPinStock] = useState({});
+  const [isCheckingDeliveryStock, setIsCheckingDeliveryStock] = useState(false);
+
+  const deliveryPincode = currentSelectedAddress?.pincode ? String(currentSelectedAddress.pincode).trim() : '';
+
+  useEffect(() => {
+    if (!deliveryPincode || !/^\d{6}$/.test(deliveryPincode)) {
+      setDeliveryPinStock({});
+      return;
+    }
+    let isCurrent = true;
+    setIsCheckingDeliveryStock(true);
+    checkPincodeInventory(deliveryPincode)
+      .then(res => {
+        if (isCurrent && res && res.itemsStock) {
+          setDeliveryPinStock(res.itemsStock);
+        }
+        if (isCurrent) setIsCheckingDeliveryStock(false);
+      })
+      .catch(() => {
+        if (isCurrent) setIsCheckingDeliveryStock(false);
+      });
+    return () => { isCurrent = false; };
+  }, [deliveryPincode]);
+
   // Out of Delivery & Stock Limit Detection
-  // Always reserve at least 1 unit in stock: maximum orderable quantity is (stock - 1)
-  // If stock is 50, maximum orderable is 49. If remaining stock is <= 1, it is Out of Delivery / Out of Stock!
+  // Evaluated against the destination delivery PIN hub inventory
+  // If destination hub does not stock the item or has < 2 units, it is Out of Stock!
   const outOfDeliveryItems = useMemo(() => {
     return (cartItems || []).filter(item => {
-      const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
-        || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
-      const stockQty = item.stockQuantity !== undefined 
-        ? Number(item.stockQuantity) 
-        : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+      const pinStockInfo = (deliveryPincode && deliveryPinStock[item.id] !== undefined)
+        ? deliveryPinStock[item.id]
+        : null;
+
+      let stockQty;
+      let inStock;
+
+      if (pinStockInfo !== null) {
+        stockQty = Number(pinStockInfo.stockQuantity || 0);
+        inStock = Boolean(pinStockInfo.inStock);
+      } else {
+        const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
+          || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
+        stockQty = item.stockQuantity !== undefined 
+          ? Number(item.stockQuantity) 
+          : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+        inStock = item.inStock !== false;
+      }
+
       const maxOrderable = Math.max(0, stockQty - 1);
-      return item.inStock === false || stockQty < 2 || maxOrderable < 1 || item.qty > maxOrderable;
+      return !inStock || stockQty < 2 || maxOrderable < 1 || item.qty > maxOrderable;
     });
-  }, [cartItems]);
+  }, [cartItems, deliveryPincode, deliveryPinStock]);
 
   const hasOutOfDeliveryItems = outOfDeliveryItems.length > 0;
 
@@ -916,7 +956,7 @@ export default function OrderSheetPage({
   // Step 1 -> Step 2: Proceed to Payment page
   const handleProceedToPayment = () => {
     if (hasOutOfDeliveryItems) {
-      alert('One or more items in your cart are Out of Stock (stock is less than 2 units in your area) or exceed available warehouse stock. Please adjust or remove them to proceed.');
+      alert(`This item is not in stock for delivery to PIN ${deliveryPincode || 'your selected area'}. Please select another address or remove the item.`);
       return;
     }
     if (!currentSelectedAddress) {
@@ -937,7 +977,7 @@ export default function OrderSheetPage({
     if (isProcessing) return;
 
     if (hasOutOfDeliveryItems) {
-      alert('One or more items in your order are Out of Stock (stock is less than 2 units in your area) or exceed warehouse stock. Please remove them or adjust quantity.');
+      alert(`This item is not in stock for delivery to PIN ${deliveryPincode || 'your selected area'}. Please select another address or remove the item.`);
       return;
     }
 
@@ -1251,14 +1291,29 @@ export default function OrderSheetPage({
                             const gstRate = getProductGstRate(item);
                             const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === item.id))
                               || (BEST_PRODUCTS && BEST_PRODUCTS.find(p => p.id === item.id));
-                            const stockQty = item.stockQuantity !== undefined 
-                              ? Number(item.stockQuantity) 
-                              : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+
+                            const pinStockInfo = (deliveryPincode && deliveryPinStock[item.id] !== undefined)
+                              ? deliveryPinStock[item.id]
+                              : null;
+
+                            let stockQty;
+                            let inStock;
+
+                            if (pinStockInfo !== null) {
+                              stockQty = Number(pinStockInfo.stockQuantity || 0);
+                              inStock = Boolean(pinStockInfo.inStock);
+                            } else {
+                              stockQty = item.stockQuantity !== undefined 
+                                ? Number(item.stockQuantity) 
+                                : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
+                              inStock = item.inStock !== false;
+                            }
+
                             // Always reserve at least 1 unit in stock: maximum orderable is stockQty - 1
                             const maxOrderable = Math.max(0, stockQty - 1);
-                            const isOutOfDelivery = item.inStock === false || stockQty < 2 || maxOrderable < 1;
+                            const isOutOfDelivery = !inStock || stockQty < 2 || maxOrderable < 1 || item.qty > maxOrderable;
                             return (
-                              <div key={item.id} className="sheet-product-row" style={isOutOfDelivery ? { background: '#fff5f5', borderColor: '#fca5a5', opacity: 0.7 } : {}}>
+                              <div key={item.id} className={`sheet-product-row ${isOutOfDelivery ? 'out-of-delivery-row' : ''}`}>
                                 <div className="sheet-product-img">
                                   <img 
                                     src={item.image} 
@@ -1275,8 +1330,8 @@ export default function OrderSheetPage({
                                   <span className="sheet-product-code">{item.id}</span>
                                   <div className="sheet-product-badges-row">
                                     {isOutOfDelivery && (
-                                      <span style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                                        Out of Stock
+                                      <span className="sheet-badge-out-of-stock">
+                                        Not in Stock for PIN {deliveryPincode || ''}
                                       </span>
                                     )}
                                     {isFreeDeliv ? (
@@ -1294,7 +1349,29 @@ export default function OrderSheetPage({
                                       <span className="meta-pv">PV {(item.pv * item.qty).toLocaleString('en-IN')}</span>
                                     )}
                                   </div>
-                                  {item.qty > maxOrderable && (
+
+                                  {/* Prominent Stock Alert for this item at destination PIN */}
+                                  {isOutOfDelivery && (
+                                    <div className="sheet-item-stock-alert">
+                                      <div className="stock-alert-text-row">
+                                        <AlertCircle size={14} className="stock-alert-icon" />
+                                        <span className="stock-alert-msg">
+                                          This item is not in stock for delivery to PIN {deliveryPincode || 'your area'}. Please select another address or remove the item.
+                                        </span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        className="sheet-item-alert-remove-btn"
+                                        onClick={() => onRemoveItem && onRemoveItem(item.id)}
+                                        title="Remove this item"
+                                      >
+                                        <Trash2 size={12} />
+                                        <span>Remove Item</span>
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {!isOutOfDelivery && item.qty > maxOrderable && (
                                     <div style={{ color: '#dc2626', fontSize: '11.5px', marginTop: '4px', fontWeight: 600 }}>
                                       ⚠️ Maximum order limit is {maxOrderable} units (1 unit must remain in stock). Please decrease.
                                     </div>
@@ -1587,6 +1664,21 @@ export default function OrderSheetPage({
                   </div>
 
                   <div className="sheet-card-body">
+                    {/* Notice when selected delivery PIN has out of stock items */}
+                    {hasOutOfDeliveryItems && deliveryPincode && (
+                      <div className="sheet-address-stock-warning-banner">
+                        <AlertTriangle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+                        <div className="warning-content">
+                          <strong>Delivery Stock Notice for PIN {deliveryPincode}</strong>
+                          <p>
+                            {outOfDeliveryItems.length === 1
+                              ? `This item is not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove the item.`
+                              : `Some items in your cart are not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove them to proceed.`}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {addresses.length === 0 ? (
                       <div className="no-addresses-empty-state">
                         <MapPin size={42} className="no-addr-icon" />
@@ -1970,20 +2062,16 @@ export default function OrderSheetPage({
 
                   {/* Out of Delivery / Stock Alert Banner */}
                   {hasOutOfDeliveryItems && (
-                    <div style={{
-                      background: '#fef2f2',
-                      border: '1px solid #fca5a5',
-                      borderRadius: '8px',
-                      padding: '12px 14px',
-                      margin: '12px 0',
-                      color: '#991b1b',
-                      fontSize: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
-                      <span>One or more items are <strong>Out of Stock</strong> (hub stock is less than 2 units in your area) or exceed available warehouse stock. Please adjust or remove them to proceed.</span>
+                    <div className="sheet-stock-alert-callout">
+                      <AlertTriangle size={20} color="#dc2626" style={{ flexShrink: 0 }} />
+                      <div className="alert-callout-text">
+                        <strong>Stock Notice (PIN: {deliveryPincode || 'Delivery Area'})</strong>
+                        <span>
+                          {outOfDeliveryItems.length === 1
+                            ? `This item is not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove the item.`
+                            : `These items are not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove the item.`}
+                        </span>
+                      </div>
                     </div>
                   )}
 

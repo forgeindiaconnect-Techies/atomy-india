@@ -245,6 +245,23 @@ public class CustomerService {
 
             if (distOpt.isPresent()) {
                 com.example.atomy_india.model.DistributorUser d = distOpt.get();
+                String distId = d.getDistributorId();
+
+                // Validate stock availability in the assigned regional hub
+                for (OrderItem oi : orderItems) {
+                    java.util.Optional<com.example.atomy_india.model.DistributorInventory> diOpt = 
+                            distributorInventoryRepository.findByDistributorIdAndProductId(distId, oi.getProductId());
+                    int available = diOpt.map(com.example.atomy_india.model.DistributorInventory::getStockQuantity).orElse(0);
+                    boolean isAvail = diOpt.map(com.example.atomy_india.model.DistributorInventory::isAvailable).orElse(false);
+                    int maxOrderable = Math.max(0, available - 1);
+                    if (!isAvail || available < 2 || oi.getQuantity() > maxOrderable) {
+                        String prodName = (oi.getProductName() != null && !oi.getProductName().trim().isEmpty()) 
+                                ? oi.getProductName().trim() 
+                                : oi.getProductId();
+                        throw new IllegalArgumentException("This item (" + prodName + ") is not in stock for delivery to PIN " + pin + ". Please select another address or remove the item.");
+                    }
+                }
+
                 order.setAssignedDistributorId(d.getDistributorId());
                 order.setAssignedDistributorName(d.getBusinessName() != null ? d.getBusinessName() : "Regional Distributor");
                 if (order.getHubAddress() == null || order.getHubAddress().trim().isEmpty()) {
@@ -256,12 +273,10 @@ public class CustomerService {
                 BigDecimal comm = finalTotal.multiply(BigDecimal.valueOf(rate)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
                 order.setDistributorCommission(comm);
             } else {
-                order.setAssignedDistributorId("CENTRAL_SUPER_HUB");
-                order.setAssignedDistributorName("Central Super Admin Hub");
+                throw new IllegalArgumentException("This item is not in stock for delivery to PIN " + pin + ". Please select another address or remove the item.");
             }
         } else {
-            order.setAssignedDistributorId("CENTRAL_SUPER_HUB");
-            order.setAssignedDistributorName("Central Super Admin Hub");
+            throw new IllegalArgumentException("Please select a valid delivery address with a 6-digit PIN code to place your order.");
         }
         order.setDistributorDispatchStatus("RECEIVED");
 
