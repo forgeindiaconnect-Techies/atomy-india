@@ -334,10 +334,10 @@
   display: inline-flex;
   align-items: center;
   font-size: 12px;
-  font-weight: 700;
-  color: #0284c7;
-  background-color: #f0f9ff;
-  border: 1px solid #bae6fd;
+  font-weight: 600;
+  color: #666666;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 4px;
   padding: 2.5px 9px;
   line-height: 1.35;
@@ -346,15 +346,15 @@
 }
 
 .pdp-hashtag-pill:hover {
-  background-color: #e0f2fe;
-  border-color: #7dd3fc;
-  color: #0369a1;
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
 }
 
 .pdp-hashtag-pill.tag-gst {
-  color: #0369a1;
-  background-color: #e0f2fe;
-  border-color: #bae6fd;
+  color: #666666;
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
 }
 
 /* Title (matches Screenshot 1) */

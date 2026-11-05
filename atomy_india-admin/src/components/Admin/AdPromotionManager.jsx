@@ -1087,7 +1087,7 @@ export default function AdPromotionManager({ showToast }) {
                       type="color"
                       value={heroFormData.bg}
                       onChange={(e) => setHeroFormData({ ...heroFormData, bg: e.target.value })}
-                      style={{ width: '40px', height: '38px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                      style={{ width: '40px', height: '38px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer', flexShrink: 0 }}
                     />
                     <input
                       type="text"
@@ -1095,6 +1095,7 @@ export default function AdPromotionManager({ showToast }) {
                       onChange={(e) => setHeroFormData({ ...heroFormData, bg: e.target.value })}
                       className="atomy-form-input"
                       placeholder="#072044"
+                      style={{ flex: 1 }}
                     />
                   </div>
                 </div>
@@ -1384,13 +1385,14 @@ export default function AdPromotionManager({ showToast }) {
                       type="color"
                       value={floatingBannerFormData.badgeColor || '#00a3e0'}
                       onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, badgeColor: e.target.value })}
-                      style={{ width: '40px', height: '38px', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
+                      style={{ width: '40px', height: '38px', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1', cursor: 'pointer', flexShrink: 0 }}
                     />
                     <input
                       type="text"
                       value={floatingBannerFormData.badgeColor || '#00a3e0'}
                       onChange={(e) => setFloatingBannerFormData({ ...floatingBannerFormData, badgeColor: e.target.value })}
                       className="atomy-form-input"
+                      style={{ flex: 1 }}
                     />
                   </div>
                 </div>

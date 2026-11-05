@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
 import OrderSuccessCelebration from '../Orders/OrderSuccessCelebration';
-import { createOrderApi } from '../../services/api';
+import { createOrderApi, checkPincodeInventory } from '../../services/api';
 import { applyCouponBackend, fetchCouponsFromBackend, DEFAULT_STORE_COUPONS } from '../../services/couponService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -231,6 +231,15 @@ export default function PaymentSummaryPage({
   // Address state (Dynamic from user profile / local storage, without hardcoding)
   const [selectedAddress, setSelectedAddress] = useState(() => getInitialAddress(currentUser));
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = window.localStorage.getItem('atomy_mobile_saved_addresses');
+        if (stored) return JSON.parse(stored) || [];
+      }
+    } catch (e) {}
+    return [];
+  });
   const [addressForm, setAddressForm] = useState(() => {
     const init = getInitialAddress(currentUser);
     return (
@@ -258,6 +267,68 @@ export default function PaymentSummaryPage({
       }
     }
   }, [currentUser]);
+
+  // Single Home / Single Office limits for address modal
+  const hasExistingHome = savedAddresses.some(
+    (a) => a.id !== addressForm.id && (a.type || a.tag || '').toLowerCase().trim() === 'home'
+  );
+  const hasExistingOffice = savedAddresses.some(
+    (a) => a.id !== addressForm.id && (a.type || a.tag || '').toLowerCase().trim() === 'office'
+  );
+
+  // Delivery destination PIN & regional stock check (Option B)
+  const [deliveryPinStock, setDeliveryPinStock] = useState({});
+  const [isCheckingDeliveryStock, setIsCheckingDeliveryStock] = useState(false);
+  const deliveryPincode = selectedAddress?.pincode ? String(selectedAddress.pincode).trim() : '';
+
+  useEffect(() => {
+    let isCurrent = true;
+    if (!deliveryPincode || !/^\d{6}$/.test(deliveryPincode)) {
+      setDeliveryPinStock({});
+      return;
+    }
+
+    setIsCheckingDeliveryStock(true);
+    checkPincodeInventory(deliveryPincode)
+      .then((res) => {
+        if (!isCurrent) return;
+        setDeliveryPinStock(res?.itemsStock || {});
+        setIsCheckingDeliveryStock(false);
+      })
+      .catch(() => {
+        if (isCurrent) setIsCheckingDeliveryStock(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [deliveryPincode]);
+
+  // Items out of delivery stock in destination PIN hub (< 2 units or inStock === false)
+  const outOfDeliveryItems = useMemo(() => {
+    return (checkoutItems || []).filter((item) => {
+      const pinStockInfo =
+        deliveryPincode && deliveryPinStock[item.id] !== undefined
+          ? deliveryPinStock[item.id]
+          : null;
+
+      let stockQty;
+      let inStock;
+
+      if (pinStockInfo !== null) {
+        stockQty = Number(pinStockInfo.stockQuantity || 0);
+        inStock = Boolean(pinStockInfo.inStock);
+      } else {
+        stockQty = item.stockQuantity !== undefined ? Number(item.stockQuantity) : 50;
+        inStock = item.inStock !== false;
+      }
+
+      const maxOrderable = Math.max(0, stockQty - 1);
+      return !inStock || stockQty < 2 || maxOrderable < 1 || (item.qty || item.quantity || 1) > maxOrderable;
+    });
+  }, [checkoutItems, deliveryPincode, deliveryPinStock]);
+
+  const hasOutOfDeliveryItems = outOfDeliveryItems.length > 0;
 
   const hasValidAddress = useMemo(() => {
     return Boolean(
@@ -591,6 +662,20 @@ export default function PaymentSummaryPage({
       return;
     }
 
+    // Single Home / Single Office enforcement
+    if ((addressForm.tag || 'Home') !== 'Other') {
+      const duplicate = savedAddresses.find(
+        (a) => a.id !== addressForm.id && (a.type || a.tag || '').toLowerCase().trim() === (addressForm.tag || 'Home').toLowerCase().trim()
+      );
+      if (duplicate) {
+        Alert.alert(
+          `${addressForm.tag || 'Home'} Address Limit`,
+          `You already have a ${addressForm.tag || 'Home'} address saved. Only 1 ${addressForm.tag || 'Home'} address is permitted. You can edit your existing ${addressForm.tag || 'Home'} address or choose 'Other'.`
+        );
+        return;
+      }
+    }
+
     const normalizedAddress = {
       id: addressForm.id || `addr-${Date.now()}`,
       tag: addressForm.tag || 'Home',
@@ -640,6 +725,7 @@ export default function PaymentSummaryPage({
           list.unshift(profileFormat);
         }
         window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(list));
+        setSavedAddresses(list);
       }
     } catch (e) {}
   };
@@ -704,6 +790,14 @@ export default function PaymentSummaryPage({
   };
 
   const handleProceedToPayment = () => {
+    if (hasOutOfDeliveryItems) {
+      Alert.alert(
+        'Delivery Stock Notice',
+        `This item is not in stock for delivery to PIN ${deliveryPincode || 'your selected area'}. Please select another address or remove the item.`
+      );
+      return;
+    }
+
     if (!checkUserLoggedIn()) {
       Alert.alert(
         'Sign In Required to Place Order',
@@ -750,6 +844,15 @@ export default function PaymentSummaryPage({
 
   // Complete Order
   const handleCompleteOrder = () => {
+    if (hasOutOfDeliveryItems) {
+      Alert.alert(
+        'Delivery Stock Notice',
+        `This item is not in stock for delivery to PIN ${deliveryPincode || 'your selected area'}. Please select another address or remove the item.`
+      );
+      setStep('sheet');
+      return;
+    }
+
     const user = currentUser;
     if (!checkUserLoggedIn()) {
       Alert.alert(
@@ -1686,6 +1789,21 @@ export default function PaymentSummaryPage({
                 <Text style={styles.deliveryNoteText}>Note: "{selectedAddress.deliveryMessage}"</Text>
               ) : null}
             </View>
+
+            {/* Delivery Stock Warning if selected PIN has out of stock items */}
+            {hasOutOfDeliveryItems && deliveryPincode ? (
+              <View style={styles.destStockNotice}>
+                <Ionicons name="warning" size={18} color="#DC2626" style={{ marginRight: 8, marginTop: 1 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.destStockNoticeTitle}>Delivery Stock Notice for PIN {deliveryPincode}</Text>
+                  <Text style={styles.destStockNoticeMsg}>
+                    {outOfDeliveryItems.length === 1
+                      ? `This item is not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove the item.`
+                      : `Some items in your cart are not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove them to proceed.`}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
           </View>
         ) : (
           <View style={styles.addAddressPromptCard}>
@@ -1737,6 +1855,7 @@ export default function PaymentSummaryPage({
               {checkoutItems.map((item, index) => {
                 const { price: itemPrice, rawPrice, mrp, pv: itemPv } = getItemPricing(item, isMember);
                 const isFree = item.freeDelivery === true;
+                const isItemOutOfDelivery = outOfDeliveryItems.some((o) => o.id === item.id);
 
                 return (
                   <View key={`item-${item.id}-${index}`} style={styles.itemCard}>
@@ -1834,6 +1953,25 @@ export default function PaymentSummaryPage({
                         </View>
                       </View>
                     </View>
+
+                    {/* Destination PIN Stock Alert (Option B) */}
+                    {isItemOutOfDelivery && (
+                      <View style={styles.itemStockAlertRow}>
+                        <Ionicons name="alert-circle" size={16} color="#DC2626" style={{ marginRight: 6, marginTop: 1 }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.itemStockAlertMsg}>
+                            This item is not in stock for delivery to PIN {deliveryPincode || 'your area'}. Please select another address or remove the item.
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.itemStockAlertRemoveBtn}
+                            onPress={() => onRemoveItem && onRemoveItem(item.id)}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={styles.itemStockAlertRemoveBtnText}>Remove Item</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 );
               })}
@@ -2166,14 +2304,28 @@ export default function PaymentSummaryPage({
             <Text style={styles.consentText}>I confirm the items and doorstep delivery address details.</Text>
           </TouchableOpacity>
 
+          {/* Out of Delivery / Stock Alert Banner (Option B) */}
+          {hasOutOfDeliveryItems && deliveryPincode ? (
+            <View style={styles.stockAlertBanner}>
+              <Ionicons name="warning" size={20} color="#DC2626" style={{ marginRight: 8, marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.stockAlertTitle}>Delivery Stock Notice (PIN: {deliveryPincode})</Text>
+                <Text style={styles.stockAlertMsg}>
+                  {outOfDeliveryItems.length === 1
+                    ? `This item is not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove the item.`
+                    : `These items are not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove them to proceed.`}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
           {/* Proceed to Payment CTA */}
           <TouchableOpacity
             style={[
               styles.proceedToPaymentBtn,
-              (!agreedTerms || checkoutItems.length === 0) && styles.proceedBtnDisabled,
+              (!agreedTerms || checkoutItems.length === 0 || hasOutOfDeliveryItems) && styles.proceedBtnDisabled,
             ]}
             onPress={handleProceedToPayment}
-            disabled={!agreedTerms || checkoutItems.length === 0}
             activeOpacity={0.88}
           >
             <Text style={styles.proceedToPaymentBtnText}>Proceed to Payment</Text>
@@ -2237,6 +2389,58 @@ export default function PaymentSummaryPage({
                   <Ionicons name="information-circle-outline" size={14} color="#0284C7" />
                   <Text style={styles.locationFeedbackText}>{locationFeedback}</Text>
                 </View>
+              ) : null}
+
+              {/* Address Type (Home / Office / Other) */}
+              <Text style={styles.inputLabel}>Address Type</Text>
+              <View style={styles.genderRow}>
+                {['Home', 'Office', 'Other'].map((t) => {
+                  const isTaken = (t === 'Home' && hasExistingHome) || (t === 'Office' && hasExistingOffice);
+                  return (
+                    <TouchableOpacity
+                      key={t}
+                      disabled={isTaken}
+                      style={[
+                        styles.genderPill,
+                        (addressForm.tag || 'Home') === t && styles.genderPillActive,
+                        isTaken && styles.typePillDisabled,
+                      ]}
+                      onPress={() => {
+                        if (isTaken) {
+                          Alert.alert(
+                            `${t} Address Saved`,
+                            `You already have a ${t} address saved. Only 1 ${t} address is allowed. You can edit your existing ${t} address or choose 'Other'.`
+                          );
+                          return;
+                        }
+                        setAddressForm((prev) => ({ ...prev, tag: t }));
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.genderPillText,
+                          (addressForm.tag || 'Home') === t && styles.genderPillTextActive,
+                          isTaken && styles.typePillTextDisabled,
+                        ]}
+                      >
+                        {t} {isTaken ? '(Saved)' : ''}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {hasExistingHome && hasExistingOffice ? (
+                <Text style={styles.addressTypeLimitNote}>
+                  ℹ Home & Office addresses are already saved (1 each). New addresses can be added under Other.
+                </Text>
+              ) : hasExistingHome ? (
+                <Text style={styles.addressTypeLimitNote}>
+                  ℹ 1 Home address already exists. Choose Office or Other, or edit your existing Home address.
+                </Text>
+              ) : hasExistingOffice ? (
+                <Text style={styles.addressTypeLimitNote}>
+                  ℹ 1 Office address already exists. Choose Home or Other, or edit your existing Office address.
+                </Text>
               ) : null}
 
               <Text style={styles.inputLabel}>Recipient Full Name *</Text>
@@ -4140,5 +4344,130 @@ const styles = StyleSheet.create({
   couponEligibilityText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+
+  // Option B Stock Alert & Delivery Notice Styles
+  destStockNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+  },
+  destStockNoticeTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 2,
+  },
+  destStockNoticeMsg: {
+    fontSize: 11.5,
+    color: '#B91C1C',
+    lineHeight: 16,
+  },
+  itemStockAlertRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    padding: 9,
+    marginTop: 8,
+  },
+  itemStockAlertMsg: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#B91C1C',
+    lineHeight: 15,
+  },
+  itemStockAlertRemoveBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 4,
+  },
+  itemStockAlertRemoveBtnText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  stockAlertBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#F87171',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+  stockAlertTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 2,
+  },
+  stockAlertMsg: {
+    fontSize: 11.5,
+    color: '#B91C1C',
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+
+  // Address Type Selector Styles
+  genderRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  genderPill: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  genderPillActive: {
+    borderColor: '#00A3E0',
+    backgroundColor: '#E0F2FE',
+  },
+  genderPillText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  genderPillTextActive: {
+    color: '#00A3E0',
+    fontWeight: '800',
+  },
+  typePillDisabled: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    opacity: 0.6,
+  },
+  typePillTextDisabled: {
+    color: '#94A3B8',
+  },
+  addressTypeLimitNote: {
+    fontSize: 11,
+    color: '#0284C7',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginBottom: 10,
+    lineHeight: 15,
   },
 });

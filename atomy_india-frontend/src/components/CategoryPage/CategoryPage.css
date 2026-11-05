@@ -724,42 +724,44 @@
   gap: 2px;
   font-size: 13px;
   line-height: 18px;
-  color: #777777;
+  color: #111827;
   font-family: "Noto Sans", "Noto Sans KR", sans-serif;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .cate-likes-text {
-  font-weight: 400;
+  font-weight: 600;
+  color: #111827;
 }
 
-/* Product Hashtags Row (#GST REDUCED, #FREE DELIVERY, etc.) */
+/* Product Hashtags Row (#GST REDUCED, Free Delivery, etc.) placed under likes */
 .cate-product-tags-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 6px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
   margin-bottom: 2px;
 }
 
 .cate-product-tag {
   display: inline-block;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #0284c7;
-  background-color: #f0f9ff;
-  border: 1px solid #dbeafe;
-  padding: 2px 7px;
-  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666666;
+  background-color: transparent;
+  border: none;
+  padding: 0;
   letter-spacing: -0.2px;
   line-height: 1.35;
   white-space: nowrap;
 }
 
 .cate-product-tag.tag-gst {
-  color: #0369a1;
-  background-color: #e0f2fe;
-  border-color: #bae6fd;
+  color: #666666;
+  background-color: transparent;
+  border: none;
+  font-weight: 500;
 }
 
 .cate-product-tag.tag-free-delivery {

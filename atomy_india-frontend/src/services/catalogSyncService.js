@@ -160,26 +160,27 @@ export function mergeProductIntoCatalog(product) {
       ? Number(product.distributorPrice)
       : (official?.dpPrice ?? null));
 
+  const blacklist = new Set([
+    'HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING',
+    'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY',
+    'HEALTH', 'PERSONAL CARE', 'OTHERS', 'FREE DELIVERY', 'FREEDELIVERY'
+  ]);
   const tagSet = new Set();
-  if (Array.isArray(product.tags)) {
-    product.tags.forEach(t => {
-      if (t) {
-        const clean = String(t).trim();
+  const rawTags = Array.isArray(product.tags)
+    ? product.tags
+    : typeof product.tags === 'string' && product.tags.trim()
+      ? product.tags.split(',')
+      : [];
+
+  rawTags.forEach(t => {
+    if (t && typeof t === 'string' && t.trim()) {
+      const clean = t.trim();
+      const upper = clean.toUpperCase().replace(/^#/, '').trim();
+      if (!upper.includes('FREE DELIVERY') && !blacklist.has(upper)) {
         tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
       }
-    });
-  } else if (typeof product.tags === 'string' && product.tags.trim()) {
-    product.tags.split(',').forEach(t => {
-      const clean = t.trim();
-      if (clean) tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
-    });
-  }
-  if (product.gstReduced) {
-    tagSet.add('#GST REDUCED');
-  }
-  if (product.freeDelivery) {
-    tagSet.add('#FREE DELIVERY');
-  }
+    }
+  });
   const normalizedTags = Array.from(tagSet);
 
   const formattedPrice = `₹ ${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

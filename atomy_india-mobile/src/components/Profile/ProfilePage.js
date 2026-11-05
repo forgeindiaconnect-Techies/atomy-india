@@ -408,6 +408,15 @@ export default function ProfilePage({
 
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
+
+  // Address Type Limit Rules (Authentic Atomy Business Rule: Max 1 Home, Max 1 Office, Unlimited Other)
+  const hasExistingHome = addresses.some(
+    (a) => a.id !== editingAddressId && (a.type || a.tag || '').toLowerCase().trim() === 'home'
+  );
+  const hasExistingOffice = addresses.some(
+    (a) => a.id !== editingAddressId && (a.type || a.tag || '').toLowerCase().trim() === 'office'
+  );
+
   const [newAddr, setNewAddr] = useState({
     type: 'Home',
     name: userData.name || '',
@@ -620,6 +629,20 @@ export default function ProfilePage({
       return;
     }
 
+    // Single Home / Single Office enforcement
+    if (newAddr.type !== 'Other') {
+      const duplicate = addresses.find(
+        (a) => a.id !== editingAddressId && (a.type || a.tag || '').toLowerCase().trim() === newAddr.type.toLowerCase().trim()
+      );
+      if (duplicate) {
+        Alert.alert(
+          `${newAddr.type} Address Limit`,
+          `You already have a ${newAddr.type} address saved. Only 1 ${newAddr.type} address is permitted. You can edit or delete your existing ${newAddr.type} address, or choose 'Other'.`
+        );
+        return;
+      }
+    }
+
     if (editingAddressId) {
       setAddresses(
         addresses.map((a) =>
@@ -641,8 +664,11 @@ export default function ProfilePage({
     setIsAddingAddress(false);
     setIsLocationDetected(false);
     setAvailableAreas([]);
+    const defaultType = !addresses.some((a) => (a.type || a.tag || '').toLowerCase().trim() === 'home')
+      ? 'Home'
+      : (!addresses.some((a) => (a.type || a.tag || '').toLowerCase().trim() === 'office') ? 'Office' : 'Other');
     setNewAddr({
-      type: 'Home',
+      type: defaultType,
       name: userData.name || '',
       phone: userData.phone || '',
       street: '',
@@ -1376,8 +1402,23 @@ export default function ProfilePage({
           <TouchableOpacity
             style={styles.headerAddBtn}
             onPress={() => {
-              if (isAddingAddress) setEditingAddressId(null);
-              setIsAddingAddress(!isAddingAddress);
+              if (isAddingAddress) {
+                setEditingAddressId(null);
+                setIsAddingAddress(false);
+              } else {
+                setEditingAddressId(null);
+                const defaultType = !hasExistingHome ? 'Home' : (!hasExistingOffice ? 'Office' : 'Other');
+                setNewAddr({
+                  type: defaultType,
+                  name: userData.name || '',
+                  phone: userData.phone || '',
+                  street: '',
+                  city: '',
+                  state: '',
+                  pincode: '',
+                });
+                setIsAddingAddress(true);
+              }
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -1442,26 +1483,54 @@ export default function ProfilePage({
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Address Type</Text>
                 <View style={styles.genderRow}>
-                  {['Home', 'Office', 'Other'].map((t) => (
-                    <TouchableOpacity
-                      key={t}
-                      style={[
-                        styles.genderPill,
-                        newAddr.type === t && styles.genderPillActive,
-                      ]}
-                      onPress={() => setNewAddr({ ...newAddr, type: t })}
-                    >
-                      <Text
+                  {['Home', 'Office', 'Other'].map((t) => {
+                    const isTaken = (t === 'Home' && hasExistingHome) || (t === 'Office' && hasExistingOffice);
+                    return (
+                      <TouchableOpacity
+                        key={t}
+                        disabled={isTaken}
                         style={[
-                          styles.genderPillText,
-                          newAddr.type === t && styles.genderPillTextActive,
+                          styles.genderPill,
+                          newAddr.type === t && styles.genderPillActive,
+                          isTaken && styles.typePillDisabled,
                         ]}
+                        onPress={() => {
+                          if (isTaken) {
+                            Alert.alert(
+                              `${t} Address Saved`,
+                              `You already have a ${t} address saved. Only 1 ${t} address is allowed. You can edit your existing ${t} address or choose 'Other'.`
+                            );
+                            return;
+                          }
+                          setNewAddr({ ...newAddr, type: t });
+                        }}
                       >
-                        {t}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.genderPillText,
+                            newAddr.type === t && styles.genderPillTextActive,
+                            isTaken && styles.typePillTextDisabled,
+                          ]}
+                        >
+                          {t} {isTaken ? '(Saved)' : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
+                {hasExistingHome && hasExistingOffice ? (
+                  <Text style={styles.addressTypeLimitNote}>
+                    ℹ Home & Office addresses are already saved (1 each). New addresses can be added under Other.
+                  </Text>
+                ) : hasExistingHome ? (
+                  <Text style={styles.addressTypeLimitNote}>
+                    ℹ 1 Home address already exists. Choose Office or Other, or edit your existing Home address.
+                  </Text>
+                ) : hasExistingOffice ? (
+                  <Text style={styles.addressTypeLimitNote}>
+                    ℹ 1 Office address already exists. Choose Home or Other, or edit your existing Office address.
+                  </Text>
+                ) : null}
               </View>
 
               {/* PIN Code, City/District & State with Live Detection */}
@@ -3577,6 +3646,26 @@ const styles = StyleSheet.create({
   genderPillActive: {
     borderColor: '#00A3E0',
     backgroundColor: '#E0F2FE',
+  },
+  typePillDisabled: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    opacity: 0.6,
+  },
+  typePillTextDisabled: {
+    color: '#94A3B8',
+  },
+  addressTypeLimitNote: {
+    fontSize: 11,
+    color: '#0284C7',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    marginTop: 6,
+    lineHeight: 15,
   },
   genderPillText: {
     fontSize: 11.5,

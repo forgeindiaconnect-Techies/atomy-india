@@ -15,7 +15,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Send,
-  Eye
+  Eye,
+  TrendingUp
 } from 'lucide-react';
 import '../Admin/AdminDashboard.css';
 
@@ -43,6 +44,18 @@ export default function DistributorOverviewTab({
   const commRate = Number(distributor?.commissionRate || 8.0);
   const totalRev = Number(stats?.totalRevenue || territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() !== 'CANCELLED').reduce((sum, o) => sum + Number(o.totalAmount || 0), 0));
   const totalComm = Number(stats?.totalCommission || (totalRev * commRate) / 100);
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayTerritoryOrders = territoryOrders.filter(o => {
+    const d = new Date(o.createdAt || o.date || o.orderDate || Date.now());
+    return d >= todayStart && String(o.orderStatus || '').toUpperCase() !== 'CANCELLED';
+  });
+
+  const todaySale = todayTerritoryOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+  const todayOrdersCount = todayTerritoryOrders.length;
+  const overallSale = totalRev;
 
   const placedCount = territoryOrders.filter(o => {
     const st = String(o.orderStatus || 'PLACED').toUpperCase();
@@ -79,7 +92,7 @@ export default function DistributorOverviewTab({
       {/* 1. Header Heading Row with Subtitle & Quick Controls */}
       <div className="content-heading-row" style={{ paddingTop: '4px', marginBottom: '20px' }}>
         <div>
-          <h2 className="content-title">Territory Overview &amp; Regional Hub KPIs</h2>
+          <h2 className="content-title">Territory Overview</h2>
           <p className="content-subtitle">
             Real-time fulfillment metrics, Blue Dart dispatch SLAs, and territory performance for PIN: <strong>{distributor?.primaryPincode}</strong> ({distributor?.city || 'Regional Hub'}, {distributor?.state || 'India'})
           </p>
@@ -96,7 +109,91 @@ export default function DistributorOverviewTab({
         </div>
       </div>
 
-      {/* 2. Quick Shortcuts Strip */}
+      {/* 2. Top Sales KPI Cards (Image 1: Curved Wave with Circular Icon Badge) */}
+      <div className="kpi-curve-grid" style={{ marginBottom: '24px' }}>
+        {/* Card 1: Today's Total Sale */}
+        <div 
+          className="kpi-curve-card interactive-kpi-card" 
+          style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
+          onClick={() => onNavigateTab('finance')}
+          title="View Today's Financial Settlement & Details"
+        >
+          <div className="kpi-curve-corner-accent"></div>
+          <div className="kpi-curve-content">
+            <div className="kpi-curve-tag">TODAY'S TOTAL SALE</div>
+            <div className="kpi-curve-val">
+              ₹ {todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="kpi-curve-sub">
+              From <strong>{todayOrdersCount} orders</strong> placed today • <span style={{ color: '#0284c7', fontWeight: 600 }}>View Finance →</span>
+            </div>
+          </div>
+          <div className="kpi-curve-right-wing">
+            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0f2fe" />
+            </svg>
+            <div className="kpi-curve-icon-badge">
+              <TrendingUp size={22} color="#0284c7" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Today's Orders */}
+        <div 
+          className="kpi-curve-card interactive-kpi-card" 
+          style={{ '--accent-color': '#15803d', cursor: 'pointer' }}
+          onClick={() => onNavigateTab('orders')}
+          title="Inspect Today's Orders & Customer Fulfillment"
+        >
+          <div className="kpi-curve-corner-accent"></div>
+          <div className="kpi-curve-content">
+            <div className="kpi-curve-tag">TODAY'S ORDERS</div>
+            <div className="kpi-curve-val">
+              {todayOrdersCount} <span style={{ fontSize: '16px', fontWeight: 600, color: '#64748b' }}>orders</span>
+            </div>
+            <div className="kpi-curve-sub">
+              Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
+            </div>
+          </div>
+          <div className="kpi-curve-right-wing">
+            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#dcfce7" />
+            </svg>
+            <div className="kpi-curve-icon-badge">
+              <ShoppingBag size={22} color="#15803d" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Overall Total Sale */}
+        <div 
+          className="kpi-curve-card interactive-kpi-card" 
+          style={{ '--accent-color': '#334155', cursor: 'pointer' }}
+          onClick={() => onNavigateTab('finance')}
+          title="Open Financial Ledger, Refunds & Settlements"
+        >
+          <div className="kpi-curve-corner-accent"></div>
+          <div className="kpi-curve-content">
+            <div className="kpi-curve-tag">OVERALL TOTAL SALE</div>
+            <div className="kpi-curve-val">
+              ₹ {overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="kpi-curve-sub">
+              Total lifetime gross revenue across all orders • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
+            </div>
+          </div>
+          <div className="kpi-curve-right-wing">
+            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#f1f5f9" />
+            </svg>
+            <div className="kpi-curve-icon-badge">
+              <IndianRupee size={22} color="#334155" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Quick Shortcuts Strip */}
       <div className="overview-quick-actions-bar" style={{ marginBottom: '22px' }}>
         <span className="quick-actions-label">
           <Sparkles size={14} color="#00a3e0" />

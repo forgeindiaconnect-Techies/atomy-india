@@ -130,7 +130,7 @@ export default function GsgsSection({
                         <Heart
                           size={14}
                           fill={isLiked ? "#e53935" : "none"}
-                          color={isLiked ? "#e53935" : "#888888"}
+                          color={isLiked ? "#e53935" : "#111827"}
                         />
                         <span>{likesCount} Likes</span>
                       </div>
@@ -143,9 +143,11 @@ export default function GsgsSection({
                           : typeof product.tags === 'string'
                             ? product.tags.split(',').map(t => t.trim()).filter(Boolean)
                             : []
-                        ).map((tag, tIdx) => (
-                          <span key={tIdx}>{tag}</span>
-                        ))}
+                        )
+                          .filter(tag => !tag.toUpperCase().includes('FREE DELIVERY'))
+                          .map((tag, tIdx) => (
+                            <span key={tIdx}>{tag}</span>
+                          ))}
                       </div>
                     )}
                   </div>

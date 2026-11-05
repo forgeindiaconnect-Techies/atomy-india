@@ -9,6 +9,7 @@ const KEYS = {
   FAVORITES: '@atomy_mobile_favorites',
   PLACED_ORDERS: '@atomy_mobile_placed_orders',
   RECENTLY_VIEWED: '@atomy_mobile_recently_viewed',
+  DELIVERY_PINCODE: '@atomy_customer_delivery_pincode',
 };
 
 // In-memory synchronous cache for immediate access
@@ -21,6 +22,7 @@ const memoryCache = {
   favorites: [],
   placedOrders: [],
   recentlyViewed: [],
+  deliveryPincode: '110001',
 };
 
 /**
@@ -46,7 +48,12 @@ export async function initStorage() {
       AsyncStorage.getItem(KEYS.FAVORITES),
       AsyncStorage.getItem(KEYS.PLACED_ORDERS),
       AsyncStorage.getItem(KEYS.RECENTLY_VIEWED),
+      AsyncStorage.getItem(KEYS.DELIVERY_PINCODE),
     ]);
+
+    if (savedPin && /^\d{6}$/.test(savedPin.trim())) {
+      memoryCache.deliveryPincode = savedPin.trim();
+    }
 
     memoryCache.isLoggedOut = savedLoggedOut === 'true';
 
@@ -259,6 +266,25 @@ export async function savePlacedOrders(orders) {
   } catch (err) {}
 }
 
+/**
+ * Get cached or persisted delivery pincode
+ */
+export function getDeliveryPincode() {
+  return memoryCache.deliveryPincode || '110001';
+}
+
+/**
+ * Persist customer delivery pincode
+ */
+export async function saveDeliveryPincode(pincode) {
+  const clean = String(pincode || '').trim();
+  if (!clean || !/^\d{6}$/.test(clean)) return;
+  memoryCache.deliveryPincode = clean;
+  try {
+    await AsyncStorage.setItem(KEYS.DELIVERY_PINCODE, clean);
+  } catch (err) {}
+}
+
 export default {
   initStorage,
   saveUserSession,
@@ -269,4 +295,6 @@ export default {
   saveCart,
   saveFavorites,
   savePlacedOrders,
+  getDeliveryPincode,
+  saveDeliveryPincode,
 };

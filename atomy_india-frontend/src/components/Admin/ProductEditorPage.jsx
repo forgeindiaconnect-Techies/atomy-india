@@ -92,7 +92,7 @@ export default function ProductEditorPage({
     precautions: initialData?.precautions || 'Store in cool and dry place. Keep out of reach of children.',
     volumeDesc: initialData?.volumeDesc || officialData.volumeDesc || 'Standard Package',
     weight: initialData?.weight || officialData.weight || 1.0,
-    tags: initialData?.tags || 'Best Seller',
+    tags: initialData?.tags !== undefined && initialData?.tags !== null ? initialData.tags : '',
     isVeg: initialData?.isVeg ?? true,
     isNonVeg: initialData?.isNonVeg ?? false,
     gstReduced: initialData?.gstReduced ?? true,

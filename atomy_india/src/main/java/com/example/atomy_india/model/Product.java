@@ -138,6 +138,23 @@ public class Product {
     public String getTags() { return tags; }
     public void setTags(String tags) { this.tags = tags; }
 
+    @com.fasterxml.jackson.annotation.JsonSetter("tags")
+    public void setTagsFromJson(Object tagsObj) {
+        if (tagsObj == null) {
+            this.tags = null;
+        } else if (tagsObj instanceof java.util.List) {
+            java.util.List<?> list = (java.util.List<?>) tagsObj;
+            this.tags = list.stream()
+                .filter(java.util.Objects::nonNull)
+                .map(Object::toString)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(java.util.stream.Collectors.joining(", "));
+        } else {
+            this.tags = tagsObj.toString().trim();
+        }
+    }
+
     public Boolean isFreeDelivery() { return freeDelivery != null ? freeDelivery : false; }
     public Boolean getFreeDelivery() { return freeDelivery != null ? freeDelivery : false; }
     public void setFreeDelivery(Boolean freeDelivery) { this.freeDelivery = freeDelivery != null ? freeDelivery : false; }

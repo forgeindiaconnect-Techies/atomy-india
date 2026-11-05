@@ -112,7 +112,7 @@ const INITIAL_SINGLE_PRODUCT = [
     precautions: "Consume 1 packet twice daily with water. Pregnant women and children under 6 should consult a physician.",
     volumeDesc: "20ml x 60 packets (1,200ml)",
     weight: 1.5,
-    tags: "Best Seller",
+    tags: "",
     isVeg: true,
     isNonVeg: false,
     gstReduced: true,
@@ -1475,7 +1475,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       precautions: 'Store in cool and dry place. Keep out of reach of children.',
       volumeDesc: '60 Capsules / Box',
       weight: 0.5,
-      tags: 'Best Seller',
+      tags: '',
       isVeg: true,
       isNonVeg: false,
       gstReduced: true,
@@ -1529,7 +1529,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       freeDelivery: Boolean(productData.freeDelivery),
       active: productData.active !== undefined ? Boolean(productData.active) : true,
       likesCount: Number(productData.likesCount) || 0,
-      tags: productData.tags || 'Best Seller',
+      tags: Array.isArray(productData.tags)
+        ? productData.tags.filter(Boolean).join(', ')
+        : (productData.tags !== undefined && productData.tags !== null ? String(productData.tags).trim() : ''),
       galleryImages: Array.isArray(productData.galleryImages) && productData.galleryImages.length > 0
         ? productData.galleryImages.filter(Boolean)
         : (productData.image ? [productData.image] : [])
@@ -2203,7 +2205,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               onClick={() => { setActiveTab('overview'); setIsEditingProductView(false); }}
             >
               <LayoutDashboard size={20} />
-              <span>Overview & KPIs</span>
+              <span>Overview</span>
             </button>
 
             {/* 2. Inventory */}
@@ -2747,20 +2749,35 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
                   {/* Search & Filter Toolbar */}
                   <div className="inventory-filter-toolbar">
-                    <div className="search-input-wrapper">
-                      <Search size={16} />
-                      <input
-                        type="text"
-                        placeholder="Search by Product Name, Category, or Product Number (e.g., HemoHIM, D00101)..."
-                        value={productSearch}
-                        onChange={(e) => setProductSearch(e.target.value)}
-                        className="atomy-search-input"
-                      />
-                      {productSearch && (
-                        <button className="clear-search-btn" onClick={() => setProductSearch('')}>
-                          <X size={14} />
-                        </button>
-                      )}
+                    <div className="inventory-search-row">
+                      <div className="search-input-wrapper">
+                        <Search size={16} />
+                        <input
+                          type="text"
+                          placeholder="Search by Product Name, Category, or Product Number (e.g., HemoHIM, D00101)..."
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          className="atomy-search-input"
+                        />
+                        {productSearch && (
+                          <button className="clear-search-btn" onClick={() => setProductSearch('')}>
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Stock Status Filter */}
+                      <div className="stock-filter-wrapper">
+                        <select
+                          value={productStockFilter}
+                          onChange={(e) => setProductStockFilter(e.target.value)}
+                          className="atomy-dropdown"
+                        >
+                          <option value="ALL">All Stock Statuses</option>
+                          <option value="LOW">Low Stock Only (&le; 10)</option>
+                          <option value="OUT">Out of Stock (0)</option>
+                        </select>
+                      </div>
                     </div>
 
                     {/* Category Filter Pills */}
@@ -2784,19 +2801,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                         </button>
                       ))}
                     </div>
-
-                    {/* Stock Status Filter */}
-                    <div className="stock-filter-wrapper">
-                      <select
-                        value={productStockFilter}
-                        onChange={(e) => setProductStockFilter(e.target.value)}
-                        className="atomy-dropdown"
-                      >
-                        <option value="ALL">All Stock Statuses</option>
-                        <option value="LOW">Low Stock Only (&le; 10)</option>
-                        <option value="OUT">Out of Stock (0)</option>
-                      </select>
-                    </div>
                   </div>
 
                   {/* Products Table */}
@@ -2805,7 +2809,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       <thead>
                         <tr>
                           <th style={{ width: '80px' }}>Thumbnail</th>
-                          <th style={{ width: '110px' }}>Product No.</th>
+                          <th style={{ minWidth: '120px', width: '120px', whiteSpace: 'nowrap' }}>Product ID</th>
                           <th>Product Name</th>
                           <th>Category</th>
                           <th>Customer Price</th>
@@ -2837,8 +2841,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   }}
                                 />
                               </td>
-                              <td className="mono-col">
-                                <strong>{p.id}</strong>
+                              <td className="mono-col product-id-cell" style={{ minWidth: '120px', whiteSpace: 'nowrap' }}>
+                                <span className="product-id-pill">{p.id}</span>
                               </td>
                               <td>
                                 <div className="cell-primary-text">{p.name}</div>
@@ -2856,7 +2860,16 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   )}
                                   {(Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? p.tags.split(',') : []))
                                     .map(t => String(t).trim())
-                                    .filter(t => t && !t.toUpperCase().includes('GST') && !t.toUpperCase().includes('FREE DELIVERY'))
+                                    .filter(t => {
+                                      const u = t.toUpperCase();
+                                      if (u.includes('GST') || u.includes('FREE DELIVERY')) return false;
+                                      const stripped = u.replace(/^#/, '');
+                                      // Remove legacy customized mock tags
+                                      if (['HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING', 'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY', 'HEALTH', 'PERSONAL CARE', 'OTHERS'].includes(stripped)) {
+                                        return false;
+                                      }
+                                      return true;
+                                    })
                                     .map((tag, idx) => (
                                       <span key={idx} style={{ fontSize: '10.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 7px', borderRadius: '4px' }}>
                                         {tag.startsWith('#') ? tag : '#' + tag}

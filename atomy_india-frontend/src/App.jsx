@@ -59,7 +59,7 @@ const parseRouteFromLocation = () => {
   if (typeof window === 'undefined') return { view: 'home' };
   const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
   const search = new URLSearchParams(window.location.search);
-  
+
   if (path === '/membership-payment' || path === '/membership-checkout') {
     const plan = search.get('plan') || 'MONTHLY';
     return { view: 'membership-payment', plan };
@@ -89,17 +89,17 @@ const parseRouteFromLocation = () => {
   if (path === '/guide' || path === '/user-guide') return { view: 'guide' };
   if (path === '/seminars' || path === '/seminar') return { view: 'seminars' };
   if (path === '/hub' || path === '/atomy-hub') return { view: 'hub' };
-  
+
   if (path === '/category' || path.startsWith('/category/')) {
     const catId = search.get('id') || path.split('/')[2] || 'health';
     return { view: 'category', categoryId: catId };
   }
-  
+
   if (path === '/product' || path.startsWith('/product/')) {
     const prodId = search.get('id') || path.split('/')[2];
     return { view: 'product', productId: prodId };
   }
-  
+
   return { view: 'home' };
 };
 
@@ -169,8 +169,8 @@ const getInitialNavHistory = () => {
         return parsed;
       }
     }
-  } catch {}
-  
+  } catch { }
+
   if (initial.view === 'home') {
     return [{ view: 'home', categoryId: 'health', product: null }];
   }
@@ -190,7 +190,7 @@ export default function App() {
 
   const [toast, setRawToast] = useState(null);
   const toastTimeoutRef = useRef(null);
-  
+
   // Initialize view from URL if present
   const initialRoute = useMemo(() => parseRouteFromLocation(), []);
   const [currentView, setCurrentView] = useState(initialRoute.view);
@@ -220,12 +220,12 @@ export default function App() {
           setCatalogVersion(v => v + 1);
         });
       }
-    } catch {}
+    } catch { }
 
     const unsubscribe = onCatalogUpdate((updatedProd) => {
       setCatalogVersion(v => v + 1);
       setSelectedProduct(prev => {
-        if (prev && prev.id === updatedProd.id) {
+        if (prev && updatedProd && String(prev.id) === String(updatedProd.id)) {
           return { ...prev, ...updatedProd };
         }
         return prev;
@@ -258,7 +258,7 @@ export default function App() {
       }];
       try {
         sessionStorage.setItem('atomy_nav_history', JSON.stringify(newStack));
-      } catch {}
+      } catch { }
       return newStack;
     });
 
@@ -408,9 +408,9 @@ export default function App() {
     };
 
     return (
-      <div 
-        className={`toast-notification-card toast-type-${toast.type || 'info'}`} 
-        role="alert" 
+      <div
+        className={`toast-notification-card toast-type-${toast.type || 'info'}`}
+        role="alert"
         aria-live="polite"
       >
         <div className="toast-left-group">
@@ -462,7 +462,7 @@ export default function App() {
         const prevTarget = newStack[newStack.length - 1] || { view: 'home', categoryId: 'health', product: null };
         try {
           sessionStorage.setItem('atomy_nav_history', JSON.stringify(newStack));
-        } catch {}
+        } catch { }
 
         const targetUrl = getUrlForView(prevTarget.view, prevTarget);
         window.history.pushState({ view: prevTarget.view, ...prevTarget }, '', targetUrl);
@@ -479,7 +479,7 @@ export default function App() {
       const homeStack = [homeTarget];
       try {
         sessionStorage.setItem('atomy_nav_history', JSON.stringify(homeStack));
-      } catch {}
+      } catch { }
 
       const homeUrl = getUrlForView('home');
       window.history.pushState({ view: 'home' }, '', homeUrl);
@@ -505,15 +505,15 @@ export default function App() {
         const prod = ALL_CATALOG_PRODUCTS.find(p => p.id === route.productId) || ALL_CATALOG_PRODUCTS[0];
         if (prod) setSelectedProduct(prod);
       }
-      
+
       setNavigationHistory(prev => {
         if (prev.length > 1 && prev[prev.length - 2]?.view === route.view) {
           const updated = prev.slice(0, -1);
-          try { sessionStorage.setItem('atomy_nav_history', JSON.stringify(updated)); } catch {}
+          try { sessionStorage.setItem('atomy_nav_history', JSON.stringify(updated)); } catch { }
           return updated;
         }
         const updated = [...prev, { view: route.view, categoryId: route.categoryId || 'health', product: null }];
-        try { sessionStorage.setItem('atomy_nav_history', JSON.stringify(updated)); } catch {}
+        try { sessionStorage.setItem('atomy_nav_history', JSON.stringify(updated)); } catch { }
         return updated;
       });
 
@@ -536,7 +536,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('atomy_favorites', JSON.stringify(favorites));
-    } catch {}
+    } catch { }
   }, [favorites]);
 
   const [recentlyViewed, setRecentlyViewed] = useState(() => {
@@ -557,7 +557,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('atomy_recently_viewed', JSON.stringify(recentlyViewed));
-    } catch {}
+    } catch { }
   }, [recentlyViewed]);
 
   // Current authenticated customer state
@@ -579,10 +579,10 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(o => 
-            !o.orderId?.startsWith('ORD-20261005') && 
-            !o.orderId?.startsWith('ORD-20261008-3800') && 
-            !o.orderId?.startsWith('ORD-20261008-1863') && 
+          return parsed.filter(o =>
+            !o.orderId?.startsWith('ORD-20261005') &&
+            !o.orderId?.startsWith('ORD-20261008-3800') &&
+            !o.orderId?.startsWith('ORD-20261008-1863') &&
             !o.orderId?.includes('3207') &&
             !o.orderId?.toUpperCase().includes('DEMO') &&
             !o.orderId?.toUpperCase().includes('TEST') &&
@@ -602,7 +602,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('atomy_placed_orders', JSON.stringify(placedOrders));
-    } catch {}
+    } catch { }
   }, [placedOrders]);
 
   // Synchronize orders for the logged-in customer from Spring Boot backend
@@ -614,8 +614,8 @@ export default function App() {
         const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
         const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBase).trim().replace(/\/+$/, '');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
-        const queryParam = currentUser.email 
-          ? `email=${encodeURIComponent(currentUser.email.trim())}` 
+        const queryParam = currentUser.email
+          ? `email=${encodeURIComponent(currentUser.email.trim())}`
           : `phone=${encodeURIComponent(currentUser.phone.trim())}`;
         const res = await fetch(`${apiBase}/orders/history?${queryParam}`);
         if (!res.ok) return;
@@ -652,75 +652,75 @@ export default function App() {
               return true;
             })
             .map(bo => {
-            const isCodOrder = bo.paymentMethod === 'CASH_ON_DELIVERY' || (bo.paymentMethod || '').toLowerCase().includes('cash') || (bo.paymentMethod || '').toLowerCase().includes('cod');
-            const placedStatus = isCodOrder ? 'Cash on Delivery' : 'Payment Completed';
-            const orderStatusMap = {
-              'PLACED': placedStatus,
-              'PROCESSING': 'Preparing Shipment',
-              'SHIPPED': 'In Transit',
-              'OUT_FOR_DELIVERY': 'Out for Delivery',
-              'DELIVERED': 'Delivered',
-              'CANCELLED': 'Cancelled'
-            };
-            const street = bo.shippingAddress || '';
-            const city = bo.city || '';
-            const state = bo.state || '';
-            const pin = bo.pincode || '';
-            const fullAddr = [street, city, state, pin ? `PIN: ${pin}` : ''].filter(Boolean).join(', ');
+              const isCodOrder = bo.paymentMethod === 'CASH_ON_DELIVERY' || (bo.paymentMethod || '').toLowerCase().includes('cash') || (bo.paymentMethod || '').toLowerCase().includes('cod');
+              const placedStatus = isCodOrder ? 'Cash on Delivery' : 'Payment Completed';
+              const orderStatusMap = {
+                'PLACED': placedStatus,
+                'PROCESSING': 'Preparing Shipment',
+                'SHIPPED': 'In Transit',
+                'OUT_FOR_DELIVERY': 'Out for Delivery',
+                'DELIVERED': 'Delivered',
+                'CANCELLED': 'Cancelled'
+              };
+              const street = bo.shippingAddress || '';
+              const city = bo.city || '';
+              const state = bo.state || '';
+              const pin = bo.pincode || '';
+              const fullAddr = [street, city, state, pin ? `PIN: ${pin}` : ''].filter(Boolean).join(', ');
 
-            return {
-              orderId: bo.orderId,
-              date: bo.createdAt,
-              orderDate: bo.createdAt ? bo.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
-              status: orderStatusMap[bo.orderStatus] || bo.orderStatus || placedStatus,
-              paymentStatus: bo.paymentStatus || (isCodOrder ? 'PENDING' : 'PAID'),
-              orderStatus: bo.orderStatus || 'PLACED',
-              estimatedDelivery: 'Within 2 Days (Dispatched from Nearby Hub)',
-              estimatedDeliveryDate: 'Within 2 Days (Nearby Hub)',
-              courier: 'Blue Dart Express (Assigned)',
-              trackingNumber: bo.trackingNumber || bo.tracking?.trackingNumber || getStableAwb(bo.orderId),
-              paymentMethod: bo.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)' 
-                           : bo.paymentMethod === 'CREDIT_DEBIT_CARD' ? 'Credit / Debit Card'
-                           : bo.paymentMethod === 'NET_BANKING' ? 'Net Banking'
-                           : bo.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on Delivery'
-                           : (bo.paymentMethod || 'Online Payment'),
-              recipient: bo.customerName || currentUser.name || 'Customer',
-              customerName: bo.customerName || currentUser.name || 'Customer',
-              customerEmail: bo.customerEmail || currentUser.email,
-              phone: bo.customerPhone || currentUser.phone || '',
-              city: city,
-              state: state,
-              pincode: pin,
-              shippingAddress: {
+              return {
+                orderId: bo.orderId,
+                date: bo.createdAt,
+                orderDate: bo.createdAt ? bo.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+                status: orderStatusMap[bo.orderStatus] || bo.orderStatus || placedStatus,
+                paymentStatus: bo.paymentStatus || (isCodOrder ? 'PENDING' : 'PAID'),
+                orderStatus: bo.orderStatus || 'PLACED',
+                estimatedDelivery: 'Within 2 Days (Dispatched from Nearby Hub)',
+                estimatedDeliveryDate: 'Within 2 Days (Nearby Hub)',
+                courier: 'Blue Dart Express (Assigned)',
+                trackingNumber: bo.trackingNumber || bo.tracking?.trackingNumber || getStableAwb(bo.orderId),
+                paymentMethod: bo.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)'
+                  : bo.paymentMethod === 'CREDIT_DEBIT_CARD' ? 'Credit / Debit Card'
+                    : bo.paymentMethod === 'NET_BANKING' ? 'Net Banking'
+                      : bo.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on Delivery'
+                        : (bo.paymentMethod || 'Online Payment'),
                 recipient: bo.customerName || currentUser.name || 'Customer',
+                customerName: bo.customerName || currentUser.name || 'Customer',
+                customerEmail: bo.customerEmail || currentUser.email,
                 phone: bo.customerPhone || currentUser.phone || '',
-                address: fullAddr || street || 'Direct Delivery Destination',
-                fullAddress: fullAddr || street || 'Direct Delivery Destination',
-                street: street,
                 city: city,
                 state: state,
-                pincode: pin
-              },
-              address: {
-                recipient: bo.customerName || currentUser.name || 'Customer',
-                phone: bo.customerPhone || currentUser.phone || '',
-                address: fullAddr || street || 'Direct Delivery Destination',
-                fullAddress: fullAddr || street || 'Direct Delivery Destination'
-              },
-            items: Array.isArray(bo.items) ? bo.items.map(it => ({
-              id: it.productId,
-              name: it.productName || it.name,
-              image: it.productImage || it.image,
-              price: Number(it.price) || 0,
-              qty: it.quantity || it.qty || 1,
-              pv: Math.round((Number(it.price) || 0) * 4.5)
-            })) : [],
-            shippingFee: Number(bo.shippingFee || 0),
-            grandTotal: Number(bo.totalAmount) || 0,
-            totalAmount: Number(bo.totalAmount) || 0,
-            subtotal: Number(bo.totalAmount) - Number(bo.shippingFee || 0)
-          };
-        });
+                pincode: pin,
+                shippingAddress: {
+                  recipient: bo.customerName || currentUser.name || 'Customer',
+                  phone: bo.customerPhone || currentUser.phone || '',
+                  address: fullAddr || street || 'Direct Delivery Destination',
+                  fullAddress: fullAddr || street || 'Direct Delivery Destination',
+                  street: street,
+                  city: city,
+                  state: state,
+                  pincode: pin
+                },
+                address: {
+                  recipient: bo.customerName || currentUser.name || 'Customer',
+                  phone: bo.customerPhone || currentUser.phone || '',
+                  address: fullAddr || street || 'Direct Delivery Destination',
+                  fullAddress: fullAddr || street || 'Direct Delivery Destination'
+                },
+                items: Array.isArray(bo.items) ? bo.items.map(it => ({
+                  id: it.productId,
+                  name: it.productName || it.name,
+                  image: it.productImage || it.image,
+                  price: Number(it.price) || 0,
+                  qty: it.quantity || it.qty || 1,
+                  pv: Math.round((Number(it.price) || 0) * 4.5)
+                })) : [],
+                shippingFee: Number(bo.shippingFee || 0),
+                grandTotal: Number(bo.totalAmount) || 0,
+                totalAmount: Number(bo.totalAmount) || 0,
+                subtotal: Number(bo.totalAmount) - Number(bo.shippingFee || 0)
+              };
+            });
 
           setPlacedOrders(prevPlaced => {
             const backendIds = new Set(mapped.map(m => (m.orderId || '').trim().toUpperCase()));
@@ -731,11 +731,11 @@ export default function App() {
             const merged = [...pendingLocalOrders, ...mapped];
             try {
               localStorage.setItem('atomy_placed_orders', JSON.stringify(merged));
-            } catch {}
+            } catch { }
             return merged;
           });
         }
-      } catch (err) {}
+      } catch (err) { }
     };
 
     fetchUserOrders();
@@ -791,18 +791,18 @@ export default function App() {
             prev.map(o =>
               (o.orderId === data.orderId || o.id === data.orderId)
                 ? {
-                    ...o,
-                    status: statusMap[data.newStatus] || data.newStatus,
-                    orderStatus: data.newStatus,
-                    trackingNumber: data.trackingNumber || o.trackingNumber,
-                    courier: data.courier || o.courier
-                  }
+                  ...o,
+                  status: statusMap[data.newStatus] || data.newStatus,
+                  orderStatus: data.newStatus,
+                  trackingNumber: data.trackingNumber || o.trackingNumber,
+                  courier: data.courier || o.courier
+                }
                 : o
             )
           );
         }
       };
-    } catch (e) {}
+    } catch (e) { }
 
     // Storage event listeners for multi-tab instantaneous sync
     const handleStorageChange = (e) => {
@@ -810,7 +810,7 @@ export default function App() {
         try {
           const list = JSON.parse(e.newValue);
           if (Array.isArray(list)) setPlacedOrders(list);
-        } catch (err) {}
+        } catch (err) { }
       }
     };
     const handleCustomOrdersSync = (e) => {
@@ -883,20 +883,20 @@ export default function App() {
             if (changed) {
               try {
                 localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
-              } catch {}
+              } catch { }
               return updated;
             }
             return prev;
           });
         }
-      } catch (e) {}
+      } catch (e) { }
     }, 3000);
 
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('atomy:orders-updated', handleCustomOrdersSync);
-      try { syncChannel && syncChannel.close(); } catch {}
+      try { syncChannel && syncChannel.close(); } catch { }
     };
   }, []);
 
@@ -919,7 +919,7 @@ export default function App() {
           setMembershipData(data.membership);
           try {
             localStorage.setItem('atomy_current_membership_data', JSON.stringify(data.membership));
-          } catch {}
+          } catch { }
         }
         if (data?.isMember && !currentUser.isMember) {
           const updated = {
@@ -935,7 +935,7 @@ export default function App() {
           setCurrentUser(updated);
           try {
             localStorage.setItem('atomy_current_user', JSON.stringify(updated));
-          } catch {}
+          } catch { }
           setMembershipVersion((v) => v + 1);
         } else if (data && !data.isMember && currentUser.isMember) {
           const updated = {
@@ -951,7 +951,7 @@ export default function App() {
           setCurrentUser(updated);
           try {
             localStorage.setItem('atomy_current_user', JSON.stringify(updated));
-          } catch {}
+          } catch { }
           setMembershipVersion((v) => v + 1);
         }
       });
@@ -1009,7 +1009,7 @@ export default function App() {
     setCurrentUser(userObj);
     try {
       localStorage.setItem('atomy_current_user', JSON.stringify(userObj));
-    } catch {}
+    } catch { }
     showToast({
       title: isNewSignUp ? 'Welcome to Atomy!' : 'Welcome Back!',
       message: isNewSignUp
@@ -1046,7 +1046,7 @@ export default function App() {
       sessionStorage.clear();
       window.dispatchEvent(new Event('storage'));
       window.dispatchEvent(new CustomEvent('atomy:signed-out'));
-    } catch {}
+    } catch { }
 
     if (['profile', 'orders', 'order-sheet'].includes(currentView)) {
       handleNavigateHome();
@@ -1224,8 +1224,8 @@ export default function App() {
   const handleAddToCart = (product, quantity = 1) => {
     if (!currentUser) return requireAuth('sign in or sign up to add items to your cart');
     const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === product.id));
-    const availableStock = product.stockQuantity !== undefined 
-      ? Number(product.stockQuantity) 
+    const availableStock = product.stockQuantity !== undefined
+      ? Number(product.stockQuantity)
       : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
     // Always keep 1 unit reserved in warehouse stock
     const maxOrderable = Math.max(0, availableStock - 1);
@@ -1292,8 +1292,8 @@ export default function App() {
     })();
     if (!activeAuthUser) return requireAuth('sign in or sign up to order products');
     const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === product.id));
-    const availableStock = product.stockQuantity !== undefined 
-      ? Number(product.stockQuantity) 
+    const availableStock = product.stockQuantity !== undefined
+      ? Number(product.stockQuantity)
       : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
     // Always keep 1 unit reserved in warehouse stock
     const maxOrderable = Math.max(0, availableStock - 1);
@@ -1339,8 +1339,8 @@ export default function App() {
 
     const itemInCart = cart.find(item => item.id === id);
     const catalogProd = (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS.find(p => p.id === id));
-    const availableStock = itemInCart?.stockQuantity !== undefined 
-      ? Number(itemInCart.stockQuantity) 
+    const availableStock = itemInCart?.stockQuantity !== undefined
+      ? Number(itemInCart.stockQuantity)
       : (catalogProd?.stockQuantity !== undefined ? Number(catalogProd.stockQuantity) : 50);
     // Always keep 1 unit reserved in warehouse stock
     const maxOrderable = Math.max(0, availableStock - 1);
@@ -1659,7 +1659,7 @@ export default function App() {
                 setCurrentUser(updated);
                 try {
                   localStorage.setItem('atomy_current_user', JSON.stringify(updated));
-                } catch {}
+                } catch { }
               }}
               onLogout={handleRequestLogout}
               onNavigateHome={handleNavigateHome}
@@ -1705,7 +1705,7 @@ export default function App() {
                 setCurrentUser(updated);
                 try {
                   localStorage.setItem('atomy_current_user', JSON.stringify(updated));
-                } catch {}
+                } catch { }
                 setMembershipVersion((v) => v + 1);
                 setToast('Congratulations! Atomy Distributor Membership activated. Wholesale DP prices unlocked!');
                 setTimeout(() => setToast(null), 3500);
@@ -1740,7 +1740,7 @@ export default function App() {
                 setCurrentUser(updated);
                 try {
                   localStorage.setItem('atomy_current_user', JSON.stringify(updated));
-                } catch {}
+                } catch { }
                 setMembershipVersion((v) => v + 1);
                 setToast('Congratulations! Atomy Distributor Membership activated. Wholesale DP prices unlocked!');
                 setTimeout(() => setToast(null), 3500);

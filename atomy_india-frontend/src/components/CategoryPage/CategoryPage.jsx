@@ -153,34 +153,40 @@ export default function CategoryPage({
       });
     }
 
-    // 2. GST Reduced tag
-    if (product.gstReduced || product.isGstReduced) {
-      tagSet.add('#GST REDUCED');
-    }
+    const blacklist = new Set([
 
-    // 3. Free Delivery tag
-    if (product.freeDelivery) {
-      tagSet.add('#FREE DELIVERY');
-    }
+      'HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING',
 
-    // 4. Fallback subtopic if tags are empty
-    if (tagSet.size === 0 && product.subTopic && product.subTopic !== 'All') {
-      tagSet.add(`#${product.subTopic}`);
-    }
+      'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY',
 
-    const tags = Array.from(tagSet);
-    if (tags.length === 0) return null;
+      'HEALTH', 'PERSONAL CARE', 'OTHERS', 'FREE DELIVERY', 'FREEDELIVERY'
+
+    ]);
+
+    const tags = Array.from(tagSet).filter(t => {
+
+      const upper = t.toUpperCase().replace(/^#/, '').trim();
+
+      return !blacklist.has(upper) && !upper.includes('FREE DELIVERY');
+
+    });
+    const isFreeDeliv = Boolean(product.freeDelivery || product.isFreeDelivery);
+    if (tags.length === 0 && !isFreeDeliv) return null;
 
     return (
       <div className="cate-product-tags-row">
+        {isFreeDeliv && (
+          <span className="free-delivery-badge" style={{ marginRight: '6px', fontSize: '11px' }}>
+            Free Delivery
+          </span>
+        )}
         {tags.map((tag, tIdx) => {
           const lower = tag.toLowerCase();
           const isGst = lower.includes('gst');
-          const isFree = lower.includes('free delivery') || lower.includes('free_delivery');
           return (
             <span
               key={tIdx}
-              className={`cate-product-tag ${isGst ? 'tag-gst' : ''} ${isFree ? 'tag-free-delivery' : ''}`}
+              className={`cate-product-tag ${isGst ? 'tag-gst' : ''}`}
             >
               {tag}
             </span>
@@ -678,12 +684,12 @@ export default function CategoryPage({
                         {product.name}
                       </h4>
                       {renderPricing(product)}
-                      {renderProductTags(product)}
                       {product.likes && (
                         <div className="cate-product-meta">
                           <span className="cate-likes-text">{product.likes}</span>
                         </div>
                       )}
+                      {renderProductTags(product)}
                     </div>
                   </div>
                   );
@@ -798,12 +804,12 @@ export default function CategoryPage({
                         {product.name}
                       </h4>
                       {renderPricing(product)}
-                      {renderProductTags(product)}
                       {product.likes && (
                         <div className="cate-product-meta">
                           <span className="cate-likes-text">{product.likes}</span>
                         </div>
                       )}
+                      {renderProductTags(product)}
                     </div>
                   </div>
                   );
@@ -932,12 +938,12 @@ export default function CategoryPage({
                     {product.name}
                   </h4>
                   {renderPricing(product)}
-                  {renderProductTags(product)}
                   {product.likes && (
                     <div className="cate-product-meta">
                       <span className="cate-likes-text">{product.likes}</span>
                     </div>
                   )}
+                  {renderProductTags(product)}
                 </div>
               </div>
               );

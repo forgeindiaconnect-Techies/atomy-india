@@ -1456,18 +1456,31 @@
    -------------------------------------------------------------------------- */
 .inventory-filter-toolbar {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
-.search-input-wrapper {
+.inventory-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.inventory-search-row .search-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
+  max-width: 440px;
+  min-width: 260px;
   flex: 1;
-  min-width: 320px;
+}
+
+.inventory-search-row .stock-filter-wrapper {
+  flex-shrink: 0;
 }
 
 .search-input-wrapper svg {
@@ -1642,10 +1655,31 @@
   background-color: #f8fafc;
 }
 
-.mono-col {
-  font-family: monospace;
+.mono-col,
+.product-id-cell {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  font-size: 13px;
+  color: #0369a1;
+  white-space: nowrap !important;
+  min-width: 120px !important;
+  width: 120px !important;
+}
+
+.product-id-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
   font-size: 12.5px;
-  color: #334155;
+  font-weight: 700;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.06);
 }
 
 .cell-primary-text {

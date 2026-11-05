@@ -270,8 +270,15 @@ export default function DistributorInventoryPage({
     if (selectedCategory !== 'ALL') {
       const cat = String(p.categoryId || '').toLowerCase();
       const pName = String(p.name || '').toLowerCase();
+      const isHemohim = cat === 'hemohim' || cat.includes('hemohim') || pName.includes('hemohim') || p.id === 'D00101' || p.id === 'D00102' || p.id === 'D00104';
+
       if (selectedCategory === 'hemohim') {
-        if (!cat.includes('hemohim') && !pName.includes('hemohim')) return false;
+        if (!isHemohim) return false;
+      } else if (selectedCategory === 'health') {
+        if (cat !== 'health' || isHemohim) return false;
+      } else if (selectedCategory === 'others') {
+        const isEtc = cat === 'others' || cat === 'etc' || cat === 'others_etc' || !p.categoryId;
+        if (!isEtc) return false;
       } else if (cat !== selectedCategory.toLowerCase()) {
         return false;
       }
@@ -449,23 +456,39 @@ export default function DistributorInventoryPage({
 
       {/* 3. Search & Filter Toolbar */}
       <div className="inventory-filter-toolbar" style={{ marginBottom: '20px' }}>
-        <div className="search-input-wrapper">
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search by Product Name, Code, or Category..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="atomy-search-input"
-          />
-          {searchQuery && (
-            <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
-              <X size={14} />
-            </button>
-          )}
+        <div className="inventory-search-row">
+          <div className="search-input-wrapper">
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder="Search by Product Name, Code, or Category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="atomy-search-input"
+            />
+            {searchQuery && (
+              <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* Stock Status Filter placed directly in the search bar row */}
+          <div className="stock-filter-wrapper">
+            <select
+              value={selectedStockFilter}
+              onChange={(e) => setSelectedStockFilter(e.target.value)}
+              className="atomy-dropdown"
+            >
+              <option value="ALL">All Stock Statuses</option>
+              <option value="IN_STOCK">In Stock Only</option>
+              <option value="LOW">Low Stock Only (&le; 10)</option>
+              <option value="OUT">Out of Stock (0)</option>
+            </select>
+          </div>
         </div>
 
-        {/* Category Filter Pills */}
+        {/* Category Filter Pills on their own clean row */}
         <div className="category-pill-group">
           {[
             { id: 'ALL', label: 'All Categories' },
@@ -474,7 +497,8 @@ export default function DistributorInventoryPage({
             { id: 'beauty', label: 'Beauty' },
             { id: 'personal_care', label: 'Personal Care' },
             { id: 'home', label: 'Home & Living' },
-            { id: 'food', label: 'Food & Drinks' }
+            { id: 'food', label: 'Food & Drinks' },
+            { id: 'others', label: 'ETC / Others' }
           ].map(c => (
             <button
               key={c.id}
@@ -485,20 +509,6 @@ export default function DistributorInventoryPage({
               {c.label}
             </button>
           ))}
-        </div>
-
-        {/* Stock Status Filter */}
-        <div className="stock-filter-wrapper">
-          <select
-            value={selectedStockFilter}
-            onChange={(e) => setSelectedStockFilter(e.target.value)}
-            className="atomy-dropdown"
-          >
-            <option value="ALL">All Stock Statuses</option>
-            <option value="IN_STOCK">In Stock Only</option>
-            <option value="LOW">Low Stock Only (&le; 10)</option>
-            <option value="OUT">Out of Stock (0)</option>
-          </select>
         </div>
       </div>
 
@@ -597,7 +607,9 @@ export default function DistributorInventoryPage({
                       <span className="category-tag-badge">
                         {p.categoryId === 'hemohim' || (p.name && p.name.toLowerCase().includes('hemohim'))
                           ? 'HemoHIM'
-                          : (p.categoryId ? p.categoryId.charAt(0).toUpperCase() + p.categoryId.slice(1).replace('_', ' ') : 'General')}
+                          : p.categoryId === 'others' || p.categoryId === 'etc' || !p.categoryId
+                            ? 'ETC / Others'
+                            : (p.categoryId ? p.categoryId.charAt(0).toUpperCase() + p.categoryId.slice(1).replace('_', ' ') : 'ETC / Others')}
                       </span>
                     </td>
 

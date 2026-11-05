@@ -347,9 +347,9 @@ export default function InviteDistributorsPage({ showToast }) {
     <div className="invite-distributors-page-wrap">
       {/* Page Header */}
       <div className="invite-page-header">
-        <div>
+        <div className="invite-header-content">
           <div className="invite-header-badge">
-            <ShieldCheck size={14} />
+            <ShieldCheck size={12} />
             <span>TERRITORY FRANCHISE & ONBOARDING</span>
           </div>
           <h1 className="invite-page-title">Invite & Onboard Regional Distributors</h1>
@@ -358,28 +358,15 @@ export default function InviteDistributorsPage({ showToast }) {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="invite-header-actions">
           {distributors.length > 0 && (
             <button
               type="button"
-              className="btn-action-icon delete"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '9px 14px',
-                borderRadius: '8px',
-                border: '1px solid #fecaca',
-                background: '#fef2f2',
-                color: '#dc2626',
-                fontWeight: 600,
-                fontSize: '13px',
-                cursor: 'pointer'
-              }}
+              className="btn-clear-all-distributors"
               title="Delete all distributors and clear duplicate records"
               onClick={handleClearAllDistributors}
             >
-              <Trash2 size={15} />
+              <Trash2 size={14} />
               <span>Clear All Distributors</span>
             </button>
           )}
@@ -389,7 +376,7 @@ export default function InviteDistributorsPage({ showToast }) {
             className="btn-open-invite-modal"
             onClick={() => setIsInviteModalOpen(true)}
           >
-            <UserPlus size={18} />
+            <UserPlus size={15} />
             <span>+ Invite New Distributor</span>
           </button>
         </div>

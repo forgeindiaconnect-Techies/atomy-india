@@ -192,23 +192,51 @@ export default function LandingProductCard({
           </TouchableOpacity>
         ) : null}
 
-        {/* Product Tags (like #GST REDUCED, #Immunity) */}
-        {productTags.length > 0 ? (
-          <View style={styles.tagsRow}>
-            {productTags.map((tag, idx) => (
-              <Text key={idx} style={styles.tagText}>
-                {tag}
-              </Text>
-            ))}
-          </View>
-        ) : null}
+        {/* Dynamic Badges & Hashtags (Configured by Admin) */}
+        {(() => {
+          const isFreeDeliv = Boolean(product.freeDelivery || product.isFreeDelivery);
+          const cleanTags = productTags
+            .map((t) => (t.startsWith('#') ? t : `#${t}`))
+            .filter((t) => {
 
-        {/* Free Delivery Tag matching authentic website */}
-        {product.freeDelivery ? (
-          <View style={styles.freeDeliveryBadge}>
-            <Text style={styles.freeDeliveryText}>Free Delivery</Text>
-          </View>
-        ) : null}
+              const upper = String(t).toUpperCase().replace(/^#/, '').trim();
+
+              if (upper.includes('FREE DELIVERY') || upper.includes('FREE_DELIVERY')) return false;
+
+              const blacklist = [
+
+                'HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING',
+
+                'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY',
+
+                'HEALTH', 'PERSONAL CARE', 'OTHERS'
+
+              ];
+
+              return !blacklist.includes(upper);
+
+            });
+
+          if (!isFreeDeliv && cleanTags.length === 0) return null;
+
+          return (
+            <View style={styles.tagsRow}>
+              {isFreeDeliv ? (
+                <View style={styles.freeDeliveryBadge}>
+                  <Text style={styles.freeDeliveryText}>Free Delivery</Text>
+                </View>
+              ) : null}
+              {cleanTags.map((tag, idx) => {
+                const isGst = tag.toUpperCase().includes('GST');
+                return (
+                  <Text key={idx} style={[styles.tagText, isGst && styles.tagGstText]}>
+                    {tag}
+                  </Text>
+                );
+              })}
+            </View>
+          );
+        })()}
       </View>
     </TouchableOpacity>
   );
@@ -369,7 +397,7 @@ const styles = StyleSheet.create({
   pvNote: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#0284C7',
+    color: '#64748B',
     marginBottom: 10, // Line spacing to membership unlock banner
   },
   lockedDpBanner: {
@@ -419,6 +447,10 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     color: '#64748B',
     fontWeight: '500',
+  },
+  tagGstText: {
+    color: '#64748B',
+    fontWeight: '700',
   },
   freeDeliveryBadge: {
     alignSelf: 'flex-start',

@@ -368,7 +368,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       freeDelivery: Boolean(productData.freeDelivery),
       active: productData.active !== undefined ? Boolean(productData.active) : true,
       likesCount: Number(productData.likesCount) || 0,
-      tags: productData.tags || 'Best Seller',
+      tags: Array.isArray(productData.tags)
+        ? productData.tags.filter(Boolean).join(', ')
+        : (productData.tags !== undefined && productData.tags !== null ? String(productData.tags).trim() : ''),
       galleryImages: Array.isArray(productData.galleryImages) && productData.galleryImages.length > 0
         ? productData.galleryImages.filter(Boolean)
         : (productData.image ? [productData.image] : [])
@@ -539,7 +541,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
               }}
             >
               <LayoutDashboard size={20} />
-              <span>Overview &amp; KPIs</span>
+              <span>Overview</span>
             </button>
 
             <button

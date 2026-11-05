@@ -219,7 +219,7 @@ export default function BestProductsSection({
                         <Heart
                           size={14}
                           fill={isLiked ? "#e53935" : "none"}
-                          color={isLiked ? "#e53935" : "#888888"}
+                          color={isLiked ? "#e53935" : "#111827"}
                         />
                         <span>{likesCount} Likes</span>
                       </div>
@@ -232,9 +232,21 @@ export default function BestProductsSection({
                           : typeof product.tags === 'string'
                             ? product.tags.split(',').map(t => t.trim()).filter(Boolean)
                             : []
-                        ).map((tag, tIdx) => (
-                          <span key={tIdx}>{tag}</span>
-                        ))}
+                        )
+                          .map(t => String(t).trim())
+                          .filter(tag => {
+                            const upper = tag.toUpperCase().replace(/^#/, '').trim();
+                            if (upper.includes('FREE DELIVERY') || upper.includes('FREE_DELIVERY')) return false;
+                            const blacklist = [
+                              'HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING',
+                              'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY',
+                              'HEALTH', 'PERSONAL CARE', 'OTHERS'
+                            ];
+                            return !blacklist.includes(upper);
+                          })
+                          .map((tag, tIdx) => (
+                            <span key={tIdx}>{tag.startsWith('#') ? tag : `#${tag}`}</span>
+                          ))}
                       </div>
                     )}
 

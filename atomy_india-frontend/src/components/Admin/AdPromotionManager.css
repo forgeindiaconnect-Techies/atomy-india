@@ -470,7 +470,7 @@
 .ad-modal-dialog {
   background: #ffffff;
   width: 100%;
-  max-width: 580px;
+  max-width: 620px;
   border-radius: 14px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   display: flex;
@@ -515,11 +515,75 @@
 }
 
 .ad-modal-body {
-  padding: 22px 24px;
+  padding: 22px 26px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Form Groups & Field Controls in Ad Promotion Modals */
+.atomy-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.atomy-form-group label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  display: block;
+  margin: 0;
+}
+
+.atomy-form-input,
+.ad-modal-body textarea.atomy-form-input,
+.ad-modal-body input.atomy-form-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  background-color: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+}
+
+.ad-modal-body textarea.atomy-form-input {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.5;
+}
+
+.atomy-form-input:focus,
+.ad-modal-body textarea.atomy-form-input:focus,
+.ad-modal-body input.atomy-form-input:focus {
+  border-color: #00A3E0;
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.12);
+}
+
+.atomy-form-select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  background-color: #ffffff;
+  transition: border-color 0.15s ease;
+}
+
+.atomy-form-select:focus {
+  border-color: #00A3E0;
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.12);
 }
 
 .modal-photo-dropzone {

@@ -272,7 +272,7 @@ export const BEST_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D01440/org/810/260128000049810.jpg?w=480&h=480",
     gstReduced: false,
     likes: 42,
-    tags: ["#NewArrival"],
+    tags: [],
     freeDelivery: false,
     categoryTab: ["NEW"],
     dpPrice: 767.0,
@@ -292,7 +292,7 @@ export const BEST_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D04704/org/115/260326000051115.jpeg?w=480&h=480",
     gstReduced: false,
     likes: 38,
-    tags: ["#MakeupEssential"],
+    tags: [],
     freeDelivery: false,
     categoryTab: ["NEW"],
     dpPrice: 767.0,
@@ -311,7 +311,7 @@ export const BEST_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D01526/org/447/251119000048447.jpg?w=480&h=480",
     gstReduced: false,
     likes: 89,
-    tags: ["#Brightening"],
+    tags: [],
     freeDelivery: false,
     categoryTab: ["NEW"],
     dpPrice: 1062.0,
@@ -352,7 +352,7 @@ export const BEST_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00170/org/350/260401000051350.jpg?w=480&h=480",
     gstReduced: true,
     likes: 184,
-    tags: ["#GST REDUCED", "#FREE DELIVERY"],
+    tags: ["#GST REDUCED"],
     freeDelivery: true,
     categoryTab: ["RECOMMENDATION"],
     dpPrice: 4830.0,
@@ -372,7 +372,7 @@ export const BEST_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00281/D00281_00.jpg?w=480&h=480",
     gstReduced: false,
     likes: 198,
-    tags: ["#SunProtection"],
+    tags: [],
     freeDelivery: false,
     categoryTab: ["RECOMMENDATION"],
     dpPrice: 755.2,
@@ -392,7 +392,7 @@ export const BEST_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00261/D00261_00.jpg?w=480&h=480",
     gstReduced: false,
     likes: 112,
-    tags: ["#DailyCare"],
+    tags: [],
     freeDelivery: false,
     categoryTab: ["RECOMMENDATION"],
     dpPrice: 708.0,
@@ -412,7 +412,7 @@ export const BEST_PRODUCTS = [
     image: "https://image.atomy.com/IN/goods/D00510/D00510_00.jpg?w=480&h=480",
     gstReduced: true,
     likes: 276,
-    tags: ["#GST REDUCED", "#OralCare"],
+    tags: ["#GST REDUCED"],
     freeDelivery: false,
     categoryTab: ["RECOMMENDATION"],
     dpPrice: 800.85,
@@ -965,9 +965,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "35 Likes",
         "subTopic": "Kitchen",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -983,9 +981,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "27 Likes",
         "subTopic": "Laundry",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1001,9 +997,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Kitchen",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1021,9 +1015,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Kitchen",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1039,9 +1031,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "27 Likes",
         "subTopic": "Laundry",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1057,9 +1047,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "35 Likes",
         "subTopic": "Kitchen",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1077,9 +1065,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "35 Likes",
         "subTopic": "Kitchen",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1095,9 +1081,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "27 Likes",
         "subTopic": "Laundry",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1113,9 +1097,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Kitchen",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1149,10 +1131,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "225 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1169,10 +1148,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "28 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1189,10 +1165,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1212,10 +1185,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "225 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1232,10 +1202,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "28 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1252,10 +1219,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1292,10 +1256,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "233 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -1312,10 +1273,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "189 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -1332,9 +1290,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "225 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#HEALTH"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -1350,9 +1306,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "62 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": false,
         "isVeg": true,
         "isNonVeg": false
@@ -1368,10 +1322,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "88 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1388,10 +1339,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "89 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1408,10 +1356,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "91 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1428,10 +1373,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "57 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1448,10 +1390,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "48 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -1468,9 +1407,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Special Set",
         "category": "HEALTH",
-        "tags": [
-          "#HEALTH"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -1489,10 +1426,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "233 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -1509,10 +1443,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "189 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -1529,9 +1460,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "225 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#HEALTH"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -1547,10 +1476,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "62 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -1567,10 +1493,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "88 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1587,10 +1510,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "89 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1607,10 +1527,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "91 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1627,10 +1544,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "57 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -1647,10 +1561,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "48 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -1667,9 +1578,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Special Set",
         "category": "HEALTH",
-        "tags": [
-          "#HEALTH"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -1712,9 +1621,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "289 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1730,9 +1637,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "169 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1748,9 +1653,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "348 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1766,9 +1669,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "249 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1784,9 +1685,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "75 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1802,9 +1701,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "223 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1820,9 +1717,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "98 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1838,9 +1733,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "98 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1856,9 +1749,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "78 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1874,9 +1765,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "120 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1895,9 +1784,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "289 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1913,9 +1800,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "169 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1931,9 +1816,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "348 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1949,9 +1832,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "249 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1967,9 +1848,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "75 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -1985,9 +1864,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "223 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2003,9 +1880,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "98 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2021,9 +1896,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "98 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2039,9 +1912,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "78 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2057,9 +1928,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "120 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2075,9 +1944,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "49 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2093,9 +1960,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "39 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2111,9 +1976,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "83 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2129,9 +1992,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "25 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2147,9 +2008,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "58 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2165,9 +2024,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2183,9 +2040,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "54 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2201,9 +2056,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "53 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2219,9 +2072,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "39 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2237,9 +2088,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "36 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2255,9 +2104,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "13 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2273,9 +2120,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "34 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2291,9 +2136,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2309,9 +2152,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "25 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2327,9 +2168,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "32 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2345,9 +2184,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2363,9 +2200,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "103 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2381,9 +2216,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "51 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2399,9 +2232,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "28 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2417,9 +2248,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "12 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2435,9 +2264,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "45 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2453,9 +2280,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "16 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2471,10 +2296,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "40 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2491,9 +2313,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "24 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2509,9 +2329,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "20 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2527,9 +2345,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "17 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2545,9 +2361,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2563,9 +2377,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "30 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2581,9 +2393,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "25 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2619,10 +2429,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "101 Likes",
         "subTopic": "Health Food",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2639,10 +2446,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "75 Likes",
         "subTopic": "Health Food",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -2659,10 +2463,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "61 Likes",
         "subTopic": "Tea & Coffee",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -2682,10 +2483,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "101 Likes",
         "subTopic": "Health Food",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2702,10 +2500,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "75 Likes",
         "subTopic": "Health Food",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -2722,10 +2517,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "61 Likes",
         "subTopic": "Tea & Coffee",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -2774,10 +2566,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "365 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2794,10 +2583,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "386 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2814,10 +2600,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "204 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2834,10 +2617,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "260 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2854,10 +2634,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "135 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2874,10 +2651,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "140 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2894,10 +2668,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "121 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2914,9 +2685,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "111 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2932,10 +2701,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "130 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -2952,9 +2718,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "68 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2972,9 +2736,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "58 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -2990,10 +2752,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "365 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3010,9 +2769,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3028,9 +2785,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3046,9 +2801,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "111 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3064,10 +2817,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "140 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3084,9 +2834,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "14 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3102,9 +2850,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "12 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3120,9 +2866,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "77 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3138,9 +2882,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "67 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3158,10 +2900,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "365 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3178,10 +2917,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "386 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3198,10 +2934,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "204 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3218,10 +2951,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "260 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3238,10 +2968,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "135 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3258,10 +2985,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "140 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3278,10 +3002,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "121 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3298,9 +3019,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "111 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3316,10 +3035,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "130 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3336,9 +3052,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "68 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3354,9 +3068,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "58 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3372,9 +3084,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3390,9 +3100,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3408,9 +3116,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "14 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3426,9 +3132,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "12 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3444,9 +3148,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "77 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3462,9 +3164,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "67 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3480,9 +3180,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "106 Likes",
         "subTopic": "Special Set",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3498,9 +3196,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "64 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3516,9 +3212,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "88 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3534,9 +3228,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "78 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3552,9 +3244,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "48 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3570,10 +3260,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "37 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -3610,9 +3297,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "106 Likes",
         "subTopic": "Special Set",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3628,9 +3313,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3646,9 +3329,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "66 Likes",
         "subTopic": "Special Set",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3664,9 +3345,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Special Set",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -3682,9 +3361,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3700,9 +3377,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "14 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3718,9 +3393,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "10 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3736,9 +3409,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "13 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3754,9 +3425,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "10 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3772,9 +3441,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "5 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3793,9 +3460,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "106 Likes",
         "subTopic": "Special Set",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3811,9 +3476,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3829,9 +3492,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "66 Likes",
         "subTopic": "Special Set",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3847,9 +3508,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Special Set",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -3865,9 +3524,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3883,9 +3540,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "14 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3901,9 +3556,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "10 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3919,9 +3572,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "13 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3937,9 +3588,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "10 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -3955,9 +3604,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "5 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4002,10 +3649,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "225 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4022,10 +3666,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "28 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4042,10 +3683,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4062,10 +3700,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "233 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -4082,10 +3717,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "189 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -4102,9 +3734,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "225 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#HEALTH"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -4120,10 +3750,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "62 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -4140,10 +3767,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "88 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4160,10 +3784,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "89 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4180,10 +3801,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "91 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4202,10 +3820,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "225 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4222,10 +3837,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "28 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4242,10 +3854,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "All",
         "category": "HEMOHIM",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4262,10 +3871,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "233 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -4282,10 +3888,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "189 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -4302,9 +3905,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "225 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#HEALTH"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -4320,10 +3921,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "62 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -4340,10 +3938,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "88 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4360,10 +3955,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "89 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4380,10 +3972,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "91 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4400,10 +3989,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "57 Likes",
         "subTopic": "Supplements",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -4420,10 +4006,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "48 Likes",
         "subTopic": "Vegetarian",
         "category": "HEALTH",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -4440,9 +4023,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Special Set",
         "category": "HEALTH",
-        "tags": [
-          "#HEALTH"
-        ],
+        "tags": [],
         "gstReduced": true,
         "isVeg": false,
         "isNonVeg": false
@@ -4458,9 +4039,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "289 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4476,9 +4055,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "169 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4494,9 +4071,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "348 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4512,9 +4087,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "249 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4530,9 +4103,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "75 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4548,9 +4119,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "223 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4566,9 +4135,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "98 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4584,9 +4151,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "98 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4602,9 +4167,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "78 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4620,9 +4183,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "120 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4638,9 +4199,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "49 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4656,9 +4215,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "39 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4674,9 +4231,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "83 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4692,9 +4247,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "25 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4710,9 +4263,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "58 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4728,9 +4279,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4746,9 +4295,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "54 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4764,9 +4311,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "53 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4782,9 +4327,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "39 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4800,9 +4343,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "36 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4818,9 +4359,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "13 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4836,9 +4375,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "34 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4854,9 +4391,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4872,9 +4407,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "25 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4890,9 +4423,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "32 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4908,9 +4439,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4926,9 +4455,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "103 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4944,9 +4471,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "51 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4962,9 +4487,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "28 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4980,9 +4503,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "12 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -4998,9 +4519,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "45 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5016,9 +4535,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "16 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5034,10 +4551,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "40 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5054,9 +4568,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "24 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5072,9 +4584,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "20 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5090,9 +4600,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "17 Likes",
         "subTopic": "Cleansing",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5108,9 +4616,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5126,9 +4632,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "30 Likes",
         "subTopic": "Makeup",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5144,9 +4648,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "25 Likes",
         "subTopic": "Skincare",
         "category": "BEAUTY",
-        "tags": [
-          "#BEAUTY"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5162,10 +4664,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "101 Likes",
         "subTopic": "Health Food",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5182,10 +4681,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "75 Likes",
         "subTopic": "Health Food",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -5202,10 +4698,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "61 Likes",
         "subTopic": "Tea & Coffee",
         "category": "FOOD",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": true,
@@ -5222,10 +4715,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "365 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5242,10 +4732,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "386 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5262,10 +4749,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "204 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5282,10 +4766,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "260 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5302,10 +4783,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "135 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5322,10 +4800,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "140 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5342,10 +4817,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "121 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5362,9 +4834,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "111 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5380,10 +4850,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "130 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5400,9 +4867,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "68 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5418,9 +4883,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "58 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5436,9 +4899,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5454,9 +4915,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "26 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5472,9 +4931,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "14 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5490,9 +4947,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "12 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5508,9 +4963,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "77 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5526,9 +4979,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "67 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5544,9 +4995,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "106 Likes",
         "subTopic": "Special Set",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5562,9 +5011,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "64 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5580,9 +5027,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "88 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5598,9 +5043,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "78 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5616,9 +5059,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "48 Likes",
         "subTopic": "Hair & Body",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#PERSONAL CARE"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5634,10 +5075,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "37 Likes",
         "subTopic": "Oral Care",
         "category": "PERSONAL CARE",
-        "tags": [
-          "#GST REDUCED",
-          "#FREE DELIVERY"
-        ],
+        "tags": ["#GST REDUCED"],
         "gstReduced": true,
         "freeDelivery": true,
         "isVeg": false,
@@ -5654,9 +5092,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "35 Likes",
         "subTopic": "Kitchen",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5672,9 +5108,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "27 Likes",
         "subTopic": "Laundry",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5690,9 +5124,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Kitchen",
         "category": "HOME",
-        "tags": [
-          "#HOME"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5708,9 +5140,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "23 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5726,9 +5156,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "66 Likes",
         "subTopic": "Special Set",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5744,9 +5172,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "15 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5762,9 +5188,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "14 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5780,9 +5204,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "10 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5798,9 +5220,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "13 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5816,9 +5236,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "10 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false
@@ -5834,9 +5252,7 @@ export const CATEGORY_CONFIGS = {
         "likes": "5 Likes",
         "subTopic": "Supplementary Goods",
         "category": "ETC",
-        "tags": [
-          "#ETC"
-        ],
+        "tags": [],
         "gstReduced": false,
         "isVeg": false,
         "isNonVeg": false

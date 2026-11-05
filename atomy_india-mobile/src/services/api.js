@@ -41,13 +41,16 @@ export const API_BASE = CLOUD_API_BASE;
 /**
  * Fetch all active products live from database (tries Local Backend first for instant response, falls back to Cloud)
  */
-export async function fetchLiveProducts(categoryId = null, search = null) {
+export async function fetchLiveProducts(categoryId = null, search = null, pincode = null) {
   const params = [];
   if (categoryId && categoryId !== 'all_products') {
     params.push(`categoryId=${encodeURIComponent(categoryId)}`);
   }
   if (search && search.trim()) {
     params.push(`search=${encodeURIComponent(search.trim())}`);
+  }
+  if (pincode && String(pincode).trim()) {
+    params.push(`pincode=${encodeURIComponent(String(pincode).trim())}`);
   }
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
 
@@ -67,34 +70,45 @@ export async function fetchLiveProducts(categoryId = null, search = null) {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          return data.map((p) => ({
-            ...p,
-            id: p.id,
-            name: p.name,
-            price: Number(p.price || 0),
-            originalPrice: Number(p.originalPrice || p.mrp || p.price || 0),
-            mrp: Number(p.originalPrice || p.mrp || p.price || 0),
-            discountPercent: p.discountPercent !== undefined && p.discountPercent !== null ? Number(p.discountPercent) : 0,
-            dpPrice: Number(p.dpPrice || 0),
-            pv: Number(p.pv || 0),
-            img: p.image || p.img || '',
-            image: p.image || p.img || '',
-            category: p.categoryId || p.category || 'all',
-            badge: typeof p.tags === 'string'
-              ? p.tags.replace('#', '')
-              : Array.isArray(p.tags) && p.tags.length > 0
-              ? String(p.tags[0]).replace('#', '')
-              : p.badge || '',
-            tags: Array.isArray(p.tags)
+          return data.map((p) => {
+            const tagList = Array.isArray(p.tags)
               ? p.tags
               : typeof p.tags === 'string' && p.tags.trim()
               ? p.tags.split(',').map((t) => t.trim()).filter(Boolean)
-              : [],
-            gstReduced: Boolean(p.gstReduced),
-            isBest: p.isBest || ((p.likesCount || 0) > 50) || false,
-            isNew: p.isNew || false,
-            isRecommended: p.isRecommended || true,
-          }));
+              : [];
+            const cleanTags = tagList.map((t) => (String(t).startsWith('#') ? String(t) : `#${String(t)}`));
+
+            return {
+              ...p,
+              id: p.id,
+              name: p.name,
+              price: Number(p.price || 0),
+              originalPrice: Number(p.originalPrice || p.mrp || p.price || 0),
+              mrp: Number(p.originalPrice || p.mrp || p.price || 0),
+              discountPercent: p.discountPercent !== undefined && p.discountPercent !== null ? Number(p.discountPercent) : 0,
+              dpPrice: Number(p.dpPrice || 0),
+              pv: Number(p.pv || 0),
+              img: p.image || p.img || '',
+              image: p.image || p.img || '',
+              category: p.categoryId || p.category || 'all',
+              badge: typeof p.badge === 'string' && p.badge
+                ? p.badge
+                : cleanTags.length > 0
+                ? cleanTags[0].replace('#', '')
+                : '',
+              tags: cleanTags,
+              freeDelivery: Boolean(p.freeDelivery || p.isFreeDelivery),
+              stockQuantity: p.stockQuantity !== undefined ? Number(p.stockQuantity) : 50,
+              inStock: p.inStock !== undefined ? Boolean(p.inStock) : true,
+              regionalHubId: p.regionalHubId || null,
+              regionalHubName: p.regionalHubName || null,
+              regionalPincode: p.regionalPincode || null,
+              gstReduced: Boolean(p.gstReduced),
+              isBest: p.isBest || ((p.likesCount || 0) > 50) || false,
+              isNew: p.isNew || false,
+              isRecommended: p.isRecommended || true,
+            };
+          });
         }
       }
     } catch (err) {
@@ -102,6 +116,52 @@ export async function fetchLiveProducts(categoryId = null, search = null) {
     }
   }
   return null;
+}
+
+/**
+ * Check product inventory and deliverability for a specific destination PIN code
+ */
+export async function checkPincodeInventory(pincode) {
+  const pin = String(pincode || '').trim();
+  if (!pin) return { isDeliverable: true, itemsStock: {} };
+
+  const candidateUrls = [
+    `${CLOUD_API_BASE}/products?pincode=${encodeURIComponent(pin)}`,
+    `${LOCAL_API_BASE}/products?pincode=${encodeURIComponent(pin)}`,
+  ];
+
+  for (const url of candidateUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const products = await res.json();
+        if (Array.isArray(products) && products.length > 0) {
+          const prodMap = {};
+          let anyInStock = false;
+          products.forEach((p) => {
+            const qty = p.stockQuantity !== undefined ? Number(p.stockQuantity) : 0;
+            const inStk = Boolean(p.inStock) && qty >= 2;
+            if (inStk) anyInStock = true;
+            prodMap[p.id] = {
+              stockQuantity: qty,
+              inStock: inStk,
+              hubId: p.regionalHubId,
+              hubName: p.regionalHubName,
+            };
+          });
+          return { isDeliverable: anyInStock, itemsStock: prodMap, raw: products };
+        }
+      }
+    } catch (err) {
+      // quiet fallback
+    }
+  }
+
+  return { isDeliverable: true, itemsStock: {} };
 }
 
 /**

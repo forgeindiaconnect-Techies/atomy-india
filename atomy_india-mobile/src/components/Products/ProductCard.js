@@ -151,6 +151,57 @@ export default function ProductCard({
           </Text>
         </View>
 
+        {/* Dynamic Badges & Hashtags (Configured by Admin) */}
+        {(() => {
+          const isFreeDeliv = Boolean(product.freeDelivery || product.isFreeDelivery);
+          const tagList = Array.isArray(product.tags)
+            ? product.tags
+            : typeof product.tags === 'string' && product.tags.trim()
+            ? product.tags.split(',').map((t) => t.trim()).filter(Boolean)
+            : [];
+          const cleanTags = tagList
+            .map((t) => (String(t).startsWith('#') ? String(t) : `#${String(t)}`))
+            .filter((t) => {
+
+              const upper = String(t).toUpperCase().replace(/^#/, '').trim();
+
+              if (upper.includes('FREE DELIVERY') || upper.includes('FREE_DELIVERY')) return false;
+
+              const blacklist = [
+
+                'HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING',
+
+                'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY',
+
+                'HEALTH', 'PERSONAL CARE', 'OTHERS'
+
+              ];
+
+              return !blacklist.includes(upper);
+
+            });
+
+          if (!isFreeDeliv && cleanTags.length === 0) return null;
+
+          return (
+            <View style={styles.tagsRow}>
+              {isFreeDeliv ? (
+                <View style={styles.freeDeliveryBadge}>
+                  <Text style={styles.freeDeliveryText}>Free Delivery</Text>
+                </View>
+              ) : null}
+              {cleanTags.slice(0, 2).map((tag, idx) => {
+                const isGst = tag.toUpperCase().includes('GST');
+                return (
+                  <Text key={idx} style={[styles.tagText, isGst && styles.tagGstText]}>
+                    {tag}
+                  </Text>
+                );
+              })}
+            </View>
+          );
+        })()}
+
         {/* Non-Member Unlock Hint */}
         {!isMember && (
           <TouchableOpacity
@@ -299,7 +350,7 @@ const styles = StyleSheet.create({
   },
   discountBadgeText: {
     fontSize: 9,
-    color: '#0284C7',
+    color: '#64748B',
     fontWeight: '700',
   },
   priceRow: {
@@ -345,5 +396,34 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 6,
+  },
+  tagText: {
+    fontSize: 9.5,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  tagGstText: {
+    color: '#64748B',
+    fontWeight: '700',
+  },
+  freeDeliveryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+  },
+  freeDeliveryText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#475569',
   },
 });

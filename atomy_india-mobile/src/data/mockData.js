@@ -602,10 +602,7 @@ export const BEST_PRODUCTS = [
     "reviewsCount": 0,
     "rating": 0,
     "category": "health",
-    "tags": [
-      "#GST REDUCED",
-      "#Immunity"
-    ],
+    "tags": ["#GST REDUCED", "#Immunity"],
     "freeDelivery": true,
     "categoryTab": [
       "ALL",
@@ -715,9 +712,7 @@ export const BEST_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D01440/org/810/260128000049810.jpg",
     "gstReduced": false,
     "likes": 42,
-    "tags": [
-      "#NewArrival"
-    ],
+    "tags": [],
     "freeDelivery": false,
     "categoryTab": [
       "NEW"
@@ -738,9 +733,7 @@ export const BEST_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D04704/org/115/260326000051115.jpeg",
     "gstReduced": false,
     "likes": 38,
-    "tags": [
-      "#MakeupEssential"
-    ],
+    "tags": [],
     "freeDelivery": false,
     "categoryTab": [
       "NEW"
@@ -761,9 +754,7 @@ export const BEST_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D01526/org/447/251119000048447.jpg",
     "gstReduced": false,
     "likes": 89,
-    "tags": [
-      "#Brightening"
-    ],
+    "tags": [],
     "freeDelivery": false,
     "categoryTab": [
       "NEW"
@@ -784,9 +775,7 @@ export const BEST_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D00396/org/441/251119000048441.jpg",
     "gstReduced": true,
     "likes": 67,
-    "tags": [
-      "#GST REDUCED"
-    ],
+    "tags": ["#GST REDUCED"],
     "freeDelivery": false,
     "categoryTab": [
       "NEW"
@@ -807,10 +796,7 @@ export const BEST_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D00170/org/350/260401000051350.jpg",
     "gstReduced": true,
     "likes": 184,
-    "tags": [
-      "#GST REDUCED",
-      "#Immunity"
-    ],
+    "tags": ["#GST REDUCED", "#Immunity"],
     "freeDelivery": true,
     "categoryTab": [
       "RECOMMENDATION"
@@ -831,9 +817,7 @@ export const BEST_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D00281/D00281_00.jpg",
     "gstReduced": false,
     "likes": 198,
-    "tags": [
-      "#SunProtection"
-    ],
+    "tags": [],
     "freeDelivery": false,
     "categoryTab": [
       "RECOMMENDATION"
@@ -854,9 +838,7 @@ export const BEST_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D00261/D00261_00.jpg",
     "gstReduced": false,
     "likes": 112,
-    "tags": [
-      "#DailyCare"
-    ],
+    "tags": [],
     "freeDelivery": false,
     "categoryTab": [
       "RECOMMENDATION"
@@ -877,10 +859,7 @@ export const BEST_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D00510/D00510_00.jpg",
     "gstReduced": true,
     "likes": 276,
-    "tags": [
-      "#GST REDUCED",
-      "#OralCare"
-    ],
+    "tags": ["#GST REDUCED"],
     "freeDelivery": false,
     "categoryTab": [
       "RECOMMENDATION"
@@ -918,9 +897,7 @@ export const HAIR_BODY_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D00691/D00691_00.jpg",
     "gstReduced": true,
     "likes": 139,
-    "tags": [
-      "#GST REDUCED"
-    ],
+    "tags": ["#GST REDUCED"],
     "dpPrice": 1123.5,
     "formattedDpPrice": "₹ 1,123.50"
   },
@@ -936,9 +913,7 @@ export const HAIR_BODY_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D00681/D00681_00.jpg",
     "gstReduced": true,
     "likes": 124,
-    "tags": [
-      "#GST REDUCED"
-    ],
+    "tags": ["#GST REDUCED"],
     "dpPrice": 934.5,
     "formattedDpPrice": "₹ 934.50"
   },
@@ -1018,9 +993,7 @@ export const HAIR_BODY_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D00601/D00601_00.jpg",
     "gstReduced": true,
     "likes": 110,
-    "tags": [
-      "#GST REDUCED"
-    ],
+    "tags": ["#GST REDUCED"],
     "dpPrice": 892.5,
     "formattedDpPrice": "₹ 892.50"
   }
@@ -1276,9 +1249,7 @@ export const GSGS_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D90178/org/880/260422000051880.jpeg",
     "gstReduced": true,
     "likes": 232,
-    "tags": [
-      "#GST REDUCED"
-    ],
+    "tags": ["#GST REDUCED"],
     "dpPrice": 498.75,
     "formattedDpPrice": "₹ 498.75"
   },
@@ -1294,9 +1265,7 @@ export const GSGS_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D04086/D04086_00.jpg",
     "gstReduced": true,
     "likes": 188,
-    "tags": [
-      "#GST REDUCED"
-    ],
+    "tags": ["#GST REDUCED"],
     "dpPrice": 670.95,
     "formattedDpPrice": "₹ 670.95"
   },
@@ -1312,9 +1281,7 @@ export const GSGS_PRODUCTS = [
     "image": "https://image.atomy.com/IN/goods/D94084/org/083/260501000052083.png",
     "gstReduced": true,
     "likes": 48,
-    "tags": [
-      "#GST REDUCED"
-    ],
+    "tags": ["#GST REDUCED"],
     "dpPrice": 1470,
     "formattedDpPrice": "₹ 1,470.00"
   }

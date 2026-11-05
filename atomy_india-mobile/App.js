@@ -80,7 +80,7 @@ import {
   fetchCustomerProfileApi,
   updateCustomerProfileApi,
 } from './src/services/api';
-import { syncCatalogFromBackend, onCatalogUpdate } from './src/services/catalogSyncService';
+import { syncCatalogFromBackend, onCatalogUpdate, setCustomerDeliveryPincode } from './src/services/catalogSyncService';
 import storageService from './src/services/storageService';
 import {
   ALL_PRODUCTS,
@@ -468,6 +468,10 @@ export default function App() {
             dob: liveProfile.dob !== undefined ? liveProfile.dob : prev.dob,
             isMember: typeof liveProfile.isMember === 'boolean' ? liveProfile.isMember : prev.isMember,
           }));
+
+          if (liveProfile.pincode && /^\d{6}$/.test(String(liveProfile.pincode).trim())) {
+            setCustomerDeliveryPincode(String(liveProfile.pincode).trim());
+          }
 
           if (typeof liveProfile.isMember === 'boolean') {
             setIsMember(liveProfile.isMember);

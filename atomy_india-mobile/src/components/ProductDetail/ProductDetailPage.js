@@ -200,6 +200,11 @@ export default function ProductDetailPage({
   const reviewsCount = productReviews.length || (Number(product?.reviewsCount) > 0 ? Number(product.reviewsCount) : 0);
   const ratingValue = reviewsCount > 0 ? (product?.rating || '5.0') : '0.0';
 
+  // Regional delivery inventory status
+  const isOutOfDelivery = Boolean(
+    product && (product.inStock === false || (product.stockQuantity !== undefined && Number(product.stockQuantity) < 2))
+  );
+
   // On Atomy India official site, Beauty / Cosmetics / Makeup products have Generic Name FIRST in the table
   const categoryStr = ((product?.category || '') + ' ' + (product?.name || '')).toLowerCase();
   const isGenericNameFirst = categoryStr.includes('beauty') ||
@@ -436,10 +441,54 @@ export default function ProductDetailPage({
             </View>
           </View>
 
-          {/* Free Delivery Bordered Pill */}
-          <View style={styles.badgeLine}>
-            <Text style={styles.freeDelivPill}>Free Delivery</Text>
-          </View>
+          {/* Free Delivery Bordered Pill & Dynamic Hashtags (from Admin section) */}
+          {(() => {
+            const isFreeDeliv = Boolean(product.freeDelivery || product.isFreeDelivery);
+            const tagList = Array.isArray(product.tags)
+              ? product.tags
+              : typeof product.tags === 'string' && product.tags.trim()
+              ? product.tags.split(',').map((t) => t.trim()).filter(Boolean)
+              : [];
+            const cleanTags = tagList
+              .map((t) => (String(t).startsWith('#') ? String(t) : `#${String(t)}`))
+              .filter((t) => {
+              const upper = String(t).toUpperCase().replace(/^#/, '').trim();
+              if (upper.includes('FREE DELIVERY') || upper.includes('FREE_DELIVERY')) return false;
+              const blacklist = [
+                'HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING',
+                'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY',
+                'HEALTH', 'PERSONAL CARE', 'OTHERS'
+              ];
+              return !blacklist.includes(upper);
+            });
+
+            if (!isFreeDeliv && cleanTags.length === 0) return null;
+
+            return (
+              <View style={styles.badgeLine}>
+                {isFreeDeliv ? (
+                  <View style={styles.freeDelivPillWrap}>
+                    <Text style={styles.freeDelivPill}>Free Delivery</Text>
+                  </View>
+                ) : null}
+                {cleanTags.map((tag, idx) => {
+                  const isGst = tag.toUpperCase().includes('GST');
+                  return (
+                    <View
+                      key={idx}
+                      style={[styles.hashtagPillWrap, isGst && styles.gstHashtagPillWrap]}
+                    >
+                      <Text
+                        style={[styles.hashtagPillText, isGst && styles.gstHashtagPillText]}
+                      >
+                        {tag}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })()}
 
           {/* Official Product Title */}
           <Text style={styles.officialTitle}>{product.name}</Text>
@@ -545,6 +594,21 @@ export default function ProductDetailPage({
           <View style={styles.shippingDetailsRow}>
             <Text style={styles.shipLabel}>Shipping details:</Text>
             <Text style={styles.shipVal}>Free delivery for orders above ₹ 4,500.00</Text>
+          </View>
+
+          {/* Regional Delivery Hub & Inventory Status */}
+          <View style={[styles.regionalStockBanner, isOutOfDelivery ? styles.regionalStockOut : styles.regionalStockIn]}>
+            <Ionicons
+              name={isOutOfDelivery ? 'alert-circle' : 'location'}
+              size={15}
+              color={isOutOfDelivery ? '#DC2626' : '#16A34A'}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={[styles.regionalStockText, isOutOfDelivery ? styles.regionalStockTextOut : styles.regionalStockTextIn]}>
+              {isOutOfDelivery
+                ? `Out of stock in your area (PIN ${product.regionalPincode || '110001'} • ${product.regionalHubName || 'Regional Hub'})`
+                : `In Stock at ${product.regionalHubName || 'Central Logistics Hub'} (PIN ${product.regionalPincode || '110001'}) • Fast Regional Dispatch`}
+            </Text>
           </View>
 
           {/* Quantity Selector */}
@@ -1146,17 +1210,33 @@ export default function ProductDetailPage({
 
         <View style={styles.bottomBtnsRow}>
           <TouchableOpacity
-            style={styles.bottomCartBtn}
-            onPress={() => onAddToCart && onAddToCart(product, qty)}
+            style={[styles.bottomCartBtn, isOutOfDelivery && styles.bottomBtnDisabled]}
+            onPress={() => {
+              if (isOutOfDelivery) {
+                Alert.alert(
+                  'Out of Stock',
+                  `This item is not in stock for delivery to PIN ${product.regionalPincode || '110001'}.`
+                );
+                return;
+              }
+              onAddToCart && onAddToCart(product, qty);
+            }}
             activeOpacity={0.85}
           >
-            <Ionicons name="cart-outline" size={18} color="#00A3E0" />
-            <Text style={styles.bottomCartBtnText}>Cart</Text>
+            <Ionicons name="cart-outline" size={18} color={isOutOfDelivery ? '#94A3B8' : '#00A3E0'} />
+            <Text style={[styles.bottomCartBtnText, isOutOfDelivery && styles.bottomBtnTextDisabled]}>Cart</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.bottomBuyBtn}
+            style={[styles.bottomBuyBtn, isOutOfDelivery && styles.bottomBuyBtnDisabled]}
             onPress={() => {
+              if (isOutOfDelivery) {
+                Alert.alert(
+                  'Out of Stock',
+                  `This item is not in stock for delivery to PIN ${product.regionalPincode || '110001'}.`
+                );
+                return;
+              }
               try {
                 if (onBuyNow) onBuyNow(product, qty);
               } catch (err) {
@@ -1165,7 +1245,7 @@ export default function ProductDetailPage({
             }}
             activeOpacity={0.88}
           >
-            <Text style={styles.bottomBuyBtnText}>Buy Now</Text>
+            <Text style={styles.bottomBuyBtnText}>{isOutOfDelivery ? 'Out of Stock' : 'Buy Now'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1546,19 +1626,74 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   badgeLine: {
-    marginBottom: 6,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  freeDelivPillWrap: {
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   freeDelivPill: {
-    alignSelf: 'flex-start',
     fontSize: 11,
     fontWeight: '700',
     color: '#0284C7',
-    backgroundColor: '#F0F9FF',
+  },
+  hashtagPillWrap: {
     borderWidth: 1,
     borderColor: '#BAE6FD',
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
+    backgroundColor: '#E0F2FE',
     borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  hashtagPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284C7',
+  },
+  gstHashtagPillWrap: {
+    borderColor: '#BAE6FD',
+    backgroundColor: '#E0F2FE',
+  },
+  gstHashtagPillText: {
+    color: '#0369A1',
+  },
+  regionalStockBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  regionalStockIn: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  regionalStockOut: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  regionalStockText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    flex: 1,
+  },
+  regionalStockTextIn: {
+    color: '#166534',
+  },
+  regionalStockTextOut: {
+    color: '#991B1B',
   },
   officialTitle: {
     fontSize: 20,
@@ -2322,6 +2457,16 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: '#FFFFFF',
+  },
+  bottomBtnDisabled: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+  },
+  bottomBtnTextDisabled: {
+    color: '#94A3B8',
+  },
+  bottomBuyBtnDisabled: {
+    backgroundColor: '#94A3B8',
   },
 
   // TAX BREAKDOWN POPUP MODAL STYLES

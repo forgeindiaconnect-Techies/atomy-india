@@ -103,7 +103,7 @@ export default function ProductEditorPage({
     precautions: initialData?.precautions || 'Store in cool and dry place. Keep out of reach of children.',
     volumeDesc: initialData?.volumeDesc || officialData.volumeDesc || 'Standard Package',
     weight: initialData?.weight || officialData.weight || 1.0,
-    tags: initialData?.tags || 'Best Seller',
+    tags: initialData?.tags !== undefined && initialData?.tags !== null ? initialData.tags : '',
     isVeg: initialData?.isVeg ?? true,
     isNonVeg: initialData?.isNonVeg ?? false,
     gstReduced: initialData?.gstReduced ?? true,
@@ -761,20 +761,10 @@ export default function ProductEditorPage({
                       checked={formData.freeDelivery}
                       onChange={(e) => {
                         const checked = e.target.checked;
-                        let updatedTags = Array.isArray(formData.tags)
-                          ? [...formData.tags]
-                          : typeof formData.tags === 'string'
-                            ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
-                            : [];
-                        if (checked && !updatedTags.some(t => t.toUpperCase().includes('FREE DELIVERY'))) {
-                          updatedTags.push('#FREE DELIVERY');
-                        } else if (!checked) {
-                          updatedTags = updatedTags.filter(t => !t.toUpperCase().includes('FREE DELIVERY'));
-                        }
-                        setFormData({ ...formData, freeDelivery: checked, tags: updatedTags });
+                        setFormData({ ...formData, freeDelivery: checked });
                       }}
                     />
-                    <span>Free Home Delivery Eligible (#FREE DELIVERY)</span>
+                    <span>Free Home Delivery Eligible (Free Delivery Badge)</span>
                   </label>
                 </div>
 
@@ -786,18 +776,14 @@ export default function ProductEditorPage({
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {[
                       { tag: '#GST REDUCED', isGst: true },
-                      { tag: '#FREE DELIVERY', isDeliv: true },
-                      { tag: '#BEST SELLER' },
-                      { tag: '#NEW' },
-                      { tag: '#IMMUNITY' },
-                      { tag: '#POPULAR' }
-                    ].map(({ tag, isGst, isDeliv }) => {
+                      { tag: '#Immunity' }
+                    ].map(({ tag, isGst }) => {
                       const tagsArr = Array.isArray(formData.tags) 
                         ? formData.tags 
                         : typeof formData.tags === 'string' 
                           ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) 
                           : [];
-                      const isSelected = isGst ? formData.gstReduced : isDeliv ? formData.freeDelivery : tagsArr.includes(tag);
+                      const isSelected = isGst ? formData.gstReduced : tagsArr.some(t => t.toUpperCase() === tag.toUpperCase());
                       return (
                         <button
                           key={tag}
@@ -806,17 +792,12 @@ export default function ProductEditorPage({
                             let nextTags = [...tagsArr];
                             if (isGst) {
                               const nextVal = !formData.gstReduced;
-                              if (nextVal && !nextTags.includes(tag)) nextTags.push(tag);
-                              if (!nextVal) nextTags = nextTags.filter(t => t !== tag);
+                              if (nextVal && !nextTags.some(t => t.toUpperCase().includes('GST'))) nextTags.push('#GST REDUCED');
+                              if (!nextVal) nextTags = nextTags.filter(t => !t.toUpperCase().includes('GST'));
                               setFormData({ ...formData, gstReduced: nextVal, tags: nextTags });
-                            } else if (isDeliv) {
-                              const nextVal = !formData.freeDelivery;
-                              if (nextVal && !nextTags.includes(tag)) nextTags.push(tag);
-                              if (!nextVal) nextTags = nextTags.filter(t => t !== tag);
-                              setFormData({ ...formData, freeDelivery: nextVal, tags: nextTags });
                             } else {
                               if (isSelected) {
-                                nextTags = nextTags.filter(t => t !== tag);
+                                nextTags = nextTags.filter(t => t.toUpperCase() !== tag.toUpperCase());
                               } else {
                                 nextTags.push(tag);
                               }

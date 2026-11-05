@@ -11,6 +11,7 @@ import {
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../data/officialDistributorPrices.js';
 import { fetchLiveProducts } from './api.js';
 import { getHighResImageUrl } from '../utils/imageUtils.js';
+import storageService from './storageService.js';
 
 const listeners = new Set();
 
@@ -165,11 +166,21 @@ export function mergeProductIntoCatalog(product) {
 
   const pv = Number(product.pv !== undefined ? product.pv : (official?.pv || 0));
 
-  const tags = Array.isArray(product.tags)
-    ? product.tags
-    : typeof product.tags === 'string' && product.tags.trim()
-    ? product.tags.split(',').map((t) => t.trim()).filter(Boolean)
-    : [];
+  const tagSet = new Set();
+  if (Array.isArray(product.tags)) {
+    product.tags.forEach((t) => {
+      const clean = String(t || '').trim();
+      if (clean) tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
+    });
+  } else if (typeof product.tags === 'string' && product.tags.trim()) {
+    product.tags.split(',').forEach((t) => {
+      const clean = t.trim();
+      if (clean) tagSet.add(clean.startsWith('#') ? clean : `#${clean}`);
+    });
+  }
+  const tags = Array.from(tagSet);
+
+  const isFreeDeliv = Boolean(product.freeDelivery || product.isFreeDelivery);
 
   const categoryTab = Array.isArray(product.categoryTab)
     ? product.categoryTab
@@ -192,6 +203,12 @@ export function mergeProductIntoCatalog(product) {
     dpPrice,
     pv,
     tags,
+    freeDelivery: isFreeDeliv,
+    stockQuantity: product.stockQuantity !== undefined ? Number(product.stockQuantity) : 50,
+    inStock: product.inStock !== undefined ? Boolean(product.inStock) : true,
+    regionalHubId: product.regionalHubId || null,
+    regionalHubName: product.regionalHubName || null,
+    regionalPincode: product.regionalPincode || null,
     categoryTab,
     category: targetCatKey,
     categoryId: targetCatKey,
@@ -267,12 +284,33 @@ export function mergeProductIntoCatalog(product) {
   return normalized;
 }
 
+export function getCustomerDeliveryPincode() {
+  const pin = storageService.getDeliveryPincode();
+  if (pin && /^\d{6}$/.test(String(pin).trim())) {
+    return String(pin).trim();
+  }
+  const u = storageService.getUserSession();
+  if (u && u.pincode && /^\d{6}$/.test(String(u.pincode).trim())) {
+    return String(u.pincode).trim();
+  }
+  return '110001';
+}
+
+export async function setCustomerDeliveryPincode(pincode) {
+  if (pincode && /^\d{6}$/.test(String(pincode).trim())) {
+    const clean = String(pincode).trim();
+    await storageService.saveDeliveryPincode(clean);
+    syncCatalogFromBackend(clean);
+  }
+}
+
 /**
- * Fetch catalog products from database via Spring Boot API (port 8085)
+ * Fetch catalog products from database via Spring Boot API resolved by destination pincode
  */
-export async function syncCatalogFromBackend() {
+export async function syncCatalogFromBackend(customPin = null) {
   try {
-    const products = await fetchLiveProducts();
+    const pin = customPin || getCustomerDeliveryPincode();
+    const products = await fetchLiveProducts(null, null, pin);
     if (Array.isArray(products) && products.length > 0) {
       products.forEach((p) => mergeProductIntoCatalog(p));
       notifyListeners(products);
