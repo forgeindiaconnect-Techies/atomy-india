@@ -164,7 +164,15 @@ export default function OrderHistoryPage({
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'Payment Completed' | 'Preparing Shipment' | 'In Transit' | 'Delivered' | 'Cancelled'
   const [searchQuery, setSearchQuery] = useState('');
   const [activeInvoiceOrder, setActiveInvoiceOrder] = useState(null);
-  const [expandedOrderId, setExpandedOrderId] = useState(null);
+  const [expandedOrderId, setExpandedOrderId] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('orderId') || null;
+      }
+    } catch (e) {}
+    return null;
+  });
 
   // Local overrides for cancellations, replacements, and returns
   const [localOrderOverrides, setLocalOrderOverrides] = useState({});
@@ -1155,6 +1163,14 @@ export default function OrderHistoryPage({
               const canCancel = isCancellable(order);
               const isDeliv = isDelivered(order);
               const isCanc = order.status === 'Cancelled';
+              const isPickup = Boolean(
+                order.fulfillmentType === 'STORE_PICKUP' ||
+                order.shippingMethod === 'STORE_PICKUP' ||
+                order.isPickup === true ||
+                (order.pickupStatus && order.pickupStatus !== 'NONE') ||
+                (typeof order.shippingAddress === 'string' && order.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+                (order.hubName && !order.courier)
+              );
 
               return (
                 <div key={order.orderId} className={`order-item-card ${isCanc ? 'card-cancelled' : ''}`}>
@@ -1167,6 +1183,38 @@ export default function OrderHistoryPage({
                     </div>
 
                     <div className="order-header-badges">
+                      {isPickup ? (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: '#dcfce7',
+                          color: '#15803d',
+                          border: '1px solid #86efac',
+                          borderRadius: '20px',
+                          padding: '3px 9px',
+                          fontSize: '11px',
+                          fontWeight: 700
+                        }}>
+                          <Building2 size={12} /> Direct Hub Pickup
+                        </span>
+                      ) : (
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: '#f0f9ff',
+                          color: '#0284c7',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '20px',
+                          padding: '3px 9px',
+                          fontSize: '11px',
+                          fontWeight: 600
+                        }}>
+                          <Truck size={12} /> Doorstep Delivery
+                        </span>
+                      )}
+
                       {isCanc ? (
                         <span className="status-pill cancelled">
                           <XCircle size={14} />
@@ -1379,17 +1427,35 @@ export default function OrderHistoryPage({
                     <div className="order-inline-tracker-box animate-fade">
                       <div className="inline-tracker-header">
                         <div className="inline-tracker-meta">
-                          <span className="meta-carrier">
-                            Carrier: <strong>{isCanc ? 'Transit Halted' : (order.courier || 'Blue Dart Express')}</strong>
-                          </span>
-                          <span className="sep">•</span>
-                          <span className="meta-awb">
-                            AWB: <strong className="mono">{order.trackingNumber || (order.orderId ? `BD-${order.orderId}` : 'BD-Pending Allocation')}</strong>
-                          </span>
-                          <span className="sep">•</span>
-                          <span className="meta-date">
-                            Order Date: <strong>{order.orderDate}</strong>
-                          </span>
+                          {isPickup ? (
+                            <>
+                              <span className="meta-carrier" style={{ color: '#15803d' }}>
+                                Fulfillment: <strong>🏢 Direct Hub Pickup (Counter Collection)</strong>
+                              </span>
+                              <span className="sep">•</span>
+                              <span className="meta-awb">
+                                Collection Hub: <strong>{order.hubName || order.hubAddress || 'Atomy Regional Logistics Hub'}</strong>
+                              </span>
+                              <span className="sep">•</span>
+                              <span className="meta-date">
+                                Order Date: <strong>{order.orderDate}</strong>
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="meta-carrier">
+                                Carrier: <strong>{isCanc ? 'Transit Halted' : (order.courier || 'Blue Dart Express')}</strong>
+                              </span>
+                              <span className="sep">•</span>
+                              <span className="meta-awb">
+                                AWB: <strong className="mono">{order.trackingNumber || (order.orderId ? `BD-${order.orderId}` : 'BD-Pending Allocation')}</strong>
+                              </span>
+                              <span className="sep">•</span>
+                              <span className="meta-date">
+                                Order Date: <strong>{order.orderDate}</strong>
+                              </span>
+                            </>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -1406,13 +1472,23 @@ export default function OrderHistoryPage({
                       <DeliveryStatusStepper order={order} />
 
                       {/* Destination Shipping Address Banner */}
-                      <div className="inline-tracker-destination">
-                        <MapPin size={15} color="#00A3E0" />
-                        <span>
-                          Shipping to: <strong>{order.shippingAddress?.recipient || 'Customer'}</strong>
-                          {order.shippingAddress?.address ? ` — ${order.shippingAddress.address}` : ''}
-                        </span>
-                      </div>
+                      {isPickup ? (
+                        <div className="inline-tracker-destination" style={{ background: '#f0fdf4', borderColor: '#86efac' }}>
+                          <Building2 size={16} color="#16a34a" />
+                          <span>
+                            Pickup Location: <strong>{order.hubName || 'Atomy Regional Logistics Hub'}</strong> — {order.hubAddress || 'Collect in person at designated regional logistics counter'}
+                            {order.hubPhone ? ` • Contact: ${order.hubPhone}` : ''}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="inline-tracker-destination">
+                          <MapPin size={15} color="#00A3E0" />
+                          <span>
+                            Shipping to: <strong>{order.shippingAddress?.recipient || 'Customer'}</strong>
+                            {order.shippingAddress?.address ? ` — ${order.shippingAddress.address}` : ''}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

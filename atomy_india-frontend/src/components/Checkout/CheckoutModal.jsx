@@ -43,6 +43,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
         city: formData.city,
         state: formData.state,
         pincode: formData.pincode,
+        orderSource: 'WEB_BROWSER',
         paymentMethod: formData.paymentMethod,
         shippingFee: shippingFee,
         items: cartItems.map((item) => ({

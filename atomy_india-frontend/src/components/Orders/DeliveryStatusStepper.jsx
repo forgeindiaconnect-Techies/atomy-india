@@ -2,11 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, ShieldCheck, XCircle } from 'lucide-react';
 import './DeliveryStatusStepper.css';
 
+function isStorePickupOrder(order) {
+  if (!order) return false;
+  return Boolean(
+    order.fulfillmentType === 'STORE_PICKUP' ||
+    order.shippingMethod === 'STORE_PICKUP' ||
+    order.isPickup === true ||
+    (order.pickupStatus && order.pickupStatus !== 'NONE') ||
+    (typeof order.shippingAddress === 'string' && order.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+    (order.hubName && !order.courier)
+  );
+}
+
 // Compute the exact target stage from the order status set by Admin
 function computeTargetStage(order) {
   if (!order) return 1;
-  const raw = (order.orderStatus || order.status || '').toUpperCase().trim();
+  const isPickup = isStorePickupOrder(order);
+  const raw = (order.pickupStatus || order.orderStatus || order.status || '').toUpperCase().trim();
   if (raw.includes('CANCEL')) return 3; // Terminal cancelled stage
+
+  if (isPickup) {
+    if (raw.includes('DELIVER') || raw.includes('COLLECT')) return 3; // Fully collected
+    if (raw.includes('READY')) return 3; // Ready for pickup
+    if (raw.includes('PREPAR') || raw.includes('PROCESS') || raw.includes('PACK')) return 2;
+    return 1; // Placed
+  }
+
   if (raw.includes('DELIVERED')) return 5;
   if (raw.includes('OUT') || raw.includes('LOCAL')) return 4;
   if (raw.includes('TRANSIT') || raw.includes('SHIPPED') || raw.includes('DISPATCH')) return 3;
@@ -31,11 +52,25 @@ export default function DeliveryStatusStepper({ order }) {
     setCurrentStep(targetStage);
   }, [targetStage, order?.orderStatus, order?.status]);
 
+  const isPickup = isStorePickupOrder(order);
+  const isCollected = Boolean(
+    isPickup && (
+      String(order?.pickupStatus || '').toUpperCase().includes('COLLECT') ||
+      String(order?.orderStatus || '').toUpperCase().includes('DELIVER') ||
+      String(order?.status || '').toUpperCase().includes('DELIVER') ||
+      String(order?.status || '').toUpperCase().includes('COLLECT')
+    )
+  );
+
   // If order is cancelled, show travelling status from before-state to Cancelled
   const stages = isCancelled ? [
     { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
     { num: 2, label: 'Processing & Check', sub: 'Pre-Dispatch Window' },
     { num: 3, label: 'Order Cancelled', sub: '100% Refund Initiated', isTerminalCancelled: true }
+  ] : isPickup ? [
+    { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
+    { num: 2, label: 'Preparing', sub: 'Hub Staff Packing' },
+    { num: 3, label: isCollected ? 'Collected' : 'Ready to Pick Up', sub: isCollected ? 'Package Received at Counter' : 'Available at Hub Counter' }
   ] : [
     { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
     { num: 2, label: 'Preparing', sub: 'Warehouse Packed' },
@@ -49,28 +84,41 @@ export default function DeliveryStatusStepper({ order }) {
       {/* Real Live Shipping Status Header - Synced with Admin */}
       <div className="shipping-status-live-header">
         <div className="status-header-left">
-          <span className={`live-status-indicator-dot ${isCancelled ? 'cancelled-dot' : ''}`} />
+          <span className={`live-status-indicator-dot ${isCancelled ? 'cancelled-dot' : isPickup ? 'pickup-dot' : ''}`} />
           <span className="shipping-live-title">
-            {isCancelled ? 'ORDER CANCELLATION & TRANSIT STATUS' : 'LIVE ORDER SHIPPING STATUS'}
+            {isCancelled ? 'ORDER CANCELLATION & TRANSIT STATUS' : isPickup ? 'DIRECT HUB SELF-PICKUP STATUS' : 'LIVE ORDER SHIPPING STATUS'}
           </span>
-          <span className={`shipping-carrier-pill ${isCancelled ? 'carrier-cancelled' : ''}`}>
-            {isCancelled ? 'Transit Halted' : (order?.courier || 'Blue Dart Express')}
+          <span className={`shipping-carrier-pill ${isCancelled ? 'carrier-cancelled' : isPickup ? 'carrier-pickup' : ''}`}>
+            {isCancelled ? 'Transit Halted' : isPickup ? 'Direct Store Pickup' : (order?.courier || 'Blue Dart Express')}
           </span>
           <span className="shipping-current-step-label">
             Current Stage:{' '}
-            <strong className={`stage-highlight ${isCancelled && currentStep === 3 ? 'stage-cancelled-text' : ''}`}>
+            <strong className={`stage-highlight ${isCancelled && currentStep === 3 ? 'stage-cancelled-text' : isPickup ? 'stage-pickup-text' : ''}`}>
               {stages[currentStep - 1] ? stages[currentStep - 1].label : 'Order Placed'}
             </strong>
           </span>
         </div>
 
         <div className="status-header-right">
-          <span className="tracking-awb-badge">
-            Tracking ID: <strong>{order?.trackingNumber || (order?.orderId ? `BD-${order.orderId}` : 'BD-942817260IN')}</strong>
-          </span>
-          <span className={`verified-transit-badge ${isCancelled ? 'cancelled-badge-pill' : ''}`}>
-            {isCancelled ? '100% Refunded' : 'Express Courier'}
-          </span>
+          {isPickup ? (
+            <>
+              <span className="tracking-awb-badge" style={{ background: '#f0fdf4', borderColor: '#86efac', color: '#166534' }}>
+                Collection Counter: <strong>{order?.hubName || 'Atomy Regional Logistics Hub'}</strong>
+              </span>
+              <span className="verified-transit-badge" style={{ background: isCollected ? '#dcfce7' : '#e0f2fe', color: isCollected ? '#15803d' : '#0369a1' }}>
+                {isCollected ? 'Collected' : currentStep === 3 ? 'Ready for Pickup' : 'Packing in Progress'}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="tracking-awb-badge">
+                Tracking ID: <strong>{order?.trackingNumber || (order?.orderId ? `BD-${order.orderId}` : 'BD-942817260IN')}</strong>
+              </span>
+              <span className={`verified-transit-badge ${isCancelled ? 'cancelled-badge-pill' : ''}`}>
+                {isCancelled ? '100% Refunded' : 'Express Courier'}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -278,6 +326,31 @@ export default function DeliveryStatusStepper({ order }) {
               <div className="status-narrative red">
                 <span className="narrative-tag red">STAGE 3 • CANCELLED</span>
                 <strong>Order Cancelled & 100% Refund Initiated!</strong> Package transit stopped. Full amount reversed to your payment method.
+              </div>
+            )}
+          </>
+        ) : isPickup ? (
+          <>
+            {currentStep === 1 && (
+              <div className="status-narrative">
+                <span className="narrative-tag">STAGE 1</span>
+                <strong>Order Placed & Payment Confirmed</strong>: Order received and routed to your designated regional logistics hub.
+              </div>
+            )}
+            {currentStep === 2 && (
+              <div className="status-narrative orange">
+                <span className="narrative-tag orange">STAGE 2</span>
+                <strong>Preparing & Packing Order</strong>: Hub team is packing and verifying items from local shelf stock.
+              </div>
+            )}
+            {currentStep === 3 && (
+              <div className={`status-narrative ${isCollected ? 'green' : 'blue'}`}>
+                <span className={`narrative-tag ${isCollected ? 'green' : 'blue'}`}>STAGE 3 • {isCollected ? 'COLLECTED' : 'READY TO PICK UP'}</span>
+                {isCollected ? (
+                  <><strong>Order Collected Successfully!</strong> Parcel handed over at regional hub counter. Thank you for shopping with Atomy India!</>
+                ) : (
+                  <><strong>Parcel Ready for Counter Pickup!</strong> Your order is packed and waiting at <strong>{order?.hubName || 'the regional logistics hub counter'}</strong>. Please present your Order ID ({order?.orderId || order?.id}) to collect.</>
+                )}
               </div>
             )}
           </>

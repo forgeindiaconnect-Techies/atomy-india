@@ -923,6 +923,7 @@ export default function PaymentSummaryPage({
         city: selectedAddress.city,
         state: selectedAddress.state,
         pincode: selectedAddress.pincode,
+        orderSource: 'MOBILE_APP',
         totalAmount: grandTotal,
         shippingFee: shippingFee,
         paymentMethod: paymentMethod === 'COD' ? 'COD' : 'ONLINE_UPI',

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   IndianRupee, 
   Package, 
@@ -10,14 +10,20 @@ import {
   MapPin, 
   Users, 
   ShoppingBag,
-  Sparkles,
-  Crown,
-  ArrowRight,
-  ShieldCheck,
-  Send,
-  Eye,
-  TrendingUp
+  Sparkles, 
+  Crown, 
+  ArrowRight, 
+  ShieldCheck, 
+  Send, 
+  Eye, 
+  TrendingUp,
+  Plus,
+  Bell,
+  Headphones,
+  Volume2
 } from 'lucide-react';
+import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
+import { fetchDistributorInventory } from '../../services/distributorService';
 import '../Admin/AdminDashboard.css';
 
 export default function DistributorOverviewTab({ 
@@ -29,26 +35,30 @@ export default function DistributorOverviewTab({
   onSelectOrderForDispatch 
 }) {
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
-  const validPins = new Set(Array.isArray(assignedPins) ? assignedPins : []);
+  const validPins = new Set(Array.isArray(assignedPins) ? assignedPins.map(p => String(p).trim()) : []);
   if (distributor?.primaryPincode) validPins.add(String(distributor.primaryPincode).trim());
-  if (validPins.size === 0) validPins.add('635002');
 
-  const distId = String(distributor?.distributorId || distributor?.id || 'DIST-635002').toLowerCase();
+  const currentDistId = String(distributor?.distributorId || distributor?.id || '').trim();
 
-  // Territory orders strictly for assigned PIN codes
+  // Territory orders strictly for assigned PIN codes or assigned distributor
   const territoryOrders = orders.filter(o => {
+    if (currentDistId && o.assignedDistributorId && String(o.assignedDistributorId).trim() === currentDistId) {
+      return true;
+    }
     const p = String(o.pincode || o.shippingAddress?.pincode || '').trim();
-    return p ? validPins.has(p) : false;
+    return p && validPins.size > 0 ? validPins.has(p) : false;
   });
 
+  const displayOrders = territoryOrders.length > 0 ? territoryOrders : orders;
+
   const commRate = Number(distributor?.commissionRate || 8.0);
-  const totalRev = Number(stats?.totalRevenue || territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() !== 'CANCELLED').reduce((sum, o) => sum + Number(o.totalAmount || 0), 0));
+  const totalRev = Number(stats?.totalRevenue || displayOrders.filter(o => String(o.orderStatus || '').toUpperCase() !== 'CANCELLED').reduce((sum, o) => sum + Number(o.totalAmount || 0), 0));
   const totalComm = Number(stats?.totalCommission || (totalRev * commRate) / 100);
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const todayTerritoryOrders = territoryOrders.filter(o => {
+  const todayTerritoryOrders = displayOrders.filter(o => {
     const d = new Date(o.createdAt || o.date || o.orderDate || Date.now());
     return d >= todayStart && String(o.orderStatus || '').toUpperCase() !== 'CANCELLED';
   });
@@ -57,27 +67,27 @@ export default function DistributorOverviewTab({
   const todayOrdersCount = todayTerritoryOrders.length;
   const overallSale = totalRev;
 
-  const placedCount = territoryOrders.filter(o => {
+  const placedCount = displayOrders.filter(o => {
     const st = String(o.orderStatus || 'PLACED').toUpperCase();
     return st === 'PLACED' || st === 'NEW';
   }).length;
 
-  const processingCount = territoryOrders.filter(o => {
+  const processingCount = displayOrders.filter(o => {
     const st = String(o.orderStatus || '').toUpperCase();
     return st === 'PROCESSING';
   }).length;
 
-  const shippedCount = territoryOrders.filter(o => {
+  const shippedCount = displayOrders.filter(o => {
     const st = String(o.orderStatus || '').toUpperCase();
     return st === 'SHIPPED' || st === 'OUT_FOR_DELIVERY';
   }).length;
 
-  const deliveredCount = territoryOrders.filter(o => {
+  const deliveredCount = displayOrders.filter(o => {
     const st = String(o.orderStatus || '').toUpperCase();
     return st === 'DELIVERED';
   }).length;
 
-  const delayedOrders = territoryOrders.filter(o => {
+  const delayedOrders = displayOrders.filter(o => {
     const st = String(o.orderStatus || 'PLACED').toUpperCase();
     if (st === 'DELIVERED' || st === 'CANCELLED') return false;
     const base = new Date(o.createdAt || Date.now());
@@ -85,7 +95,101 @@ export default function DistributorOverviewTab({
     return new Date() > deadline;
   });
 
-  const recentOrders = territoryOrders.slice(0, 8);
+  // Fetch live distributor regional stock
+  const [inventoryList, setInventoryList] = useState([]);
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadStock() {
+      try {
+        const dId = distributor?.distributorId || distributor?.id || '';
+        if (dId) {
+          const liveStock = await fetchDistributorInventory(dId);
+          if (isMounted && Array.isArray(liveStock) && liveStock.length > 0) {
+            setInventoryList(liveStock);
+            return;
+          }
+        }
+      } catch (err) {
+        console.debug('Distributor inventory load note:', err?.message);
+      }
+      if (isMounted && Array.isArray(ALL_CATALOG_PRODUCTS)) {
+        setInventoryList(ALL_CATALOG_PRODUCTS);
+      }
+    }
+    loadStock();
+
+    // Check open tickets count from storage
+    try {
+      const saved = localStorage.getItem('atomy_admin_tickets');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const count = parsed.filter(t => t.status === 'OPEN' || !t.status).length;
+          if (isMounted) setOpenTicketsCount(count);
+        }
+      }
+    } catch (e) {}
+
+    return () => { isMounted = false; };
+  }, [distributor?.distributorId, distributor?.id]);
+
+  const stockStats = useMemo(() => {
+    const list = Array.isArray(inventoryList) && inventoryList.length > 0 ? inventoryList : (ALL_CATALOG_PRODUCTS || []);
+    const totalSkus = list.length;
+    let inStock = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+
+    list.forEach(p => {
+      const q = Number(p.stockQuantity ?? p.stock ?? (p.inStock ? 25 : 0));
+      const th = Number(p.lowStockThreshold || 10);
+      if (q > th) {
+        inStock++;
+      } else if (q > 0) {
+        lowStock++;
+      } else {
+        outOfStock++;
+      }
+    });
+
+    return { 
+      totalSkus, 
+      inStockCount: inStock, 
+      lowStockCount: lowStock, 
+      outOfStockCount: outOfStock 
+    };
+  }, [inventoryList]);
+
+  // Robust order items resolver to guarantee product name and quantity
+  const resolveOrderItems = (order) => {
+    if (!order) return [];
+    const rawItems = (Array.isArray(order.items) && order.items.length > 0)
+      ? order.items
+      : (Number(order.totalAmount) > 0 ? [{ price: order.totalAmount, qty: 1 }] : []);
+
+    return rawItems.map(it => {
+      const rawCode = String(it.productId || it.id || it.code || it.productCode || '').trim();
+      const rawName = String(it.productName || it.name || it.title || '').trim();
+      const rawPrice = Number(it.unitPrice ?? it.price ?? 0);
+
+      const matched = 
+        (rawCode ? (ALL_CATALOG_PRODUCTS || []).find(p => p && String(p.id).toLowerCase() === rawCode.toLowerCase()) : null) ||
+        (rawName ? (ALL_CATALOG_PRODUCTS || []).find(p => p && p.name && p.name.toLowerCase() === rawName.toLowerCase()) : null) ||
+        (rawPrice > 0 ? (ALL_CATALOG_PRODUCTS || []).find(p => Number(p.price) === rawPrice) : null);
+
+      const resolvedName = rawName || matched?.name || (rawCode ? `Atomy Product (${rawCode})` : 'Atomy Authentic Product');
+      const resolvedQty = Number(it.quantity ?? it.qty ?? it.count ?? 1) || 1;
+
+      return {
+        name: resolvedName,
+        quantity: resolvedQty
+      };
+    });
+  };
+
+  const recentOrders = displayOrders.slice(0, 6);
 
   return (
     <div>
@@ -94,7 +198,7 @@ export default function DistributorOverviewTab({
         <div>
           <h2 className="content-title">Territory Overview</h2>
           <p className="content-subtitle">
-            Real-time fulfillment metrics, Blue Dart dispatch SLAs, and territory performance for PIN: <strong>{distributor?.primaryPincode}</strong> ({distributor?.city || 'Regional Hub'}, {distributor?.state || 'India'})
+            Real-time fulfillment metrics, Blue Dart dispatch SLAs, and territory performance for PIN: <strong>{distributor?.primaryPincode || 'Assigned Territory'}</strong> ({distributor?.city || 'Regional Hub'}, {distributor?.state || 'India'})
           </p>
         </div>
         <div className="heading-actions-cluster">
@@ -104,12 +208,12 @@ export default function DistributorOverviewTab({
             onClick={() => onNavigateTab('orders')}
           >
             <Package size={15} />
-            <span>Manage Orders ({orders.length})</span>
+            <span>Manage Orders ({displayOrders.length})</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Top Sales KPI Cards (Image 1: Curved Wave with Circular Icon Badge) */}
+      {/* 2. Top Sales KPI Cards (Curved Wave with Circular Icon Badge) */}
       <div className="kpi-curve-grid" style={{ marginBottom: '24px' }}>
         {/* Card 1: Today's Total Sale */}
         <div 
@@ -193,62 +297,8 @@ export default function DistributorOverviewTab({
         </div>
       </div>
 
-      {/* 3. Quick Shortcuts Strip */}
-      <div className="overview-quick-actions-bar" style={{ marginBottom: '22px' }}>
-        <span className="quick-actions-label">
-          <Sparkles size={14} color="#00a3e0" />
-          <span>QUICK ACTIONS:</span>
-        </span>
-        <div className="quick-actions-links-row">
-          <button 
-            type="button" 
-            className="quick-action-pill-btn" 
-            onClick={() => onNavigateTab('inventory')}
-          >
-            <Boxes size={13} color="#00A3E0" />
-            <span>Hub Inventory</span>
-          </button>
-
-          <button 
-            type="button" 
-            className="quick-action-pill-btn" 
-            onClick={() => onNavigateTab('orders')}
-          >
-            <Package size={13} color="#0284c7" />
-            <span>Fulfill Customer Orders</span>
-          </button>
-
-          <button 
-            type="button" 
-            className="quick-action-pill-btn" 
-            onClick={() => onNavigateTab('customers')}
-          >
-            <Users size={13} color="#0284c7" />
-            <span>Territory Customers ({customers.length})</span>
-          </button>
-
-          <button 
-            type="button" 
-            className="quick-action-pill-btn" 
-            onClick={() => onNavigateTab('membership')}
-          >
-            <Crown size={13} color="#eab308" />
-            <span>Member Accounts</span>
-          </button>
-
-          <button 
-            type="button" 
-            className="quick-action-pill-btn" 
-            onClick={() => onNavigateTab('finance')}
-          >
-            <IndianRupee size={13} color="#15803d" />
-            <span>Payout Settlement</span>
-          </button>
-        </div>
-      </div>
-
       {/* 3. The 5 Core Status KPI Cards (01 Placed, 02 Processing, 03 In Transit, 04 Delivered, 05 Delayed SLA) */}
-      <div className="kpi-step-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+      <div className="kpi-step-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         {/* Step 01: PLACED */}
         <div
           className="kpi-step-card"
@@ -369,147 +419,117 @@ export default function DistributorOverviewTab({
         </div>
       </div>
 
-      {/* 4. Full-width Recent Territory Customer Orders Table */}
-      <div className="admin-card" style={{ marginBottom: '32px' }}>
-        <div className="card-title-row" style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
-          <div>
-            <h3 className="card-title" style={{ fontSize: '16.5px', fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-              Recent Territory Customer Orders
-            </h3>
-            <p className="card-subtitle" style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-              Live customer orders automatically routed to your regional hub based on delivery PIN code
-            </p>
+      {/* 4. Superadmin-Style Overview Split: Recent Orders & Stock Health with Shortcuts */}
+      <div className="atomy-overview-split" style={{ marginBottom: '32px' }}>
+        {/* Left Card: Recent Customer Orders */}
+        <div className="atomy-card-box">
+          <div className="card-box-header">
+            <div className="box-title-group">
+              <Package size={18} color="#00A3E0" />
+              <h3>Recent Customer Orders</h3>
+            </div>
+            <button className="link-button" onClick={() => onNavigateTab('orders')}>
+              View All Orders ({displayOrders.length}) →
+            </button>
           </div>
-          <button 
-            type="button" 
-            className="secondary-btn" 
-            onClick={() => onNavigateTab('orders')}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <span>View All ({orders.length})</span>
-            <ArrowRight size={14} />
-          </button>
+
+          {recentOrders.length === 0 ? (
+            <div className="empty-box-note" style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
+              <Package size={32} color="#cbd5e1" style={{ marginBottom: '8px' }} />
+              <div>No customer orders recorded in your territory yet.</div>
+            </div>
+          ) : (
+            <div className="recent-orders-list">
+              {recentOrders.map((o) => (
+                <div
+                  key={o.orderId || o.id}
+                  className="recent-order-row clickable"
+                  onClick={() => {
+                    onNavigateTab('orders');
+                    if (onSelectOrderForDispatch) onSelectOrderForDispatch(o);
+                  }}
+                >
+                  <div className="recent-order-left">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className="order-id-badge">{o.orderId || o.id}</span>
+                      {o.fulfillmentType === 'STORE_PICKUP' && (
+                        <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#fef3c7', color: '#b45309', padding: '1px 6px', borderRadius: '4px' }}>
+                          🏢 Pickup
+                        </span>
+                      )}
+                    </div>
+                    <div className="customer-info-line">
+                      <strong>{o.customerName || 'Customer'}</strong> • {o.city || o.state || distributor?.city || 'Local Territory'} ({new Date(o.createdAt || o.date || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                    </div>
+                    <div className="order-items-snippet">
+                      {resolveOrderItems(o).map(it => `${it.name} (x${it.quantity})`).join(', ') || '1 item'}
+                    </div>
+                  </div>
+                  <div className="order-row-right">
+                    <span className="order-price">₹ {Number(o.totalAmount || 0).toLocaleString('en-IN')}</span>
+                    <span className={`status-badge ${(o.orderStatus || 'PLACED').toLowerCase()}`}>{o.orderStatus || 'PLACED'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {recentOrders.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>
-            <Package size={38} color="#cbd5e1" style={{ marginBottom: '10px' }} />
-            <p style={{ margin: 0, fontSize: '14px' }}>No orders recorded in your assigned PIN codes yet.</p>
+        {/* Right Card: Warehouse Stock Health & Quick Action Center */}
+        <div className="atomy-card-box">
+          <div className="card-box-header">
+            <div className="box-title-group">
+              <Boxes size={18} color="#00A3E0" />
+              <h3>Inventory &amp; Stock Health</h3>
+            </div>
+            <button className="link-button" onClick={() => onNavigateTab('inventory')}>
+              Manage Catalog →
+            </button>
           </div>
-        ) : (
-          <div className="atomy-table-responsive orders-table-wrapper">
-            <table className="atomy-data-table orders-data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '180px', minWidth: '180px' }}>Order ID &amp; Date</th>
-                  <th style={{ minWidth: '220px' }}>Customer &amp; Address</th>
-                  <th style={{ width: '110px', minWidth: '110px', textAlign: 'center' }}>Delivery PIN</th>
-                  <th style={{ width: '140px', minWidth: '140px', textAlign: 'center' }}>Order Status</th>
-                  <th style={{ width: '130px', minWidth: '130px', textAlign: 'right' }}>Total Amount</th>
-                  <th style={{ width: '130px', minWidth: '130px', textAlign: 'right' }}>Commission</th>
-                  <th style={{ width: '190px', minWidth: '190px' }}>Courier / Tracking</th>
-                  <th style={{ width: '120px', minWidth: '120px', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrders.map((o) => {
-                  const orderAmt = Number(o.totalAmount || 0);
-                  const isCancelled = String(o.orderStatus || '').toUpperCase() === 'CANCELLED';
-                  const earnedCommission = isCancelled ? 0 : ((orderAmt * commRate) / 100);
 
-                  const hasRealTracking = Boolean(o.tracking?.trackingNumber && !o.tracking.trackingNumber.startsWith('MOCK'));
-
-                  return (
-                    <tr key={o.orderId || o.id}>
-                      <td>
-                        <div className="order-id-badge">
-                          <span className="order-id-text">{o.orderId || o.id}</span>
-                        </div>
-                        <div className="order-date-text">
-                          {new Date(o.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="cell-primary-text">{o.customerName || 'Customer'}</div>
-                        <div className="cell-secondary-text">{o.city}, {o.state}</div>
-                      </td>
-
-                      <td style={{ textAlign: 'center' }}>
-                        <span className="pincode-pill">
-                          {o.pincode}
-                        </span>
-                      </td>
-
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`payment-pill ${(o.orderStatus || 'PLACED').toLowerCase()}`}>
-                          {o.orderStatus || 'PLACED'}
-                        </span>
-                      </td>
-
-                      <td style={{ textAlign: 'right' }} className="cell-price-col">
-                        <span className="order-total-amount">
-                          ₹ {orderAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </td>
-
-                      <td style={{ textAlign: 'right' }} className="cell-price-col">
-                        {isCancelled ? (
-                          <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
-                            ₹0.00 (Cancelled)
-                          </span>
-                        ) : (
-                          <span style={{ fontWeight: 700, color: '#16a34a' }}>
-                            +₹{earnedCommission.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        )}
-                      </td>
-
-                      <td>
-                        {hasRealTracking ? (
-                          <div>
-                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Truck size={12} /> {o.tracking.courierPartner || 'Blue Dart Express'}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#475569', marginTop: '2px' }}>
-                              AWB: <strong>{o.tracking.trackingNumber}</strong>
-                            </div>
-                          </div>
-                        ) : (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            fontSize: '11.5px',
-                            fontWeight: 600,
-                            background: '#f1f5f9',
-                            color: '#64748b'
-                          }}>
-                            Pending Dispatch
-                          </span>
-                        )}
-                      </td>
-
-                      <td style={{ textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          className="action-pill-btn tracking"
-                          onClick={() => onSelectOrderForDispatch(o)}
-                          title="Update Tracking / Dispatch Order"
-                        >
-                          <Send size={12} />
-                          <span>Dispatch</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="inv-health-list">
+            <div className="health-row">
+              <span>Total Registered Catalog SKUs</span>
+              <strong>{stockStats.totalSkus}</strong>
+            </div>
+            <div className="health-row">
+              <span>In Stock Products</span>
+              <strong className="text-green">
+                {stockStats.inStockCount}
+              </strong>
+            </div>
+            <div className="health-row">
+              <span>Low Stock Warnings (&le; 10 units)</span>
+              <strong className="text-yellow">{stockStats.lowStockCount}</strong>
+            </div>
+            <div className="health-row">
+              <span>Out of Stock SKUs</span>
+              <strong className="text-red">{stockStats.outOfStockCount}</strong>
+            </div>
           </div>
-        )}
+
+          <div className="quick-actions-box">
+            <div className="quick-actions-title">OPERATIONAL SHORTCUTS</div>
+            <div className="quick-btn-grid">
+              <button className="quick-action-tile" onClick={() => onNavigateTab('inventory')}>
+                <Plus size={16} />
+                <span>Add Product</span>
+              </button>
+              <button className="quick-action-tile" onClick={() => onNavigateTab('orders')}>
+                <Bell size={16} />
+                <span>Review New ({placedCount})</span>
+              </button>
+              <button className="quick-action-tile" onClick={() => onNavigateTab('support')}>
+                <Headphones size={16} />
+                <span>Support Desk ({openTicketsCount})</span>
+              </button>
+              <button className="quick-action-tile" onClick={() => onNavigateTab('settings')}>
+                <Volume2 size={16} />
+                <span>Sound Controls</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

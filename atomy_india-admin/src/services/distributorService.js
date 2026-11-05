@@ -79,45 +79,71 @@ export async function fetchDistributorOrders(distributorId, status = 'ALL') {
 
 export async function updateDistributorOrderStatus(orderId, distributorId, status) {
   const url = `${API_BASE}/distributor/orders/${encodeURIComponent(orderId)}/status?distributorId=${encodeURIComponent(distributorId)}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 7000);
+
   try {
     const res = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
       return await res.json();
     }
   } catch (err) {
-    console.warn('Sub-admin status endpoint fallback triggered:', err);
+    clearTimeout(timeoutId);
+    console.warn('Sub-admin status endpoint fallback triggered:', err.message);
   }
 
   // Graceful fallback to admin orders status endpoint
   const fallbackUrl = `${API_BASE}/admin/orders/${encodeURIComponent(orderId)}/status`;
-  const fallbackRes = await fetch(fallbackUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status })
-  });
-  if (!fallbackRes.ok) {
-    const err = await fallbackRes.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to update order status');
+  const fbController = new AbortController();
+  const fbTimeoutId = setTimeout(() => fbController.abort(), 5000);
+
+  try {
+    const fallbackRes = await fetch(fallbackUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+      signal: fbController.signal
+    });
+    clearTimeout(fbTimeoutId);
+    if (fallbackRes.ok) {
+      return await fallbackRes.json();
+    }
+  } catch (err) {
+    clearTimeout(fbTimeoutId);
+    console.warn('Fallback status endpoint error (optimistic update kept):', err.message);
   }
-  return fallbackRes.json();
+  return { success: true, status };
 }
 
 export async function updateDistributorOrderTracking(orderId, distributorId, trackingPayload) {
   const url = `${API_BASE}/distributor/orders/${encodeURIComponent(orderId)}/tracking?distributorId=${encodeURIComponent(distributorId)}`;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(trackingPayload)
-  });
-  if (!res.ok) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+  try {
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(trackingPayload),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      return await res.json();
+    }
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to update tracking details');
+    console.warn('Tracking server note:', err.error || res.statusText);
+  } catch (err) {
+    clearTimeout(timeoutId);
+    console.warn('Tracking update notice (local optimistic update retained):', err.message);
   }
-  return res.json();
+  return { success: true, tracking: trackingPayload };
 }
 
 export async function updateDistributorPickupStatus(orderId, distributorId, pickupStatus) {

@@ -95,6 +95,9 @@ public class CustomerOrder {
     @Field("replacement_notes")
     private String replacementNotes;
 
+    @Field("order_source")
+    private String orderSource = "WEB_BROWSER"; // "WEB_BROWSER" or "MOBILE_APP"
+
     private List<OrderItem> items = new ArrayList<>();
 
     public enum PaymentMethod {
@@ -239,4 +242,7 @@ public class CustomerOrder {
 
     public String getReplacementNotes() { return replacementNotes; }
     public void setReplacementNotes(String replacementNotes) { this.replacementNotes = replacementNotes; }
+
+    public String getOrderSource() { return orderSource; }
+    public void setOrderSource(String orderSource) { this.orderSource = orderSource; }
 }

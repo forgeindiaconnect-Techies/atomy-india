@@ -75,7 +75,7 @@ const parseRouteFromLocation = () => {
     return { view: 'signin', authMode: mode };
   }
   if (path === '/signup' || path === '/register') return { view: 'signin', authMode: 'signup' };
-  if (path === '/orders' || path === '/my-orders') return { view: 'orders' };
+  if (path === '/orders' || path === '/my-orders' || path === '/tracking' || path === '/track') return { view: 'orders' };
   if (path === '/contact' || path === '/contact-us') return { view: 'contact' };
   if (path === '/about-atomy') {
     if (typeof window !== 'undefined') {

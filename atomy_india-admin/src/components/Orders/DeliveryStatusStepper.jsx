@@ -2,10 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import './DeliveryStatusStepper.css';
 
+function isStorePickupOrder(order) {
+  if (!order) return false;
+  return Boolean(
+    order.fulfillmentType === 'STORE_PICKUP' ||
+    order.shippingMethod === 'STORE_PICKUP' ||
+    order.isPickup === true ||
+    (order.pickupStatus && order.pickupStatus !== 'NONE') ||
+    (typeof order.shippingAddress === 'string' && order.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+    (order.hubName && !order.courier)
+  );
+}
+
 // Compute the exact target stage from the order status set by Admin
 function computeTargetStage(order) {
   if (!order) return 1;
-  const raw = (order.orderStatus || order.status || '').toUpperCase().trim();
+  const isPickup = isStorePickupOrder(order);
+  const raw = (order.pickupStatus || order.orderStatus || order.status || '').toUpperCase().trim();
+  if (raw.includes('CANCEL')) return 3;
+
+  if (isPickup) {
+    if (raw.includes('DELIVER') || raw.includes('COLLECT')) return 3; // Fully collected
+    if (raw.includes('READY')) return 3; // Ready for pickup
+    if (raw.includes('PREPAR') || raw.includes('PROCESS') || raw.includes('PACK')) return 2;
+    return 1; // Placed
+  }
+
   if (raw.includes('DELIVERED')) return 5;
   if (raw.includes('OUT') || raw.includes('LOCAL')) return 4;
   if (raw.includes('TRANSIT') || raw.includes('SHIPPED') || raw.includes('DISPATCH')) return 3;
@@ -23,7 +45,21 @@ export default function DeliveryStatusStepper({ order }) {
     setCurrentStep(targetStage);
   }, [targetStage, order?.orderStatus, order?.status]);
 
-  const stages = [
+  const isPickup = isStorePickupOrder(order);
+  const isCollected = Boolean(
+    isPickup && (
+      String(order?.pickupStatus || '').toUpperCase().includes('COLLECT') ||
+      String(order?.orderStatus || '').toUpperCase().includes('DELIVER') ||
+      String(order?.status || '').toUpperCase().includes('DELIVER') ||
+      String(order?.status || '').toUpperCase().includes('COLLECT')
+    )
+  );
+
+  const stages = isPickup ? [
+    { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
+    { num: 2, label: 'Preparing', sub: 'Hub Staff Packing' },
+    { num: 3, label: isCollected ? 'Collected' : 'Ready to Pick Up', sub: isCollected ? 'Package Received at Counter' : 'Available at Hub Counter' }
+  ] : [
     { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
     { num: 2, label: 'Preparing', sub: 'Warehouse Packed' },
     { num: 3, label: 'In Transit', sub: 'Blue Dart Dispatch' },
@@ -36,19 +72,36 @@ export default function DeliveryStatusStepper({ order }) {
       {/* Real Live Shipping Status Header - Synced with Admin */}
       <div className="shipping-status-live-header">
         <div className="status-header-left">
-          <span className="live-status-indicator-dot" />
-          <span className="shipping-live-title">LIVE ORDER SHIPPING STATUS</span>
-          <span className="shipping-carrier-pill">{order?.courier || order?.tracking?.courierPartner || 'Blue Dart Express'}</span>
+          <span className={`live-status-indicator-dot ${isPickup ? 'pickup-dot' : ''}`} />
+          <span className="shipping-live-title">
+            {isPickup ? 'DIRECT HUB SELF-PICKUP STATUS' : 'LIVE ORDER SHIPPING STATUS'}
+          </span>
+          <span className={`shipping-carrier-pill ${isPickup ? 'carrier-pickup' : ''}`}>
+            {isPickup ? 'Direct Store Pickup' : (order?.courier || order?.tracking?.courierPartner || 'Blue Dart Express')}
+          </span>
           <span className="shipping-current-step-label">
             Current Stage: <strong className="stage-highlight">{stages[currentStep - 1]?.label || 'Order Placed'}</strong>
           </span>
         </div>
 
         <div className="status-header-right">
-          <span className="tracking-awb-badge">
-            Tracking ID: <strong>{order?.trackingNumber || order?.tracking?.trackingNumber || (order?.orderId ? `BD-${order.orderId}` : 'BD-942817260IN')}</strong>
-          </span>
-          <span className="verified-transit-badge">Express Courier</span>
+          {isPickup ? (
+            <>
+              <span className="tracking-awb-badge" style={{ background: '#f0fdf4', borderColor: '#86efac', color: '#166534' }}>
+                Collection Counter: <strong>{order?.hubName || 'Atomy Regional Logistics Hub'}</strong>
+              </span>
+              <span className="verified-transit-badge" style={{ background: isCollected ? '#dcfce7' : '#e0f2fe', color: isCollected ? '#15803d' : '#0369a1' }}>
+                {isCollected ? 'Collected' : currentStep === 3 ? 'Ready for Pickup' : 'Packing in Progress'}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="tracking-awb-badge">
+                Tracking ID: <strong>{order?.trackingNumber || order?.tracking?.trackingNumber || (order?.orderId ? `BD-${order.orderId}` : 'BD-942817260IN')}</strong>
+              </span>
+              <span className="verified-transit-badge">Express Courier</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -219,6 +272,33 @@ export default function DeliveryStatusStepper({ order }) {
 
       {/* Stage Live Description Strip */}
       <div className="stepper-stage-status-desc">
+        {isPickup ? (
+          <>
+            {currentStep === 1 && (
+              <div className="status-narrative">
+                <span className="narrative-tag">STAGE 1</span>
+                <strong>Order Placed & Payment Confirmed</strong>: Order received and routed to regional logistics hub for packing.
+              </div>
+            )}
+            {currentStep === 2 && (
+              <div className="status-narrative orange">
+                <span className="narrative-tag orange">STAGE 2</span>
+                <strong>Preparing Order</strong>: Hub team is picking items from shelf and packing parcel.
+              </div>
+            )}
+            {currentStep === 3 && (
+              <div className={`status-narrative ${isCollected ? 'green' : 'blue'}`}>
+                <span className={`narrative-tag ${isCollected ? 'green' : 'blue'}`}>STAGE 3 • {isCollected ? 'COLLECTED' : 'READY TO PICK UP'}</span>
+                {isCollected ? (
+                  <><strong>Order Collected Successfully!</strong> Parcel handed over at regional hub counter.</>
+                ) : (
+                  <><strong>Parcel Ready for Counter Pickup!</strong> Parcel is packed and waiting at hub counter for customer collection.</>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
         {currentStep === 1 && (
           <div className="status-narrative">
             <span className="narrative-tag">STAGE 1</span>
@@ -248,6 +328,8 @@ export default function DeliveryStatusStepper({ order }) {
             <span className="narrative-tag green">STAGE 5 • DELIVERED</span>
             <strong>Package Successfully Delivered!</strong> Shipment handed over to recipient. Thank you for shopping with Atomy India.
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

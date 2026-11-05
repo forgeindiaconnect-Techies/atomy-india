@@ -480,7 +480,16 @@ export default function DistributorOrdersPage({
         });
       }
       if (selectedOrderDetail && (selectedOrderDetail.orderId === orderId || selectedOrderDetail.id === orderId)) {
-        setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newStatus }));
+        setSelectedOrderDetail(prev => ({
+          ...prev,
+          orderStatus: newStatus,
+          status: newStatus,
+          tracking: {
+            ...(prev?.tracking || {}),
+            currentStatus: newStatus,
+            orderStatus: newStatus
+          }
+        }));
       }
       if (showToast) showToast(`Order ${orderId} status updated to ${newStatus}`);
     } catch (e) {
@@ -639,6 +648,14 @@ export default function DistributorOrdersPage({
                 const sla = getOrderDeliverySLA(o);
                 const orderDate = new Date(o.createdAt || Date.now());
                 const currentStatus = String(o.orderStatus || 'PLACED').toUpperCase();
+                const isPickup = Boolean(
+                  o.fulfillmentType === 'STORE_PICKUP' ||
+                  o.shippingMethod === 'STORE_PICKUP' ||
+                  o.isPickup === true ||
+                  (o.pickupStatus && o.pickupStatus !== 'NONE') ||
+                  (typeof o.shippingAddress === 'string' && o.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+                  (o.hubName && !o.courier)
+                );
                 const dest = resolveOrderDestination(o);
                 const resolvedItems = resolveOrderItems(o);
                 const totalAmt = Number(o.totalAmount || 0);
@@ -649,6 +666,40 @@ export default function DistributorOrdersPage({
                     <td>
                       <div className="order-id-badge">
                         <span className="order-id-text">{o.orderId || o.id}</span>
+                      </div>
+                      <div style={{ marginTop: '4px' }}>
+                        {isPickup ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            border: '1px solid #86efac',
+                            borderRadius: '4px',
+                            padding: '2px 6px',
+                            fontSize: '10px',
+                            fontWeight: 800,
+                            letterSpacing: '0.3px'
+                          }}>
+                            <Building2 size={11} /> DIRECT HUB PICKUP
+                          </span>
+                        ) : (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: '#f1f5f9',
+                            color: '#475569',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '4px',
+                            padding: '2px 6px',
+                            fontSize: '10px',
+                            fontWeight: 600
+                          }}>
+                            <Truck size={11} /> HOME DELIVERY
+                          </span>
+                        )}
                       </div>
                       <div className="order-date-text">
                         {orderDate.toLocaleDateString('en-IN', {
@@ -686,12 +737,26 @@ export default function DistributorOrdersPage({
                     </td>
 
                     <td className="cell-address">
-                      <div className="address-line-primary" title={dest.fullAddress}>
-                        {dest.street || dest.fullAddress}
-                      </div>
-                      <div className="address-line-sub">
-                        {dest.city}, {dest.state} <span className="pincode-pill">{dest.pincode}</span>
-                      </div>
+                      {isPickup ? (
+                        <>
+                          <div style={{ color: '#15803d', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Building2 size={13} color="#15803d" />
+                            <span>Customer Pickup at Hub Counter</span>
+                          </div>
+                          <div className="address-line-sub" style={{ color: '#475569', fontSize: '11.5px', marginTop: '2px' }}>
+                            Hub: {o.hubName || distributor?.hubAddress || 'Designated Regional Hub Counter'}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="address-line-primary" title={dest.fullAddress}>
+                            {dest.street || dest.fullAddress}
+                          </div>
+                          <div className="address-line-sub">
+                            {dest.city}, {dest.state} <span className="pincode-pill">{dest.pincode}</span>
+                          </div>
+                        </>
+                      )}
                       <div style={{
                         fontSize: '11px',
                         color: sla.isDelayed ? '#dc2626' : '#0284c7',
@@ -834,7 +899,17 @@ export default function DistributorOrdersPage({
                 type="button"
                 className="inspection-topbar-btn courier-btn"
                 onClick={() => {
-                  const o = selectedOrderDetail;
+                  const currentSt = selectedOrderDetail.orderStatus || selectedOrderDetail.status || 'PLACED';
+                  const o = {
+                    ...selectedOrderDetail,
+                    orderStatus: currentSt,
+                    status: currentSt,
+                    tracking: {
+                      ...(selectedOrderDetail?.tracking || {}),
+                      currentStatus: currentSt,
+                      orderStatus: currentSt
+                    }
+                  };
                   setSelectedOrderDetail(null);
                   if (onOpenTrackingModal) onOpenTrackingModal(o);
                 }}
@@ -876,6 +951,36 @@ export default function DistributorOrdersPage({
 
           {/* Fullscreen Body Content (Covers entire screen) */}
           <div className="inspection-fullscreen-content">
+            {Boolean(
+              selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' ||
+              selectedOrderDetail.shippingMethod === 'STORE_PICKUP' ||
+              selectedOrderDetail.isPickup === true ||
+              (selectedOrderDetail.pickupStatus && selectedOrderDetail.pickupStatus !== 'NONE') ||
+              (typeof selectedOrderDetail.shippingAddress === 'string' && selectedOrderDetail.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+              (selectedOrderDetail.hubName && !selectedOrderDetail.courier)
+            ) && (
+              <div style={{
+                background: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: '10px',
+                padding: '14px 18px',
+                marginBottom: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <Building2 size={24} color="#16a34a" />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#15803d' }}>
+                    🏢 DIRECT HUB SELF-PICKUP ORDER
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: '#334155', marginTop: '3px' }}>
+                    The customer will arrive at your hub counter in person to collect this parcel. <strong>Do not assign a courier or dispatch via vehicle.</strong> Pack items and keep them ready at the pickup desk.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Live Animated Delivery Stepper */}
             <div className="inspection-card stepper-card">
               <DeliveryStatusStepper order={selectedOrderDetail} />
@@ -1021,22 +1126,67 @@ export default function DistributorOrdersPage({
             <div className="inspection-card status-actions-card">
               <div className="status-update-control">
                 <label className="status-update-label">Update Order Status:</label>
-                <select
-                  value={String(selectedOrderDetail.orderStatus || 'PLACED').toUpperCase()}
-                  onChange={(e) => {
-                    const newSt = e.target.value;
-                    handleStatusChange(selectedOrderDetail.orderId || selectedOrderDetail.id, newSt);
-                    setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newSt }));
-                  }}
-                  className="atomy-dropdown status-modal-dropdown"
-                >
-                  <option value="PLACED">PLACED (New Order)</option>
-                  <option value="PROCESSING">PROCESSING (Warehouse Packed)</option>
-                  <option value="SHIPPED">SHIPPED (In Transit)</option>
-                  <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY (Local Hub)</option>
-                  <option value="DELIVERED">DELIVERED (Customer Received)</option>
-                  <option value="CANCELLED">CANCELLED (Cancelled &amp; Refunded)</option>
-                </select>
+                {Boolean(
+                  selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' ||
+                  selectedOrderDetail.shippingMethod === 'STORE_PICKUP' ||
+                  selectedOrderDetail.isPickup === true ||
+                  (selectedOrderDetail.pickupStatus && selectedOrderDetail.pickupStatus !== 'NONE') ||
+                  (typeof selectedOrderDetail.shippingAddress === 'string' && selectedOrderDetail.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+                  (selectedOrderDetail.hubName && !selectedOrderDetail.courier)
+                ) ? (
+                  <select
+                    value={String(selectedOrderDetail.orderStatus || selectedOrderDetail.status || 'PLACED').toUpperCase()}
+                    onChange={(e) => {
+                      const newSt = e.target.value;
+                      handleStatusChange(selectedOrderDetail.orderId || selectedOrderDetail.id, newSt);
+                      setSelectedOrderDetail(prev => ({
+                        ...prev,
+                        orderStatus: newSt,
+                        status: newSt,
+                        pickupStatus: newSt === 'DELIVERED' ? 'COLLECTED' : newSt === 'READY_FOR_PICKUP' ? 'READY_FOR_PICKUP' : 'PENDING_PACKING',
+                        tracking: {
+                          ...(prev?.tracking || {}),
+                          currentStatus: newSt,
+                          orderStatus: newSt
+                        }
+                      }));
+                    }}
+                    className="atomy-dropdown status-modal-dropdown"
+                    style={{ borderColor: '#16a34a', color: '#15803d', fontWeight: 700 }}
+                  >
+                    <option value="PLACED">Stage 1: PLACED (Payment Confirmed)</option>
+                    <option value="PROCESSING">Stage 2: PREPARING (Staff Packing Goods from Shelf)</option>
+                    <option value="READY_FOR_PICKUP">Stage 3: READY TO PICK UP (Available at Counter)</option>
+                    <option value="DELIVERED">Stage 4: DELIVERED / COLLECTED (Handed Over to Customer)</option>
+                    <option value="CANCELLED">CANCELLED (Cancelled &amp; Refunded)</option>
+                  </select>
+                ) : (
+                  <select
+                    value={String(selectedOrderDetail.orderStatus || selectedOrderDetail.status || 'PLACED').toUpperCase()}
+                    onChange={(e) => {
+                      const newSt = e.target.value;
+                      handleStatusChange(selectedOrderDetail.orderId || selectedOrderDetail.id, newSt);
+                      setSelectedOrderDetail(prev => ({
+                        ...prev,
+                        orderStatus: newSt,
+                        status: newSt,
+                        tracking: {
+                          ...(prev?.tracking || {}),
+                          currentStatus: newSt,
+                          orderStatus: newSt
+                        }
+                      }));
+                    }}
+                    className="atomy-dropdown status-modal-dropdown"
+                  >
+                    <option value="PLACED">PLACED (New Order)</option>
+                    <option value="PROCESSING">PROCESSING (Warehouse Packed)</option>
+                    <option value="SHIPPED">SHIPPED (In Transit)</option>
+                    <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY (Local Hub)</option>
+                    <option value="DELIVERED">DELIVERED (Customer Received)</option>
+                    <option value="CANCELLED">CANCELLED (Cancelled &amp; Refunded)</option>
+                  </select>
+                )}
               </div>
 
               <div className="modal-actions-right">
@@ -1044,7 +1194,17 @@ export default function DistributorOrdersPage({
                   type="button"
                   className="order-footer-btn courier-btn"
                   onClick={() => {
-                    const o = selectedOrderDetail;
+                    const currentSt = selectedOrderDetail.orderStatus || selectedOrderDetail.status || 'PLACED';
+                    const o = {
+                      ...selectedOrderDetail,
+                      orderStatus: currentSt,
+                      status: currentSt,
+                      tracking: {
+                        ...(selectedOrderDetail?.tracking || {}),
+                        currentStatus: currentSt,
+                        orderStatus: currentSt
+                      }
+                    };
                     setSelectedOrderDetail(null);
                     if (onOpenTrackingModal) onOpenTrackingModal(o);
                   }}

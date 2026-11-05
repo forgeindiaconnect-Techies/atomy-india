@@ -36,15 +36,134 @@ public class BrevoEmailService {
     @Value("${brevo.admin.email:daggerking7828@gmail.com}")
     private String adminEmail;
 
-    @Value("${brevo.storefront.url:http://localhost:5173}")
+    @Value("${brevo.storefront.url:https://atomy-india-eta.vercel.app}")
     private String storefrontUrl;
 
-    @Value("${brevo.admin.url:http://localhost:5174}")
+    @Value("${brevo.admin.url:https://atomy-india-vomh.vercel.app}")
     private String adminUrl;
+
+    @Value("${brevo.mobile.scheme:atomyindia}")
+    private String mobileAppScheme;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
+
+    /**
+     * Resolves the production-ready storefront URL without localhost fallback
+     */
+    private String getEffectiveStorefrontUrl() {
+        if (storefrontUrl != null && !storefrontUrl.trim().isEmpty() && !storefrontUrl.contains("localhost")) {
+            return storefrontUrl.trim().replaceAll("/+$", "");
+        }
+        return "https://atomy-india-eta.vercel.app";
+    }
+
+    /**
+     * Resolves the production-ready admin portal URL without localhost fallback
+     */
+    private String getEffectiveAdminUrl() {
+        if (adminUrl != null && !adminUrl.trim().isEmpty() && !adminUrl.contains("localhost")) {
+            return adminUrl.trim().replaceAll("/+$", "");
+        }
+        return "https://atomy-india-vomh.vercel.app";
+    }
+
+    /**
+     * Mobile-Optimized HTML Email Wrapper with responsive styles for iOS/Android/Gmail/Outlook
+     */
+    private String wrapEmailHtml(String title, String subtitle, String contentHtml) {
+        return "<!DOCTYPE html>"
+                + "<html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\">"
+                + "<head>"
+                + "<meta charset=\"UTF-8\">"
+                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+                + "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">"
+                + "<title>" + escapeHtml(title) + "</title>"
+                + "<style>"
+                + "  body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }"
+                + "  table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }"
+                + "  img { border:0; height:auto; line-height:100%; outline:none; text-decoration:none; }"
+                + "  body { margin:0; padding:0; width:100% !important; background-color:#f1f5f9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }"
+                + "  @media only screen and (max-width: 600px) {"
+                + "    .email-container { width:100% !important; max-width:100% !important; }"
+                + "    .mobile-card { border-radius:0 !important; border-left:none !important; border-right:none !important; }"
+                + "    .mobile-pad { padding:20px 14px !important; }"
+                + "    .header-pad { padding:20px 14px !important; }"
+                + "    .btn-block { display:block !important; width:100% !important; box-sizing:border-box !important; text-align:center !important; margin:8px 0 !important; }"
+                + "    .item-title { font-size:13px !important; }"
+                + "    .meta-box td { font-size:12.5px !important; }"
+                + "  }"
+                + "</style>"
+                + "</head>"
+                + "<body style=\"margin:0;padding:0;background-color:#f1f5f9;-webkit-font-smoothing:antialiased;\">"
+                + "<table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"background-color:#f1f5f9;margin:0;padding:16px 0;\">"
+                + "  <tr>"
+                + "    <td align=\"center\" style=\"padding:0 8px;\">"
+                + "      <table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"email-container mobile-card\" style=\"max-width:600px;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,0.04);\">"
+                + "        <!-- Brand Header Bar -->"
+                + "        <tr>"
+                + "          <td align=\"center\" class=\"header-pad\" style=\"background:linear-gradient(135deg,#00A3E0 0%,#0284c7 100%);padding:24px 20px;text-align:center;\">"
+                + "            <div style=\"font-size:22px;font-weight:900;color:#ffffff;letter-spacing:1px;text-transform:uppercase;\">FIC &bull; ATOMY INDIA</div>"
+                + "            <div style=\"font-size:12.5px;color:#e0f2fe;margin-top:4px;font-weight:500;\">" + escapeHtml(subtitle) + "</div>"
+                + "          </td>"
+                + "        </tr>"
+                + "        <!-- Body Content -->"
+                + "        <tr>"
+                + "          <td class=\"mobile-pad\" style=\"padding:28px 22px;color:#334155;font-size:14px;line-height:1.6;\">"
+                + contentHtml
+                + "          </td>"
+                + "        </tr>"
+                + "        <!-- Brand Footer -->"
+                + "        <tr>"
+                + "          <td style=\"background:#f8fafc;padding:18px 20px;border-top:1px solid #e2e8f0;text-align:center;color:#94a3b8;font-size:11.5px;line-height:1.6;\">"
+                + "            <div>&copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Official Atomy India Partner</div>"
+                + "            <div style=\"margin-top:4px;\">Support: <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#00A3E0;text-decoration:none;\">daggerking7828@gmail.com</a> | Helpline: 1800-103-8855</div>"
+                + "          </td>"
+                + "        </tr>"
+                + "      </table>"
+                + "    </td>"
+                + "  </tr>"
+                + "</table>"
+                + "</body>"
+                + "</html>";
+    }
+
+    /**
+     * Builds responsive Live Tracking Action Links:
+     * - Web Browser orders: primary button routes to server web tracking url
+     * - Mobile App orders: primary button opens mobile app deep link scheme with web fallback
+     */
+    private String buildTrackingActionHtml(CustomerOrder order) {
+        String baseStorefront = getEffectiveStorefrontUrl();
+        String scheme = (mobileAppScheme != null && !mobileAppScheme.trim().isEmpty()) ? mobileAppScheme.trim() : "atomyindia";
+        String orderId = (order != null && order.getOrderId() != null) ? order.getOrderId() : "";
+        
+        String webTrackingUrl = baseStorefront + "/orders?orderId=" + escapeHtml(orderId);
+        String mobileAppUrl = scheme + "://orders?orderId=" + escapeHtml(orderId);
+        boolean isMobileOrder = order != null && "MOBILE_APP".equalsIgnoreCase(order.getOrderSource());
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<div style=\"text-align:center;margin:24px 0 8px;padding:18px 16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;\">");
+        
+        if (isMobileOrder) {
+            sb.append("<div style=\"display:inline-block;background:#e0f2fe;color:#0284c7;font-size:11.5px;font-weight:bold;padding:3px 10px;border-radius:12px;text-transform:uppercase;margin-bottom:10px;\">&#128241; Ordered from Mobile App</div><br>")
+              .append("<a href=\"").append(mobileAppUrl).append("\" class=\"btn-block\" style=\"background:#00A3E0;color:#ffffff;padding:13px 24px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;box-shadow:0 3px 8px rgba(0,163,224,0.3);margin:4px 0;\">&#128241; Open Live Tracking in Atomy App &rarr;</a>")
+              .append("<div style=\"margin-top:12px;font-size:12.5px;color:#64748b;\">")
+              .append("Or track via Web Browser: <br>")
+              .append("<a href=\"").append(webTrackingUrl).append("\" style=\"color:#00A3E0;font-weight:600;word-break:break-all;text-decoration:underline;\">").append(webTrackingUrl).append("</a>")
+              .append("</div>");
+        } else {
+            sb.append("<div style=\"display:inline-block;background:#f0f9ff;color:#0284c7;font-size:11.5px;font-weight:bold;padding:3px 10px;border-radius:12px;text-transform:uppercase;margin-bottom:10px;\">&#128187; Ordered from Web Storefront</div><br>")
+              .append("<a href=\"").append(webTrackingUrl).append("\" class=\"btn-block\" style=\"background:#00A3E0;color:#ffffff;padding:13px 26px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;box-shadow:0 3px 8px rgba(0,163,224,0.3);margin:4px 0;\">&#128666; Track Live Order Online &rarr;</a>")
+              .append("<div style=\"margin-top:12px;font-size:12px;color:#64748b;\">")
+              .append("Using the Mobile App? <a href=\"").append(mobileAppUrl).append("\" style=\"color:#00A3E0;font-weight:bold;text-decoration:underline;\">Open in Atomy Mobile App</a>")
+              .append("</div>");
+        }
+        
+        sb.append("</div>");
+        return sb.toString();
+    }
 
     /**
      * Core async email dispatcher using Brevo v3 HTTP REST API
@@ -105,26 +224,16 @@ public class BrevoEmailService {
         String name = (customerName != null && !customerName.trim().isEmpty()) ? customerName : "Member";
         String subject = "Password Reset OTP: " + otp + " - FIC (Atomy India)";
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#00A3E0;padding:20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;\">FIC (Atomy India)</h1>"
-                + "  <p style=\"color:#e0f2fe;margin:4px 0 0;font-size:13px;\">Forge India Connect E-Commerce Platform</p>"
+        String innerContent = "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Password Reset Request</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(name) + "</strong>,</p>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">We received a request to reset your password. Use the verification code below to complete your password reset:</p>"
+                + "<div style=\"background:#f0f9ff;border:2px dashed #00A3E0;border-radius:8px;padding:18px;text-align:center;margin:22px 0;\">"
+                + "  <span style=\"font-size:32px;font-weight:bold;letter-spacing:8px;color:#00A3E0;font-family:monospace;\">" + escapeHtml(otp) + "</span>"
                 + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Password Reset Request</h2>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(name) + "</strong>,</p>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">We received a request to reset your password. Use the verification code below to complete your password reset:</p>"
-                + "  <div style=\"background:#f0f9ff;border:2px dashed #00A3E0;border-radius:8px;padding:18px;text-align:center;margin:24px 0;\">"
-                + "    <span style=\"font-size:32px;font-weight:bold;letter-spacing:8px;color:#00A3E0;font-family:monospace;\">" + escapeHtml(otp) + "</span>"
-                + "  </div>"
-                + "  <p style=\"color:#64748b;font-size:12.5px;line-height:1.5;\">This verification code is valid for <strong>15 minutes</strong>. For your security, never share this OTP with anyone.</p>"
-                + "  <p style=\"color:#94a3b8;font-size:12px;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:14px;\">If you did not request this password reset, please ignore this email. Your existing password will remain safe and unchanged.</p>"
-                + "</div>"
-                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
-                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Direct-Selling Partner"
-                + "</div>"
-                + "</div>";
+                + "<p style=\"color:#64748b;font-size:12.5px;line-height:1.5;\">This verification code is valid for <strong>15 minutes</strong>. For your security, never share this OTP with anyone.</p>"
+                + "<p style=\"color:#94a3b8;font-size:12px;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:14px;\">If you did not request this password reset, please ignore this email. Your existing password remains safe and unchanged.</p>";
 
+        String html = wrapEmailHtml("Password Reset OTP", "Account Security Verification", innerContent);
         sendEmailAsync(toEmail, name, subject, html);
     }
 
@@ -134,22 +243,17 @@ public class BrevoEmailService {
     public void sendPasswordResetSuccess(String toEmail, String customerName) {
         String name = (customerName != null && !customerName.trim().isEmpty()) ? customerName : "Member";
         String subject = "Password Changed Successfully - FIC (Atomy India)";
+        String signInUrl = getEffectiveStorefrontUrl() + "/signin";
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#00A3E0;padding:20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;\">FIC (Atomy India)</h1>"
+        String innerContent = "<h2 style=\"color:#059669;font-size:18px;margin-top:0;\">&#10004; Password Updated Successfully</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(name) + "</strong>,</p>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Your password for your FIC (Atomy India) account has been updated successfully. You can now sign in with your new credentials.</p>"
+                + "<div style=\"text-align:center;margin:24px 0;\">"
+                + "  <a href=\"" + escapeHtml(signInUrl) + "\" class=\"btn-block\" style=\"background:#00A3E0;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">Sign In to Your Account</a>"
                 + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <h2 style=\"color:#059669;font-size:18px;margin-top:0;\">&#10004; Password Updated Successfully</h2>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(name) + "</strong>,</p>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Your password for your FIC (Atomy India) account has been updated successfully. You can now sign in with your new password.</p>"
-                + "  <div style=\"text-align:center;margin:24px 0;\">"
-                + "    <a href=\"" + storefrontUrl + "/signin\" style=\"background:#00A3E0;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">Sign In to Your Account</a>"
-                + "  </div>"
-                + "  <p style=\"color:#94a3b8;font-size:12px;border-top:1px solid #f1f5f9;padding-top:14px;\">If you did not make this change, please contact customer support immediately at daggerking7828@gmail.com.</p>"
-                + "</div>"
-                + "</div>";
+                + "<p style=\"color:#94a3b8;font-size:12px;border-top:1px solid #f1f5f9;padding-top:14px;\">If you did not make this change, please contact customer support immediately at daggerking7828@gmail.com.</p>";
 
+        String html = wrapEmailHtml("Password Changed", "Account Update Confirmation", innerContent);
         sendEmailAsync(toEmail, name, subject, html);
     }
 
@@ -167,54 +271,60 @@ public class BrevoEmailService {
         if (order.getItems() != null) {
             for (OrderItem item : order.getItems()) {
                 itemsHtml.append("<tr>")
-                        .append("<td style=\"padding:10px;border-bottom:1px solid #f1f5f9;font-size:13.5px;color:#1e293b;\">").append(escapeHtml(item.getProductName())).append("</td>")
-                        .append("<td style=\"padding:10px;border-bottom:1px solid #f1f5f9;font-size:13.5px;color:#475569;text-align:center;\">").append(item.getQuantity()).append("</td>")
-                        .append("<td style=\"padding:10px;border-bottom:1px solid #f1f5f9;font-size:13.5px;color:#1e293b;text-align:right;\">&#8377;").append(item.getPrice()).append("</td>")
-                        .append("<td style=\"padding:10px;border-bottom:1px solid #f1f5f9;font-size:13.5px;color:#0f172a;font-weight:bold;text-align:right;\">&#8377;").append(item.getSubtotal()).append("</td>")
+                        .append("<td style=\"padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#1e293b;\">")
+                        .append("<div style=\"font-weight:600;color:#0f172a;\" class=\"item-title\">").append(escapeHtml(item.getProductName())).append("</div>")
+                        .append("<div style=\"font-size:11.5px;color:#64748b;margin-top:2px;\">&#8377;").append(item.getPrice()).append(" per unit</div>")
+                        .append("</td>")
+                        .append("<td style=\"padding:10px 8px;border-bottom:1px solid #f1f5f9;font-size:13px;color:#475569;text-align:center;font-weight:600;\">").append(item.getQuantity()).append("</td>")
+                        .append("<td style=\"padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13.5px;color:#0f172a;font-weight:bold;text-align:right;\">&#8377;").append(item.getSubtotal()).append("</td>")
                         .append("</tr>");
             }
         }
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#00A3E0;padding:20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;\">FIC (Atomy India)</h1>"
-                + "  <p style=\"color:#e0f2fe;margin:4px 0 0;font-size:13px;\">Order Confirmation & Tax Invoice</p>"
-                + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Thank you for your order!</h2>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(order.getCustomerName()) + "</strong>, we have received your order <strong>#" + escapeHtml(order.getOrderId()) + "</strong>.</p>"
-                + "  <table style=\"width:100%;border-collapse:collapse;margin:20px 0;background:#ffffff;\">"
-                + "    <thead>"
-                + "      <tr style=\"background:#00A3E0;color:#ffffff;\">"
-                + "        <th style=\"padding:10px;text-align:left;font-size:12px;\">Product</th>"
-                + "        <th style=\"padding:10px;text-align:center;font-size:12px;\">Qty</th>"
-                + "        <th style=\"padding:10px;text-align:right;font-size:12px;\">Price</th>"
-                + "        <th style=\"padding:10px;text-align:right;font-size:12px;\">Subtotal</th>"
-                + "      </tr>"
-                + "    </thead>"
-                + "    <tbody>" + itemsHtml + "</tbody>"
-                + "  </table>"
-                + "  <div style=\"background:#f8fafc;padding:14px 18px;border-radius:6px;margin:18px 0;\">"
-                + "    <div style=\"display:flex;justify-content:space-between;font-size:13.5px;color:#475569;margin-bottom:6px;\">"
-                + "      <span>Delivery Surcharge:</span>"
-                + "      <span>" + (order.getShippingFee().doubleValue() == 0 ? "<strong style=\"color:#059669;\">FREE</strong>" : "&#8377;" + order.getShippingFee()) + "</span>"
-                + "    </div>"
-                + "    <div style=\"display:flex;justify-content:space-between;font-size:16px;color:#0f172a;font-weight:bold;border-top:1px solid #e2e8f0;padding-top:8px;\">"
-                + "      <span>Total Amount Paid:</span>"
-                + "      <span style=\"color:#00A3E0;\">&#8377;" + order.getTotalAmount() + "</span>"
-                + "    </div>"
-                + "  </div>"
-                + "  <div style=\"margin:20px 0;padding:12px 16px;background:#f0f9ff;border-left:4px solid #00A3E0;border-radius:4px;\">"
-                + "    <h4 style=\"margin:0 0 4px;color:#0f172a;font-size:13px;\">Shipping Address:</h4>"
-                + "    <p style=\"margin:0;font-size:12.5px;color:#475569;\">" + escapeHtml(order.getShippingAddress()) + ", " + escapeHtml(order.getCity()) + ", " + escapeHtml(order.getState()) + " - " + escapeHtml(order.getPincode()) + "</p>"
-                + "    <p style=\"margin:4px 0 0;font-size:12.5px;color:#475569;\">Phone: " + escapeHtml(order.getCustomerPhone()) + "</p>"
-                + "  </div>"
-                + "  <div style=\"text-align:center;margin:24px 0 10px;\">"
-                + "    <a href=\"" + storefrontUrl + "/profile\" style=\"background:#00A3E0;color:#ffffff;padding:11px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:13.5px;display:inline-block;\">Track Order Online</a>"
-                + "  </div>"
-                + "</div>"
-                + "</div>";
+        boolean isPickup = "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType());
+        String destinationCardHtml;
+        if (isPickup) {
+            String hubLoc = (order.getHubAddress() != null && !order.getHubAddress().trim().isEmpty())
+                    ? order.getHubAddress().trim() : order.getAssignedDistributorName();
+            destinationCardHtml = "<div style=\"margin:18px 0;padding:14px 16px;background:#f0fdf4;border-left:4px solid #16a34a;border-radius:6px;\">"
+                    + "<div style=\"font-size:12px;font-weight:bold;color:#15803d;text-transform:uppercase;margin-bottom:4px;\">&#127970; Direct Store / Hub Counter Pickup</div>"
+                    + "<div style=\"font-size:13.5px;font-weight:bold;color:#0f172a;\">" + escapeHtml(hubLoc) + "</div>"
+                    + "<div style=\"font-size:12px;color:#475569;margin-top:4px;\">Please present this Order ID (<strong>#" + escapeHtml(order.getOrderId()) + "</strong>) at the counter to collect your packed parcel.</div>"
+                    + "</div>";
+        } else {
+            destinationCardHtml = "<div style=\"margin:18px 0;padding:14px 16px;background:#f0f9ff;border-left:4px solid #00A3E0;border-radius:6px;\">"
+                    + "<div style=\"font-size:12px;font-weight:bold;color:#0369a1;text-transform:uppercase;margin-bottom:4px;\">&#128666; Doorstep Delivery Destination</div>"
+                    + "<div style=\"font-size:13px;color:#1e293b;line-height:1.5;\">" + escapeHtml(order.getShippingAddress()) + ", " + escapeHtml(order.getCity()) + ", " + escapeHtml(order.getState()) + " - " + escapeHtml(order.getPincode()) + "</div>"
+                    + "<div style=\"font-size:12px;color:#64748b;margin-top:4px;\">Contact Phone: " + escapeHtml(order.getCustomerPhone()) + "</div>"
+                    + "</div>";
+        }
 
+        String innerContent = "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Thank you for your order!</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(order.getCustomerName()) + "</strong>, we have received your order <strong>#" + escapeHtml(order.getOrderId()) + "</strong>.</p>"
+                + "<table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"border-collapse:collapse;margin:18px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;\">"
+                + "  <thead>"
+                + "    <tr style=\"background:#00A3E0;color:#ffffff;\">"
+                + "      <th style=\"padding:10px 12px;text-align:left;font-size:12px;font-weight:bold;\">Product Description</th>"
+                + "      <th style=\"padding:10px 8px;text-align:center;font-size:12px;font-weight:bold;width:40px;\">Qty</th>"
+                + "      <th style=\"padding:10px 12px;text-align:right;font-size:12px;font-weight:bold;width:80px;\">Subtotal</th>"
+                + "    </tr>"
+                + "  </thead>"
+                + "  <tbody>" + itemsHtml + "</tbody>"
+                + "</table>"
+                + "<table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"meta-box\" style=\"background:#f8fafc;padding:14px 16px;border-radius:8px;border:1px solid #e2e8f0;margin:18px 0;\">"
+                + "  <tr>"
+                + "    <td style=\"padding:4px 0;font-size:13px;color:#64748b;text-align:left;\">Delivery Surcharge:</td>"
+                + "    <td style=\"padding:4px 0;font-size:13px;text-align:right;\">" + (order.getShippingFee().doubleValue() == 0 ? "<strong style=\"color:#059669;\">FREE</strong>" : "&#8377;" + order.getShippingFee()) + "</td>"
+                + "  </tr>"
+                + "  <tr>"
+                + "    <td style=\"padding:10px 0 2px;font-size:15px;color:#0f172a;font-weight:bold;text-align:left;border-top:1px solid #e2e8f0;\">Total Amount Paid:</td>"
+                + "    <td style=\"padding:10px 0 2px;font-size:17px;color:#00A3E0;font-weight:bold;text-align:right;border-top:1px solid #e2e8f0;\">&#8377;" + order.getTotalAmount() + "</td>"
+                + "  </tr>"
+                + "</table>"
+                + destinationCardHtml
+                + buildTrackingActionHtml(order);
+
+        String html = wrapEmailHtml("Order Confirmation #" + order.getOrderId(), "Order Confirmation & Tax Invoice", innerContent);
         sendEmailAsync(order.getCustomerEmail(), order.getCustomerName(), subject, html);
     }
 
@@ -226,29 +336,44 @@ public class BrevoEmailService {
             return;
         }
 
+        boolean isPickup = "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType());
         String courier = (tracking != null && tracking.getCourierPartner() != null) ? tracking.getCourierPartner() : "Blue Dart Express";
         String awb = (tracking != null && tracking.getTrackingNumber() != null) ? tracking.getTrackingNumber() : "AWB-IN-" + order.getOrderId();
-        String subject = "Order Dispatched: #" + order.getOrderId() + " via " + courier;
+        
+        String subject = isPickup 
+                ? "Order Ready for Pickup: #" + order.getOrderId() + " at Regional Hub"
+                : "Order Dispatched: #" + order.getOrderId() + " via " + courier;
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#00A3E0;padding:20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;\">FIC (Atomy India)</h1>"
-                + "  <p style=\"color:#e0f2fe;margin:4px 0 0;font-size:13px;\">Order Shipped Notification</p>"
-                + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">&#128666; Your Package is on the Way!</h2>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(order.getCustomerName()) + "</strong>,</p>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Great news! Your order <strong>#" + escapeHtml(order.getOrderId()) + "</strong> has been packed and handed over to our delivery partner.</p>"
-                + "  <div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px;margin:20px 0;\">"
-                + "    <div style=\"margin-bottom:8px;\"><strong style=\"color:#0f172a;\">Courier Partner:</strong> <span style=\"color:#00A3E0;font-weight:bold;\">" + escapeHtml(courier) + "</span></div>"
-                + "    <div><strong style=\"color:#0f172a;\">Airway Bill (AWB) Tracking No:</strong> <span style=\"font-family:monospace;font-size:14px;font-weight:bold;color:#0f172a;\">" + escapeHtml(awb) + "</span></div>"
-                + "  </div>"
-                + "  <div style=\"text-align:center;margin:24px 0;\">"
-                + "    <a href=\"" + storefrontUrl + "/profile\" style=\"background:#00A3E0;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">Track Live Delivery Milestones</a>"
-                + "  </div>"
-                + "</div>"
-                + "</div>";
+        String trackingDetailsHtml;
+        if (isPickup) {
+            String hubLoc = (order.getHubAddress() != null && !order.getHubAddress().trim().isEmpty())
+                    ? order.getHubAddress().trim() : order.getAssignedDistributorName();
+            trackingDetailsHtml = "<div style=\"background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;border-radius:8px;padding:16px 18px;margin:18px 0;\">"
+                    + "  <div style=\"font-size:12px;font-weight:bold;color:#15803d;text-transform:uppercase;margin-bottom:6px;\">&#127970; Pickup Counter Ready</div>"
+                    + "  <div style=\"font-size:13.5px;color:#0f172a;line-height:1.6;\"><strong>Collection Point:</strong> " + escapeHtml(hubLoc) + "</div>"
+                    + "  <div style=\"font-size:13px;color:#334155;margin-top:4px;\"><strong>Order Verification ID:</strong> <span style=\"font-family:monospace;font-weight:bold;color:#16a34a;\">#" + escapeHtml(order.getOrderId()) + "</span></div>"
+                    + "</div>";
+        } else {
+            trackingDetailsHtml = "<div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #00A3E0;border-radius:8px;padding:16px 18px;margin:18px 0;\">"
+                    + "  <table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"meta-box\" style=\"font-size:13px;line-height:1.7;\">"
+                    + "    <tr><td style=\"color:#64748b;padding:3px 0;width:140px;\">Courier Partner:</td><td style=\"color:#0284c7;font-weight:bold;\">" + escapeHtml(courier) + "</td></tr>"
+                    + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Airway Bill (AWB):</td><td style=\"font-family:monospace;font-weight:bold;color:#0f172a;\">" + escapeHtml(awb) + "</td></tr>"
+                    + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Delivery Status:</td><td style=\"color:#059669;font-weight:bold;\">IN ACTIVE TRANSIT</td></tr>"
+                    + "  </table>"
+                    + "</div>";
+        }
 
+        String innerContent = "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">" + (isPickup ? "&#127970; Your Order is Ready for Counter Pickup!" : "&#128666; Your Package is on the Way!") + "</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(order.getCustomerName()) + "</strong>,</p>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">" 
+                + (isPickup 
+                    ? "Great news! Your order <strong>#" + escapeHtml(order.getOrderId()) + "</strong> has been packed and is ready for pickup at our regional logistics counter."
+                    : "Great news! Your order <strong>#" + escapeHtml(order.getOrderId()) + "</strong> has been packed and handed over to our delivery partner.")
+                + "</p>"
+                + trackingDetailsHtml
+                + buildTrackingActionHtml(order);
+
+        String html = wrapEmailHtml(subject, "Order Fulfillment Update", innerContent);
         sendEmailAsync(order.getCustomerEmail(), order.getCustomerName(), subject, html);
     }
 
@@ -257,28 +382,24 @@ public class BrevoEmailService {
     // =========================================================================
     public void sendAdminNewOrderAlert(CustomerOrder order) {
         String subject = "\uD83D\uDED2 [NEW ORDER] #" + order.getOrderId() + " - \u20B9" + order.getTotalAmount();
+        String adminOrdersUrl = getEffectiveAdminUrl() + "/orders";
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#0f172a;padding:16px 20px;border-radius:8px 8px 0 0;\">"
-                + "  <h2 style=\"color:#ffffff;margin:0;font-size:18px;\">&#128276; Admin Alert: New Customer Order</h2>"
-                + "</div>"
-                + "<div style=\"background:#ffffff;padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <p style=\"font-size:15px;color:#0f172a;margin-top:0;\">A new customer order has been placed on <strong>FIC (Atomy India)</strong>.</p>"
-                + "  <ul style=\"color:#475569;font-size:13.5px;line-height:1.8;\">"
-                + "    <li><strong>Order ID:</strong> " + escapeHtml(order.getOrderId()) + "</li>"
-                + "    <li><strong>Customer Name:</strong> " + escapeHtml(order.getCustomerName()) + "</li>"
-                + "    <li><strong>Email:</strong> " + escapeHtml(order.getCustomerEmail()) + "</li>"
-                + "    <li><strong>Phone:</strong> " + escapeHtml(order.getCustomerPhone()) + "</li>"
-                + "    <li><strong>Total Amount:</strong> &#8377;" + order.getTotalAmount() + "</li>"
-                + "    <li><strong>Payment Method:</strong> " + order.getPaymentMethod() + "</li>"
-                + "    <li><strong>Destination Pincode:</strong> " + escapeHtml(order.getPincode()) + " (" + escapeHtml(order.getCity()) + ")</li>"
-                + "  </ul>"
-                + "  <div style=\"text-align:center;margin-top:20px;\">"
-                + "    <a href=\"http://localhost:5174/orders\" style=\"background:#00A3E0;color:#ffffff;padding:10px 22px;border-radius:5px;text-decoration:none;font-weight:bold;font-size:13px;display:inline-block;\">Open Admin Dashboard</a>"
-                + "  </div>"
-                + "</div>"
+        String innerContent = "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">&#128276; Admin Alert: New Customer Order</h2>"
+                + "<p style=\"font-size:14px;color:#475569;\">A new customer order has been placed on <strong>FIC (Atomy India)</strong>.</p>"
+                + "<table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"meta-box\" style=\"background:#f8fafc;padding:14px 16px;border-radius:8px;border:1px solid #e2e8f0;margin:16px 0;font-size:13px;line-height:1.8;\">"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;width:130px;\">Order ID:</td><td style=\"font-weight:bold;color:#0f172a;\">" + escapeHtml(order.getOrderId()) + "</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Customer Name:</td><td style=\"color:#1e293b;\">" + escapeHtml(order.getCustomerName()) + "</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Email / Phone:</td><td style=\"color:#1e293b;\">" + escapeHtml(order.getCustomerEmail()) + " / " + escapeHtml(order.getCustomerPhone()) + "</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Total Amount:</td><td style=\"font-weight:bold;color:#00A3E0;\">&#8377;" + order.getTotalAmount() + "</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Order Source:</td><td style=\"font-weight:bold;color:#475569;\">" + escapeHtml(order.getOrderSource() != null ? order.getOrderSource() : "WEB_BROWSER") + "</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Fulfillment:</td><td style=\"color:#1e293b;\">" + escapeHtml(order.getFulfillmentType()) + "</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Destination PIN:</td><td style=\"color:#1e293b;\">" + escapeHtml(order.getPincode()) + " (" + escapeHtml(order.getCity()) + ")</td></tr>"
+                + "</table>"
+                + "<div style=\"text-align:center;margin-top:24px;\">"
+                + "  <a href=\"" + escapeHtml(adminOrdersUrl) + "\" class=\"btn-block\" style=\"background:#00A3E0;color:#ffffff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:13.5px;display:inline-block;\">Open Central Admin Dashboard &rarr;</a>"
                 + "</div>";
 
+        String html = wrapEmailHtml("New Order Received", "Super Admin Notification", innerContent);
         sendEmailAsync(adminEmail, "Admin", subject, html);
     }
 
@@ -298,35 +419,24 @@ public class BrevoEmailService {
 
         String subject = "Delivery Update: Important Notice Regarding Your Atomy Order #" + order.getOrderId();
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#00A3E0;padding:24px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;\">FIC (Atomy India)</h1>"
-                + "  <p style=\"color:#e0f2fe;margin:6px 0 0;font-size:13.5px;font-weight:500;\">Delivery Status Update & Apology</p>"
+        String innerContent = "<div style=\"display:inline-block;background:#fff1f2;border:1px solid #fecdd3;color:#e11d48;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:14px;\">&#9888; Slight Transit Delay</div>"
+                + "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;line-height:1.4;\">We sincerely apologize for the delay!</h2>"
+                + "<p style=\"color:#334155;font-size:14px;line-height:1.6;\">Dear <strong>" + escapeHtml(customerName) + "</strong>,</p>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">We are reaching out with an important delivery update regarding your order <strong>#" + escapeHtml(order.getOrderId()) + "</strong>. Your shipment is taking slightly longer than our standard delivery window to arrive.</p>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Please be assured that your 100% authentic Atomy products are safely packed. Our logistics team is actively coordinating with <strong>" + escapeHtml(courier) + "</strong> to expedite delivery to your destination.</p>"
+                + "<div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #00A3E0;border-radius:8px;padding:16px 18px;margin:20px 0;\">"
+                + "  <h4 style=\"margin:0 0 10px;font-size:13.5px;color:#0369a1;\">Updated Delivery Details</h4>"
+                + "  <table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"meta-box\" style=\"font-size:13px;line-height:1.8;\">"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;width:140px;\">Order ID:</td><td style=\"font-weight:bold;color:#0f172a;\">#" + escapeHtml(order.getOrderId()) + "</td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Estimated Arrival:</td><td style=\"color:#0284c7;font-weight:bold;\">" + escapeHtml(targetDate) + "</td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Carrier Partner:</td><td style=\"color:#1e293b;\">" + escapeHtml(courier) + "</td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Airway Bill (AWB):</td><td style=\"font-family:monospace;font-weight:bold;color:#0f172a;\">" + escapeHtml(awb) + "</td></tr>"
+                + "  </table>"
                 + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <div style=\"display:inline-block;background:#fff1f2;border:1px solid #fecdd3;color:#e11d48;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:16px;\">&#9888; Slight Transit Delay</div>"
-                + "  <h2 style=\"color:#0f172a;font-size:19px;margin-top:0;line-height:1.4;\">We sincerely apologize for the delay!</h2>"
-                + "  <p style=\"color:#334155;font-size:14.5px;line-height:1.6;\">Dear <strong>" + escapeHtml(customerName) + "</strong>,</p>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">We are reaching out with an important delivery update regarding your order <strong>#" + escapeHtml(order.getOrderId()) + "</strong>. We sincerely apologize, as your shipment is experiencing a brief transit delay and is taking slightly longer than our standard delivery window to arrive.</p>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Please be assured that your 100% authentic Atomy products are safely packed and in active transit. Our logistics team is actively coordinating with <strong>" + escapeHtml(courier) + "</strong> to expedite your delivery so it reaches you as soon as possible.</p>"
-                + "  <div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #00A3E0;border-radius:6px;padding:16px 20px;margin:20px 0;\">"
-                + "    <h3 style=\"margin:0 0 10px;font-size:14px;color:#0369a1;\">Updated Delivery Details</h3>"
-                + "    <div style=\"font-size:13px;color:#334155;line-height:1.9;\">"
-                + "      <div><strong>Order ID:</strong> #" + escapeHtml(order.getOrderId()) + "</div>"
-                + "      <div><strong>Estimated Arrival:</strong> <span style=\"color:#0284c7;font-weight:bold;\">" + escapeHtml(targetDate) + "</span></div>"
-                + "      <div><strong>Carrier Partner:</strong> " + escapeHtml(courier) + "</div>"
-                + "      <div><strong>Airway Bill (AWB):</strong> <span style=\"font-family:monospace;font-weight:bold;color:#0f172a;\">" + escapeHtml(awb) + "</span></div>"
-                + "      <div><strong>Destination:</strong> " + escapeHtml(order.getShippingAddress()) + ", " + escapeHtml(order.getCity()) + ", " + escapeHtml(order.getState()) + " - " + escapeHtml(order.getPincode()) + "</div>"
-                + "    </div>"
-                + "  </div>"
-                + "  <div style=\"text-align:center;margin:26px 0 14px;\">"
-                + "    <a href=\"" + storefrontUrl + "/profile\" style=\"background:#00A3E0;color:#ffffff;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">Track Live Delivery Milestones &rarr;</a>"
-                + "  </div>"
-                + "  <hr style=\"border:none;border-top:1px solid #e2e8f0;margin:24px 0;\">"
-                + "  <p style=\"color:#64748b;font-size:12.5px;line-height:1.6;margin:0;\">We truly value your patience, understanding, and trust in Forge India Connect (Atomy India). If you have any questions or require urgent help, please reply directly to this email or contact customer care at <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#00A3E0;\">daggerking7828@gmail.com</a>.</p>"
-                + "</div>"
-                + "</div>";
+                + buildTrackingActionHtml(order)
+                + "<p style=\"color:#64748b;font-size:12px;line-height:1.6;margin-top:20px;border-top:1px solid #f1f5f9;padding-top:12px;\">We truly value your patience and trust in Forge India Connect. For urgent queries, contact care at <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#00A3E0;\">daggerking7828@gmail.com</a>.</p>";
 
+        String html = wrapEmailHtml("Delivery Status Update", "Transit Update & Apology", innerContent);
         sendEmailAsync(order.getCustomerEmail(), customerName, subject, html);
     }
 
@@ -340,34 +450,23 @@ public class BrevoEmailService {
 
         String name = (customerName != null && !customerName.trim().isEmpty()) ? customerName.trim() : "Valued Customer";
         String subject = "Welcome to Atomy India - Absolute Quality at Absolute Price!";
+        String storeUrl = getEffectiveStorefrontUrl();
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#00A3E0;padding:26px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:24px;letter-spacing:0.5px;\">Welcome to Atomy India!</h1>"
-                + "  <p style=\"color:#e0f2fe;margin:6px 0 0;font-size:14px;\">Forge India Connect (FIC) E-Commerce Platform</p>"
+        String innerContent = "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Hello " + escapeHtml(name) + ",</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Thank you for joining <strong>Atomy India</strong>! We are thrilled to welcome you to our community dedicated to <em>Absolute Quality at Absolute Price</em>.</p>"
+                + "<div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #00A3E0;border-radius:8px;padding:16px 18px;margin:20px 0;\">"
+                + "  <h4 style=\"margin:0 0 10px;color:#0369a1;font-size:13.5px;\">What You Can Expect:</h4>"
+                + "  <ul style=\"margin:0;padding-left:18px;color:#334155;font-size:13px;line-height:1.8;\">"
+                + "    <li><strong>100% Genuine Korean Imports:</strong> Premium healthcare (HemoHIM), skincare, and home essentials.</li>"
+                + "    <li><strong>Fast Doorstep Delivery:</strong> Live milestone tracking across India via Blue Dart Express.</li>"
+                + "    <li><strong>Distributor Club:</strong> Optional membership enrollment for DP pricing & PV point rewards.</li>"
+                + "  </ul>"
                 + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <h2 style=\"color:#0f172a;font-size:19px;margin-top:0;\">Hello " + escapeHtml(name) + ",</h2>"
-                + "  <p style=\"color:#475569;font-size:14.5px;line-height:1.6;\">Thank you for joining <strong>Atomy India</strong>! We are thrilled to welcome you to our community dedicated to <em>Absolute Quality at Absolute Price</em>.</p>"
-                + "  <div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #00A3E0;border-radius:6px;padding:16px 20px;margin:22px 0;\">"
-                + "    <h4 style=\"margin:0 0 10px;color:#0369a1;font-size:14px;\">What You Can Expect:</h4>"
-                + "    <ul style=\"margin:0;padding-left:18px;color:#334155;font-size:13.5px;line-height:1.8;\">"
-                + "      <li><strong>100% Genuine Korean Imports:</strong> Premium healthcare (HemoHIM), skincare, and home essentials.</li>"
-                + "      <li><strong>Fast Doorstep Delivery:</strong> Live milestone tracking across India via Blue Dart Express.</li>"
-                + "      <li><strong>Wholesale Distributor Club:</strong> Optional membership enrollment for DP pricing & PV point rewards.</li>"
-                + "    </ul>"
-                + "  </div>"
-                + "  <div style=\"text-align:center;margin:28px 0 16px;\">"
-                + "    <a href=\"" + storefrontUrl + "\" style=\"background:#00A3E0;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">Start Exploring Atomy Products &rarr;</a>"
-                + "  </div>"
-                + "  <hr style=\"border:none;border-top:1px solid #e2e8f0;margin:24px 0;\">"
-                + "  <p style=\"color:#94a3b8;font-size:12px;margin:0;text-align:center;\">If you have any questions, feel free to reach out to us at <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#00A3E0;\">daggerking7828@gmail.com</a>.</p>"
-                + "</div>"
-                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
-                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Direct-Selling Partner"
-                + "</div>"
+                + "<div style=\"text-align:center;margin:26px 0 10px;\">"
+                + "  <a href=\"" + escapeHtml(storeUrl) + "\" class=\"btn-block\" style=\"background:#00A3E0;color:#ffffff;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">Start Exploring Atomy Products &rarr;</a>"
                 + "</div>";
 
+        String html = wrapEmailHtml("Welcome to Atomy India", "Welcome to Atomy India Platform", innerContent);
         sendEmailAsync(toEmail, name, subject, html);
     }
 
@@ -385,41 +484,23 @@ public class BrevoEmailService {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMMM yyyy");
         String expiryFormatted = membership.getExpiryDate() != null ? membership.getExpiryDate().format(dtf) : "Active";
         String subject = "\uD83C\uDF89 Welcome to Atomy Distributor Club! [Plan: " + membership.getPlan() + "]";
+        String memberPortalUrl = getEffectiveStorefrontUrl() + "/membership";
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#00A3E0;padding:26px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:23px;letter-spacing:0.5px;\">&#127881; Distributor Membership Activated!</h1>"
-                + "  <p style=\"color:#e0f2fe;margin:6px 0 0;font-size:14px;\">Atomy India &bull; Forge India Connect</p>"
+        String innerContent = "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Congratulations " + escapeHtml(name) + "!</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Your <strong>" + escapeHtml(planName) + "</strong> is now officially active. You have unlocked wholesale distributor pricing across the entire Atomy catalog.</p>"
+                + "<div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin:20px 0;\">"
+                + "  <table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"meta-box\" style=\"font-size:13px;line-height:1.8;\">"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;width:140px;\">Membership ID:</td><td style=\"font-family:monospace;font-weight:bold;color:#00A3E0;\">" + escapeHtml(membership.getId()) + "</td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Selected Plan:</td><td style=\"color:#1e293b;\">" + escapeHtml(planName) + "</td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Amount Paid:</td><td style=\"font-weight:bold;color:#0f172a;\">&#8377;" + membership.getAmountPaid() + " (" + escapeHtml(membership.getPaymentMethod()) + ")</td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Valid Until:</td><td style=\"color:#059669;font-weight:bold;\">" + escapeHtml(expiryFormatted) + "</td></tr>"
+                + "  </table>"
                 + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <h2 style=\"color:#0f172a;font-size:19px;margin-top:0;\">Congratulations " + escapeHtml(name) + "!</h2>"
-                + "  <p style=\"color:#475569;font-size:14.5px;line-height:1.6;\">Your <strong>" + escapeHtml(planName) + "</strong> is now officially active. You have unlocked full wholesale distributor access across the entire Atomy catalog.</p>"
-                + "  <div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin:22px 0;\">"
-                + "    <h4 style=\"margin:0 0 12px;color:#0f172a;font-size:14px;border-bottom:1px solid #e2e8f0;padding-bottom:6px;\">Membership Plan Details</h4>"
-                + "    <div style=\"font-size:13px;color:#334155;line-height:1.9;\">"
-                + "      <div><strong>Membership ID:</strong> <span style=\"font-family:monospace;font-weight:bold;color:#00A3E0;\">" + escapeHtml(membership.getId()) + "</span></div>"
-                + "      <div><strong>Selected Plan:</strong> " + escapeHtml(planName) + "</div>"
-                + "      <div><strong>Amount Paid:</strong> &#8377;" + membership.getAmountPaid() + " (" + escapeHtml(membership.getPaymentMethod()) + ")</div>"
-                + "      <div><strong>Valid Until:</strong> <span style=\"color:#059669;font-weight:bold;\">" + escapeHtml(expiryFormatted) + "</span></div>"
-                + "    </div>"
-                + "  </div>"
-                + "  <div style=\"background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;border-radius:6px;padding:14px 18px;margin:20px 0;\">"
-                + "    <h4 style=\"margin:0 0 6px;color:#15803d;font-size:13.5px;\">Your Active Member Benefits:</h4>"
-                + "    <ul style=\"margin:0;padding-left:18px;color:#334155;font-size:13px;line-height:1.8;\">"
-                + "      <li>Instant wholesale <strong>Distributor Price (DP)</strong> discounts on every order.</li>"
-                + "      <li><strong>100% Personal PV Point Accumulation</strong> to build mastership credentials.</li>"
-                + "      <li>Priority order processing & VIP customer assistance.</li>"
-                + "    </ul>"
-                + "  </div>"
-                + "  <div style=\"text-align:center;margin:28px 0 16px;\">"
-                + "    <a href=\"" + storefrontUrl + "/membership\" style=\"background:#00A3E0;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">View Your Member Dashboard &rarr;</a>"
-                + "  </div>"
-                + "</div>"
-                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
-                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Direct-Selling Partner"
-                + "</div>"
+                + "<div style=\"text-align:center;margin:26px 0 10px;\">"
+                + "  <a href=\"" + escapeHtml(memberPortalUrl) + "\" class=\"btn-block\" style=\"background:#00A3E0;color:#ffffff;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">View Member Dashboard &rarr;</a>"
                 + "</div>";
 
+        String html = wrapEmailHtml("Distributor Membership Active", "Distributor Club Membership", innerContent);
         sendEmailAsync(membership.getCustomerEmail(), name, subject, html);
     }
 
@@ -436,39 +517,27 @@ public class BrevoEmailService {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMMM yyyy");
         String expiryFormatted = membership.getExpiryDate() != null ? membership.getExpiryDate().format(dtf) : "Recently";
         String subject = "\u26A0\uFE0F Notice: Your Atomy Distributor Membership Has Expired - Renew Today";
+        String renewUrl = getEffectiveStorefrontUrl() + "/membership";
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:#e11d48;padding:24px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;\">&#9888; Membership Plan Expired</h1>"
-                + "  <p style=\"color:#ffe4e6;margin:6px 0 0;font-size:13.5px;\">Action Required &bull; Atomy India</p>"
+        String innerContent = "<div style=\"display:inline-block;background:#fff1f2;border:1px solid #fecdd3;color:#e11d48;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:14px;\">&#9888; Plan Expired</div>"
+                + "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Dear " + escapeHtml(name) + ",</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Your Atomy Distributor Membership (ID: <strong>" + escapeHtml(membership.getId()) + "</strong>) expired on <strong>" + escapeHtml(expiryFormatted) + "</strong>.</p>"
+                + "<div style=\"background:#fff1f2;border:1px solid #fecdd3;border-left:4px solid #e11d48;border-radius:8px;padding:16px 18px;margin:20px 0;\">"
+                + "  <h4 style=\"margin:0 0 8px;color:#9f1239;font-size:13.5px;\">Impact on Your Account:</h4>"
+                + "  <ul style=\"margin:0;padding-left:18px;color:#334155;font-size:13px;line-height:1.8;\">"
+                + "    <li>Product pricing has reverted from wholesale Distributor Price (DP) to standard MRP.</li>"
+                + "    <li>Personal PV accumulation on new orders is currently paused.</li>"
+                + "  </ul>"
                 + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <h2 style=\"color:#0f172a;font-size:19px;margin-top:0;\">Dear " + escapeHtml(name) + ",</h2>"
-                + "  <p style=\"color:#475569;font-size:14.5px;line-height:1.6;\">Your Atomy Distributor Membership (ID: <strong>" + escapeHtml(membership.getId()) + "</strong>) expired on <strong>" + escapeHtml(expiryFormatted) + "</strong>.</p>"
-                + "  <div style=\"background:#fff1f2;border:1px solid #fecdd3;border-left:4px solid #e11d48;border-radius:6px;padding:16px 20px;margin:22px 0;\">"
-                + "    <h4 style=\"margin:0 0 8px;color:#9f1239;font-size:14px;\">Impact on Your Account:</h4>"
-                + "    <ul style=\"margin:0;padding-left:18px;color:#334155;font-size:13px;line-height:1.8;\">"
-                + "      <li>Product pricing has reverted from wholesale Distributor Price (DP) to standard MRP retail.</li>"
-                + "      <li>Personal PV accumulation on new orders is currently paused.</li>"
-                + "    </ul>"
-                + "  </div>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">Don't worry! Your accumulated historical PV points and member profile are safely preserved. Renewing your plan immediately reactivates wholesale DP pricing on all future orders.</p>"
-                + "  <div style=\"text-align:center;margin:28px 0 16px;\">"
-                + "    <a href=\"" + storefrontUrl + "/membership\" style=\"background:#00A3E0;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">Renew Your Distributor Membership &rarr;</a>"
-                + "  </div>"
-                + "  <hr style=\"border:none;border-top:1px solid #e2e8f0;margin:24px 0;\">"
-                + "  <p style=\"color:#94a3b8;font-size:12px;margin:0;text-align:center;\">Need help with renewal? Reply directly or contact <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#00A3E0;\">daggerking7828@gmail.com</a>.</p>"
-                + "</div>"
-                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
-                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Direct-Selling Partner"
-                + "</div>"
+                + "<div style=\"text-align:center;margin:26px 0 10px;\">"
+                + "  <a href=\"" + escapeHtml(renewUrl) + "\" class=\"btn-block\" style=\"background:#00A3E0;color:#ffffff;padding:12px 30px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;\">Renew Your Distributor Membership &rarr;</a>"
                 + "</div>";
 
+        String html = wrapEmailHtml("Membership Expired", "Membership Plan Notice", innerContent);
         sendEmailAsync(membership.getCustomerEmail(), name, subject, html);
     }
 
-    
-        // =========================================================================
+    // =========================================================================
     // 10. DISTRIBUTOR INVITATION & PORTAL CREDENTIALS EMAIL
     // =========================================================================
     public CompletableFuture<Boolean> sendDistributorInvitationEmail(DistributorUser distributor, String rawPassword) {
@@ -487,48 +556,35 @@ public class BrevoEmailService {
         String pinsList = (distributor.getAssignedPincodes() != null && !distributor.getAssignedPincodes().isEmpty())
                 ? String.join(", ", distributor.getAssignedPincodes()) : pincode;
         String commRate = (distributor.getCommissionRate() != null) ? String.format("%.1f", distributor.getCommissionRate()) : "7.5";
-        String loginPortalUrl = (adminUrl != null && !adminUrl.trim().isEmpty()) ? adminUrl.trim() : "http://localhost:5174";
+        String loginPortalUrl = getEffectiveAdminUrl();
         String passwordDisplay = (rawPassword != null && !rawPassword.trim().isEmpty()) ? rawPassword.trim() : "Admin@123";
 
         String subject = "Official Invitation: Regional Logistics Partner & Portal Access (PIN " + pincode + ")";
 
-        String html = "<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:620px;margin:0 auto;background:#f8fafc;padding:24px;border-radius:10px;\">"
-                + "<div style=\"background:linear-gradient(135deg,#0284c7,#0369a1);padding:26px 20px;text-align:center;border-radius:8px 8px 0 0;\">"
-                + "  <div style=\"background:rgba(255,255,255,0.2);display:inline-block;padding:4px 12px;border-radius:20px;color:#ffffff;font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;\">Territory Logistics Franchise</div>"
-                + "  <h1 style=\"color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;\">Regional Distributor Onboarding</h1>"
-                + "  <p style=\"color:#e0f2fe;margin:6px 0 0;font-size:13.5px;\">Atomy India Logistics Network &bull; " + escapeHtml(hubName) + "</p>"
+        String innerContent = "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Dear " + escapeHtml(recipientName) + ",</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">We are pleased to onboard <strong>" + escapeHtml(hubName) + "</strong> as an authorized <strong>Atomy Regional Logistics & Territory Distributor</strong> partner for Indian Postal Code <strong>" + escapeHtml(pincode) + "</strong>.</p>"
+                + "<div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #0284c7;border-radius:8px;padding:16px 18px;margin:20px 0;\">"
+                + "  <h4 style=\"margin:0 0 10px;color:#0369a1;font-size:13.5px;\">&#128273; Your Regional Sub-Admin Portal Credentials:</h4>"
+                + "  <table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"meta-box\" style=\"font-size:13px;line-height:1.9;\">"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;width:130px;\">Portal Link:</td><td><a href=\"" + escapeHtml(loginPortalUrl) + "\" style=\"color:#0284c7;font-weight:bold;word-break:break-all;\">" + escapeHtml(loginPortalUrl) + "</a></td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Login ID / Email:</td><td style=\"font-family:monospace;font-weight:bold;color:#0f172a;\">" + escapeHtml(distributor.getEmail()) + "</td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Assigned Password:</td><td style=\"font-family:monospace;font-weight:bold;color:#0284c7;\">" + escapeHtml(passwordDisplay) + "</td></tr>"
+                + "    <tr><td style=\"color:#64748b;padding:3px 0;\">Distributor ID:</td><td style=\"font-family:monospace;color:#64748b;\">" + escapeHtml(distributor.getDistributorId()) + "</td></tr>"
+                + "  </table>"
                 + "</div>"
-                + "<div style=\"background:#ffffff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;\">"
-                + "  <h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Dear " + escapeHtml(recipientName) + ",</h2>"
-                + "  <p style=\"color:#475569;font-size:14px;line-height:1.6;\">We are pleased to invite and onboard <strong>" + escapeHtml(hubName) + "</strong> as an authorized <strong>Atomy Regional Logistics & Territory Distributor</strong> partner for Indian Postal Code <strong>" + escapeHtml(pincode) + "</strong>.</p>"
-                + "  <div style=\"background:#f0f9ff;border:1px solid #bae6fd;border-left:4px solid #0284c7;border-radius:8px;padding:16px 20px;margin:20px 0;\">"
-                + "    <h4 style=\"margin:0 0 10px;color:#0369a1;font-size:14px;\">&#128273; Your Regional Sub-Admin Portal Credentials:</h4>"
-                + "    <table style=\"width:100%;font-size:13px;color:#334155;border-collapse:collapse;\">"
-                + "      <tr><td style=\"padding:5px 0;font-weight:600;width:150px;\">Portal Link:</td><td style=\"padding:5px 0;\"><a href=\"" + escapeHtml(loginPortalUrl) + "\" style=\"color:#0284c7;font-weight:bold;word-break:break-all;\">" + escapeHtml(loginPortalUrl) + "</a></td></tr>"
-                + "      <tr><td style=\"padding:5px 0;font-weight:600;\">Login ID / Email:</td><td style=\"padding:5px 0;font-family:monospace;font-weight:bold;color:#0f172a;\">" + escapeHtml(distributor.getEmail()) + "</td></tr>"
-                + "      <tr><td style=\"padding:5px 0;font-weight:600;\">Assigned Password:</td><td style=\"padding:5px 0;font-family:monospace;font-weight:bold;color:#0284c7;\">" + escapeHtml(passwordDisplay) + "</td></tr>"
-                + "      <tr><td style=\"padding:5px 0;font-weight:600;\">Distributor ID:</td><td style=\"padding:5px 0;font-family:monospace;color:#64748b;\">" + escapeHtml(distributor.getDistributorId()) + "</td></tr>"
-                + "    </table>"
-                + "  </div>"
-                + "  <div style=\"background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin:20px 0;\">"
-                + "    <h4 style=\"margin:0 0 10px;color:#1e293b;font-size:13.5px;\">&#128506;&#65039; Territory Franchised Coverage & Privileges:</h4>"
-                + "    <ul style=\"margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.75;\">"
-                + "      <li><strong>Franchised PIN Territory:</strong> " + escapeHtml(pinsList) + "</li>"
-                + "      <li><strong>Order Commission:</strong> " + escapeHtml(commRate) + "% on all customer orders fulfilled in your designated PIN areas.</li>"
-                + "      <li><strong>Operations Dashboard:</strong> Real-time order dispatch, tracking airway bill assignment, and territory customer insights.</li>"
-                + "    </ul>"
-                + "  </div>"
-                + "  <div style=\"text-align:center;margin:26px 0 16px;\">"
-                + "    <a href=\"" + escapeHtml(loginPortalUrl) + "\" style=\"background:#0284c7;color:#ffffff;padding:13px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;box-shadow:0 4px 6px -1px rgba(2,132,199,0.3);\">Access Distributor Portal &rarr;</a>"
-                + "  </div>"
-                + "  <hr style=\"border:none;border-top:1px solid #e2e8f0;margin:22px 0;\">"
-                + "  <p style=\"color:#94a3b8;font-size:12px;margin:0;text-align:center;\">Questions about your onboarding? Contact Central Super Admin at <a href=\"mailto:daggerking7828@gmail.com\" style=\"color:#0284c7;\">daggerking7828@gmail.com</a>.</p>"
+                + "<div style=\"background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:16px 18px;margin:20px 0;\">"
+                + "  <h4 style=\"margin:0 0 10px;color:#1e293b;font-size:13.5px;\">&#128506;&#65039; Territory Franchised Privileges:</h4>"
+                + "  <ul style=\"margin:0;padding-left:18px;color:#475569;font-size:13px;line-height:1.75;\">"
+                + "    <li><strong>Franchised PIN Territory:</strong> " + escapeHtml(pinsList) + "</li>"
+                + "    <li><strong>Order Commission:</strong> " + escapeHtml(commRate) + "% on all customer orders fulfilled in your territory.</li>"
+                + "    <li><strong>Regional Operations:</strong> Real-time parcel packing, tracking status updates, and hub counter handovers.</li>"
+                + "  </ul>"
                 + "</div>"
-                + "<div style=\"text-align:center;color:#94a3b8;font-size:11px;margin-top:16px;\">"
-                + "  &copy; 2026 Forge India Connect Pvt Ltd (FIC) &bull; Atomy India Regional Logistics Network"
-                + "</div>"
+                + "<div style=\"text-align:center;margin:26px 0 10px;\">"
+                + "  <a href=\"" + escapeHtml(loginPortalUrl) + "\" class=\"btn-block\" style=\"background:#0284c7;color:#ffffff;padding:13px 30px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:14px;display:inline-block;box-shadow:0 3px 8px rgba(2,132,199,0.3);\">Access Regional Portal &rarr;</a>"
                 + "</div>";
 
+        String html = wrapEmailHtml("Regional Distributor Onboarding", "Regional Logistics Franchise", innerContent);
         return sendEmailAsync(distributor.getEmail(), recipientName, subject, html);
     }
 

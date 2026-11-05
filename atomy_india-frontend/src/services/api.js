@@ -183,6 +183,7 @@ export async function syncUnsyncedOrdersToBackend() {
             city: order.city || 'New Delhi',
             state: order.state || 'Delhi',
             pincode: order.pincode || '110001',
+            orderSource: 'WEB_BROWSER',
             paymentMethod: isCod ? 'CASH_ON_DELIVERY' : 'ONLINE_UPI',
             shippingFee: order.shippingFee !== undefined ? Number(order.shippingFee) : 0,
             totalAmount: order.grandTotal !== undefined ? Number(order.grandTotal) : Number(order.totalAmount || 0),

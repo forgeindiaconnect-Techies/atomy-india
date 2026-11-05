@@ -277,6 +277,27 @@ export default function App() {
     lastScrollY.current = 0;
   }, [currentScreen, activeBottomTab]);
 
+  // Handle incoming deep links (e.g. from transactional emails: atomyindia://orders?orderId=...)
+  useEffect(() => {
+    const handleDeepLink = (event) => {
+      const url = event?.url;
+      if (!url) return;
+      if (url.includes('orders') || url.includes('order_delivery') || url.includes('tracking')) {
+        setCurrentScreen('order_delivery');
+        setActiveBottomTab('orders');
+      }
+    };
+
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    }).catch(() => {});
+
+    const sub = Linking.addEventListener('url', handleDeepLink);
+    return () => {
+      if (sub && sub.remove) sub.remove();
+    };
+  }, []);
+
   // Floating Landing Ad states & session suppression
   const [isAdOpen, setIsAdOpen] = useState(false);
   const [isAdCancelledThisSession, setIsAdCancelledThisSession] = useState(false);

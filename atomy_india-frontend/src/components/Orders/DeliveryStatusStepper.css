@@ -522,3 +522,20 @@
   50% { transform: translateY(-2px) rotate(-2deg); }
   100% { transform: translateY(0px) rotate(2deg); }
 }
+
+/* Direct Hub Pickup Stepper Styling */
+.pickup-dot {
+  background-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2) !important;
+}
+
+.carrier-pickup {
+  background: #dcfce7 !important;
+  color: #15803d !important;
+  border: 1px solid #86efac !important;
+  font-weight: 700 !important;
+}
+
+.stage-pickup-text {
+  color: #15803d !important;
+}

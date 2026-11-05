@@ -18,6 +18,7 @@ public class CreateOrderRequest {
     private String fulfillmentType; // "STORE_PICKUP" or "COURIER_DELIVERY"
     private String pickupStatus;
     private String hubAddress;
+    private String orderSource; // "WEB_BROWSER" or "MOBILE_APP"
     private List<OrderItemDto> items;
 
     public String getFulfillmentType() { return fulfillmentType; }
@@ -28,6 +29,9 @@ public class CreateOrderRequest {
 
     public String getHubAddress() { return hubAddress; }
     public void setHubAddress(String hubAddress) { this.hubAddress = hubAddress; }
+
+    public String getOrderSource() { return orderSource; }
+    public void setOrderSource(String orderSource) { this.orderSource = orderSource; }
 
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }

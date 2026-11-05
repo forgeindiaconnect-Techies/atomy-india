@@ -1022,6 +1022,7 @@ export default function OrderSheetPage({
         city,
         state,
         pincode,
+        orderSource: 'WEB_BROWSER',
         fulfillmentType,
         hubAddress: hubDetails?.hubAddress || null,
         hubName: hubDetails?.hubName || null,

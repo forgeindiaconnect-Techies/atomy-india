@@ -201,6 +201,12 @@ public class CustomerService {
                 req.getPaymentMethod() != null ? req.getPaymentMethod() : CustomerOrder.PaymentMethod.ONLINE_UPI
         );
 
+        // Order Source (Web Browser vs Mobile App)
+        String src = (req.getOrderSource() != null && !req.getOrderSource().trim().isEmpty())
+                ? req.getOrderSource().trim().toUpperCase()
+                : "WEB_BROWSER";
+        order.setOrderSource(src);
+
         // Fulfillment Type & Direct Hub Pickup Handling
         String fType = (req.getFulfillmentType() != null && !req.getFulfillmentType().trim().isEmpty())
                 ? req.getFulfillmentType().trim().toUpperCase()

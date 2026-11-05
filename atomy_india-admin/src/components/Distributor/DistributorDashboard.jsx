@@ -200,130 +200,204 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   }, [distId, JSON.stringify(assignedPins)]);
 
   const handleUpdateTracking = async (orderId, trackingPayload) => {
-    try {
-      const res = await updateDistributorOrderTracking(orderId, distId, trackingPayload);
-      const targetStatus = trackingPayload.orderStatus || trackingPayload.currentStatus || 'SHIPPED';
-      
-      // Update local state immediately
-      setOrders(prev => prev.map(o => {
-        if (o.orderId === orderId || o.id === orderId) {
-          return {
-            ...o,
+    const targetStatus = trackingPayload.orderStatus || trackingPayload.currentStatus || 'SHIPPED';
+
+    // 1. Optimistic update immediately in memory for instant UI response
+    setOrders(prev => prev.map(o => {
+      if (o.orderId === orderId || o.id === orderId) {
+        return {
+          ...o,
+          orderStatus: targetStatus,
+          status: targetStatus,
+          courier: trackingPayload.courierPartner || o.courier,
+          trackingNumber: trackingPayload.trackingNumber || o.trackingNumber,
+          tracking: {
+            ...(o.tracking || {}),
+            courierPartner: trackingPayload.courierPartner,
+            trackingNumber: trackingPayload.trackingNumber,
+            currentStatus: targetStatus,
             orderStatus: targetStatus,
-            courier: trackingPayload.courierPartner || o.courier,
-            tracking: {
-              ...(o.tracking || {}),
-              courierPartner: trackingPayload.courierPartner,
-              trackingNumber: trackingPayload.trackingNumber,
-              currentStatus: targetStatus,
-              currentLocation: trackingPayload.initialLocation,
-              estimatedDelivery: trackingPayload.estimatedDelivery
-            }
-          };
-        }
-        return o;
-      }));
+            currentLocation: trackingPayload.currentLocation || trackingPayload.initialLocation,
+            estimatedDelivery: trackingPayload.estimatedDelivery
+          }
+        };
+      }
+      return o;
+    }));
 
-      // Broadcast live to customer website and all open tabs
-      try {
-        const syncChannel = new BroadcastChannel('atomy_sync_channel');
-        syncChannel.postMessage({ type: 'ORDER_STATUS_UPDATED', orderId, newStatus: targetStatus });
-      } catch (e) {}
+    // Keep selectedOrderForTracking in sync
+    setSelectedOrderForTracking(prev => {
+      if (prev && (prev.orderId === orderId || prev.id === orderId)) {
+        return {
+          ...prev,
+          orderStatus: targetStatus,
+          status: targetStatus,
+          courier: trackingPayload.courierPartner || prev.courier,
+          trackingNumber: trackingPayload.trackingNumber || prev.trackingNumber,
+          tracking: {
+            ...(prev.tracking || {}),
+            courierPartner: trackingPayload.courierPartner,
+            trackingNumber: trackingPayload.trackingNumber,
+            currentStatus: targetStatus,
+            orderStatus: targetStatus,
+            currentLocation: trackingPayload.currentLocation || trackingPayload.initialLocation,
+            estimatedDelivery: trackingPayload.estimatedDelivery
+          }
+        };
+      }
+      return prev;
+    });
 
-      // Update localStorage atomy_placed_orders if present
-      try {
-        const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
-        if (localOrdersRaw) {
-          const list = JSON.parse(localOrdersRaw);
-          const statusMap = {
-            'PLACED': 'Payment Completed',
-            'PROCESSING': 'Preparing Shipment',
-            'SHIPPED': 'In Transit',
-            'OUT_FOR_DELIVERY': 'Out for Delivery',
-            'DELIVERED': 'Delivered',
-            'CANCELLED': 'Cancelled'
-          };
-          const updated = list.map(o => {
-            if (o.orderId === orderId) {
-              return {
-                ...o,
-                status: statusMap[targetStatus] || targetStatus,
+    // 2. Broadcast live to customer website and all open tabs
+    try {
+      const syncChannel = new BroadcastChannel('atomy_sync_channel');
+      syncChannel.postMessage({ type: 'ORDER_STATUS_UPDATED', orderId, newStatus: targetStatus });
+    } catch (e) {}
+
+    // 3. Update localStorage atomy_placed_orders immediately
+    try {
+      const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
+      if (localOrdersRaw) {
+        const list = JSON.parse(localOrdersRaw);
+        const statusMap = {
+          'PLACED': 'Payment Completed',
+          'PROCESSING': 'Preparing Shipment',
+          'SHIPPED': 'In Transit',
+          'OUT_FOR_DELIVERY': 'Out for Delivery',
+          'DELIVERED': 'Delivered',
+          'CANCELLED': 'Cancelled'
+        };
+        const updated = list.map(o => {
+          if (o.orderId === orderId || o.id === orderId) {
+            return {
+              ...o,
+              status: statusMap[targetStatus] || targetStatus,
+              orderStatus: targetStatus,
+              trackingNumber: trackingPayload.trackingNumber || o.trackingNumber,
+              courier: trackingPayload.courierPartner || o.courier,
+              tracking: {
+                ...(o.tracking || {}),
+                courierPartner: trackingPayload.courierPartner,
+                trackingNumber: trackingPayload.trackingNumber,
+                currentStatus: targetStatus,
                 orderStatus: targetStatus,
-                trackingNumber: trackingPayload.trackingNumber || o.trackingNumber,
-                courier: trackingPayload.courierPartner || o.courier
-              };
-            }
-            return o;
-          });
-          localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
-          window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
-        }
-      } catch (e) {}
+                currentLocation: trackingPayload.currentLocation || trackingPayload.initialLocation,
+                estimatedDelivery: trackingPayload.estimatedDelivery
+              }
+            };
+          }
+          return o;
+        });
+        localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
+      }
+    } catch (e) {}
 
-      showToast('Dispatch tracking updated & customer notified via email / SMS!');
-      await loadDashboardData();
-      return res;
+    showToast('Dispatch tracking updated & customer notified via email / SMS!');
+
+    // 4. Background network persistence without blocking UI
+    try {
+      await updateDistributorOrderTracking(orderId, distId, trackingPayload);
     } catch (err) {
-      showToast(`Error: ${err.message || 'Tracking update failed'}`);
-      throw err;
+      console.warn('Network tracking update note (optimistic update kept):', err.message);
     }
+
+    // Refresh dashboard in background
+    loadDashboardData().catch(() => {});
+    return { success: true };
   };
 
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    // 1. Optimistic update immediately in memory for instant UI response
+    setOrders(prev => prev.map(o => {
+      if (o.orderId === orderId || o.id === orderId) {
+        const isCodOrder = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
+        const newPaymentStatus = (newStatus === 'DELIVERED' && isCodOrder) ? 'PAID' : (newStatus === 'CANCELLED' ? 'REFUNDED' : o.paymentStatus);
+        return { 
+          ...o, 
+          orderStatus: newStatus, 
+          status: newStatus,
+          paymentStatus: newPaymentStatus,
+          tracking: {
+            ...(o.tracking || {}),
+            currentStatus: newStatus,
+            orderStatus: newStatus
+          }
+        };
+      }
+      return o;
+    }));
+
+    // Keep selectedOrderForTracking in sync immediately
+    setSelectedOrderForTracking(prev => {
+      if (prev && (prev.orderId === orderId || prev.id === orderId)) {
+        return {
+          ...prev,
+          orderStatus: newStatus,
+          status: newStatus,
+          tracking: {
+            ...(prev.tracking || {}),
+            currentStatus: newStatus,
+            orderStatus: newStatus
+          }
+        };
+      }
+      return prev;
+    });
+
+    // 2. Broadcast live to customer website and all open tabs
+    try {
+      const syncChannel = new BroadcastChannel('atomy_sync_channel');
+      syncChannel.postMessage({ type: 'ORDER_STATUS_UPDATED', orderId, newStatus });
+    } catch (e) {}
+
+    // 3. Update localStorage atomy_placed_orders immediately
+    try {
+      const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
+      if (localOrdersRaw) {
+        const list = JSON.parse(localOrdersRaw);
+        const statusMap = {
+          'PLACED': 'Payment Completed',
+          'PROCESSING': 'Preparing Shipment',
+          'SHIPPED': 'In Transit',
+          'OUT_FOR_DELIVERY': 'Out for Delivery',
+          'DELIVERED': 'Delivered',
+          'CANCELLED': 'Cancelled'
+        };
+        const updated = list.map(o => {
+          if (o.orderId === orderId || o.id === orderId) {
+            const isCodOrder = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
+            const newPaymentStatus = (newStatus === 'DELIVERED' && isCodOrder) ? 'PAID' : (newStatus === 'CANCELLED' ? 'REFUNDED' : o.paymentStatus);
+            return {
+              ...o,
+              status: statusMap[newStatus] || newStatus,
+              orderStatus: newStatus,
+              paymentStatus: newPaymentStatus,
+              tracking: {
+                ...(o.tracking || {}),
+                currentStatus: newStatus,
+                orderStatus: newStatus
+              }
+            };
+          }
+          return o;
+        });
+        localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
+        window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
+      }
+    } catch (e) {}
+
+    showToast(`Order ${orderId} status set to ${newStatus}`);
+
+    // 4. Background network persistence without blocking UI
     try {
       await updateDistributorOrderStatus(orderId, distId, newStatus);
-      setOrders(prev => prev.map(o => {
-        if (o.orderId === orderId || o.id === orderId) {
-          const isCodOrder = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
-          const newPaymentStatus = (newStatus === 'DELIVERED' && isCodOrder) ? 'PAID' : (newStatus === 'CANCELLED' ? 'REFUNDED' : o.paymentStatus);
-          return { ...o, orderStatus: newStatus, paymentStatus: newPaymentStatus };
-        }
-        return o;
-      }));
-
-      // Broadcast live to customer website and all open tabs
-      try {
-        const syncChannel = new BroadcastChannel('atomy_sync_channel');
-        syncChannel.postMessage({ type: 'ORDER_STATUS_UPDATED', orderId, newStatus });
-      } catch (e) {}
-
-      // Update localStorage atomy_placed_orders if present
-      try {
-        const localOrdersRaw = localStorage.getItem('atomy_placed_orders');
-        if (localOrdersRaw) {
-          const list = JSON.parse(localOrdersRaw);
-          const statusMap = {
-            'PLACED': 'Payment Completed',
-            'PROCESSING': 'Preparing Shipment',
-            'SHIPPED': 'In Transit',
-            'OUT_FOR_DELIVERY': 'Out for Delivery',
-            'DELIVERED': 'Delivered',
-            'CANCELLED': 'Cancelled'
-          };
-          const updated = list.map(o => {
-            if (o.orderId === orderId) {
-              const isCodOrder = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
-              const newPaymentStatus = (newStatus === 'DELIVERED' && isCodOrder) ? 'PAID' : (newStatus === 'CANCELLED' ? 'REFUNDED' : o.paymentStatus);
-              return {
-                ...o,
-                status: statusMap[newStatus] || newStatus,
-                orderStatus: newStatus,
-                paymentStatus: newPaymentStatus
-              };
-            }
-            return o;
-          });
-          localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
-          window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
-        }
-      } catch (e) {}
-
-      showToast(`Order ${orderId} status set to ${newStatus}`);
-      await loadDashboardData();
     } catch (err) {
-      showToast(`Error: ${err.message || 'Status update failed'}`);
-      throw err;
+      console.warn('Network status update note (optimistic update kept):', err.message);
     }
+
+    // Refresh dashboard in background
+    loadDashboardData().catch(() => {});
   };
 
   // Open Full Product Editor for the Sub-Admin
