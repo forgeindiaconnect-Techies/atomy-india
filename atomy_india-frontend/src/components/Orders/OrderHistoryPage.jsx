@@ -25,7 +25,8 @@ import {
   AlertCircle,
   Banknote,
   Download,
-  Printer
+  Printer,
+  Building2
 } from 'lucide-react';
 import DeliveryStatusStepper from './DeliveryStatusStepper';
 import { updateAdminOrderStatus, syncUnsyncedOrdersToBackend } from '../../services/api';
