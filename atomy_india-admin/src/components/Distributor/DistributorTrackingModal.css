@@ -210,3 +210,51 @@
   cursor: not-allowed;
 }
 
+
+/* ==========================================================================
+   MOBILE VIEWPORT ENHANCEMENTS FOR TRACKING MODAL (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .dist-modal-overlay {
+    padding: 8px !important;
+    align-items: flex-end !important;
+  }
+
+  .dist-modal-card {
+    max-height: 94vh !important;
+    border-radius: 14px 14px 0 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .dist-modal-header {
+    padding: 12px 14px !important;
+  }
+
+  .dist-modal-title {
+    font-size: 15px !important;
+  }
+
+  .dist-modal-body {
+    padding: 14px !important;
+  }
+
+  .dist-meta-strip {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+  }
+
+  .dist-modal-footer {
+    padding: 12px 14px !important;
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+  }
+
+  .dist-btn-secondary,
+  .dist-btn-primary {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 10px 14px !important;
+  }
+}

@@ -4496,3 +4496,463 @@ input:checked+.slider:before {
   font-weight: 700 !important;
   color: #0F172A !important;
 }
+
+/* ==========================================================================
+   17. COMPREHENSIVE MOBILE VIEWPORT ENHANCEMENTS (SUPERADMIN & SUBADMIN)
+   Strictly scoped to mobile & tablet viewports (<= 992px).
+   Website & desktop view (> 992px) remains 100% untouched.
+   ========================================================================== */
+@media (max-width: 992px) {
+  /* Connected Layout: Stack Sidebar & Main Viewport */
+  .admin-connected-body {
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Master Sidebar: Transforms into sleek horizontal swipe navigation */
+  .admin-master-sidebar {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    border-right: none !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05) !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sidebar-header-box {
+    display: none !important;
+  }
+
+  .sidebar-nav-menu {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    padding: 8px 12px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+
+  .sidebar-nav-menu::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .sidebar-nav-button {
+    flex-shrink: 0 !important;
+    padding: 7px 13px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    border-radius: 20px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    color: #475569 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    height: 36px !important;
+  }
+
+  .sidebar-nav-button.active {
+    background: #00A3E0 !important;
+    color: #ffffff !important;
+    border-color: #00A3E0 !important;
+    box-shadow: 0 2px 6px rgba(0, 163, 224, 0.35) !important;
+  }
+
+  .sidebar-nav-button.active svg {
+    color: #ffffff !important;
+  }
+
+  .sidebar-nav-button svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  /* Main Viewport & Content Container */
+  .admin-main-viewport,
+  .admin-connected-main,
+  .admin-tab-content {
+    padding: 14px 12px 60px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Top Quick Strip */
+  .admin-quick-strip,
+  .distributor-header-strip {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding: 10px 14px !important;
+  }
+
+  .quick-strip-left,
+  .quick-strip-right {
+    width: 100% !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Content Heading Row */
+  .content-heading-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .content-title {
+    font-size: 20px !important;
+  }
+
+  .content-subtitle {
+    font-size: 12.5px !important;
+  }
+
+  .heading-actions-cluster {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .heading-actions-cluster button,
+  .primary-action-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* KPI Grid & Cards */
+  .kpi-curve-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .kpi-curve-card {
+    min-height: 85px !important;
+    padding: 14px 16px !important;
+  }
+
+  .kpi-curve-val {
+    font-size: 22px !important;
+  }
+
+  .kpi-curve-sub {
+    font-size: 11.5px !important;
+  }
+
+  .kpi-step-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .kpi-step-card {
+    padding: 10px !important;
+    min-height: 85px !important;
+  }
+
+  .kpi-step-val {
+    font-size: 20px !important;
+  }
+
+  .kpi-step-title {
+    font-size: 10.5px !important;
+  }
+
+  .kpi-step-sub {
+    font-size: 10px !important;
+  }
+
+  .kpi-step-top-header {
+    padding: 8px 10px !important;
+  }
+
+  /* Split Overview: 1 Column on Mobile */
+  .atomy-overview-split {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    margin-bottom: 24px !important;
+  }
+
+  .atomy-card-box {
+    padding: 16px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .recent-order-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+
+  .recent-order-left {
+    width: 100% !important;
+  }
+
+  .order-row-right {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding-top: 8px !important;
+    border-top: 1px dashed #e2e8f0 !important;
+  }
+
+  .order-price {
+    font-size: 14px !important;
+  }
+
+  .quick-btn-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .quick-action-tile {
+    padding: 10px 8px !important;
+    font-size: 11.5px !important;
+  }
+
+  .inv-health-list .health-row {
+    padding: 8px 10px !important;
+    font-size: 12.5px !important;
+  }
+
+  /* Responsive Data Tables */
+  .orders-table-wrapper,
+  .inventory-table-container,
+  .atomy-table-responsive,
+  .table-responsive {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+  }
+
+  .orders-data-table,
+  .inventory-data-table,
+  .atomy-data-table {
+    min-width: 640px !important;
+  }
+
+  /* Filters, Search & Categories */
+  .orders-toolbar-container,
+  .inventory-filter-toolbar,
+  .search-filter-toolbar,
+  .heading-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .order-search-box,
+  .inventory-search-wrap,
+  .search-input-wrap,
+  .search-box-unified {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .filter-chips-row,
+  .category-pills-row,
+  .stock-status-chips,
+  .dist-filters-row {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 6px !important;
+    gap: 6px !important;
+    scrollbar-width: none !important;
+  }
+
+  .filter-chips-row::-webkit-scrollbar,
+  .category-pills-row::-webkit-scrollbar,
+  .dist-filters-row::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .dist-filter-pill,
+  .category-pill-btn,
+  .status-filter-chip {
+    flex-shrink: 0 !important;
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+  }
+
+  /* Order Inspection & Detail Views */
+  .inspection-fullscreen-content {
+    padding: 14px 10px 40px !important;
+  }
+
+  .inspection-top-meta,
+  .inspection-header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .inspection-card {
+    padding: 14px !important;
+  }
+
+  .inspection-grid,
+  .two-col-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .inspection-card.status-actions-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .inspection-card.status-actions-card button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Customer Support Split */
+  .atomy-support-split,
+  .support-split-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .atomy-tickets-sidebar {
+    max-height: 280px !important;
+    overflow-y: auto !important;
+  }
+
+  /* Finance & Settlements */
+  .finance-tab-content {
+    padding: 14px 10px 40px !important;
+  }
+
+  .finance-kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .finance-header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  /* Territory, Invite, Membership, Ads, Coupons, Settings */
+  .territory-page-wrap,
+  .invite-distributor-wrap,
+  .membership-page-wrap {
+    padding: 14px 10px 40px !important;
+  }
+
+  .territory-stats-grid,
+  .invite-form-grid,
+  .membership-kpi-grid,
+  .ad-banners-grid,
+  .coupons-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .settings-split-wrapper {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .settings-sub-sidebar.expanded {
+    width: 100% !important;
+    position: static !important;
+  }
+
+  .settings-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  /* Modals on Mobile */
+  .dist-modal-overlay,
+  .modal-backdrop-overlay,
+  .admin-modal-overlay {
+    padding: 8px !important;
+  }
+
+  .dist-modal-card,
+  .atomy-modal-box,
+  .admin-modal-box,
+  .tracking-modal-card,
+  .modal-backdrop-overlay .atomy-modal-box.wide {
+    width: 96% !important;
+    max-width: 96% !important;
+    max-height: 92vh !important;
+    padding: 14px !important;
+    border-radius: 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  .dist-modal-header,
+  .modal-header-row {
+    padding: 12px 14px !important;
+  }
+
+  .dist-modal-body,
+  .modal-body-content {
+    padding: 14px 12px !important;
+  }
+
+  .dist-modal-footer,
+  .modal-footer-row {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+    padding: 12px 14px !important;
+    width: 100% !important;
+  }
+
+  .dist-modal-footer button,
+  .modal-footer-row button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-step-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .quick-btn-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-master-sidebar {
+    top: 0 !important;
+  }
+
+  .sidebar-nav-button {
+    padding: 6px 11px !important;
+    font-size: 12px !important;
+    height: 34px !important;
+  }
+}

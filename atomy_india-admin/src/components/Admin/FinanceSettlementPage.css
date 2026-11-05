@@ -1030,3 +1030,31 @@
   background: #e2e8f0;
   color: #0f172a;
 }
+
+/* ==========================================================================
+   MOBILE VIEWPORT ENHANCEMENTS FOR FINANCE & SETTLEMENTS (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .finance-tab-content {
+    padding: 12px 10px !important;
+  }
+
+  .finance-header-row {
+    margin-bottom: 14px !important;
+  }
+
+  .table-responsive-container,
+  .finance-table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .rules-action-strip {
+    flex-direction: column !important;
+  }
+
+  .rules-action-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}

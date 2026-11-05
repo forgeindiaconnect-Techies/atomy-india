@@ -81,7 +81,14 @@ export default function AdminLoginPage({ onLoginSuccess, onBackToStore }) {
       }, 400);
     } catch (err) {
       setIsLoading(false);
-      setErrorMsg(err.message || 'Invalid administrative credentials. Access denied.');
+      const isNetworkError = err.message === 'Failed to fetch' || 
+                             err.message?.toLowerCase().includes('network') || 
+                             err.message?.toLowerCase().includes('fetch');
+      if (isNetworkError) {
+        setErrorMsg('Connecting to cloud backend... The server was waking up. Please click "Sign In to Console" again now.');
+      } else {
+        setErrorMsg(err.message || 'Invalid administrative credentials. Access denied.');
+      }
     }
   };
 

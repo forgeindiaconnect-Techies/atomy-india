@@ -1759,3 +1759,81 @@
   color: #ef4444;
   background: #fee2e2;
 }
+
+/* ==========================================================================
+   ADMIN MOBILE NAVBAR ENHANCEMENTS (<= 768px and <= 480px)
+   Strictly scoped to mobile viewports. Desktop (> 768px) remains untouched.
+   ========================================================================== */
+@media (max-width: 768px) {
+  .main-header-bar.admin-header-bar {
+    padding: 10px 0 !important;
+    min-height: auto !important;
+  }
+
+  .main-header-container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .head-main-row {
+    gap: 8px !important;
+  }
+
+  .brand-logo-img {
+    height: 38px !important;
+    max-height: 40px !important;
+  }
+
+  .admin-master-actions-group {
+    gap: 8px !important;
+  }
+
+  .admin-master-bell-btn {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .admin-master-profile-pill {
+    padding: 3px 8px 3px 4px !important;
+    gap: 6px !important;
+  }
+
+  .admin-master-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+  }
+
+  .admin-master-name {
+    font-size: 12px !important;
+    max-width: 85px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .admin-master-role {
+    font-size: 9.5px !important;
+  }
+
+  .admin-master-notif-dropdown {
+    width: calc(100vw - 24px) !important;
+    max-width: 330px !important;
+    right: -55px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-logo-img {
+    height: 32px !important;
+    max-height: 34px !important;
+  }
+
+  .admin-master-role {
+    display: none !important;
+  }
+
+  .admin-master-name {
+    max-width: 70px !important;
+  }
+}
