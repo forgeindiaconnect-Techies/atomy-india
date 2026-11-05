@@ -114,6 +114,7 @@ export default function Header({
   const [selectedLanguage, setSelectedLanguage] = useState(() => getSavedLanguage());
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [navbarBottom, setNavbarBottom] = useState(0);
 
   // Zepto-style Delivery Location & Regional Hub Lock State
   const [deliveryPincode, setDeliveryPincode] = useState(() => getCustomerDeliveryPincode());

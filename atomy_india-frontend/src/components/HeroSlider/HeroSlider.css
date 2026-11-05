@@ -509,10 +509,15 @@
     background-position: var(--mobile-bg-pos, center center) !important;
   }
 
-  .hero-slide-bg.hero-slide-fit-contain {
-    background-size: contain !important;
+  .hero-slide-bg.hero-slide-fit-contain,
+  .hero-slide.ad-fit-slide .hero-slide-bg {
+    background-size: cover !important;
     background-position: center center !important;
     background-repeat: no-repeat !important;
+  }
+
+  .hero-slide.ad-fit-slide .hero-slide-ambient-bg {
+    display: none !important;
   }
 
   .hero-slide-ambient-bg {
@@ -555,7 +560,39 @@
   }
 
   .slider-arrow {
-    display: none !important;
+    display: flex !important;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 32px !important;
+    height: 56px !important;
+    background-color: rgba(0, 0, 0, 0.35) !important;
+    color: #ffffff !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    z-index: 25 !important;
+    border: none !important;
+    transition: background-color 0.2s ease !important;
+  }
+
+  .slider-arrow:active {
+    background-color: rgba(0, 0, 0, 0.65) !important;
+  }
+
+  .slider-arrow.prev {
+    left: 0 !important;
+    border-radius: 0 8px 8px 0 !important;
+  }
+
+  .slider-arrow.next {
+    right: 0 !important;
+    border-radius: 8px 0 0 8px !important;
+  }
+
+  .slider-arrow svg {
+    width: 20px !important;
+    height: 20px !important;
   }
 
   .slider-controls-badge {
@@ -607,10 +644,15 @@
     background-position: var(--mobile-bg-pos, center center) !important;
   }
 
-  .hero-slide-bg.hero-slide-fit-contain {
-    background-size: contain !important;
+  .hero-slide-bg.hero-slide-fit-contain,
+  .hero-slide.ad-fit-slide .hero-slide-bg {
+    background-size: cover !important;
     background-position: center center !important;
     background-repeat: no-repeat !important;
+  }
+
+  .hero-slide.ad-fit-slide .hero-slide-ambient-bg {
+    display: none !important;
   }
 
   .hero-text-overlay-wrap {

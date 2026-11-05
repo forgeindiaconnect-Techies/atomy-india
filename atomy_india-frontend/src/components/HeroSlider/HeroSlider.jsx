@@ -160,6 +160,44 @@ export default function HeroSlider({
     setSlideTrackIdx((prev) => prev + 1);
   };
 
+  // Touch / Finger swipe support for mobile
+  const touchStartXRef = React.useRef(null);
+  const touchEndXRef = React.useRef(null);
+  const touchStartYRef = React.useRef(null);
+  const touchEndYRef = React.useRef(null);
+
+  const handleTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+    touchEndXRef.current = null;
+    touchEndYRef.current = null;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    touchEndXRef.current = e.touches[0].clientX;
+    touchEndYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartXRef.current === null || touchEndXRef.current === null) return;
+    const diffX = touchStartXRef.current - touchEndXRef.current;
+    const diffY = (touchStartYRef.current || 0) - (touchEndYRef.current || 0);
+
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 35) {
+      if (diffX > 0) {
+        handleNext();
+      } else {
+        handlePrev();
+      }
+    }
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
+    touchStartYRef.current = null;
+    touchEndYRef.current = null;
+  };
+
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
   };
@@ -246,7 +284,12 @@ export default function HeroSlider({
   };
 
   return (
-    <div className="hero-slider-section">
+    <div 
+      className="hero-slider-section"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <div
         className="hero-slider-track"
         style={{
