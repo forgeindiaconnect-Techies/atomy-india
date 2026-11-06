@@ -44,7 +44,7 @@ import {
   HEALTH_ESSENTIAL_PRODUCTS,
   ALL_CATALOG_PRODUCTS
 } from './data/mockData';
-import { onCatalogUpdate, syncCatalogFromBackend } from './services/catalogSyncService';
+import { onCatalogUpdate, syncCatalogFromBackend, setCustomerDeliveryPincode } from './services/catalogSyncService';
 import { detectCustomerLiveLocation } from './services/locationService';
 import MembershipModal from './components/Membership/MembershipModal';
 import MembershipPage from './components/Membership/MembershipPage';
@@ -1020,6 +1020,37 @@ export default function App() {
     setCurrentUser(userObj);
     try {
       localStorage.setItem('atomy_current_user', JSON.stringify(userObj));
+
+      // Automatically sync delivery pincode & city from customer's profile
+      if (userObj.pincode && /^\d{6}$/.test(String(userObj.pincode).trim())) {
+        const cleanPin = String(userObj.pincode).trim();
+        localStorage.setItem('atomy_customer_delivery_pincode', cleanPin);
+        setCustomerDeliveryPincode(cleanPin);
+      }
+      if (userObj.city) {
+        localStorage.setItem('atomy_customer_delivery_city', String(userObj.city).trim());
+      }
+
+      // If customer has address details and local address list is empty, seed it
+      const existingSaved = localStorage.getItem('atomy_customer_addresses');
+      let parsedAddrs = [];
+      try { parsedAddrs = existingSaved ? JSON.parse(existingSaved) : []; } catch {}
+      if (!Array.isArray(parsedAddrs) || parsedAddrs.length === 0) {
+        if (userObj.address || userObj.street || userObj.pincode) {
+          const initialAddr = [{
+            id: `addr-${Date.now()}`,
+            type: 'Home',
+            fullName: userObj.name || userObj.fullName || 'Customer',
+            phone: userObj.phone || '',
+            street: userObj.address || userObj.street || 'Address Line',
+            city: userObj.city || 'Krishnagiri',
+            state: userObj.state || 'Tamil Nadu',
+            pincode: userObj.pincode || '635002',
+            isDefault: true
+          }];
+          localStorage.setItem('atomy_customer_addresses', JSON.stringify(initialAddr));
+        }
+      }
     } catch { }
     showToast({
       title: isNewSignUp ? 'Welcome to Atomy!' : 'Welcome Back!',

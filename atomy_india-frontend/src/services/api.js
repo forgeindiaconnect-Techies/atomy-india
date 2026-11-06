@@ -505,6 +505,21 @@ export async function updateAdminProfile(profileData) {
   return res.json();
 }
 
+export async function updateCustomerProfile(profileData) {
+  try {
+    const res = await fetch(`${API_BASE}/customer/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData)
+    });
+    if (!res.ok) throw new Error('Failed to update customer profile in database');
+    return res.json();
+  } catch (err) {
+    console.debug('Error updating customer profile:', err);
+    return null;
+  }
+}
+
 // Password Reset APIs via Brevo
 export async function requestForgotPasswordOtp(email) {
   const res = await fetch(`${API_BASE}/auth/forgot-password`, {

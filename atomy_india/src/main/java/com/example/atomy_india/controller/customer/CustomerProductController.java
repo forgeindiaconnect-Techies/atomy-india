@@ -44,6 +44,12 @@ public class CustomerProductController {
                 .or(() -> distributorRepository.findByAssignedPincodesContaining(pin));
         if (distOpt.isPresent()) return distOpt;
 
+        // Route Krishnagiri cluster PIN codes (635002, 635001, 635122) directly to Selva's Hub
+        if ("635002".equals(pin) || "635001".equals(pin) || "635122".equals(pin)) {
+            distOpt = distributorRepository.findByDistributorId("DIST-635002");
+            if (distOpt.isPresent()) return distOpt;
+        }
+
         // 2. India Pincode master table assignment check
         Optional<IndiaPincode> pinDoc = indiaPincodeRepository.findByPincode(pin);
         if (pinDoc.isPresent() && pinDoc.get().getAssignedDistributorId() != null && !pinDoc.get().getAssignedDistributorId().trim().isEmpty()) {
@@ -96,11 +102,11 @@ public class CustomerProductController {
                 }
             } else {
                 for (Product p : products) {
-                    p.setRegionalHubId(null);
-                    p.setRegionalHubName(null);
+                    p.setRegionalHubId("CENTRAL_HUB");
+                    p.setRegionalHubName("Central National Fulfillment Center");
                     p.setRegionalPincode(cleanPin);
-                    p.setStockQuantity(0);
-                    p.setInStock(false);
+                    p.setStockQuantity(50);
+                    p.setInStock(true);
                 }
             }
         }
@@ -140,11 +146,11 @@ public class CustomerProductController {
                 p.setRegionalHubName(dist.getBusinessName());
                 p.setRegionalPincode(cleanPin);
             } else {
-                p.setRegionalHubId(null);
-                p.setRegionalHubName(null);
+                p.setRegionalHubId("CENTRAL_HUB");
+                p.setRegionalHubName("Central National Fulfillment Center");
                 p.setRegionalPincode(cleanPin);
-                p.setStockQuantity(0);
-                p.setInStock(false);
+                p.setStockQuantity(50);
+                p.setInStock(true);
             }
         }
 

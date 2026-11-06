@@ -43,6 +43,8 @@ import {
   markSingleNotificationRead,
   formatRelativeTime
 } from '../../services/customerNotificationService';
+import { updateCustomerProfile } from '../../services/api';
+import { setCustomerDeliveryPincode } from '../../services/catalogSyncService';
 import './CustomerProfilePage.css';
 
 export default function CustomerProfilePage({
@@ -97,11 +99,25 @@ export default function CustomerProfilePage({
       const saved = localStorage.getItem('atomy_customer_addresses');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(a => a && a.id !== 'addr-default-1' && a.id !== 'addr-1' && a.id !== 'addr-2' && a.fullName !== 'Naveen Kumar' && a.recipientName !== 'Naveen Kumar');
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const filtered = parsed.filter(a => a && a.id !== 'addr-default-1' && a.id !== 'addr-1' && a.id !== 'addr-2' && a.fullName !== 'Naveen Kumar' && a.recipientName !== 'Naveen Kumar');
+          if (filtered.length > 0) return filtered;
         }
       }
     } catch {}
+    if (currentUser?.address || currentUser?.street || currentUser?.pincode) {
+      return [{
+        id: `addr-cust-${Date.now()}`,
+        type: 'Home',
+        fullName: currentUser.name || currentUser.fullName || 'Customer',
+        phone: currentUser.phone || '',
+        street: currentUser.address || currentUser.street || 'Default Address',
+        city: currentUser.city || 'Krishnagiri',
+        state: currentUser.state || 'Tamil Nadu',
+        pincode: currentUser.pincode || '635002',
+        isDefault: true
+      }];
+    }
     return [];
   });
 
@@ -553,6 +569,26 @@ export default function CustomerProfilePage({
         isDefault: addresses.length === 0
       };
       setAddresses(prev => [...prev, newAddr]);
+    }
+
+    // Sync saved address with active delivery pincode & backend profile
+    if (newAddressForm.pincode && /^\d{6}$/.test(String(newAddressForm.pincode).trim())) {
+      const cleanPin = String(newAddressForm.pincode).trim();
+      localStorage.setItem('atomy_customer_delivery_pincode', cleanPin);
+      if (newAddressForm.city) {
+        localStorage.setItem('atomy_customer_delivery_city', newAddressForm.city);
+      }
+      setCustomerDeliveryPincode(cleanPin);
+    }
+    if (currentUser?.email) {
+      updateCustomerProfile({
+        email: currentUser.email,
+        address: newAddressForm.street,
+        city: newAddressForm.city,
+        state: newAddressForm.state,
+        pincode: newAddressForm.pincode,
+        phone: newAddressForm.phone
+      }).catch(() => {});
     }
 
     setIsAddingAddress(false);

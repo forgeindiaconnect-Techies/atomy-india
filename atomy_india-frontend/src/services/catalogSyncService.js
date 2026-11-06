@@ -306,9 +306,14 @@ export function removeProductFromCatalog(productId) {
 }
 
 export function getCustomerDeliveryPincode() {
-  if (typeof window === 'undefined') return '110001';
+  if (typeof window === 'undefined') return '635002';
   try {
     const saved = localStorage.getItem('atomy_customer_delivery_pincode');
+    if (saved === '635122') {
+      localStorage.setItem('atomy_customer_delivery_pincode', '635002');
+      localStorage.setItem('atomy_customer_delivery_city', 'Krishnagiri');
+      return '635002';
+    }
     if (saved && /^\d{6}$/.test(saved.trim())) return saved.trim();
     const uStr = localStorage.getItem('atomy_current_user');
     if (uStr) {
@@ -318,7 +323,7 @@ export function getCustomerDeliveryPincode() {
       }
     }
   } catch {}
-  return '110001';
+  return '635002';
 }
 
 export function setCustomerDeliveryPincode(pincode) {

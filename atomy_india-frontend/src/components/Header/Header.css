@@ -3604,3 +3604,108 @@ body.mobile-drawer-open {
   font-size: 12.5px;
 }
 
+/* -------------------------------------------------------------
+   Mobile Delivery Location Strip & Popup Location Selector
+   (Desktop view > 768px remains 100% untouched)
+-------------------------------------------------------------- */
+.mobile-delivery-strip {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .mobile-delivery-strip {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: #f0f9ff !important;
+    border-bottom: 1px solid #bae6fd !important;
+    padding: 7px 14px !important;
+    font-size: 11.5px !important;
+    color: #0369a1 !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    transition: background 0.15s ease !important;
+  }
+
+  .mobile-delivery-strip:active {
+    background: #e0f2fe !important;
+  }
+
+  .mobile-delivery-strip-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .mobile-delivery-strip-icon {
+    color: #00a3e0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-delivery-strip-text {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: #334155 !important;
+  }
+
+  .mobile-delivery-strip-text strong {
+    color: #0284c7 !important;
+    font-weight: 700 !important;
+  }
+
+  .mobile-delivery-strip-change {
+    display: flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    color: #0284c7 !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    flex-shrink: 0 !important;
+    padding-left: 8px !important;
+  }
+
+  .mobile-search-popup-location-strip {
+    padding: 8px 14px !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  .mobile-search-popup-location-btn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: #f0f9ff !important;
+    border: 1px solid #bae6fd !important;
+    border-radius: 9999px !important;
+    padding: 6px 12px !important;
+    font-size: 11.5px !important;
+    color: #0369a1 !important;
+    cursor: pointer !important;
+    width: 100% !important;
+    text-align: left !important;
+  }
+
+  .mobile-search-popup-location-btn:active {
+    background: #e0f2fe !important;
+  }
+
+  .mobile-search-popup-location-btn strong {
+    color: #0284c7 !important;
+  }
+
+  .mobile-search-loc-pin {
+    color: #00a3e0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-search-loc-arrow {
+    margin-left: auto !important;
+    color: #0284c7 !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+

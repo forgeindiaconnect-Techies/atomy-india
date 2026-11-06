@@ -184,6 +184,10 @@ export default function SignInPage({
           email: regRes.customer.email || email.trim(),
           username: regRes.customer.username || phoneNumber.trim(),
           phone: fullPhone,
+          address: regRes.customer.address || '',
+          city: regRes.customer.city || '',
+          state: regRes.customer.state || '',
+          pincode: regRes.customer.pincode || '',
           isMember: Boolean(regRes.customer.isMember),
           role: 'customer',
           createdAt: signupTime
@@ -220,6 +224,10 @@ export default function SignInPage({
           email: loginRes.customer.email,
           username: loginRes.customer.username || username.trim(),
           phone: loginRes.customer.phone || '',
+          address: loginRes.customer.address || '',
+          city: loginRes.customer.city || '',
+          state: loginRes.customer.state || '',
+          pincode: loginRes.customer.pincode || '',
           isMember: Boolean(loginRes.customer.isMember),
           role: 'customer'
         };
@@ -258,6 +266,11 @@ export default function SignInPage({
         name: gRes.customer.fullName || googleUser.name,
         email: gRes.customer.email || googleUser.email,
         username: gRes.customer.username || googleUser.email.split('@')[0],
+        phone: gRes.customer.phone || '',
+        address: gRes.customer.address || '',
+        city: gRes.customer.city || '',
+        state: gRes.customer.state || '',
+        pincode: gRes.customer.pincode || '',
         isMember: Boolean(gRes.customer.isMember),
         role: 'customer'
       };

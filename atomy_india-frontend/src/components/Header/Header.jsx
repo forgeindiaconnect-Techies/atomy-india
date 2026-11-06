@@ -167,6 +167,13 @@ export default function Header({
   // Auto-detect location on first customer visit or launch
   useEffect(() => {
     try {
+      const cachedPin = localStorage.getItem('atomy_customer_delivery_pincode');
+      if (cachedPin === '635122') {
+        localStorage.setItem('atomy_customer_delivery_pincode', '635002');
+        localStorage.setItem('atomy_customer_delivery_city', 'Krishnagiri');
+        setDeliveryPincode('635002');
+        setDeliveryCity('Krishnagiri');
+      }
       const alreadyDetected = localStorage.getItem('atomy_location_autodetected_v2');
       if (!alreadyDetected) {
         detectCustomerLiveLocation().then((loc) => {
@@ -237,7 +244,8 @@ export default function Header({
       if (loc && loc.pincode) {
         setDeliveryPincode(loc.pincode);
         if (loc.city) setDeliveryCity(loc.city);
-        setLocationStatusMsg(`✓ Live GPS detected: ${loc.city || 'Your Area'} (${loc.pincode})! Live regional stock updated.`);
+        setLocationInput(loc.pincode);
+        setLocationStatusMsg(`✓ Live location detected: ${loc.city || 'Your Area'} (${loc.pincode})! Live regional stock updated.`);
         setTimeout(() => {
           setIsLocationModalOpen(false);
           setLocationStatusMsg('');
@@ -1473,6 +1481,27 @@ export default function Header({
         </nav>
       )}
 
+      {/* Mobile Delivery Location Strip - Visible only on mobile screens <= 768px */}
+      {currentView !== 'admin' && (
+        <div 
+          className="mobile-delivery-strip"
+          onClick={() => setIsLocationModalOpen(true)}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="mobile-delivery-strip-left">
+            <MapPin size={13} className="mobile-delivery-strip-icon" />
+            <span className="mobile-delivery-strip-text">
+              Deliver to: <strong>{getShortLocationLabel(deliveryPincode, deliveryCity)}</strong>
+            </span>
+          </div>
+          <div className="mobile-delivery-strip-change">
+            <span>Change</span>
+            <ChevronDown size={12} />
+          </div>
+        </div>
+      )}
+
     {/* Official Atomy India Language/Region settings Modal (Exact match to user reference screenshot) */}
     {isLangModalOpen && (
       <div className="lang-region-modal-overlay notranslate" translate="no" onClick={() => setIsLangModalOpen(false)}>
@@ -1765,6 +1794,22 @@ export default function Header({
               onClick={() => setIsMobileSearchOpen(false)}
             >
               Cancel
+            </button>
+          </div>
+
+          {/* Location selector strip inside mobile search popup */}
+          <div className="mobile-search-popup-location-strip">
+            <button
+              type="button"
+              className="mobile-search-popup-location-btn"
+              onClick={() => {
+                setIsMobileSearchOpen(false);
+                setIsLocationModalOpen(true);
+              }}
+            >
+              <MapPin size={13} className="mobile-search-loc-pin" />
+              <span>Delivering to <strong>{getShortLocationLabel(deliveryPincode, deliveryCity)}</strong></span>
+              <ChevronDown size={11} className="mobile-search-loc-arrow" />
             </button>
           </div>
 

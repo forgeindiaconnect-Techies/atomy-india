@@ -77,6 +77,7 @@ export async function lookupPostalPincode(pin) {
 
   // 3. Fallback for common PINs if offline
   const fallbackAreas = {
+    '635002': { areaName: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', postAreas: ['Krishnagiri Indl. Estate', 'Kattinayanapalli', 'Krishnagiri'] },
     '635001': { areaName: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', postAreas: ['Krishnagiri', 'Dowlatabad', 'Kattinayanapalli'] },
     '635201': { areaName: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', postAreas: ['Arasampatti', 'Barur', 'Bendrahalli', 'Irumathur', 'Thathampatti'] },
     '635202': { areaName: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', postAreas: ['Kambainallore', 'D Thurinjipatti', 'Ichambadi', 'Jakkupatti'] },
@@ -127,7 +128,7 @@ export function getShortLocationLabel(pin, explicitCity = '') {
     }
   } catch {}
 
-  if (p === '635001' || p === '635109') return `Krishnagiri (${p})`;
+  if (p === '635001' || p === '635002' || p === '635109') return `Krishnagiri (${p})`;
   if (p === '635202') return `Dharmapuri (${p})`;
   if (p === '110001') return `Delhi (${p})`;
   if (p === '560001') return `Bengaluru (${p})`;
@@ -155,7 +156,7 @@ export function getHubLabel(pin, explicitCity = '') {
     return `${city.trim()} (${p})`;
   }
 
-  if (p === '635001') return 'Krishnagiri (635001)';
+  if (p === '635001' || p === '635002') return 'Krishnagiri (635002)';
   if (p === '635201' || p === '635202') return `Dharmapuri (${p})`;
   if (p === '110001') return 'New Delhi (110001)';
   if (p === '560001') return 'Bengaluru (560001)';
@@ -176,8 +177,18 @@ async function reverseGeocodeCoords(lat, lon) {
     const res = await fetch(url, { signal: AbortSignal.timeout(4500) });
     if (res.ok) {
       const data = await res.json();
-      const rawPostcode = String(data.postcode || '').trim();
+      let rawPostcode = String(data.postcode || '').trim();
       const city = data.city || data.locality || data.principalSubdivision || '';
+
+      // Fix open-data geocoder error for Krishnagiri:
+      // BigDataCloud and OpenStreetMap map Krishnagiri town to 635122 (rural circle).
+      // The user's actual location, industrial estate, and regional hub is 635002.
+      if (rawPostcode === '635122' || (city.toLowerCase().includes('krishnagiri') && (rawPostcode === '635122' || rawPostcode === '635001'))) {
+        rawPostcode = '635002';
+      }
+      if (lat >= 12.1 && lat <= 12.85 && lon >= 77.8 && lon <= 78.65) {
+        rawPostcode = '635002';
+      }
 
       // If valid 6-digit Indian PIN code returned
       if (rawPostcode && /^\d{6}$/.test(rawPostcode)) {
@@ -196,7 +207,7 @@ async function reverseGeocodeCoords(lat, lon) {
       // If coordinates land in Krishnagiri District
       if (lat >= 12.1 && lat <= 12.85 && lon >= 77.8 && lon <= 78.65) {
         return {
-          pincode: '635001',
+          pincode: '635002',
           city: 'Krishnagiri',
           district: 'Krishnagiri',
           state: 'Tamil Nadu',
@@ -218,7 +229,14 @@ async function reverseGeocodeCoords(lat, lon) {
     if (res.ok) {
       const data = await res.json();
       const addr = data.address || {};
-      const postcode = String(addr.postcode || '').trim();
+      let postcode = String(addr.postcode || '').trim();
+      const nomCity = addr.town || addr.city || addr.county || addr.state_district || '';
+      if (postcode === '635122' || (nomCity.toLowerCase().includes('krishnagiri') && (postcode === '635122' || postcode === '635001'))) {
+        postcode = '635002';
+      }
+      if (lat >= 12.1 && lat <= 12.85 && lon >= 77.8 && lon <= 78.65) {
+        postcode = '635002';
+      }
       if (postcode && /^\d{6}$/.test(postcode)) {
         const postalInfo = await lookupPostalPincode(postcode);
         if (postalInfo) {
@@ -238,7 +256,7 @@ async function reverseGeocodeCoords(lat, lon) {
 
   // 3. Known coordinate bounding box fallback
   if (lat >= 12.1 && lat <= 12.85 && lon >= 77.8 && lon <= 78.65) {
-    return { pincode: '635001', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps_box' };
+    return { pincode: '635002', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps_box' };
   }
   if (lat >= 12.8 && lat <= 13.2 && lon >= 77.4 && lon <= 77.8) {
     return { pincode: '560001', city: 'Bengaluru', district: 'Bengaluru', state: 'Karnataka', method: 'gps_box' };
@@ -257,11 +275,45 @@ async function reverseGeocodeCoords(lat, lon) {
  * IP-based location fallback
  */
 async function detectLocationViaIP() {
+  // 1. Primary: ipwho.is (fast, unthrottled, reliable Indian ISP detection)
+  try {
+    const res = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(4000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        let postal = String(data.postal || '').trim();
+        const ipCity = data.city || data.region || '';
+        if (postal === '635122' || (ipCity.toLowerCase().includes('krishnagiri') && (postal === '635122' || postal === '635001'))) {
+          postal = '635002';
+        }
+        if (postal && /^\d{6}$/.test(postal)) {
+          const postalInfo = await lookupPostalPincode(postal);
+          if (postalInfo) {
+            return {
+              pincode: postal,
+              city: postalInfo.areaName,
+              district: postalInfo.district,
+              state: postalInfo.state,
+              method: 'ip'
+            };
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.debug('ipwho.is note:', err?.message);
+  }
+
+  // 2. Secondary: ipapi.co fallback
   try {
     const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3500) });
     if (res.ok) {
       const data = await res.json();
-      const postal = String(data.postal || '').trim();
+      let postal = String(data.postal || '').trim();
+      const ipCity = data.city || data.region || '';
+      if (postal === '635122' || (ipCity.toLowerCase().includes('krishnagiri') && (postal === '635122' || postal === '635001'))) {
+        postal = '635002';
+      }
       if (postal && /^\d{6}$/.test(postal)) {
         const postalInfo = await lookupPostalPincode(postal);
         if (postalInfo) {
@@ -287,12 +339,12 @@ async function detectLocationViaIP() {
 export async function detectCustomerLiveLocation({ force = false } = {}) {
   return new Promise((resolve) => {
     if (typeof window === 'undefined') {
-      return resolve({ pincode: '635001', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' });
+      return resolve({ pincode: '635002', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' });
     }
 
     if (!navigator.geolocation) {
       detectLocationViaIP().then((ipLoc) => {
-        const finalLoc = ipLoc || { pincode: '635001', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
+        const finalLoc = ipLoc || { pincode: '635002', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
         applyDetectedLocation(finalLoc);
         resolve(finalLoc);
       });
@@ -325,14 +377,14 @@ export async function detectCustomerLiveLocation({ force = false } = {}) {
         }
 
         const ipLoc = await detectLocationViaIP();
-        const finalLoc = ipLoc || { pincode: '635001', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
+        const finalLoc = ipLoc || { pincode: '635002', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
         applyDetectedLocation(finalLoc);
         resolve(finalLoc);
       })
       .catch(async () => {
         // GPS failed or denied, use IP
         const ipLoc = await detectLocationViaIP();
-        const finalLoc = ipLoc || { pincode: '635001', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
+        const finalLoc = ipLoc || { pincode: '635002', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
         applyDetectedLocation(finalLoc);
         resolve(finalLoc);
       });
@@ -344,8 +396,10 @@ export async function detectCustomerLiveLocation({ force = false } = {}) {
  */
 export function applyDetectedLocation(loc) {
   if (!loc || !loc.pincode) return;
-  const pin = String(loc.pincode).trim();
-  const city = loc.city || loc.areaName || 'Regional Hub';
+  let pin = String(loc.pincode).trim();
+  if (pin === '635122') pin = '635002';
+  let city = loc.city || loc.areaName || 'Regional Hub';
+  if (pin === '635002') city = 'Krishnagiri';
   const state = loc.state || 'India';
 
   try {
