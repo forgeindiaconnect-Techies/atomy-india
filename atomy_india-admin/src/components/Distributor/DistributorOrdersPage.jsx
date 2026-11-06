@@ -32,6 +32,7 @@ import {
   triggerAllDelayedEmails
 } from '../../services/api';
 import { INITIAL_ADMIN_PRODUCTS } from '../../data/defaultAdminProducts';
+import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
 import '../Admin/AdminDashboard.css';
 import './DistributorOrdersPage.css';
 
@@ -703,17 +704,9 @@ export default function DistributorOrdersPage({
                         )}
                       </div>
                       <div className="order-date-text">
-                        {orderDate.toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
+                        {formatDateIST(o.createdAt || o.date)}
                         <span className="order-time-text">
-                          {orderDate.toLocaleTimeString('en-IN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: true
-                          })}
+                          {formatTimeIST(o.createdAt || o.date)}
                         </span>
                       </div>
                       {sla.isDelivered ? (
@@ -814,18 +807,128 @@ export default function DistributorOrdersPage({
                     </td>
 
                     <td style={{ textAlign: 'center' }}>
-                      <select
-                        value={currentStatus}
-                        onChange={(e) => handleStatusChange(o.orderId || o.id, e.target.value)}
-                        className={`status-select ${currentStatus.toLowerCase()}`}
-                      >
-                        <option value="PLACED">PLACED (New)</option>
-                        <option value="PROCESSING">PROCESSING (Pending)</option>
-                        <option value="SHIPPED">SHIPPED</option>
-                        <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY</option>
-                        <option value="DELIVERED">DELIVERED</option>
-                        <option value="CANCELLED">CANCELLED</option>
-                      </select>
+                      {(() => {
+                        let badgeBg = '#f1f5f9';
+                        let badgeBorder = '#cbd5e1';
+                        let badgeColor = '#334155';
+                        let badgeLabel = currentStatus;
+                        let badgeSub = isPickup ? 'Direct Hub Pickup' : 'Courier Dispatch';
+                        let badgeIcon = <Package size={12} />;
+
+                        if (isPickup) {
+                          if (currentStatus === 'DELIVERED' || o.pickupStatus === 'COLLECTED') {
+                            badgeBg = '#dcfce7';
+                            badgeBorder = '#86efac';
+                            badgeColor = '#15803d';
+                            badgeLabel = 'DELIVERED / COLLECTED';
+                            badgeSub = 'Handed Over at Counter';
+                            badgeIcon = <CheckCircle2 size={12} color="#15803d" />;
+                          } else if (currentStatus === 'READY_FOR_PICKUP' || o.pickupStatus === 'READY_FOR_PICKUP') {
+                            badgeBg = '#fef3c7';
+                            badgeBorder = '#fde68a';
+                            badgeColor = '#92400e';
+                            badgeLabel = 'READY TO PICK UP';
+                            badgeSub = 'Available at Counter';
+                            badgeIcon = <Store size={12} color="#b45309" />;
+                          } else if (currentStatus === 'PROCESSING') {
+                            badgeBg = '#e0f2fe';
+                            badgeBorder = '#bae6fd';
+                            badgeColor = '#0369a1';
+                            badgeLabel = 'PREPARING';
+                            badgeSub = 'Hub Staff Packing';
+                            badgeIcon = <Clock size={12} color="#0284c7" />;
+                          } else if (currentStatus === 'PLACED') {
+                            badgeBg = '#f0fdf4';
+                            badgeBorder = '#bbf7d0';
+                            badgeColor = '#166534';
+                            badgeLabel = 'PLACED (NEW)';
+                            badgeSub = 'Payment Confirmed';
+                            badgeIcon = <Package size={12} color="#16a34a" />;
+                          } else if (currentStatus === 'CANCELLED') {
+                            badgeBg = '#fef2f2';
+                            badgeBorder = '#fecaca';
+                            badgeColor = '#991b1b';
+                            badgeLabel = 'CANCELLED';
+                            badgeSub = 'Cancelled & Refunded';
+                            badgeIcon = <X size={12} color="#dc2626" />;
+                          }
+                        } else {
+                          // Standard Doorstep Courier Delivery
+                          if (currentStatus === 'DELIVERED') {
+                            badgeBg = '#dcfce7';
+                            badgeBorder = '#86efac';
+                            badgeColor = '#15803d';
+                            badgeLabel = 'DELIVERED';
+                            badgeSub = 'Doorstep Delivered';
+                            badgeIcon = <CheckCircle2 size={12} color="#15803d" />;
+                          } else if (currentStatus === 'OUT_FOR_DELIVERY') {
+                            badgeBg = '#fae8ff';
+                            badgeBorder = '#f0abfc';
+                            badgeColor = '#86198f';
+                            badgeLabel = 'OUT FOR DELIVERY';
+                            badgeSub = 'On Delivery Vehicle';
+                            badgeIcon = <Truck size={12} color="#a21caf" />;
+                          } else if (currentStatus === 'SHIPPED') {
+                            badgeBg = '#e0f2fe';
+                            badgeBorder = '#7dd3fc';
+                            badgeColor = '#0369a1';
+                            badgeLabel = 'SHIPPED';
+                            badgeSub = 'In Courier Transit';
+                            badgeIcon = <Truck size={12} color="#0284c7" />;
+                          } else if (currentStatus === 'PROCESSING') {
+                            badgeBg = '#fef3c7';
+                            badgeBorder = '#fde68a';
+                            badgeColor = '#92400e';
+                            badgeLabel = 'PROCESSING';
+                            badgeSub = 'Warehouse Packing';
+                            badgeIcon = <Clock size={12} color="#b45309" />;
+                          } else if (currentStatus === 'PLACED') {
+                            badgeBg = '#f0fdf4';
+                            badgeBorder = '#bbf7d0';
+                            badgeColor = '#166534';
+                            badgeLabel = 'PLACED (NEW)';
+                            badgeSub = 'Payment Confirmed';
+                            badgeIcon = <Package size={12} color="#16a34a" />;
+                          } else if (currentStatus === 'CANCELLED') {
+                            badgeBg = '#fef2f2';
+                            badgeBorder = '#fecaca';
+                            badgeColor = '#991b1b';
+                            badgeLabel = 'CANCELLED';
+                            badgeSub = 'Refunded';
+                            badgeIcon = <X size={12} color="#dc2626" />;
+                          }
+                        }
+
+                        return (
+                          <div
+                            onClick={() => setSelectedOrderDetail(o)}
+                            title="View-only in list. Click to inspect & update status inside."
+                            style={{
+                              display: 'inline-flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '5px 12px',
+                              borderRadius: '20px',
+                              background: badgeBg,
+                              border: `1.5px solid ${badgeBorder}`,
+                              color: badgeColor,
+                              cursor: 'pointer',
+                              userSelect: 'none',
+                              transition: 'all 0.15s ease',
+                              minWidth: '130px'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 800, fontSize: '11px', letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                              {badgeIcon}
+                              <span>{badgeLabel}</span>
+                            </div>
+                            <span style={{ fontSize: '9.5px', fontWeight: 600, opacity: 0.85, marginTop: '1px' }}>
+                              {badgeSub}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td style={{ textAlign: 'right' }}>
@@ -1139,6 +1242,13 @@ export default function DistributorOrdersPage({
                     value={String(selectedOrderDetail.orderStatus || selectedOrderDetail.status || 'PLACED').toUpperCase()}
                     onChange={(e) => {
                       const newSt = e.target.value;
+                      if (newSt === 'DELIVERED' && !selectedOrderDetail.pickupVerifiedAt && selectedOrderDetail.pickupStatus !== 'COLLECTED') {
+                        // Anti-False Handover: Open Tracking Modal with OTP verification flow
+                        const orderToVerify = { ...selectedOrderDetail };
+                        setSelectedOrderDetail(null);
+                        if (onOpenTrackingModal) onOpenTrackingModal(orderToVerify);
+                        return;
+                      }
                       handleStatusChange(selectedOrderDetail.orderId || selectedOrderDetail.id, newSt);
                       setSelectedOrderDetail(prev => ({
                         ...prev,
@@ -1158,7 +1268,9 @@ export default function DistributorOrdersPage({
                     <option value="PLACED">Stage 1: PLACED (Payment Confirmed)</option>
                     <option value="PROCESSING">Stage 2: PREPARING (Staff Packing Goods from Shelf)</option>
                     <option value="READY_FOR_PICKUP">Stage 3: READY TO PICK UP (Available at Counter)</option>
-                    <option value="DELIVERED">Stage 4: DELIVERED / COLLECTED (Handed Over to Customer)</option>
+                    <option value="DELIVERED">
+                      Stage 4: DELIVERED / COLLECTED (Requires Customer OTP)
+                    </option>
                     <option value="CANCELLED">CANCELLED (Cancelled &amp; Refunded)</option>
                   </select>
                 ) : (

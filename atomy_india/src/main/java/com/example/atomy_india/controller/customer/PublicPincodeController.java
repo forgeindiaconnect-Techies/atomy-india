@@ -51,8 +51,8 @@ public class PublicPincodeController {
             // Log and continue with default hubs
         }
 
-        // 2. Ensure Krishnagiri Regional Hub and national hubs are present
-        addDefaultHubIfNotPresent(hubs, seenPins, "635001", "Krishnagiri Regional Hub", "Krishnagiri", "Tamil Nadu");
+        // 2. Ensure national hubs are present
+        addDefaultHubIfNotPresent(hubs, seenPins, "635002", "Krishnagiri Regional Hub", "Krishnagiri", "Tamil Nadu");
         addDefaultHubIfNotPresent(hubs, seenPins, "110001", "Delhi Central Hub", "New Delhi", "Delhi");
         addDefaultHubIfNotPresent(hubs, seenPins, "560001", "Bengaluru South Hub", "Bengaluru", "Karnataka");
         addDefaultHubIfNotPresent(hubs, seenPins, "600001", "Chennai Super Hub", "Chennai", "Tamil Nadu");

@@ -17,36 +17,8 @@ export async function fetchHubDetails(pincode) {
     console.warn('API fetchHubDetails fallback:', err.message);
   }
 
-  // Graceful fallback with full details based on regional PIN code
-  if (pin.startsWith('11')) {
-    return {
-      found: true,
-      hubName: 'Delhi Central Regional Hub',
-      hubAddress: 'Plot 14, Connaught Place Logistics Park, Outer Circle, New Delhi - 110001',
-      contactPerson: 'Rajesh Sharma (Hub Manager)',
-      phone: '+91 98111 22334',
-      email: 'delhi.distributor@atomy.com',
-      pincode: '110001',
-      city: 'New Delhi',
-      state: 'Delhi',
-      operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
-      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.'
-    };
-  } else if (pin.startsWith('56')) {
-    return {
-      found: true,
-      hubName: 'Bengaluru South Regional Hub',
-      hubAddress: 'No. 88, 5th Block, Koramangala Commerce Hub, Near Sony World Signal, Bengaluru - 560001',
-      contactPerson: 'Suresh Kumar (Hub Manager)',
-      phone: '+91 98450 11223',
-      email: 'bengaluru.distributor@atomy.com',
-      pincode: '560001',
-      city: 'Bengaluru',
-      state: 'Karnataka',
-      operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
-      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.'
-    };
-  } else if (pin === '635002') {
+  // Strict 1:1 distributor hub fallback
+  if (pin === '635002') {
     return {
       found: true,
       distributorId: 'DIST-635002',
@@ -57,6 +29,21 @@ export async function fetchHubDetails(pincode) {
       email: 'selvakumarc029@gmail.com',
       pincode: '635002',
       city: 'Krishnagiri',
+      state: 'Tamil Nadu',
+      operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
+      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.'
+    };
+  } else if (pin === '635202') {
+    return {
+      found: true,
+      distributorId: 'DIST-635202',
+      hubName: 'krishnapuram atomy hub',
+      hubAddress: 'No 55, MN traders, Krishnapuram, dharmapuri main road, Dharmapuri-635202',
+      contactPerson: 'Munusamy (Hub Manager)',
+      phone: '+91 88836 65452',
+      email: 'naveen.mn7878@gmail.com',
+      pincode: '635202',
+      city: 'Krishnapuram,dharmapuri',
       state: 'Tamil Nadu',
       operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
       pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.'

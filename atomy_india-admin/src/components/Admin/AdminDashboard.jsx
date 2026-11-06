@@ -69,6 +69,7 @@ import {
   sendDelayApologyEmail,
   triggerAllDelayedEmails
 } from '../../services/api';
+import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
 import {
   playOrderAlertSound,
   playSupportAlertSound,
@@ -1051,11 +1052,22 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   useEffect(() => {
     // 1. Setup real-time BroadcastChannel listeners
     let syncChannel, orderChannel, supportChannel;
+    const alertedAdminOrderIds = new Map();
     try {
       const handleIncomingOrder = (newOrderObj) => {
-        setOrders(prev => {
-          if (prev.some(o => o.orderId === newOrderObj.orderId)) return prev;
+        if (!newOrderObj || !newOrderObj.orderId) return;
+        const oid = String(newOrderObj.orderId).trim();
+
+        // Prevent duplicate sound/alert if triggered by multiple channels in short succession
+        const lastAlert = alertedAdminOrderIds.get(oid);
+        const now = Date.now();
+        if (!lastAlert || (now - lastAlert > 20000)) {
+          alertedAdminOrderIds.set(oid, now);
           triggerOrderNotification(newOrderObj, true);
+        }
+
+        setOrders(prev => {
+          if (prev.some(o => (o.orderId || o.id) === oid)) return prev;
           return [newOrderObj, ...prev];
         });
 
@@ -1407,12 +1419,18 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     const unreadLowStockCount = products.filter(p => p.stockQuantity > 0 && p.stockQuantity <= (p.lowStockThreshold || 10) && !dismissedStockAlerts.has(String(p.id))).length;
     const outOfStockCount = products.filter(p => p.stockQuantity === 0).length;
     const openTicketsCount = tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
+    const seenNewOrderIds = new Set();
     const recentNewOrders = orders.filter(o => {
       const st = String(o.orderStatus || o.status || 'PLACED').toUpperCase();
       const isNew = (st.includes('PLACED') || st.includes('NEW') || st === 'PAID' || st.includes('PAYMENT COMPLETED')) && !st.includes('CANCEL') && !st.includes('DELIVERED') && !st.includes('SHIPPED');
-      const oId = String(o.orderId || o.id || '');
+      const oId = String(o.orderId || o.id || '').trim();
+      if (!oId || seenNewOrderIds.has(oId)) return false;
       const isUnread = !readNotifIds.has(oId);
-      return isNew && isUnread;
+      if (isNew && isUnread) {
+        seenNewOrderIds.add(oId);
+        return true;
+      }
+      return false;
     });
 
     const unreadTickets = tickets.filter(t => {
@@ -1422,7 +1440,17 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       return isOpen && isUnread;
     });
 
-    const allDelayedOrders = orders.filter(o => getOrderDeliverySLA(o).isDelayed);
+    const seenDelayedIds = new Set();
+    const allDelayedOrders = orders.filter(o => {
+      const oId = String(o.orderId || o.id || '').trim();
+      if (!oId || seenDelayedIds.has(oId)) return false;
+      const delayed = getOrderDeliverySLA(o).isDelayed;
+      if (delayed) {
+        seenDelayedIds.add(oId);
+        return true;
+      }
+      return false;
+    });
     const unreadDelayedOrders = allDelayedOrders.filter(o => {
       const oId = String(o.orderId || o.id || '');
       return !readNotifIds.has(`delayed_${oId}`) && !readNotifIds.has(oId);
@@ -2651,7 +2679,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                               <div className="recent-order-left">
                                 <span className="order-id-badge">{o.orderId}</span>
                                 <div className="customer-info-line">
-                                  <strong>{o.customerName}</strong> • {o.city} ({new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                                  <strong>{o.customerName}</strong> • {o.city} ({formatTimeIST(o.createdAt || o.date)})
                                 </div>
                                 <div className="order-items-snippet">
                                   {resolveOrderItems(o).map(it => `${it.name} (x${it.quantity})`).join(', ') || '1 item'}
@@ -3084,17 +3112,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   <span className="order-id-text">{o.orderId}</span>
                                 </div>
                                 <div className="order-date-text">
-                                  {new Date(o.createdAt).toLocaleDateString('en-IN', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric'
-                                  })}
+                                  {formatDateIST(o.createdAt || o.date)}
                                   <span className="order-time-text">
-                                    {new Date(o.createdAt).toLocaleTimeString('en-IN', {
-                                      hour: '2-digit',
-                                      minute: '2-digit',
-                                      hour12: true
-                                    })}
+                                    {formatTimeIST(o.createdAt || o.date)}
                                   </span>
                                 </div>
                                 {(() => {

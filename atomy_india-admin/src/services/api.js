@@ -253,5 +253,30 @@ export async function updateAdminProfile(profileData) {
   return res.json();
 }
 
+export async function sendAdminPickupOtp(orderId) {
+  const res = await fetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderId)}/send-pickup-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Failed to send pickup verification OTP');
+  }
+  return data;
+}
+
+export async function verifyAdminPickupOtp(orderId, otp) {
+  const res = await fetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderId)}/verify-pickup-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ otp })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Failed to verify pickup OTP');
+  }
+  return data;
+}
+
 
 

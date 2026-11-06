@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
-import { CATEGORIES, CATEGORY_CONFIGS } from '../../data/mockData';
+import { CATEGORIES, CATEGORY_CONFIGS, ALL_PRODUCTS } from '../../data/mockData';
 import { onCatalogUpdate, syncCatalogFromBackend } from '../../services/catalogSyncService';
 import LandingProductCard from '../Products/LandingProductCard';
 import HeroBannerCarousel from '../Banner/HeroBannerCarousel';
@@ -61,12 +61,17 @@ export default function CategoryPage({
     if (!categoryId) return 'personal_care';
     const key = String(categoryId).toLowerCase().replace(/[\s-]+/g, '_');
     if (CATEGORY_CONFIGS[key]) return key;
+    if (key === 'all_products' || key === 'all') return 'all_products';
     if (key === 'personal') return 'personal_care';
     return 'personal_care';
   }, [categoryId]);
 
   const categoryConfig = useMemo(() => {
-    return CATEGORY_CONFIGS[categoryKey] || CATEGORY_CONFIGS.personal_care;
+    const cfg = CATEGORY_CONFIGS[categoryKey] || CATEGORY_CONFIGS.personal_care;
+    if (categoryKey === 'all_products' && (!cfg.allProducts || cfg.allProducts.length === 0)) {
+      cfg.allProducts = [...ALL_PRODUCTS];
+    }
+    return cfg;
   }, [categoryKey]);
 
   // Reset subcategory to 'All' when category changes
@@ -98,13 +103,22 @@ export default function CategoryPage({
 
   // Filter products by subcategory and search query
   const filteredProducts = useMemo(() => {
-    let prods = categoryConfig.allProducts || [];
+    let prods = (categoryKey === 'all_products' && (!categoryConfig.allProducts || categoryConfig.allProducts.length === 0))
+      ? [...ALL_PRODUCTS]
+      : (categoryConfig.allProducts || []);
+
     if (activeSubcategory && activeSubcategory !== 'All') {
+      const subLower = activeSubcategory.toLowerCase();
+      const subClean = subLower.replace(/[\s_-]+/g, '');
       prods = prods.filter(
-        (p) =>
-          p.subTopic === activeSubcategory ||
-          (p.tags && p.tags.includes(activeSubcategory)) ||
-          p.name.toLowerCase().includes(activeSubcategory.toLowerCase())
+        (p) => {
+          const subTopicMatch = p.subTopic && p.subTopic.toLowerCase() === subLower;
+          const nameMatch = p.name && p.name.toLowerCase().includes(subLower);
+          const tagMatch = p.tags && p.tags.some(t => String(t).toLowerCase().includes(subLower));
+          const catStr = String(p.category || '').toLowerCase().replace(/[\s_-]+/g, '');
+          const catMatch = catStr.includes(subClean) || (subClean === 'health' && catStr.includes('hemohim'));
+          return subTopicMatch || nameMatch || tagMatch || catMatch;
+        }
       );
     }
 

@@ -22,8 +22,8 @@ function computeTargetStage(order) {
   if (raw.includes('CANCEL')) return 3;
 
   if (isPickup) {
-    if (raw.includes('DELIVER') || raw.includes('COLLECT')) return 3; // Fully collected
-    if (raw.includes('READY')) return 3; // Ready for pickup
+    if (raw.includes('DELIVER') || raw.includes('COLLECT')) return 4; // Stage 4: Delivered / Handed Over
+    if (raw.includes('READY')) return 3; // Stage 3: Ready for pickup
     if (raw.includes('PREPAR') || raw.includes('PROCESS') || raw.includes('PACK')) return 2;
     return 1; // Placed
   }
@@ -51,14 +51,16 @@ export default function DeliveryStatusStepper({ order }) {
       String(order?.pickupStatus || '').toUpperCase().includes('COLLECT') ||
       String(order?.orderStatus || '').toUpperCase().includes('DELIVER') ||
       String(order?.status || '').toUpperCase().includes('DELIVER') ||
-      String(order?.status || '').toUpperCase().includes('COLLECT')
+      String(order?.status || '').toUpperCase().includes('COLLECT') ||
+      currentStep === 4
     )
   );
 
   const stages = isPickup ? [
     { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
     { num: 2, label: 'Preparing', sub: 'Hub Staff Packing' },
-    { num: 3, label: isCollected ? 'Collected' : 'Ready to Pick Up', sub: isCollected ? 'Package Received at Counter' : 'Available at Hub Counter' }
+    { num: 3, label: 'Ready to Pick Up', sub: 'Available at Hub Counter' },
+    { num: 4, label: 'Delivered', sub: 'Handed Over to Customer' }
   ] : [
     { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
     { num: 2, label: 'Preparing', sub: 'Warehouse Packed' },
@@ -90,8 +92,8 @@ export default function DeliveryStatusStepper({ order }) {
               <span className="tracking-awb-badge" style={{ background: '#f0fdf4', borderColor: '#86efac', color: '#166534' }}>
                 Collection Counter: <strong>{order?.hubName || 'Atomy Regional Logistics Hub'}</strong>
               </span>
-              <span className="verified-transit-badge" style={{ background: isCollected ? '#dcfce7' : '#e0f2fe', color: isCollected ? '#15803d' : '#0369a1' }}>
-                {isCollected ? 'Collected' : currentStep === 3 ? 'Ready for Pickup' : 'Packing in Progress'}
+              <span className="verified-transit-badge" style={{ background: currentStep === 4 ? '#dcfce7' : currentStep === 3 ? '#e0f2fe' : currentStep === 2 ? '#fef3c7' : '#f1f5f9', color: currentStep === 4 ? '#15803d' : currentStep === 3 ? '#0369a1' : currentStep === 2 ? '#b45309' : '#475569' }}>
+                {currentStep === 4 ? 'Delivered / Collected' : currentStep === 3 ? 'Ready for Pickup' : currentStep === 2 ? 'Packing in Progress' : 'Order Placed'}
               </span>
             </>
           ) : (
@@ -132,7 +134,7 @@ export default function DeliveryStatusStepper({ order }) {
                   <div className="stage-subtitle">{stage.sub}</div>
                   {isCurrent && (
                     <span className="stage-live-badge">
-                      {stage.num === 5 ? 'DELIVERED 🎉' : 'LIVE TRANSIT ⚡'}
+                      {(isPickup ? stage.num === 4 : stage.num === 5) ? 'DELIVERED 🎉' : 'LIVE TRANSIT ⚡'}
                     </span>
                   )}
                 </div>
@@ -197,35 +199,45 @@ export default function DeliveryStatusStepper({ order }) {
                   )}
 
                   {/* ========================================================
-                      OBJECT 3: BLUE DART TRUCK (Stage 3 -> Stage 4)
-                      Proper tires grounded on dotted line - continuous drive motion!
+                      OBJECT 3: BLUE DART TRUCK (Courier) OR HANDOVER ICON (Pickup)
+                      (Stage 3 -> Stage 4)
                      ======================================================== */}
                   {idx === 2 && (
                     <div
                       className={`mover-wrapper ${currentStep === 3 ? 'is-active' : currentStep > 3 ? 'is-done' : 'is-hidden'}`}
                     >
-                      <div className="mover-object truck-mover">
-                        <svg width="56" height="32" viewBox="0 0 56 32" fill="none">
-                          <circle cx="2" cy="19" r="1.5" fill="#94a3b8" opacity="0.6" />
-                          <circle cx="0.5" cy="17.5" r="1" fill="#cbd5e1" opacity="0.4" />
-                          <rect x="4" y="5" width="32" height="17" rx="2" fill="#00A3E0" stroke="#0284c7" strokeWidth="1.4" />
-                          <rect x="6" y="9" width="28" height="5" rx="1" fill="#ffffff" />
-                          <text x="8" y="13" fontSize="3.8" fontWeight="900" fill="#00A3E0" fontFamily="sans-serif">BLUE DART</text>
-                          <path d="M36 10H46L51 16V23H36V10Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1.4" />
-                          <path d="M38 12H44.5L48 16H38V12Z" fill="#e0f2fe" />
-                          <circle cx="50" cy="19" r="1.5" fill="#fef08a" />
-                          <path d="M51 18.5L55 17V21L51 19.5Z" fill="#fef08a" opacity="0.6" />
-                          <rect x="4" y="22" width="46" height="1.8" fill="#1e293b" />
-                          {/* Rear Wheel - grounded at base */}
-                          <circle cx="13" cy="23.5" r="5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
-                          <circle cx="13" cy="23.5" r="2.8" fill="#cbd5e1" />
-                          <circle cx="13" cy="23.5" r="1.2" fill="#1e293b" />
-                          {/* Front Wheel - grounded at base */}
-                          <circle cx="43" cy="23.5" r="5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
-                          <circle cx="43" cy="23.5" r="2.8" fill="#cbd5e1" />
-                          <circle cx="43" cy="23.5" r="1.2" fill="#1e293b" />
-                        </svg>
-                      </div>
+                      {isPickup ? (
+                        <div className="mover-object package-mover">
+                          <svg width="38" height="30" viewBox="0 0 38 30" fill="none">
+                            <rect x="3" y="6" width="32" height="21" rx="4" fill="#16a34a" stroke="#15803d" strokeWidth="1.4" />
+                            <path d="M13 6V4a3 3 0 0 1 6 0v2" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
+                            <path d="M11 16l5 5 11-10" stroke="#ffffff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className="mover-object truck-mover">
+                          <svg width="56" height="32" viewBox="0 0 56 32" fill="none">
+                            <circle cx="2" cy="19" r="1.5" fill="#94a3b8" opacity="0.6" />
+                            <circle cx="0.5" cy="17.5" r="1" fill="#cbd5e1" opacity="0.4" />
+                            <rect x="4" y="5" width="32" height="17" rx="2" fill="#00A3E0" stroke="#0284c7" strokeWidth="1.4" />
+                            <rect x="6" y="9" width="28" height="5" rx="1" fill="#ffffff" />
+                            <text x="8" y="13" fontSize="3.8" fontWeight="900" fill="#00A3E0" fontFamily="sans-serif">BLUE DART</text>
+                            <path d="M36 10H46L51 16V23H36V10Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1.4" />
+                            <path d="M38 12H44.5L48 16H38V12Z" fill="#e0f2fe" />
+                            <circle cx="50" cy="19" r="1.5" fill="#fef08a" />
+                            <path d="M51 18.5L55 17V21L51 19.5Z" fill="#fef08a" opacity="0.6" />
+                            <rect x="4" y="22" width="46" height="1.8" fill="#1e293b" />
+                            {/* Rear Wheel - grounded at base */}
+                            <circle cx="13" cy="23.5" r="5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+                            <circle cx="13" cy="23.5" r="2.8" fill="#cbd5e1" />
+                            <circle cx="13" cy="23.5" r="1.2" fill="#1e293b" />
+                            {/* Front Wheel - grounded at base */}
+                            <circle cx="43" cy="23.5" r="5" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+                            <circle cx="43" cy="23.5" r="2.8" fill="#cbd5e1" />
+                            <circle cx="43" cy="23.5" r="1.2" fill="#1e293b" />
+                          </svg>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -287,13 +299,15 @@ export default function DeliveryStatusStepper({ order }) {
               </div>
             )}
             {currentStep === 3 && (
-              <div className={`status-narrative ${isCollected ? 'green' : 'blue'}`}>
-                <span className={`narrative-tag ${isCollected ? 'green' : 'blue'}`}>STAGE 3 • {isCollected ? 'COLLECTED' : 'READY TO PICK UP'}</span>
-                {isCollected ? (
-                  <><strong>Order Collected Successfully!</strong> Parcel handed over at regional hub counter.</>
-                ) : (
-                  <><strong>Parcel Ready for Counter Pickup!</strong> Parcel is packed and waiting at hub counter for customer collection.</>
-                )}
+              <div className="status-narrative blue">
+                <span className="narrative-tag blue">STAGE 3 • READY TO PICK UP</span>
+                <strong>Parcel Ready for Counter Pickup!</strong> Parcel is packed and waiting at hub counter for customer collection.
+              </div>
+            )}
+            {currentStep === 4 && (
+              <div className="status-narrative green">
+                <span className="narrative-tag green">STAGE 4 • DELIVERED</span>
+                <strong>Order Handed Over Successfully!</strong> Parcel collected and verified at regional hub counter.
               </div>
             )}
           </>

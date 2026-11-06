@@ -233,6 +233,22 @@ export function mergeProductIntoCatalog(product) {
       if (!cfg || seenConfigs.has(cfg)) return;
       seenConfigs.add(cfg);
 
+      // Special case: all_products always contains all catalog products
+      if (catKey === 'all_products') {
+        if (Array.isArray(cfg.allProducts)) {
+          const idx = cfg.allProducts.findIndex((p) => p && String(p.id) === String(product.id));
+          if (idx >= 0) {
+            cfg.allProducts[idx] = { ...cfg.allProducts[idx], ...normalized };
+          } else {
+            cfg.allProducts.unshift(normalized);
+          }
+        }
+        if (Array.isArray(cfg.bestProducts)) {
+          updateArrayInPlace(cfg.bestProducts, normalized);
+        }
+        return;
+      }
+
       const isTarget = catKey === targetCatKey ||
         ((catKey === 'others' || catKey === 'etc') && (targetCatKey === 'others' || targetCatKey === 'etc'));
 

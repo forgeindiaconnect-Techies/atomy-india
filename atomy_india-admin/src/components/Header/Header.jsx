@@ -156,29 +156,46 @@ export default function Header({
     if (onDismissStockAlerts) onDismissStockAlerts();
   };
 
-  const visibleRecentOrders = (overviewStats?.recentNewOrders || []).filter(ro => {
-    const oid1 = String(ro.orderId || '');
-    const oid2 = String(ro.id || '');
-    const oid3 = String(ro._id || '');
-    const isDismissed = (oid1 && (localDismissedIds.has(oid1) || localDismissedIds.has(`delayed_${oid1}`))) ||
-                        (oid2 && (localDismissedIds.has(oid2) || localDismissedIds.has(`delayed_${oid2}`))) ||
-                        (oid3 && (localDismissedIds.has(oid3) || localDismissedIds.has(`delayed_${oid3}`)));
-    return !isDismissed;
-  });
+  const uniqueRecentOrders = React.useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    (overviewStats?.recentNewOrders || []).forEach(ro => {
+      const oid = String(ro.orderId || ro.id || ro._id || '').trim();
+      if (!oid) return;
+      if (seen.has(oid)) return;
+      const isDismissed = localDismissedIds.has(oid) || localDismissedIds.has(`delayed_${oid}`);
+      if (!isDismissed) {
+        seen.add(oid);
+        result.push(ro);
+      }
+    });
+    return result;
+  }, [overviewStats?.recentNewOrders, localDismissedIds]);
 
-  const visibleDelayedOrders = (overviewStats?.delayedOrders || []).filter(d => {
-    const oid1 = String(d.orderId || '');
-    const oid2 = String(d.id || '');
-    const oid3 = String(d._id || '');
-    const isDismissed = (oid1 && (localDismissedIds.has(oid1) || localDismissedIds.has(`delayed_${oid1}`))) ||
-                        (oid2 && (localDismissedIds.has(oid2) || localDismissedIds.has(`delayed_${oid2}`))) ||
-                        (oid3 && (localDismissedIds.has(oid3) || localDismissedIds.has(`delayed_${oid3}`)));
-    return !isDismissed;
-  });
+  const uniqueDelayedOrders = React.useMemo(() => {
+    const seen = new Set();
+    // Prevent duplicate notification if order is already shown in uniqueRecentOrders
+    uniqueRecentOrders.forEach(ro => {
+      const oid = String(ro.orderId || ro.id || ro._id || '').trim();
+      if (oid) seen.add(oid);
+    });
+    const result = [];
+    (overviewStats?.delayedOrders || []).forEach(d => {
+      const oid = String(d.orderId || d.id || d._id || '').trim();
+      if (!oid) return;
+      if (seen.has(oid)) return;
+      const isDismissed = localDismissedIds.has(oid) || localDismissedIds.has(`delayed_${oid}`);
+      if (!isDismissed) {
+        seen.add(oid);
+        result.push(d);
+      }
+    });
+    return result;
+  }, [overviewStats?.delayedOrders, uniqueRecentOrders, localDismissedIds]);
 
   const ticketsCount = overviewStats?.unreadTicketsCount || 0;
   const stockCount = overviewStats?.unreadLowStockCount || 0;
-  const effectiveCount = visibleRecentOrders.length + visibleDelayedOrders.length + ticketsCount + stockCount;
+  const effectiveCount = uniqueRecentOrders.length + uniqueDelayedOrders.length + ticketsCount + stockCount;
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -620,7 +637,7 @@ export default function Header({
                               {effectiveCount} Active
                             </span>
                           </div>
-                          {(effectiveCount > 0 || visibleRecentOrders.length > 0 || visibleDelayedOrders.length > 0) && (
+                          {(effectiveCount > 0 || uniqueRecentOrders.length > 0 || uniqueDelayedOrders.length > 0) && (
                             <button
                               type="button"
                               className="notif-clear-btn"
@@ -631,8 +648,8 @@ export default function Header({
                           )}
                         </div>
                         <div className="notif-dropdown-body">
-                          {visibleRecentOrders.length > 0 ? (
-                            visibleRecentOrders.map(ro => {
+                          {uniqueRecentOrders.length > 0 ? (
+                            uniqueRecentOrders.map(ro => {
                               const orderId = ro.orderId || ro.id;
                               return (
                                 <div
@@ -669,8 +686,8 @@ export default function Header({
                             })
                           ) : null}
 
-                          {visibleDelayedOrders.length > 0 ? (
-                            visibleDelayedOrders.map(dOrder => {
+                          {uniqueDelayedOrders.length > 0 ? (
+                            uniqueDelayedOrders.map(dOrder => {
                               const orderId = dOrder.orderId || dOrder.id;
                               return (
                                 <div

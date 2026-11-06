@@ -160,6 +160,35 @@ export async function updateDistributorPickupStatus(orderId, distributorId, pick
   return res.json();
 }
 
+export async function sendPickupOtp(orderId, distributorId) {
+  const params = distributorId ? `?distributorId=${encodeURIComponent(distributorId)}` : '';
+  const url = `${API_BASE}/distributor/orders/${encodeURIComponent(orderId)}/send-pickup-otp${params}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Failed to send pickup verification OTP');
+  }
+  return data;
+}
+
+export async function verifyPickupOtp(orderId, otp, distributorId) {
+  const params = distributorId ? `?distributorId=${encodeURIComponent(distributorId)}` : '';
+  const url = `${API_BASE}/distributor/orders/${encodeURIComponent(orderId)}/verify-pickup-otp${params}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ otp })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Failed to verify pickup OTP');
+  }
+  return data;
+}
+
 export async function fetchDistributorCustomers(distributorId) {
   const res = await fetch(`${API_BASE}/distributor/customers?distributorId=${encodeURIComponent(distributorId)}`);
   if (!res.ok) throw new Error('Failed to fetch territory customers');

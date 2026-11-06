@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
 import { fetchDistributorInventory } from '../../services/distributorService';
+import { formatTimeIST } from '../../utils/dateUtils';
 import '../Admin/AdminDashboard.css';
 
 export default function DistributorOverviewTab({ 
@@ -459,7 +460,7 @@ export default function DistributorOverviewTab({
                       )}
                     </div>
                     <div className="customer-info-line">
-                      <strong>{o.customerName || 'Customer'}</strong> • {o.city || o.state || distributor?.city || 'Local Territory'} ({new Date(o.createdAt || o.date || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                      <strong>{o.customerName || 'Customer'}</strong> • {o.city || o.state || distributor?.city || 'Local Territory'} ({formatTimeIST(o.createdAt || o.date)})
                     </div>
                     <div className="order-items-snippet">
                       {resolveOrderItems(o).map(it => `${it.name} (x${it.quantity})`).join(', ') || '1 item'}

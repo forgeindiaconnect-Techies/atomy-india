@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, ShoppingCart, ArrowLeft, X } from 'lucide-react';
-import { CATEGORIES, CATEGORY_CONFIGS, GST_BADGE_IMAGE } from '../../data/mockData';
+import { CATEGORIES, CATEGORY_CONFIGS, ALL_CATALOG_PRODUCTS, GST_BADGE_IMAGE } from '../../data/mockData';
 import { getCategoryBanners } from '../../services/bannerService';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
 import { CarouselPauseIcon, CarouselPlayIcon, CarouselLayersIcon } from '../common/CarouselControlsIcons';
@@ -36,6 +36,11 @@ export default function CategoryPage({
   // Fallback to health if categoryId not found
   const categoryKey = categoryId ? categoryId.toLowerCase().replace(/[\s-]+/g, '_') : 'health';
   const categoryData = CATEGORY_CONFIGS[categoryKey] || CATEGORY_CONFIGS.health;
+
+  // Guarantee that all_products has all catalog products available
+  if (categoryKey === 'all_products' && (!categoryData.allProducts || categoryData.allProducts.length === 0)) {
+    categoryData.allProducts = [...ALL_CATALOG_PRODUCTS];
+  }
 
   const [liveCatBanners, setLiveCatBanners] = useState(() => getCategoryBanners(categoryKey));
 
@@ -364,28 +369,39 @@ export default function CategoryPage({
   };
 
   const getSubcategoryCount = (sub) => {
-    if (!categoryData.allProducts) return 0;
-    if (sub === 'All') return categoryData.allProducts.length;
+    const allList = (categoryKey === 'all_products' && (!categoryData.allProducts || categoryData.allProducts.length === 0))
+      ? ALL_CATALOG_PRODUCTS
+      : (categoryData.allProducts || []);
+    if (!allList || allList.length === 0) return 0;
+    if (sub === 'All') return allList.length;
+
     const subLower = sub.toLowerCase();
-    return categoryData.allProducts.filter((p) => {
+    const subClean = subLower.replace(/[\s_-]+/g, '');
+    return allList.filter((p) => {
       const subTopicMatch = p.subTopic && p.subTopic.toLowerCase() === subLower;
       const nameMatch = p.name && p.name.toLowerCase().includes(subLower);
       const tagMatch = p.tags && p.tags.some(t => t.toLowerCase().includes(subLower));
-      const catMatch = p.category && p.category.toLowerCase().includes(subLower);
+      const catStr = String(p.category || '').toLowerCase().replace(/[\s_-]+/g, '');
+      const catMatch = catStr.includes(subClean) || (subClean === 'health' && catStr.includes('hemohim'));
       return subTopicMatch || nameMatch || tagMatch || catMatch;
     }).length;
   };
 
   // Filter products by subcategory
   const getFilteredProducts = () => {
-    let list = [...(categoryData.allProducts || [])];
+    let list = (categoryKey === 'all_products' && (!categoryData.allProducts || categoryData.allProducts.length === 0))
+      ? [...ALL_CATALOG_PRODUCTS]
+      : [...(categoryData.allProducts || [])];
+
     if (activeSubcategory && activeSubcategory !== 'All') {
       const subLower = activeSubcategory.toLowerCase();
+      const subClean = subLower.replace(/[\s_-]+/g, '');
       list = list.filter((p) => {
         const subTopicMatch = p.subTopic && p.subTopic.toLowerCase() === subLower;
         const nameMatch = p.name && p.name.toLowerCase().includes(subLower);
         const tagMatch = p.tags && p.tags.some(t => t.toLowerCase().includes(subLower));
-        const catMatch = p.category && p.category.toLowerCase().includes(subLower);
+        const catStr = String(p.category || '').toLowerCase().replace(/[\s_-]+/g, '');
+        const catMatch = catStr.includes(subClean) || (subClean === 'health' && catStr.includes('hemohim'));
         return subTopicMatch || nameMatch || tagMatch || catMatch;
       });
     }

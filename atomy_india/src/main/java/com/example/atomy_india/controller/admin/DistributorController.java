@@ -4,6 +4,8 @@ import com.example.atomy_india.dto.DispatchOrderRequest;
 import com.example.atomy_india.model.*;
 import com.example.atomy_india.repository.*;
 import com.example.atomy_india.service.AdminService;
+import com.example.atomy_india.service.BrevoEmailService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +28,9 @@ public class DistributorController {
     private final IndiaPincodeRepository indiaPincodeRepository;
     private final OrderItemRepository orderItemRepository;
     private final CustomerNotificationRepository notificationRepository;
+
+    @Autowired(required = false)
+    private BrevoEmailService brevoEmailService;
 
     public DistributorController(DistributorRepository distributorRepository,
                                  CustomerOrderRepository customerOrderRepository,
@@ -344,6 +349,146 @@ public class DistributorController {
                 "message", "Order pickup status updated to " + newPickupStatus,
                 "order", order
         ));
+    }
+
+    @PostMapping("/orders/{orderId}/send-pickup-otp")
+    public ResponseEntity<?> sendPickupOtp(
+            @PathVariable String orderId,
+            @RequestParam(required = false) String distributorId) {
+        Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Order not found: " + orderId));
+        }
+        CustomerOrder order = orderOpt.get();
+
+        String customerEmail = order.getCustomerEmail();
+        if (customerEmail == null || customerEmail.trim().isEmpty()) {
+            return ResponseEntity.status(400).body(Map.of("error", "This order does not have a registered customer email address for OTP delivery."));
+        }
+
+        if (order.getOrderStatus() == CustomerOrder.OrderStatus.DELIVERED || "COLLECTED".equalsIgnoreCase(order.getPickupStatus())) {
+            return ResponseEntity.status(400).body(Map.of("error", "This parcel has already been collected and marked Delivered."));
+        }
+
+        // Generate 6-digit secure numeric OTP
+        int code = 100000 + new java.security.SecureRandom().nextInt(900000);
+        String otp = String.valueOf(code);
+        order.setPickupOtp(otp);
+        order.setPickupOtpExpiresAt(LocalDateTime.now().plusMinutes(10));
+        order.setPickupOtpAttempts(0);
+        customerOrderRepository.save(order);
+
+        String hubName = order.getAssignedDistributorName();
+        if (hubName == null || hubName.trim().isEmpty() || "Central Super Admin Hub".equalsIgnoreCase(hubName)) {
+            if (distributorId != null) {
+                findDistributor(distributorId).ifPresent(d -> {
+                    if (d.getBusinessName() != null) order.setAssignedDistributorName(d.getBusinessName());
+                });
+            }
+            hubName = order.getAssignedDistributorName() != null ? order.getAssignedDistributorName() : "Atomy Regional Logistics Hub";
+        }
+
+        if (brevoEmailService != null) {
+            brevoEmailService.sendPickupVerificationOtp(order, otp, hubName);
+        }
+
+        String maskedEmail = maskEmailAddress(customerEmail);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Verification OTP sent successfully to " + maskedEmail,
+                "maskedEmail", maskedEmail,
+                "expiresInSeconds", 600
+        ));
+    }
+
+    @PostMapping("/orders/{orderId}/verify-pickup-otp")
+    public ResponseEntity<?> verifyPickupOtp(
+            @PathVariable String orderId,
+            @RequestParam(required = false) String distributorId,
+            @RequestBody Map<String, String> payload) {
+        Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Order not found: " + orderId));
+        }
+        CustomerOrder order = orderOpt.get();
+
+        String inputOtp = payload != null ? payload.get("otp") : null;
+        if (inputOtp == null || inputOtp.trim().isEmpty()) {
+            return ResponseEntity.status(400).body(Map.of("error", "Please enter the 6-digit verification OTP provided by the customer."));
+        }
+
+        if (order.getPickupOtp() == null || order.getPickupOtp().trim().isEmpty()) {
+            return ResponseEntity.status(400).body(Map.of("error", "No active OTP generated for this order. Please click 'Send Verification OTP' first."));
+        }
+
+        int attempts = order.getPickupOtpAttempts() != null ? order.getPickupOtpAttempts() : 0;
+        if (attempts >= 5) {
+            return ResponseEntity.status(400).body(Map.of("error", "Maximum verification attempts exceeded (5/5). Please request a new OTP."));
+        }
+
+        if (order.getPickupOtpExpiresAt() != null && LocalDateTime.now().isAfter(order.getPickupOtpExpiresAt())) {
+            return ResponseEntity.status(400).body(Map.of("error", "Verification OTP has expired (10-minute limit). Please trigger a new OTP."));
+        }
+
+        if (!order.getPickupOtp().trim().equals(inputOtp.trim())) {
+            int newAttempts = attempts + 1;
+            order.setPickupOtpAttempts(newAttempts);
+            customerOrderRepository.save(order);
+            int remaining = Math.max(0, 5 - newAttempts);
+            return ResponseEntity.status(400).body(Map.of(
+                    "error", "Invalid OTP entered. " + remaining + " attempt(s) remaining.",
+                    "remainingAttempts", remaining
+            ));
+        }
+
+        // OTP Verified Successfully! Advance to Stage 4: DELIVERED / COLLECTED
+        order.setPickupOtp(null);
+        order.setPickupOtpExpiresAt(null);
+        order.setPickupOtpAttempts(0);
+        order.setPickupVerifiedAt(LocalDateTime.now());
+        order.setPickupVerifiedBy(distributorId != null ? distributorId : "Hub Counter Staff");
+        order.setPickupStatus("COLLECTED");
+        order.setOrderStatus(CustomerOrder.OrderStatus.DELIVERED);
+        order.setDistributorDispatchStatus("COLLECTED_BY_CUSTOMER");
+        order.setDeliveredAt(LocalDateTime.now());
+
+        // Update tracking checkpoints
+        OrderTracking tracking = trackingRepository.findByOrderId(orderId).orElseGet(() -> {
+            OrderTracking t = new OrderTracking();
+            t.setOrderId(orderId);
+            t.setCourierPartner("Regional Hub Self-Pickup");
+            t.setTrackingNumber("PICKUP-" + orderId);
+            return t;
+        });
+        tracking.setCurrentStatus("DELIVERED");
+        tracking.setEstimatedDelivery("Delivered & Collected at Hub");
+        appendTrackingCheckpoint(tracking, "DELIVERED", order.getHubAddress() != null ? order.getHubAddress() : "Regional Hub Counter", "Customer OTP verified in-person at hub counter. Parcel handed over successfully.");
+        trackingRepository.save(tracking);
+
+        customerOrderRepository.save(order);
+
+        // Send pickup success confirmation email
+        String hubName = order.getAssignedDistributorName() != null ? order.getAssignedDistributorName() : "Atomy Regional Logistics Hub";
+        if (brevoEmailService != null) {
+            brevoEmailService.sendPickupDeliveredConfirmation(order, hubName);
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "OTP verified! Order successfully marked as DELIVERED / COLLECTED.",
+                "order", order
+        ));
+    }
+
+    private String maskEmailAddress(String email) {
+        if (email == null || !email.contains("@")) return email;
+        String[] parts = email.split("@");
+        String user = parts[0];
+        String domain = parts[1];
+        if (user.length() <= 2) {
+            return user.charAt(0) + "***@" + domain;
+        }
+        return user.charAt(0) + "***" + user.charAt(user.length() - 1) + "@" + domain;
     }
 
     private void appendTrackingCheckpoint(OrderTracking tracking, String status, String location, String desc) {

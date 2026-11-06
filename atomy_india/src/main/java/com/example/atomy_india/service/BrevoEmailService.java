@@ -258,6 +258,71 @@ public class BrevoEmailService {
     }
 
     // =========================================================================
+    // 2B. HUB SELF-PICKUP HANDOVER VERIFICATION OTP EMAIL
+    // =========================================================================
+    public void sendPickupVerificationOtp(CustomerOrder order, String otp, String hubName) {
+        if (order == null || order.getCustomerEmail() == null || order.getCustomerEmail().trim().isEmpty()) {
+            return;
+        }
+
+        String name = (order.getCustomerName() != null && !order.getCustomerName().trim().isEmpty())
+                ? order.getCustomerName() : "Customer";
+        String orderId = order.getOrderId();
+        String safeHub = (hubName != null && !hubName.trim().isEmpty()) ? hubName : "Atomy Regional Logistics Hub";
+        String subject = "🔐 Handover OTP: " + otp + " for Order #" + orderId + " - " + safeHub;
+
+        String innerContent = "<div style=\"background:#ecfdf5;border:1.5px solid #86efac;border-radius:10px;padding:16px;margin-bottom:20px;\">"
+                + "  <div style=\"color:#166534;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;\">&#128205; IN-STORE COUNTER COLLECTION</div>"
+                + "  <div style=\"color:#15803d;font-size:16px;font-weight:bold;margin-top:4px;\">" + escapeHtml(safeHub) + "</div>"
+                + "</div>"
+                + "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">Hub Pickup Security Verification</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(name) + "</strong>,</p>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">You (or someone on your behalf) are collecting Order <strong>#" + escapeHtml(orderId) + "</strong> at the regional hub counter. To prevent false collection and confirm safe handover, please tell or show the 6-digit OTP below to the distributor at the counter:</p>"
+                + "<div style=\"background:#f0fdf4;border:2px dashed #16a34a;border-radius:10px;padding:22px;text-align:center;margin:24px 0;\">"
+                + "  <div style=\"font-size:12px;color:#15803d;font-weight:700;letter-spacing:1px;margin-bottom:6px;\">YOUR SECURE HANDOVER OTP</div>"
+                + "  <span style=\"font-size:36px;font-weight:bold;letter-spacing:10px;color:#15803d;font-family:monospace;\">" + escapeHtml(otp) + "</span>"
+                + "  <div style=\"font-size:11.5px;color:#64748b;margin-top:8px;\">Valid for <strong>10 minutes</strong> &bull; One-Time Use</div>"
+                + "</div>"
+                + "<div style=\"background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:20px;\">"
+                + "  <div style=\"font-size:13px;color:#334155;font-weight:600;margin-bottom:4px;\">Order Details:</div>"
+                + "  <div style=\"font-size:12.5px;color:#64748b;\">Order ID: <strong>#" + escapeHtml(orderId) + "</strong></div>"
+                + "  <div style=\"font-size:12.5px;color:#64748b;\">Total Amount: <strong>&#8377;" + (order.getTotalAmount() != null ? order.getTotalAmount() : "0.00") + "</strong></div>"
+                + "</div>"
+                + "<p style=\"color:#b91c1c;font-size:12px;background:#fef2f2;border-left:3px solid #ef4444;padding:8px 12px;margin:0 0 16px 0;\">"
+                + "  &#9888; <strong>Security Alert:</strong> Never share this OTP over phone, WhatsApp or SMS. Only read this code directly to the Atomy hub counter staff in person when receiving your physical parcel."
+                + "</p>";
+
+        String html = wrapEmailHtml("Hub Pickup OTP", "Counter Handover Security Code", innerContent);
+        sendEmailAsync(order.getCustomerEmail(), name, subject, html);
+    }
+
+    public void sendPickupDeliveredConfirmation(CustomerOrder order, String hubName) {
+        if (order == null || order.getCustomerEmail() == null || order.getCustomerEmail().trim().isEmpty()) {
+            return;
+        }
+
+        String name = (order.getCustomerName() != null && !order.getCustomerName().trim().isEmpty())
+                ? order.getCustomerName() : "Customer";
+        String orderId = order.getOrderId();
+        String safeHub = (hubName != null && !hubName.trim().isEmpty()) ? hubName : "Atomy Regional Logistics Hub";
+        String subject = "📦 Order Handed Over & Collected: #" + orderId + " - FIC (Atomy India)";
+
+        String innerContent = "<h2 style=\"color:#15803d;font-size:18px;margin-top:0;\">&#10004; Parcel Successfully Collected!</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(name) + "</strong>,</p>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Your order <strong>#" + escapeHtml(orderId) + "</strong> has been verified via OTP and successfully handed over to you at <strong>" + escapeHtml(safeHub) + "</strong>.</p>"
+                + "<div style=\"background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;margin:20px 0;\">"
+                + "  <div style=\"font-size:13px;color:#166534;font-weight:bold;\">&#10004; Delivery Status: DELIVERED (Collected at Hub Counter)</div>"
+                + "  <div style=\"font-size:12px;color:#475569;margin-top:4px;\">Thank you for shopping with Atomy India. We hope you enjoy your products!</div>"
+                + "</div>"
+                + "<div style=\"text-align:center;margin:24px 0;\">"
+                + "  <a href=\"" + escapeHtml(getEffectiveStorefrontUrl() + "/my-orders") + "\" class=\"btn-block\" style=\"background:#0284c7;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">View Order History</a>"
+                + "</div>";
+
+        String html = wrapEmailHtml("Order Collected", "Handover Confirmation", innerContent);
+        sendEmailAsync(order.getCustomerEmail(), name, subject, html);
+    }
+
+    // =========================================================================
     // 3. ORDER CONFIRMATION EMAIL (CUSTOMER)
     // =========================================================================
     public void sendOrderConfirmation(CustomerOrder order) {

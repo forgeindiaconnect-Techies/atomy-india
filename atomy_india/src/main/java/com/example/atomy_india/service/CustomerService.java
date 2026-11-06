@@ -86,7 +86,7 @@ public class CustomerService {
         }
 
         // Use provided Order ID or generate human-friendly Order ID (e.g. ORD-20261003-8472)
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String timestamp = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         int randomCode = 1000 + new Random().nextInt(9000);
         String orderId = (req.getOrderId() != null && !req.getOrderId().trim().isEmpty())
                 ? req.getOrderId().trim()

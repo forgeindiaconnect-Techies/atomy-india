@@ -356,12 +356,15 @@ export default function OrderSheetPage({
     fetchHubDetails(pin)
       .then(info => {
         setHubDetails(info);
+        if (info && !info.found) {
+          setFulfillmentType('COURIER_DELIVERY');
+        }
         setIsLoadingHub(false);
       })
       .catch(() => {
         setIsLoadingHub(false);
       });
-  }, [currentSelectedAddress?.pincode, fulfillmentType]);
+  }, [currentSelectedAddress?.pincode]);
 
   // Free delivery rule: Delivery is FREE for orders above ₹ 4,500.00 OR if at least one product mentions Free Delivery.
   // When Direct Hub Pickup is chosen, delivery fee is ALWAYS ₹0.00 (Free).
@@ -959,6 +962,10 @@ export default function OrderSheetPage({
       alert(`This item is not in stock for delivery to PIN ${deliveryPincode || 'your selected area'}. Please select another address or remove the item.`);
       return;
     }
+    if (fulfillmentType === 'STORE_PICKUP' && hubDetails && !hubDetails.found) {
+      alert(`Direct Hub Pickup is not available in PIN ${deliveryPincode || currentSelectedAddress?.pincode}. Each distributor serves strictly their assigned PIN code. Please select Doorstep Courier Service.`);
+      return;
+    }
     if (!currentSelectedAddress) {
       alert('Please add or select a delivery address before proceeding to payment.');
       return;
@@ -1046,7 +1053,9 @@ export default function OrderSheetPage({
 
       const isCod = paymentMethod === 'COD';
       const isPickupOrder = fulfillmentType === 'STORE_PICKUP';
-      const generatedOrderId = `ORD-${new Date().toISOString().replace(/\D/g, '').slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const istDateFormatted = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()); // YYYY-MM-DD
+      const istYMD = istDateFormatted.replace(/-/g, '');
+      const generatedOrderId = `ORD-${istYMD}-${Math.floor(1000 + Math.random() * 9000)}`;
       orderPayload.orderId = generatedOrderId;
 
       let backendOrder = null;
@@ -1061,7 +1070,7 @@ export default function OrderSheetPage({
       const newOrder = {
         orderId: assignedOrderId,
         date: backendOrder?.createdAt || new Date().toISOString(),
-        orderDate: new Date().toISOString().split('T')[0],
+        orderDate: istDateFormatted,
         status: isCod ? 'Cash on Delivery' : 'Payment Completed',
         paymentStatus: isCod ? 'PENDING' : 'PAID',
         orderStatus: 'PLACED',
@@ -1516,126 +1525,165 @@ export default function OrderSheetPage({
                       </div>
 
                       {/* Option 2: Direct Hub Store Pickup (Self-Pickup) */}
-                      <div
-                        onClick={() => setFulfillmentType('STORE_PICKUP')}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          padding: '14px 16px',
-                          borderRadius: '10px',
-                          border: fulfillmentType === 'STORE_PICKUP' ? '2px solid #10b981' : '1.5px solid #e2e8f0',
-                          background: fulfillmentType === 'STORE_PICKUP' ? '#f0fdf4' : '#ffffff',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <input
-                              type="radio"
-                              name="fulfillmentMethod"
-                              checked={fulfillmentType === 'STORE_PICKUP'}
-                              onChange={() => setFulfillmentType('STORE_PICKUP')}
-                              style={{ cursor: 'pointer', accentColor: '#10b981' }}
-                            />
-                            <Store size={18} color="#10b981" />
-                            <strong style={{ fontSize: '14px', color: '#0f172a' }}>Direct Hub Pickup (Self-Pickup)</strong>
+                      {(() => {
+                        const isPickupDisabled = Boolean(hubDetails && !hubDetails.found);
+                        return (
+                          <div
+                            onClick={() => {
+                              if (!isPickupDisabled) {
+                                setFulfillmentType('STORE_PICKUP');
+                              }
+                            }}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              padding: '14px 16px',
+                              borderRadius: '10px',
+                              border: (fulfillmentType === 'STORE_PICKUP' && !isPickupDisabled) ? '2px solid #10b981' : '1.5px solid #e2e8f0',
+                              background: isPickupDisabled ? '#f8fafc' : fulfillmentType === 'STORE_PICKUP' ? '#f0fdf4' : '#ffffff',
+                              cursor: isPickupDisabled ? 'not-allowed' : 'pointer',
+                              opacity: isPickupDisabled ? 0.65 : 1,
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                  type="radio"
+                                  name="fulfillmentMethod"
+                                  disabled={isPickupDisabled}
+                                  checked={fulfillmentType === 'STORE_PICKUP' && !isPickupDisabled}
+                                  onChange={() => {
+                                    if (!isPickupDisabled) setFulfillmentType('STORE_PICKUP');
+                                  }}
+                                  style={{ cursor: isPickupDisabled ? 'not-allowed' : 'pointer', accentColor: '#10b981' }}
+                                />
+                                <Store size={18} color={isPickupDisabled ? '#94a3b8' : '#10b981'} />
+                                <strong style={{ fontSize: '14px', color: isPickupDisabled ? '#64748b' : '#0f172a' }}>
+                                  Direct Hub Pickup (Self-Pickup)
+                                </strong>
+                              </div>
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                padding: '3px 8px',
+                                borderRadius: '12px',
+                                background: isPickupDisabled ? '#f1f5f9' : '#dcfce7',
+                                color: isPickupDisabled ? '#64748b' : '#15803d',
+                                border: `1px solid ${isPickupDisabled ? '#cbd5e1' : '#86efac'}`
+                              }}>
+                                {isPickupDisabled ? 'UNAVAILABLE IN PIN' : 'FREE - ₹0 FEE'}
+                              </span>
+                            </div>
+                            <p style={{ margin: '0 0 6px 26px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
+                              {isPickupDisabled
+                                ? `No physical hub counter in PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}. Please use Doorstep Courier.`
+                                : 'Collect directly from your regional logistics hub. Hub distributor packs items & holds for pickup.'}
+                            </p>
+                            <div style={{ marginLeft: '26px', fontSize: '11.5px', color: isPickupDisabled ? '#dc2626' : '#15803d', fontWeight: 600 }}>
+                              {isPickupDisabled
+                                ? '✗ In-store pickup unavailable for this PIN'
+                                : '✓ No delivery fee required • Present product invoice / Order ID at counter to collect parcel.'}
+                            </div>
                           </div>
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            background: '#dcfce7',
-                            color: '#15803d',
-                            border: '1px solid #86efac'
-                          }}>
-                            FREE - ₹0 FEE
-                          </span>
-                        </div>
-                        <p style={{ margin: '0 0 6px 26px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
-                          Collect directly from your regional logistics hub. Hub distributor packs items &amp; holds for pickup.
-                        </p>
-                        <div style={{ marginLeft: '26px', fontSize: '11.5px', color: '#15803d', fontWeight: 600 }}>
-                          ✓ No delivery fee required • Present product invoice / Order ID at counter to collect parcel.
-                        </div>
-                      </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Store Pickup Hub Info Notice Banner with Full Distributor / Sub-Admin Details */}
                     {fulfillmentType === 'STORE_PICKUP' && (
-                      <div style={{
-                        marginTop: '16px',
-                        padding: '16px 18px',
-                        background: '#f0fdf4',
-                        border: '1.5px solid #86efac',
-                        borderRadius: '10px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                          <CheckCircle2 size={18} color="#16a34a" />
-                          <strong style={{ fontSize: '13.5px', color: '#14532d' }}>
-                            Direct Hub Pickup Active: Free Self-Collection (₹0 Delivery Fee)
-                          </strong>
-                        </div>
-
-                        {/* Hub Address & Sub-Admin Contact Card */}
+                      hubDetails && !hubDetails.found ? (
                         <div style={{
-                          background: '#ffffff',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: '8px',
-                          padding: '14px 16px',
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                          gap: '14px'
+                          marginTop: '16px',
+                          padding: '16px 18px',
+                          background: '#fffbeb',
+                          border: '1.5px solid #fde68a',
+                          borderRadius: '10px'
                         }}>
-                          {/* Hub Details */}
-                          <div>
-                            <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#16a34a', fontWeight: 700, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Store size={13} /> Designated Regional Hub
-                            </span>
-                            <h4 style={{ margin: '4px 0 6px', fontSize: '14px', color: '#0f172a', fontWeight: 700 }}>
-                              {hubDetails?.hubName || 'Central Super Admin Hub'}
-                            </h4>
-                            <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                              <MapPin size={14} color="#0284c7" style={{ flexShrink: 0, marginTop: '2px' }} />
-                              <span>{hubDetails?.hubAddress || 'Central Logistics & Fulfillment Facility, National Corridor, India'}</span>
-                            </p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <AlertCircle size={18} color="#d97706" />
+                            <strong style={{ fontSize: '13.5px', color: '#92400e' }}>
+                              No Local Pickup Counter in PIN {currentSelectedAddress?.pincode || deliveryPincode || localStorage.getItem('atomy_customer_delivery_pincode')}
+                            </strong>
+                          </div>
+                          <p style={{ margin: 0, fontSize: '12.5px', color: '#78350f', lineHeight: 1.5 }}>
+                            Each distributor hub exclusively serves strictly one assigned PIN code. There is no physical hub counter in PIN <strong>{currentSelectedAddress?.pincode || deliveryPincode || localStorage.getItem('atomy_customer_delivery_pincode')}</strong>. Please choose <strong>Doorstep Courier Service</strong> above to have your order dispatched directly to your address.
+                          </p>
+                        </div>
+                      ) : (
+                        <div style={{
+                          marginTop: '16px',
+                          padding: '16px 18px',
+                          background: '#f0fdf4',
+                          border: '1.5px solid #86efac',
+                          borderRadius: '10px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <CheckCircle2 size={18} color="#16a34a" />
+                            <strong style={{ fontSize: '13.5px', color: '#14532d' }}>
+                              Direct Hub Pickup Active: Free Self-Collection (₹0 Delivery Fee)
+                            </strong>
                           </div>
 
-                          {/* Hub Manager / Sub-Admin Contact */}
-                          <div style={{ borderLeft: '1px solid #f1f5f9', paddingLeft: '14px' }}>
-                            <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#0284c7', fontWeight: 700, letterSpacing: '0.5px' }}>
-                              Distributor / Hub Manager
-                            </span>
-                            <h5 style={{ margin: '4px 0 6px', fontSize: '13.5px', color: '#1e293b', fontWeight: 600 }}>
-                              {hubDetails?.contactPerson || 'National Logistics Desk'}
-                            </h5>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '12px', color: '#334155' }}>
-                              <a
-                                href={`tel:${(hubDetails?.phone || '+91 1800 123 4567').replace(/\s+/g, '')}`}
-                                style={{
-                                  color: '#0284c7',
-                                  textDecoration: 'none',
-                                  fontWeight: 600,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px'
-                                }}
-                                title="Click to call regional hub distributor"
-                              >
-                                <Phone size={13} /> {hubDetails?.phone || '+91 1800 123 4567'}
-                              </a>
-                              <span style={{ color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px' }}>
-                                <Clock size={13} /> {hubDetails?.operatingHours || 'Mon – Sat: 9:30 AM – 7:30 PM'}
+                          {/* Hub Address & Sub-Admin Contact Card */}
+                          <div style={{
+                            background: '#ffffff',
+                            border: '1px solid #bbf7d0',
+                            borderRadius: '8px',
+                            padding: '14px 16px',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                            gap: '14px'
+                          }}>
+                            {/* Hub Details */}
+                            <div>
+                              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#16a34a', fontWeight: 700, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Store size={13} /> Designated Regional Hub
                               </span>
+                              <h4 style={{ margin: '4px 0 6px', fontSize: '14px', color: '#0f172a', fontWeight: 700 }}>
+                                {hubDetails?.hubName || 'Designated Regional Hub'}
+                              </h4>
+                              <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                                <MapPin size={14} color="#0284c7" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                <span>{hubDetails?.hubAddress || 'Regional Logistics Hub Counter'}</span>
+                              </p>
+                            </div>
+
+                            {/* Hub Manager / Sub-Admin Contact */}
+                            <div style={{ borderLeft: '1px solid #f1f5f9', paddingLeft: '14px' }}>
+                              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#0284c7', fontWeight: 700, letterSpacing: '0.5px' }}>
+                                Distributor / Hub Manager
+                              </span>
+                              <h5 style={{ margin: '4px 0 6px', fontSize: '13.5px', color: '#1e293b', fontWeight: 600 }}>
+                                {hubDetails?.contactPerson || 'Hub Manager'}
+                              </h5>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '12px', color: '#334155' }}>
+                                <a
+                                  href={`tel:${(hubDetails?.phone || '+91 1800 123 4567').replace(/\s+/g, '')}`}
+                                  style={{
+                                    color: '#0284c7',
+                                    textDecoration: 'none',
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                  }}
+                                  title="Click to call regional hub distributor"
+                                >
+                                  <Phone size={13} /> {hubDetails?.phone || '+91 1800 123 4567'}
+                                </a>
+                                <span style={{ color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px' }}>
+                                  <Clock size={13} /> {hubDetails?.operatingHours || 'Mon – Sat: 9:30 AM – 7:30 PM'}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#15803d', lineHeight: 1.45 }}>
-                          ℹ️ The hub distributor will pack your products and keep them ready. Present your <strong>Product Invoice</strong> or <strong>Order ID</strong> at the hub counter to collect your parcel.
-                        </p>
-                      </div>
+                          <p style={{ margin: '12px 0 0', fontSize: '12px', color: '#15803d', lineHeight: 1.45 }}>
+                            ℹ️ The hub distributor will pack your products and keep them ready. Present your <strong>Product Invoice</strong> or <strong>Order ID</strong> at the hub counter to collect your parcel.
+                          </p>
+                        </div>
+                      )
                     )}
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   LayoutDashboard,
   Boxes,
@@ -73,10 +73,20 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     setTimeout(() => setToastMessage(''), 3500);
   };
 
+  const alertedOrderIdsRef = useRef(new Map());
+
   const triggerDistributorOrderAlert = (order, isLiveRealtime = false) => {
     if (!order) return;
     const orderIdStr = String(order.orderId || order.id || '');
     if (!orderIdStr) return;
+
+    // Deduplicate: If this order was already alerted in the last 20 seconds, ignore duplicate calls
+    const lastAlertTime = alertedOrderIdsRef.current.get(orderIdStr);
+    const now = Date.now();
+    if (lastAlertTime && (now - lastAlertTime < 20000)) {
+      return;
+    }
+    alertedOrderIdsRef.current.set(orderIdStr, now);
 
     // Trigger audible fanfare chime
     playOrderAlertSound(0.95);
@@ -122,8 +132,16 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       }
       if (statsRes.status === 'fulfilled') setStats(statsRes.value);
       if (ordersRes.status === 'fulfilled' && Array.isArray(ordersRes.value)) {
-        // Strict territory filtering: only orders belonging to assigned PIN codes
-        const freshOrders = ordersRes.value.filter(matchesDistributorTerritory);
+        // Strict territory filtering & deduplication by orderId
+        const seenIds = new Set();
+        const freshOrders = [];
+        ordersRes.value.filter(matchesDistributorTerritory).forEach(o => {
+          const oid = String(o.orderId || o.id || '').trim();
+          if (oid && !seenIds.has(oid)) {
+            seenIds.add(oid);
+            freshOrders.push(o);
+          }
+        });
         setOrders(freshOrders);
 
         // Detect newly arrived orders not in initial load
@@ -482,24 +500,46 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     employeeId: currentDist?.distributorId || 'DIST-IN'
   };
 
-  // Delayed orders in territory for notification bell
-  const delayedOrders = orders.filter(o => {
-    const st = String(o.orderStatus || 'PLACED').toUpperCase();
-    if (st === 'DELIVERED' || st === 'CANCELLED') return false;
-    const base = new Date(o.createdAt || Date.now());
-    const deadline = new Date(base.getTime() + 2 * 24 * 60 * 60 * 1000);
-    return new Date() > deadline;
-  });
+  // Deduplicated delayed orders in territory for notification bell
+  const delayedOrders = useMemo(() => {
+    const seen = new Set();
+    return orders.filter(o => {
+      const st = String(o.orderStatus || 'PLACED').toUpperCase();
+      if (st === 'DELIVERED' || st === 'CANCELLED') return false;
+      const oid = String(o.orderId || o.id || '').trim();
+      if (!oid || seen.has(oid)) return false;
+      const base = new Date(o.createdAt || Date.now());
+      const deadline = new Date(base.getTime() + 2 * 24 * 60 * 60 * 1000);
+      if (new Date() > deadline) {
+        seen.add(oid);
+        return true;
+      }
+      return false;
+    });
+  }, [orders]);
+
+  // Deduplicated recent new unfulfilled orders
+  const recentNewOrders = useMemo(() => {
+    const seen = new Set();
+    return orders.filter(o => {
+      const st = String(o.orderStatus || 'PLACED').toUpperCase();
+      if (st === 'DELIVERED' || st === 'CANCELLED') return false;
+      const oid = String(o.orderId || o.id || '').trim();
+      if (!oid || seen.has(oid)) return false;
+      seen.add(oid);
+      return true;
+    }).slice(0, 5);
+  }, [orders]);
 
   const overviewStatsMapped = {
     todayOrdersCount: (orders || []).filter(o => new Date(o.createdAt || Date.now()) >= new Date(new Date().setHours(0,0,0,0))).length,
-    unreadOrdersCount: (orders || []).filter(o => o.orderStatus === 'PLACED').length,
+    unreadOrdersCount: recentNewOrders.length,
     delayedCount: delayedOrders.length,
     delayedOrders: delayedOrders,
     unreadDelayedCount: delayedOrders.length,
     unreadTicketsCount: 0,
     unreadLowStockCount: 0,
-    recentNewOrders: (orders || []).slice(0, 5)
+    recentNewOrders: recentNewOrders
   };
 
   return (

@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,10 +49,10 @@ public class CustomerOrder {
     private OrderStatus orderStatus = OrderStatus.PLACED;
 
     @Field("created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
 
     @Field("updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now(ZoneId.of("Asia/Kolkata"));
 
     @Field("delay_email_sent")
     private Boolean delayEmailSent = false;
@@ -76,6 +77,24 @@ public class CustomerOrder {
 
     @Field("pickup_status")
     private String pickupStatus; // "PENDING_PACKING", "READY_FOR_PICKUP", "COLLECTED"
+
+    @Field("pickup_otp")
+    private String pickupOtp;
+
+    @Field("pickup_otp_expires_at")
+    private LocalDateTime pickupOtpExpiresAt;
+
+    @Field("pickup_otp_attempts")
+    private Integer pickupOtpAttempts = 0;
+
+    @Field("pickup_verified_at")
+    private LocalDateTime pickupVerifiedAt;
+
+    @Field("pickup_verified_by")
+    private String pickupVerifiedBy;
+
+    @Field("delivered_at")
+    private LocalDateTime deliveredAt;
 
     @Field("hub_address")
     private String hubAddress;
@@ -231,6 +250,24 @@ public class CustomerOrder {
 
     public String getPickupStatus() { return pickupStatus; }
     public void setPickupStatus(String pickupStatus) { this.pickupStatus = pickupStatus; }
+
+    public String getPickupOtp() { return pickupOtp; }
+    public void setPickupOtp(String pickupOtp) { this.pickupOtp = pickupOtp; }
+
+    public LocalDateTime getPickupOtpExpiresAt() { return pickupOtpExpiresAt; }
+    public void setPickupOtpExpiresAt(LocalDateTime pickupOtpExpiresAt) { this.pickupOtpExpiresAt = pickupOtpExpiresAt; }
+
+    public Integer getPickupOtpAttempts() { return pickupOtpAttempts; }
+    public void setPickupOtpAttempts(Integer pickupOtpAttempts) { this.pickupOtpAttempts = pickupOtpAttempts; }
+
+    public LocalDateTime getPickupVerifiedAt() { return pickupVerifiedAt; }
+    public void setPickupVerifiedAt(LocalDateTime pickupVerifiedAt) { this.pickupVerifiedAt = pickupVerifiedAt; }
+
+    public String getPickupVerifiedBy() { return pickupVerifiedBy; }
+    public void setPickupVerifiedBy(String pickupVerifiedBy) { this.pickupVerifiedBy = pickupVerifiedBy; }
+
+    public LocalDateTime getDeliveredAt() { return deliveredAt; }
+    public void setDeliveredAt(LocalDateTime deliveredAt) { this.deliveredAt = deliveredAt; }
 
     public String getHubAddress() { return hubAddress; }
     public void setHubAddress(String hubAddress) { this.hubAddress = hubAddress; }

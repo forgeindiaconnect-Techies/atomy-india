@@ -104,10 +104,32 @@ function DeliveryBikeModel({ size = 1 }) {
   );
 }
 
+// Check if order is Hub Counter Pickup
+function isStorePickupOrder(order) {
+  if (!order) return false;
+  return Boolean(
+    order.fulfillmentType === 'STORE_PICKUP' ||
+    order.shippingMethod === 'STORE_PICKUP' ||
+    order.isPickup === true ||
+    (order.pickupStatus && order.pickupStatus !== 'NONE') ||
+    (typeof order.shippingAddress === 'string' && order.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+    (order.hubName && !order.courier)
+  );
+}
+
 // Compute target stage from order status matching website
 function computeTargetStage(order) {
   if (!order) return 1;
-  const raw = (order.status || '').toUpperCase().trim();
+  const raw = (order.status || order.orderStatus || order.pickupStatus || '').toUpperCase().trim();
+  const isPickup = isStorePickupOrder(order);
+
+  if (isPickup) {
+    if (raw.includes('DELIVERED') || raw.includes('COLLECT')) return 4;
+    if (raw.includes('READY')) return 3;
+    if (raw.includes('PREPAR') || raw.includes('PROCESS') || raw.includes('PACK')) return 2;
+    return 1;
+  }
+
   if (raw.includes('DELIVERED')) return 5;
   if (raw.includes('OUT') || raw.includes('LOCAL')) return 4;
   if (raw.includes('TRANSIT') || raw.includes('SHIPPED') || raw.includes('DISPATCH')) return 3;
@@ -122,6 +144,7 @@ function VerticalDeliveryStepper({ order, defaultMode = 'vertical' }) {
     return raw.includes('cancel');
   }, [order]);
 
+  const isPickup = useMemo(() => isStorePickupOrder(order), [order]);
   const targetStage = useMemo(() => computeTargetStage(order), [order]);
   const [currentStep, setCurrentStep] = useState(1);
   const [lineProgress, setLineProgress] = useState(0);
@@ -165,6 +188,41 @@ function VerticalDeliveryStepper({ order, defaultMode = 'vertical' }) {
     }
   }, [currentStep, targetStage]);
 
+  const pickupStages = [
+    {
+      num: 1,
+      label: 'Order Placed',
+      sub: 'Payment Confirmed',
+      moverType: 'envelope',
+      moverLabel: 'Order Confirmed',
+      icon: 'receipt-outline',
+    },
+    {
+      num: 2,
+      label: 'Preparing',
+      sub: 'Hub Staff Packing Items',
+      moverType: 'package',
+      moverLabel: 'Packing Goods',
+      icon: 'cube-outline',
+    },
+    {
+      num: 3,
+      label: 'Ready to Pick Up',
+      sub: 'Package Waiting at Hub Counter',
+      moverType: 'package',
+      moverLabel: 'Available at Counter',
+      icon: 'cube-outline',
+    },
+    {
+      num: 4,
+      label: 'Delivered',
+      sub: 'Verified via OTP & Handed Over',
+      moverType: 'done',
+      moverLabel: 'Handed to Customer',
+      icon: 'checkmark-done-circle',
+    },
+  ];
+
   const stages = isCancelled ? [
     {
       num: 1,
@@ -190,7 +248,7 @@ function VerticalDeliveryStepper({ order, defaultMode = 'vertical' }) {
       moverLabel: 'Cancellation Recorded',
       icon: 'close-circle-outline',
     },
-  ] : [
+  ] : isPickup ? pickupStages : [
     {
       num: 1,
       label: 'Order Placed',
@@ -283,7 +341,7 @@ function VerticalDeliveryStepper({ order, defaultMode = 'vertical' }) {
                   {isCurrent && (
                     <View style={styles.hLiveBadge}>
                       <Text style={styles.hLiveBadgeText}>
-                        {st.num === 5 ? 'DELIVERED 🎉' : 'IN PROGRESS'}
+                        {st.num === (isPickup ? 4 : 5) ? 'DELIVERED 🎉' : 'IN PROGRESS'}
                       </Text>
                     </View>
                   )}
@@ -384,7 +442,7 @@ function VerticalDeliveryStepper({ order, defaultMode = 'vertical' }) {
                         <View style={styles.activeStageTag}>
                           <View style={styles.tinyPulseDot} />
                           <Text style={styles.activeStageTagText}>
-                            {st.num === 5 ? 'DELIVERED 🎉' : 'IN PROGRESS'}
+                            {st.num === (isPickup ? 4 : 5) ? 'DELIVERED 🎉' : 'IN PROGRESS'}
                           </Text>
                         </View>
                       )}

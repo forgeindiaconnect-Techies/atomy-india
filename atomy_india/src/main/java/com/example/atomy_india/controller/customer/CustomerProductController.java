@@ -39,16 +39,10 @@ public class CustomerProductController {
         if (cleanPin == null || cleanPin.trim().isEmpty()) return Optional.empty();
         String pin = cleanPin.trim();
 
-        // 1. Direct primary PIN or explicitly assigned PIN match
+        // 1. Direct primary PIN or explicitly assigned PIN match (strictly 1 distributor per PIN code)
         Optional<DistributorUser> distOpt = distributorRepository.findByPrimaryPincode(pin)
                 .or(() -> distributorRepository.findByAssignedPincodesContaining(pin));
         if (distOpt.isPresent()) return distOpt;
-
-        // Route Krishnagiri cluster PIN codes (635002, 635001, 635122) directly to Selva's Hub
-        if ("635002".equals(pin) || "635001".equals(pin) || "635122".equals(pin)) {
-            distOpt = distributorRepository.findByDistributorId("DIST-635002");
-            if (distOpt.isPresent()) return distOpt;
-        }
 
         // 2. India Pincode master table assignment check
         Optional<IndiaPincode> pinDoc = indiaPincodeRepository.findByPincode(pin);
