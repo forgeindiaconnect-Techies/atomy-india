@@ -25,10 +25,23 @@ export default function DistributorCustomersPage({
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
-  const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
+  const primaryPin = String(distributor?.primaryPincode || '635002').trim();
+  const assignedPins = new Set(
+    (distributor?.assignedPincodes && distributor.assignedPincodes.length > 0
+      ? distributor.assignedPincodes
+      : [primaryPin]
+    ).map(p => String(p).trim()).filter(p => p === primaryPin)
+  );
+  if (assignedPins.size === 0) assignedPins.add(primaryPin);
+
+  // Strict territory filtering: only include consumers whose address PIN strictly matches assigned PIN
+  const territoryCustomers = (customers || []).filter(c => {
+    const custPin = String(c.pincode || '').trim();
+    return custPin ? assignedPins.has(custPin) : false;
+  });
 
   // Compute metrics per customer
-  const enrichedCustomers = (customers || []).map((c) => {
+  const enrichedCustomers = territoryCustomers.map((c) => {
     const custEmail = (c.email || '').toLowerCase().trim();
     const custOrders = (orders || []).filter(o => (o.customerEmail || '').toLowerCase().trim() === custEmail);
     const totalOrdersCount = custOrders.length || Number(c.totalOrders || 1);

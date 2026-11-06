@@ -116,67 +116,145 @@ export const RETURN_REPLACEMENT_REASONS = [
 
 // Helper to reliably extract complete destination address across all order formats
 export const resolveOrderDestination = (order) => {
-  if (!order) return { recipient: 'Customer', phone: '', street: '', city: '', state: '', pincode: '', fullAddress: 'Registered Delivery Destination' };
+  if (!order) {
+    return {
+      recipient: "Customer",
+      phone: "",
+      street: "",
+      city: "",
+      state: "",
+      pincode: "",
+      fullAddress: "Registered Delivery Destination",
+      isPickup: false,
+      hubName: "",
+      hubAddress: "",
+      customerAddress: "",
+      customerLocation: ""
+    };
+  }
   
-  const recipient = order.customerName || order.recipient || order.shippingAddress?.recipient || order.address?.recipient || 'Customer';
-  const phone = order.customerPhone || order.phone || order.shippingAddress?.phone || order.address?.phone || '';
+  const recipient = order.customerName || order.recipient || order.shippingAddress?.recipient || order.address?.recipient || "Customer";
+  const phone = order.customerPhone || order.phone || order.shippingAddress?.phone || order.address?.phone || "";
   
   const isPickupOrder = Boolean(
-    order.fulfillmentType === 'STORE_PICKUP' ||
-    order.shippingMethod === 'STORE_PICKUP' ||
+    order.fulfillmentType === "STORE_PICKUP" ||
+    order.shippingMethod === "STORE_PICKUP" ||
     order.isPickup === true ||
-    (order.pickupStatus && order.pickupStatus !== 'NONE') ||
-    (typeof order.shippingAddress === 'string' && order.shippingAddress.toLowerCase().includes('direct hub pickup')) ||
-    (typeof order.shippingAddress === 'string' && order.shippingAddress.toLowerCase().includes('direct store pickup'))
+    (order.pickupStatus && order.pickupStatus !== "NONE") ||
+    (typeof order.shippingAddress === "string" && order.shippingAddress.toLowerCase().includes("direct hub pickup")) ||
+    (typeof order.shippingAddress === "string" && order.shippingAddress.toLowerCase().includes("direct store pickup")) ||
+    (order.hubName && !order.courier)
   );
 
+  // Extract customer personal address / location before hub mapping
+  let rawCustomerAddr = "";
+  if (order.customerAddress && typeof order.customerAddress === "string" && order.customerAddress.trim()) {
+    rawCustomerAddr = order.customerAddress.trim();
+  } else if (order.customerLocation && typeof order.customerLocation === "string" && order.customerLocation.trim()) {
+    rawCustomerAddr = order.customerLocation.trim();
+  } else if (typeof order.shippingAddress === "string" && order.shippingAddress.trim() && !order.shippingAddress.toLowerCase().includes("pickup counter") && !order.shippingAddress.toLowerCase().includes("direct hub pickup") && !order.shippingAddress.toLowerCase().includes("direct store pickup")) {
+    rawCustomerAddr = order.shippingAddress.trim();
+  } else if (order.shippingAddress && typeof order.shippingAddress === "object") {
+    const raw = order.shippingAddress.address || order.shippingAddress.fullAddress || order.shippingAddress.street || "";
+    if (raw && !raw.toLowerCase().includes("pickup counter") && !raw.toLowerCase().includes("direct hub pickup") && !raw.toLowerCase().includes("direct store pickup")) {
+      rawCustomerAddr = raw;
+    }
+  } else if (order.address && typeof order.address === "object") {
+    const raw = order.address.fullAddress || order.address.address || order.address.street || "";
+    if (raw && !raw.toLowerCase().includes("pickup counter") && !raw.toLowerCase().includes("direct hub pickup") && !raw.toLowerCase().includes("direct store pickup")) {
+      rawCustomerAddr = raw;
+    }
+  }
+
+  // Fallback to customer saved address in localStorage if address string missing
+  if (!rawCustomerAddr) {
+    try {
+      const savedActive = typeof window !== "undefined" ? localStorage.getItem("atomy_shipping_address") : null;
+      if (savedActive) {
+        const parsed = JSON.parse(savedActive);
+        if (parsed && (parsed.addressLine1 || parsed.fullAddress)) {
+          rawCustomerAddr = parsed.fullAddress || (parsed.addressLine1 + ", " + (parsed.addressLine2 || "")).trim();
+        }
+      }
+      if (!rawCustomerAddr && typeof window !== "undefined") {
+        const savedList = localStorage.getItem("atomy_customer_addresses");
+        if (savedList) {
+          const list = JSON.parse(savedList);
+          if (Array.isArray(list) && list.length > 0) {
+            const match = list.find(a => a.isDefault) || list[0];
+            if (match) {
+              rawCustomerAddr = match.fullAddress || (match.addressLine1 + ", " + (match.addressLine2 || "")).trim();
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  const cCity = order.city || order.shippingAddress?.city || order.address?.city || "Krishnagiri";
+  const cState = order.state || order.shippingAddress?.state || order.address?.state || "Tamil Nadu";
+  const cPin = order.pincode || order.shippingAddress?.pincode || order.address?.pincode || "635002";
+
+  // Construct customer location string
+  const custParts = [];
+  if (rawCustomerAddr) custParts.push(rawCustomerAddr);
+  if (cCity && !rawCustomerAddr.toLowerCase().includes(cCity.toLowerCase())) custParts.push(cCity);
+  if (cState && !rawCustomerAddr.toLowerCase().includes(cState.toLowerCase())) custParts.push(cState);
+  if (cPin && !rawCustomerAddr.includes(cPin)) custParts.push("PIN: " + cPin);
+  const customerLocation = custParts.length > 0 ? custParts.join(", ") : [cCity, cState, cPin ? ("PIN: " + cPin) : ""].filter(Boolean).join(", ") || "Customer Registered Location";
+
   if (isPickupOrder) {
-    const hubName = order.hubName || order.assignedDistributorName || 'Atomy Regional Logistics Hub';
-    const hubAddr = order.hubAddress || (typeof order.shippingAddress === 'string' ? order.shippingAddress : '') || 'Regional Logistics Hub Desk';
-    const cCity = order.city || 'Krishnagiri';
-    const cState = order.state || 'Tamil Nadu';
-    const cPin = order.pincode || '635002';
+    const hubName = order.hubName || order.assignedDistributorName || "Selva Atomy Regional Hub";
+    const hubAddr = order.hubAddress || (typeof order.shippingAddress === "string" && order.shippingAddress.includes("Hub") ? order.shippingAddress : "") || "RK Tower, Rayakotta main road, bayanapalli, krishnagiri";
     return {
       recipient,
       phone,
-      street: `${hubName} — ${hubAddr}`,
+      isPickup: true,
+      hubName,
+      hubAddress: hubAddr,
+      customerAddress: rawCustomerAddr || customerLocation,
+      customerLocation,
+      street: hubName + " — " + hubAddr,
       city: cCity,
       state: cState,
       pincode: cPin,
-      fullAddress: `Pickup Counter: ${hubName} — ${hubAddr} (In-Person Collection)`
+      fullAddress: "Pickup Counter: " + hubName + " — " + hubAddr + " (In-Person Collection)"
     };
   }
 
-  let street = '';
-  if (typeof order.shippingAddress === 'string' && order.shippingAddress.trim()) {
-    street = order.shippingAddress.trim();
-  } else if (order.shippingAddress && typeof order.shippingAddress === 'object') {
-    street = order.shippingAddress.address || order.shippingAddress.fullAddress || order.shippingAddress.street || '';
-  } else if (typeof order.address === 'string' && order.address.trim()) {
-    street = order.address.trim();
-  } else if (order.address && typeof order.address === 'object') {
-    street = order.address.address || order.address.fullAddress || order.address.street || '';
+  let street = rawCustomerAddr;
+  if (!street) {
+    if (typeof order.shippingAddress === "string" && order.shippingAddress.trim()) {
+      street = order.shippingAddress.trim();
+    } else if (order.shippingAddress && typeof order.shippingAddress === "object") {
+      street = order.shippingAddress.address || order.shippingAddress.fullAddress || order.shippingAddress.street || "";
+    } else if (typeof order.address === "string" && order.address.trim()) {
+      street = order.address.trim();
+    } else if (order.address && typeof order.address === "object") {
+      street = order.address.address || order.address.fullAddress || order.address.street || "";
+    }
   }
-
-  const city = order.city || order.shippingAddress?.city || order.address?.city || '';
-  const state = order.state || order.shippingAddress?.state || order.address?.state || '';
-  const pincode = order.pincode || order.shippingAddress?.pincode || order.address?.pincode || '';
 
   const parts = [];
   if (street) parts.push(street);
-  if (city && !street.toLowerCase().includes(city.toLowerCase())) parts.push(city);
-  if (state && !street.toLowerCase().includes(state.toLowerCase())) parts.push(state);
-  if (pincode && !street.includes(pincode)) parts.push(`PIN: ${pincode}`);
+  if (cCity && !street.toLowerCase().includes(cCity.toLowerCase())) parts.push(cCity);
+  if (cState && !street.toLowerCase().includes(cState.toLowerCase())) parts.push(cState);
+  if (cPin && !street.includes(cPin)) parts.push("PIN: " + cPin);
 
-  const fullAddress = parts.length > 0 ? parts.join(', ') : [city, state, pincode ? `PIN: ${pincode}` : ''].filter(Boolean).join(', ') || 'Direct Customer Delivery Destination';
+  const fullAddress = parts.length > 0 ? parts.join(", ") : [cCity, cState, cPin ? ("PIN: " + cPin) : ""].filter(Boolean).join(", ") || "Direct Customer Delivery Destination";
 
   return {
     recipient,
     phone,
+    isPickup: false,
+    hubName: "",
+    hubAddress: "",
+    customerAddress: street || fullAddress,
+    customerLocation: fullAddress,
     street: street || fullAddress,
-    city,
-    state,
-    pincode,
+    city: cCity,
+    state: cState,
+    pincode: cPin,
     fullAddress
   };
 };
@@ -344,6 +422,8 @@ export default function OrderHistoryPage({
         totalAmount: orderGrandTotal,
         subtotal: reconciledSubtotal,
         recipient: dest.recipient,
+        customerAddress: dest.customerAddress || dest.customerLocation || o.customerAddress,
+        customerLocation: dest.customerLocation,
         customerName: dest.recipient,
         phone: dest.phone,
         city: dest.city,
@@ -898,16 +978,27 @@ export default function OrderHistoryPage({
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="width: 50%; vertical-align: top; padding-right: 14px;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Dispatched By (Logistics Hub):</div>
-                <strong style="color: #0f172a; font-size: 13px;">Atomy Authorized Regional Fulfillment Center</strong><br/>
-                <span style="font-size: 12px; color: #475569;">Carrier Partner: ${courierPartner}</span><br/>
-                <span style="font-size: 12px; color: #475569;">Official Waybill Tracking ID: <strong>${trackingNumber}</strong></span><br/>
-                <span style="font-size: 11px; color: #64748b;">Support: 1800-123-2866 • support@atomyindia.com</span>
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">
+                  ${dest.isPickup ? "PICKUP LOCATION (REGIONAL HUB):" : "Dispatched By (Logistics Hub):"}
+                </div>
+                ${dest.isPickup ? `
+                  <strong style="color: #0f172a; font-size: 13px;">${dest.hubName}</strong><br/>
+                  <span style="font-size: 12px; color: #475569;">${dest.hubAddress}</span><br/>
+                  <span style="font-size: 11px; color: #0284c7; font-weight: 700; display: inline-block; margin-top: 4px;">Direct Store Pickup • In-Person Collection Desk</span><br/>
+                  <span style="font-size: 11px; color: #64748b;">Present Order ID / OTP at counter to claim shipment</span>
+                ` : `
+                  <strong style="color: #0f172a; font-size: 13px;">Atomy Authorized Regional Fulfillment Center</strong><br/>
+                  <span style="font-size: 12px; color: #475569;">Carrier Partner: ${courierPartner}</span><br/>
+                  <span style="font-size: 12px; color: #475569;">Official Waybill Tracking ID: <strong>${trackingNumber}</strong></span><br/>
+                  <span style="font-size: 11px; color: #64748b;">Support: 1800-123-2866 • support@atomyindia.com</span>
+                `}
               </td>
               <td style="width: 50%; vertical-align: top; padding-left: 14px; border-left: 1px solid #cbd5e1;">
-                <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">Billed &amp; Shipped To (Recipient):</div>
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 4px;">
+                  ${dest.isPickup ? "CUSTOMER LOCATION (RECIPIENT):" : "DELIVERY LOCATION (RECIPIENT):"}
+                </div>
                 <strong style="color: #0f172a; font-size: 13px;">${recipient}</strong><br/>
-                <span style="font-size: 12px; color: #475569;">Delivery Address: ${destinationLocation}</span><br/>
+                <span style="font-size: 12px; color: #475569;">${dest.isPickup ? "Customer Address" : "Delivery Address"}: ${dest.isPickup ? (dest.customerLocation || destinationLocation) : destinationLocation}</span><br/>
                 <span style="font-size: 12px; color: #475569;">Contact Mobile: ${phone}</span>
               </td>
             </tr>
@@ -2124,15 +2215,69 @@ export default function OrderHistoryPage({
                 </div>
               </div>
 
-              <div className="invoice-shipping-box">
-                <span className="shipping-box-label">Delivery Destination:</span>
-                <p className="shipping-box-text">
-                  <strong>{resolveOrderDestination(activeInvoiceOrder).recipient}</strong> {resolveOrderDestination(activeInvoiceOrder).phone && `(${resolveOrderDestination(activeInvoiceOrder).phone})`}<br />
-                  <span style={{ display: 'block', marginTop: '4px', color: '#1e293b', fontSize: '13.5px', lineHeight: '1.5' }}>
-                    {resolveOrderDestination(activeInvoiceOrder).fullAddress}
-                  </span>
-                </p>
-              </div>
+              {(() => {
+                const dest = resolveOrderDestination(activeInvoiceOrder);
+                const isPickup = dest.isPickup;
+
+                return isPickup ? (
+                  <div className="invoice-shipping-box invoice-pickup-box">
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                      <span className="shipping-box-label" style={{ color: "#0284c7", fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0 }}>
+                        📍 PICKUP LOCATION:
+                      </span>
+                      <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", border: "1px solid #bae6fd" }}>
+                        Direct Hub Store Pickup
+                      </span>
+                    </div>
+
+                    {/* Regional Hub Counter */}
+                    <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: "8px", padding: "12px 14px", marginBottom: "10px" }}>
+                      <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#0284c7", letterSpacing: "0.5px", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>🏬</span>
+                        <span>REGIONAL HUB PICKUP COUNTER:</span>
+                      </div>
+                      <strong style={{ fontSize: "14px", color: "#0f172a", display: "block" }}>{dest.hubName}</strong>
+                      <div style={{ marginTop: "4px", color: "#334155", fontSize: "13px", lineHeight: "1.5" }}>
+                        {dest.hubAddress}
+                      </div>
+                      <div style={{ marginTop: "6px", fontSize: "11.5px", color: "#0369a1", fontWeight: 600 }}>
+                        ✓ In-Person Collection Desk • Present OTP or Order ID at counter to collect parcel
+                      </div>
+                    </div>
+
+                    {/* Customer Location */}
+                    <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px 14px" }}>
+                      <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#64748b", letterSpacing: "0.5px", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>👤</span>
+                        <span>CUSTOMER LOCATION:</span>
+                      </div>
+                      <div style={{ fontSize: "13.5px", color: "#0f172a" }}>
+                        <strong>{dest.recipient}</strong> {dest.phone && <span style={{ color: "#475569" }}>({dest.phone})</span>}
+                      </div>
+                      <div style={{ marginTop: "4px", color: "#334155", fontSize: "13px", lineHeight: "1.5" }}>
+                        {dest.customerLocation}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="invoice-shipping-box">
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                      <span className="shipping-box-label" style={{ fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0 }}>
+                        🚚 DELIVERY LOCATION:
+                      </span>
+                      <span style={{ background: "#f1f5f9", color: "#475569", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                        Doorstep Delivery
+                      </span>
+                    </div>
+                    <p className="shipping-box-text">
+                      <strong>{dest.recipient}</strong> {dest.phone && ("(" + dest.phone + ")")}<br />
+                      <span style={{ display: "block", marginTop: "4px", color: "#1e293b", fontSize: "13.5px", lineHeight: "1.5" }}>
+                        {dest.fullAddress}
+                      </span>
+                    </p>
+                  </div>
+                );
+              })()}
 
               <div className="invoice-items-table">
                 <div className="items-table-header">

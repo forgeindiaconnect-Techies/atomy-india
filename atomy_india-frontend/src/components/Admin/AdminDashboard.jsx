@@ -3322,7 +3322,6 @@ export default function AdminDashboard({ onBackToStore }) {
                 className="inspection-topbar-btn courier-btn"
                 onClick={() => {
                   const o = selectedOrderDetail;
-                  setSelectedOrderDetail(null);
                   handleOpenTrackingModal(o);
                 }}
               >
@@ -3366,8 +3365,14 @@ export default function AdminDashboard({ onBackToStore }) {
               </div>
 
               <div className="meta-info-card">
-                <div className="meta-card-label">DELIVERY DESTINATION</div>
-                <div className="meta-card-main">{selectedOrderDetail.shippingAddress}</div>
+                <div className="meta-card-label">
+                  {selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' ? 'PICKUP LOCATION' : 'DELIVERY LOCATION'}
+                </div>
+                <div className="meta-card-main">
+                  {selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' && selectedOrderDetail.hubAddress
+                    ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                    : selectedOrderDetail.shippingAddress}
+                </div>
                 <div className="meta-card-sub">{selectedOrderDetail.city}, {selectedOrderDetail.state} - {selectedOrderDetail.pincode}</div>
               </div>
 

@@ -310,12 +310,10 @@ export default function HeroSlider({
             ? `Click to view ${matchedProd.name} details`
             : (slide.title || 'Explore');
 
-          const isAdFitSlide = !slide.hasTextOverlay || itemRealIdx < 3;
-
           return (
             <div
               key={`${slide.id}-${index}`}
-              className={`hero-slide ${isActive ? 'active' : ''} ${matchedProd ? 'has-product-link' : ''} ${isAdFitSlide ? 'ad-fit-slide' : ''}`}
+              className={`hero-slide ${isActive ? 'active' : ''} ${matchedProd ? 'has-product-link' : ''}`}
               style={{ backgroundColor: slide.bg }}
               onClick={(e) => handleSlideClick(slide, e)}
               role="button"
@@ -323,24 +321,12 @@ export default function HeroSlider({
               aria-label={tooltipText}
               title={tooltipText}
             >
-              {/* Ambient blurred backdrop for seamless fit without empty borders */}
-              {isAdFitSlide && (
-                <div
-                  className="hero-slide-ambient-bg"
-                  style={{
-                    backgroundImage: `url(${slide.img})`,
-                    backgroundColor: slide.bg || '#072044'
-                  }}
-                  aria-hidden="true"
-                />
-              )}
-
-              {/* Banner image: fits completely inside the exact section height without cutting off text/logos */}
+              {/* Full-bleed edge-to-edge banner image fitting container perfectly */}
               <div
-                className={`hero-slide-bg ${isAdFitSlide ? 'hero-slide-fit-contain' : ''}`}
+                className="hero-slide-bg"
                 style={{
                   backgroundImage: `url(${slide.img})`,
-                  '--mobile-bg-pos': isAdFitSlide ? 'center center' : (slide.hasTextOverlay ? 'right center' : 'left center')
+                  '--mobile-bg-pos': slide.hasTextOverlay ? 'right center' : 'center center'
                 }}
               />
 
@@ -446,23 +432,22 @@ export default function HeroSlider({
                 {activeSlides.map((slide, idx) => {
                   const matchedProd = findProductForSlide(slide);
                   const isProd = !!matchedProd;
-                      const isFitSlide = !slide.hasTextOverlay || idx < 3;
-                      return (
-                        <div
-                          key={slide.id}
-                          className={`view-all-banner-item ${idx === currentSlide ? 'active' : ''} ${isProd ? 'has-product' : ''} ${isFitSlide ? 'ad-fit-modal-item' : ''}`}
-                          style={{ backgroundColor: slide.bg || '#072044' }}
-                          onClick={() => handleViewAllItemClick(slide, idx)}
-                          title={matchedProd ? `Open ${matchedProd.name} details` : slide.title}
-                          role="button"
-                          tabIndex={0}
-                        >
-                          <img
-                            src={slide.img}
-                            alt={slide.title}
-                            className={`view-all-banner-img ${isFitSlide ? 'fit-contain' : ''}`}
-                            loading="lazy"
-                          />
+                  return (
+                    <div
+                      key={slide.id}
+                      className={`view-all-banner-item ${idx === currentSlide ? 'active' : ''} ${isProd ? 'has-product' : ''}`}
+                      style={{ backgroundColor: slide.bg || '#072044' }}
+                      onClick={() => handleViewAllItemClick(slide, idx)}
+                      title={matchedProd ? `Open ${matchedProd.name} details` : slide.title}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <img
+                        src={slide.img}
+                        alt={slide.title}
+                        className="view-all-banner-img"
+                        loading="lazy"
+                      />
 
                       {/* Left text overlay on banners that have text content */}
                       {slide.hasTextOverlay && (

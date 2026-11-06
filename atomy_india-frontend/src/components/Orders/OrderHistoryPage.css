@@ -935,6 +935,11 @@
   margin-bottom: 20px;
 }
 
+.invoice-shipping-box.invoice-pickup-box {
+  background: #f8fafc;
+  border: 1.5px solid #bae6fd;
+}
+
 .shipping-box-label, .address-box-title {
   display: block;
   font-size: 12px;

@@ -223,7 +223,7 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
   };
 
   return (
-    <div className="modal-backdrop-overlay" onClick={onClose}>
+    <div className="modal-backdrop-overlay tracking-modal-overlay" onClick={onClose} style={{ zIndex: 10000000 }}>
       <div className="atomy-modal-box wide" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '880px', width: '95%' }}>
         <div className="atomy-modal-header">
           <div className="modal-title-cluster">

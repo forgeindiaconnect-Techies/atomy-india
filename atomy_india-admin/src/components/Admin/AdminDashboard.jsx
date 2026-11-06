@@ -202,6 +202,7 @@ const sanitizeAdminProducts = (list) => {
 export default function AdminDashboard({ onBackToStore, onLogout, adminProfileProp }) {
   // Navigation tabs: 'overview' | 'inventory' | 'orders' | 'customers' | 'membership' | 'coupons' | 'support' | 'settings' | 'floating-ad'
   const [activeTab, setActiveTab] = useState('overview');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   // Sub-sidebar state inside Settings page: 'profile' | 'security' | 'audio' | 'store' | 'policies'
   const [settingsSubTab, setSettingsSubTab] = useState('profile');
   const [isSettingsSubSidebarOpen, setIsSettingsSubSidebarOpen] = useState(true);
@@ -2103,6 +2104,19 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     });
   }, [tickets, ticketStatusFilter, ticketSearchQuery]);
 
+  const ADMIN_NAV_ITEMS = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Catalog', icon: Boxes },
+    { id: 'territories', label: 'Distributor / Territories', icon: MapPin },
+    { id: 'orders', label: 'Customer Orders', icon: Package, badge: delayedOrders.length > 0 ? `${delayedOrders.length} Late` : null },
+    { id: 'customers', label: 'Customer Accounts', icon: Users },
+    { id: 'membership', label: 'Membership Verification', icon: Crown },
+    { id: 'coupons', label: 'Promotions & Coupons', icon: Tag },
+    { id: 'support', label: 'Customer Support Desk', icon: Headphones },
+    { id: 'floating-ad', label: 'Promotional Ad Floater', icon: Sparkles },
+    { id: 'settings', label: 'Settings & Administration', icon: Settings }
+  ];
+
   return (
     <div className="admin-master-wrapper">
       {/* 1. Master Atomy Header */}
@@ -2202,9 +2216,26 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       {/* 3. Operational Quick Action Bar (Top Utilities) */}
       <div className="admin-quick-strip">
         <div className="quick-strip-left">
-          <span className="live-status-dot"></span>
-          <span className="live-status-title">Atomy India Operations Console</span>
-          <span className="live-store-tag">Active Session</span>
+          {/* Mobile Hamburger Menu Button on Top Left below Header */}
+          <button
+            type="button"
+            className="mobile-hamburger-btn"
+            onClick={() => setIsMobileNavOpen(true)}
+            aria-label="Open Admin Navigation Menu"
+            title="Open Admin Navigation Menu"
+          >
+            <Menu size={18} strokeWidth={2.4} />
+            <span className="mobile-hamburger-text">Menu</span>
+            <span className="mobile-hamburger-active-pill">
+              {ADMIN_NAV_ITEMS.find(n => n.id === activeTab)?.label || 'Overview'}
+            </span>
+          </button>
+
+          <div className="quick-strip-desktop-info">
+            <span className="live-status-dot"></span>
+            <span className="live-status-title">Atomy India Operations Console</span>
+            <span className="live-store-tag">Active Session</span>
+          </div>
         </div>
 
         <div className="quick-strip-right">
@@ -2221,6 +2252,84 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           </a>
         </div>
       </div>
+
+      {/* Mobile Slide-Out Sidebar Drawer */}
+      {isMobileNavOpen && (
+        <div className="mobile-sidebar-overlay" onClick={() => setIsMobileNavOpen(false)}>
+          <div className="mobile-sidebar-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-drawer-header">
+              <div className="mobile-drawer-brand">
+                <div className="mobile-drawer-avatar">A</div>
+                <div className="mobile-drawer-meta">
+                  <span className="mobile-drawer-title">Operations Console</span>
+                  <span className="mobile-drawer-pin">Super Administrator</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mobile-drawer-close-btn"
+                onClick={() => setIsMobileNavOpen(false)}
+                aria-label="Close Navigation Menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <nav className="mobile-drawer-nav">
+              {ADMIN_NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`mobile-drawer-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      setIsEditingProductView(false);
+                      setActiveTab(item.id);
+                      setIsMobileNavOpen(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    <div className="mobile-drawer-nav-icon">
+                      <Icon size={18} />
+                    </div>
+                    <span className="mobile-drawer-nav-label">{item.label}</span>
+                    {item.badge && (
+                      <span className="mobile-drawer-badge">{item.badge}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="mobile-drawer-footer">
+              <a
+                href="http://localhost:5173"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mobile-drawer-store-btn"
+              >
+                <ExternalLink size={15} />
+                <span>Customer Store (5173)</span>
+              </a>
+              {onLogout && (
+                <button
+                  type="button"
+                  className="mobile-drawer-logout-btn"
+                  onClick={() => {
+                    setIsMobileNavOpen(false);
+                    onLogout();
+                  }}
+                >
+                  <LogOut size={15} />
+                  <span>Sign Out</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4. Connected Two-Column Layout */}
       <div className="admin-connected-body">
@@ -3093,7 +3202,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           <th style={{ width: '140px', minWidth: '140px', textAlign: 'right' }}>Total Amount</th>
                           <th style={{ width: '130px', minWidth: '130px', textAlign: 'center' }}>Payment</th>
                           <th style={{ width: '190px', minWidth: '190px', textAlign: 'center' }}>Fulfillment Status</th>
-                          <th style={{ width: '220px', minWidth: '220px', textAlign: 'right' }}>Actions</th>
+                          <th style={{ width: '310px', minWidth: '310px', textAlign: 'right' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3219,10 +3328,11 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   <option value="CANCELLED">CANCELLED</option>
                                 </select>
                               </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <div className="row-actions-group">
+                              <td style={{ width: '310px', minWidth: '310px', textAlign: 'right' }}>
+                                <div className="row-actions-group" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}>
                                   <button
                                     className="action-pill-btn detail"
+                                    style={{ minWidth: '82px', justifyContent: 'center' }}
                                     onClick={() => {
                                       if (o.orderId) handleDismissNotif(o.orderId);
                                       setSelectedOrderDetail(o);
@@ -3234,22 +3344,26 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   </button>
                                   <button
                                     className="action-pill-btn tracking"
+                                    style={{ minWidth: '88px', justifyContent: 'center' }}
                                     onClick={() => handleOpenTrackingModal(o)}
                                     title="Update Courier Tracking Details"
                                   >
                                     <Truck size={13} />
                                     <span>Tracking</span>
                                   </button>
-                                  {getOrderDeliverySLA(o).isDelayed && (
-                                    <button
-                                      className={`action-pill-btn apology ${o.delayEmailSent ? 'sent' : ''}`}
-                                      onClick={() => handleSendDelayApologyEmail(o.orderId, o.customerEmail)}
-                                      title={o.delayEmailSent ? `Apology email sent on ${new Date(o.delayEmailSentAt || Date.now()).toLocaleDateString('en-IN')}. Click to resend.` : 'Send Customer Delay Apology Email'}
-                                    >
-                                      <Mail size={13} />
-                                      <span>{o.delayEmailSent ? 'Resend' : 'Send Apology'}</span>
-                                    </button>
-                                  )}
+                                  <div className="action-apology-slot" style={{ minWidth: '116px', display: 'inline-flex', alignItems: 'center' }}>
+                                    {getOrderDeliverySLA(o).isDelayed && (
+                                      <button
+                                        className={`action-pill-btn apology ${o.delayEmailSent ? 'sent' : ''}`}
+                                        style={{ width: '100%', justifyContent: 'center' }}
+                                        onClick={() => handleSendDelayApologyEmail(o.orderId, o.customerEmail)}
+                                        title={o.delayEmailSent ? `Apology email sent on ${new Date(o.delayEmailSentAt || Date.now()).toLocaleDateString('en-IN')}. Click to resend.` : 'Send Customer Delay Apology Email'}
+                                      >
+                                        <Mail size={13} />
+                                        <span>{o.delayEmailSent ? 'Resend' : 'Send Apology'}</span>
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </td>
                             </tr>
@@ -4534,7 +4648,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 className="inspection-topbar-btn courier-btn"
                 onClick={() => {
                   const o = selectedOrderDetail;
-                  setSelectedOrderDetail(null);
                   handleOpenTrackingModal(o);
                 }}
               >
@@ -4578,8 +4691,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               </div>
 
               <div className="meta-info-card">
-                <div className="meta-card-label">DELIVERY DESTINATION</div>
-                <div className="meta-card-main">{selectedOrderDetail.shippingAddress}</div>
+                <div className="meta-card-label">
+                  {selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' ? 'PICKUP LOCATION' : 'DELIVERY LOCATION'}
+                </div>
+                <div className="meta-card-main">
+                  {selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' && selectedOrderDetail.hubAddress
+                    ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                    : selectedOrderDetail.shippingAddress}
+                </div>
                 <div className="meta-card-sub">{selectedOrderDetail.city}, {selectedOrderDetail.state} - {selectedOrderDetail.pincode}</div>
               </div>
 

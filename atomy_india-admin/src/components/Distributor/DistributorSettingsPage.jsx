@@ -56,7 +56,7 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
   };
 
   return (
-    <div className="admin-tab-content">
+    <div className="admin-tab-content distributor-settings-tab">
       {/* 1. Content Heading Row */}
       <div className="content-heading-row with-filter">
         <div>
@@ -103,7 +103,7 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
       )}
 
       {/* 3. Split Two Column Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px' }}>
+      <div className="settings-grid-layout">
         {/* Left Column: Hub Profile Form */}
         <div className="admin-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
@@ -129,7 +129,7 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="settings-fields-row">
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                   Distributor ID
@@ -155,7 +155,7 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="settings-fields-row">
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
                   Contact Representative
@@ -203,7 +203,7 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
                 <KeyRound size={16} color="#64748b" />
                 <span>Security &amp; Console Password</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="settings-fields-row">
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                     New Password
@@ -305,36 +305,23 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
 
           {/* Card: Account Session & Sign Out */}
           {onLogout && (
-            <div className="admin-card" style={{ padding: '24px', borderLeft: '4px solid #ef4444' }}>
+            <div className="admin-card settings-logout-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <LogOut size={20} color="#dc2626" />
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                  Distributor Session
+                <LogOut size={22} color="#dc2626" />
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#991b1b' }}>
+                  Hub Account Session
                 </h3>
               </div>
               <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>
-                Terminate current session and sign out of this Regional Logistics Hub console.
+                Terminate current session and sign out of this Regional Logistics Hub console. You can sign back in anytime using your authorized PIN credentials.
               </p>
               <button
                 type="button"
                 onClick={onLogout}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '10px 18px',
-                  fontSize: '13.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease'
-                }}
+                className="settings-logout-btn"
               >
                 <LogOut size={16} />
-                <span>Sign Out Session</span>
+                <span>Sign Out from Hub Account</span>
               </button>
             </div>
           )}

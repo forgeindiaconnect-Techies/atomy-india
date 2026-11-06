@@ -733,8 +733,10 @@ public class DistributorController {
         DistributorUser dist = distOpt.get();
         List<String> pincodes = dist.getAssignedPincodes() != null ? dist.getAssignedPincodes() : Collections.emptyList();
 
+        String primaryPin = dist.getPrimaryPincode() != null ? dist.getPrimaryPincode().trim() : "635002";
         List<CustomerOrder> orders = customerOrderRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(o -> matchesTerritory(o, dist.getDistributorId(), pincodes))
+                .filter(o -> primaryPin.equals(o.getPincode() != null ? o.getPincode().trim() : ""))
                 .collect(Collectors.toList());
 
         Map<String, Map<String, Object>> customerMap = new LinkedHashMap<>();

@@ -18,21 +18,93 @@ function isStorePickupOrder(order) {
 function computeTargetStage(order) {
   if (!order) return 1;
   const isPickup = isStorePickupOrder(order);
-  const raw = (order.pickupStatus || order.orderStatus || order.status || '').toUpperCase().trim();
-  if (raw.includes('CANCEL')) return 3;
+  const orderStatus = String(order.orderStatus || '').toUpperCase().trim();
+  const status = String(order.status || '').toUpperCase().trim();
+  const pickupStatus = String(order.pickupStatus || '').toUpperCase().trim();
+  const trackingStatus = String(order.tracking?.currentStatus || '').toUpperCase().trim();
 
-  if (isPickup) {
-    if (raw.includes('DELIVER') || raw.includes('COLLECT')) return 4; // Stage 4: Delivered / Handed Over
-    if (raw.includes('READY')) return 3; // Stage 3: Ready for pickup
-    if (raw.includes('PREPAR') || raw.includes('PROCESS') || raw.includes('PACK')) return 2;
-    return 1; // Placed
+  // If order explicitly marked cancelled
+  if (orderStatus.includes('CANCEL') || status.includes('CANCEL') || trackingStatus.includes('CANCEL')) {
+    return 3;
   }
 
-  if (raw.includes('DELIVERED')) return 5;
-  if (raw.includes('OUT') || raw.includes('LOCAL')) return 4;
-  if (raw.includes('TRANSIT') || raw.includes('SHIPPED') || raw.includes('DISPATCH')) return 3;
-  if (raw.includes('PREPAR') || raw.includes('PROCESS') || raw.includes('PACK')) return 2;
-  return 1; // PLACED / Payment Completed
+  if (isPickup) {
+    // Stage 4: Delivered / Collected
+    if (
+      orderStatus === 'DELIVERED' ||
+      pickupStatus === 'COLLECTED' ||
+      trackingStatus === 'DELIVERED' ||
+      status === 'DELIVERED' ||
+      orderStatus.includes('DELIVER') ||
+      pickupStatus.includes('COLLECT') ||
+      status.includes('DELIVER') ||
+      status.includes('COLLECT')
+    ) {
+      return 4;
+    }
+    // Stage 3: Ready for Pickup
+    if (
+      orderStatus === 'READY_FOR_PICKUP' ||
+      orderStatus === 'READY_TO_PICKUP' ||
+      pickupStatus === 'READY_FOR_PICKUP' ||
+      pickupStatus === 'READY_TO_PICKUP' ||
+      trackingStatus === 'READY_FOR_PICKUP' ||
+      trackingStatus === 'READY_TO_PICKUP' ||
+      orderStatus.includes('READY') ||
+      status.includes('READY') ||
+      pickupStatus.includes('READY')
+    ) {
+      return 3;
+    }
+    // Stage 2: Preparing / Packing (ONLY when explicitly set by Admin/Distributor)
+    if (
+      orderStatus === 'PROCESSING' ||
+      orderStatus === 'PREPARING' ||
+      trackingStatus === 'PROCESSING' ||
+      trackingStatus === 'PREPARING' ||
+      status === 'PREPARING' ||
+      status === 'PROCESSING' ||
+      pickupStatus === 'PREPARING' ||
+      pickupStatus === 'PACKING' ||
+      (status.includes('PREPAR') && !status.includes('PLACED'))
+    ) {
+      return 2;
+    }
+    // Otherwise Stage 1: Order Placed (Default for new orders, PLACED, Cash on Delivery, Payment Completed, PENDING_PACKING)
+    return 1;
+  }
+
+  // Courier Doorstep Delivery:
+  if (orderStatus === 'DELIVERED' || trackingStatus === 'DELIVERED' || status.includes('DELIVER')) {
+    return 5;
+  }
+  if (orderStatus === 'OUT_FOR_DELIVERY' || trackingStatus === 'OUT_FOR_DELIVERY' || status.includes('OUT') || status.includes('LOCAL')) {
+    return 4;
+  }
+  if (
+    orderStatus === 'SHIPPED' ||
+    orderStatus === 'IN_TRANSIT' ||
+    trackingStatus === 'SHIPPED' ||
+    trackingStatus === 'IN_TRANSIT' ||
+    status.includes('TRANSIT') ||
+    status.includes('SHIPPED') ||
+    status.includes('DISPATCH')
+  ) {
+    return 3;
+  }
+  if (
+    orderStatus === 'PROCESSING' ||
+    orderStatus === 'PREPARING' ||
+    trackingStatus === 'PROCESSING' ||
+    trackingStatus === 'PREPARING' ||
+    status.includes('PREPAR') ||
+    status.includes('PROCESS') ||
+    (status.includes('PACK') && !status.includes('PENDING') && !status.includes('PLACED'))
+  ) {
+    return 2;
+  }
+  // Otherwise Stage 1: Order Placed (Default)
+  return 1;
 }
 
 export default function DeliveryStatusStepper({ order }) {
@@ -110,9 +182,16 @@ export default function DeliveryStatusStepper({ order }) {
       {/* 5-Stage Stepper Flow with Animated Moving Objects and DOTTED LINES */}
       <div className="delivery-stepper-flow">
         {stages.map((stage, idx) => {
-          const isCompleted = currentStep > stage.num;
-          const isCurrent = currentStep === stage.num;
-          const isPending = currentStep < stage.num;
+          const isFinalStage = isPickup ? stage.num === 4 : stage.num === 5;
+          const isDelivered = isPickup ? currentStep >= 4 : currentStep >= 5;
+
+          // Stage is completed if:
+          // 1. currentStep > stage.num (past completed stages)
+          // 2. OR stage.num === 1 and currentStep >= 1 (Order Placed is confirmed and ticked)
+          // 3. OR this is the final stage and the order is delivered
+          const isCompleted = currentStep > stage.num || (stage.num === 1 && currentStep >= 1) || (isFinalStage && isDelivered);
+          const isCurrent = currentStep === stage.num && !(isFinalStage && isDelivered);
+          const isPending = currentStep < stage.num && !(stage.num === 1 && currentStep >= 1);
 
           return (
             <React.Fragment key={stage.num}>
@@ -134,7 +213,12 @@ export default function DeliveryStatusStepper({ order }) {
                   <div className="stage-subtitle">{stage.sub}</div>
                   {isCurrent && (
                     <span className="stage-live-badge">
-                      {(isPickup ? stage.num === 4 : stage.num === 5) ? 'DELIVERED 🎉' : 'LIVE TRANSIT ⚡'}
+                      {isFinalStage ? 'DELIVERED 🎉' : 'LIVE TRANSIT ⚡'}
+                    </span>
+                  )}
+                  {isFinalStage && isDelivered && !isCurrent && (
+                    <span className="stage-live-badge" style={{ background: '#10b981', color: '#ffffff' }}>
+                      DELIVERED 🎉
                     </span>
                   )}
                 </div>

@@ -634,7 +634,7 @@ export default function DistributorOrdersPage({
               <th style={{ width: '140px', minWidth: '140px', textAlign: 'right' }}>Total Amount</th>
               <th style={{ width: '130px', minWidth: '130px', textAlign: 'center' }}>Payment</th>
               <th style={{ width: '190px', minWidth: '190px', textAlign: 'center' }}>Fulfillment Status</th>
-              <th style={{ width: '220px', minWidth: '220px', textAlign: 'right' }}>Actions</th>
+              <th style={{ width: '310px', minWidth: '310px', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -931,11 +931,12 @@ export default function DistributorOrdersPage({
                       })()}
                     </td>
 
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="row-actions-group">
+                    <td style={{ width: '310px', minWidth: '310px', textAlign: 'right' }}>
+                      <div className="row-actions-group" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}>
                         <button
                           type="button"
                           className="action-pill-btn detail"
+                          style={{ minWidth: '82px', justifyContent: 'center' }}
                           onClick={() => setSelectedOrderDetail(o)}
                           title="Inspect Full Order Line Items & Invoice"
                         >
@@ -946,6 +947,7 @@ export default function DistributorOrdersPage({
                         <button
                           type="button"
                           className="action-pill-btn tracking"
+                          style={{ minWidth: '88px', justifyContent: 'center' }}
                           onClick={() => onOpenTrackingModal && onOpenTrackingModal(o)}
                           title="Update Courier Tracking Details"
                         >
@@ -953,17 +955,20 @@ export default function DistributorOrdersPage({
                           <span>Tracking</span>
                         </button>
 
-                        {sla.isDelayed && (
-                          <button
-                            type="button"
-                            className={`action-pill-btn apology ${o.delayEmailSent ? 'sent' : ''}`}
-                            onClick={() => handleSendDelayApologyEmail(o.orderId || o.id, o.customerEmail)}
-                            title={o.delayEmailSent ? `Apology email sent. Click to resend.` : 'Send Customer Delay Apology Email'}
-                          >
-                            <Mail size={13} />
-                            <span>{o.delayEmailSent ? 'Resend' : 'Send Apology'}</span>
-                          </button>
-                        )}
+                        <div className="action-apology-slot" style={{ minWidth: '116px', display: 'inline-flex', alignItems: 'center' }}>
+                          {sla.isDelayed && (
+                            <button
+                              type="button"
+                              className={`action-pill-btn apology ${o.delayEmailSent ? 'sent' : ''}`}
+                              style={{ width: '100%', justifyContent: 'center' }}
+                              onClick={() => handleSendDelayApologyEmail(o.orderId || o.id, o.customerEmail)}
+                              title={o.delayEmailSent ? `Apology email sent. Click to resend.` : 'Send Customer Delay Apology Email'}
+                            >
+                              <Mail size={13} />
+                              <span>{o.delayEmailSent ? 'Resend' : 'Send Apology'}</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -1014,7 +1019,6 @@ export default function DistributorOrdersPage({
                       orderStatus: currentSt
                     }
                   };
-                  setSelectedOrderDetail(null);
                   if (onOpenTrackingModal) onOpenTrackingModal(o);
                 }}
               >
@@ -1108,8 +1112,14 @@ export default function DistributorOrdersPage({
                     </div>
 
                     <div className="meta-info-card">
-                      <div className="meta-card-label">DELIVERY DESTINATION</div>
-                      <div className="meta-card-main">{dest.street || dest.fullAddress}</div>
+                      <div className="meta-card-label">
+                        {Boolean(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.isPickup) ? 'PICKUP COUNTER LOCATION' : 'DELIVERY LOCATION'}
+                      </div>
+                      <div className="meta-card-main">
+                        {Boolean(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.isPickup) && selectedOrderDetail.hubAddress
+                          ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                          : (dest.street || dest.fullAddress)}
+                      </div>
                       <div className="meta-card-sub">{dest.city}, {dest.state} - {dest.pincode}</div>
                     </div>
 
@@ -1245,7 +1255,6 @@ export default function DistributorOrdersPage({
                       if (newSt === 'DELIVERED' && !selectedOrderDetail.pickupVerifiedAt && selectedOrderDetail.pickupStatus !== 'COLLECTED') {
                         // Anti-False Handover: Open Tracking Modal with OTP verification flow
                         const orderToVerify = { ...selectedOrderDetail };
-                        setSelectedOrderDetail(null);
                         if (onOpenTrackingModal) onOpenTrackingModal(orderToVerify);
                         return;
                       }
@@ -1318,7 +1327,6 @@ export default function DistributorOrdersPage({
                         orderStatus: currentSt
                       }
                     };
-                    setSelectedOrderDetail(null);
                     if (onOpenTrackingModal) onOpenTrackingModal(o);
                   }}
                 >

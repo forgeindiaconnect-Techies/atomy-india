@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Arrays;
+import java.util.Collections;
 import java.time.LocalDateTime;
 
 @Component
@@ -291,7 +292,7 @@ public class DataInitializer implements CommandLineRunner {
             });
 
             // Ensure Selva's hub (DIST-635002) is registered as the active regional distributor for Krishnagiri
-            List<String> selvaTerritoryPins = Arrays.asList("635002", "635001", "635122");
+            List<String> selvaTerritoryPins = Collections.singletonList("635002");
             if (distributorRepository.findByDistributorId("DIST-635002").isEmpty()) {
                 DistributorUser selva = new DistributorUser(
                         "DIST-635002",

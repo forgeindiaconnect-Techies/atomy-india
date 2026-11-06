@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Bell,
   Headphones,
+  Menu,
   X
 } from 'lucide-react';
 import Header from '../Header/Header';
@@ -45,7 +46,8 @@ import { playOrderAlertSound, sendDesktopNotification } from '../../services/sou
 import '../Admin/AdminDashboard.css';
 
 export default function DistributorDashboard({ distributorUser, onLogout, onBackToStore }) {
-  const [activeTab, setActiveTab] = useState('overview'); // overview | inventory | orders | customers | support | membership | finance | settings
+  const [activeTab, setActiveTab] = useState('overview');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false); // overview | inventory | orders | customers | support | membership | finance | settings
   const [liveDistributor, setLiveDistributor] = useState(distributorUser);
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -160,7 +162,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         });
         isInitialLoadRef.current = false;
       }
-      if (custsRes.status === 'fulfilled') setCustomers(custsRes.value);
+      if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value)) {
+        const primPin = String(currentDist?.primaryPincode || '635002').trim();
+        setCustomers(custsRes.value.filter(c => {
+          const pin = String(c.pincode || '').trim();
+          return pin === primPin;
+        }));
+      }
     } catch (err) {
       console.error('Failed to load distributor data:', err);
     } finally {
@@ -228,6 +236,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           ...o,
           orderStatus: targetStatus,
           status: targetStatus,
+          pickupStatus: trackingPayload.pickupStatus || (targetStatus === 'DELIVERED' ? 'COLLECTED' : targetStatus === 'READY_FOR_PICKUP' ? 'READY_FOR_PICKUP' : (targetStatus === 'PROCESSING' || targetStatus === 'PREPARING' ? 'PREPARING' : (targetStatus === 'PLACED' ? 'PENDING_CONFIRMATION' : o.pickupStatus))),
           courier: trackingPayload.courierPartner || o.courier,
           trackingNumber: trackingPayload.trackingNumber || o.trackingNumber,
           tracking: {
@@ -495,10 +504,25 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     name: currentDist?.businessName || currentDist?.contactPerson || 'Regional Distributor Hub',
     email: currentDist?.email || 'distributor@atomy.com',
     role: `Regional Distributor (PIN: ${currentDist?.primaryPincode})`,
+    pincode: currentDist?.primaryPincode,
+    assignedAreaText: `Assigned Area: PIN ${currentDist?.primaryPincode || '635002'}`,
+    portalTitle: 'Atomy Regional Hub',
+    portalSubtitle: 'Logistics Console',
     location: `${currentDist?.city || 'Regional Hub'}, ${currentDist?.state || 'India'}`,
     department: `Territory Hub Logistics (PIN: ${currentDist?.primaryPincode || '110001'})`,
     employeeId: currentDist?.distributorId || 'DIST-IN'
   };
+
+  const NAV_ITEMS = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Stock', icon: Boxes },
+    { id: 'orders', label: 'Customer Orders', icon: Package, badge: delayedOrders.length > 0 ? `${delayedOrders.length} Late` : null },
+    { id: 'customers', label: 'Customer Details', icon: Users },
+    { id: 'support', label: 'Customer Support', icon: Headphones },
+    { id: 'membership', label: 'Membership Accounts', icon: Crown },
+    { id: 'finance', label: 'Finance & Settlements', icon: IndianRupee },
+    { id: 'settings', label: 'Hub Settings', icon: Settings }
+  ];
 
   // Deduplicated delayed orders in territory for notification bell
   const delayedOrders = useMemo(() => {
@@ -600,9 +624,26 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       {/* 3. Operational Quick Action Bar (Top Utilities matching Super Admin) */}
       <div className="admin-quick-strip">
         <div className="quick-strip-left">
-          <span className="live-status-dot"></span>
-          <span className="live-status-title">Atomy India Regional Hub Logistics Console</span>
-          <span className="live-store-tag">Assigned Area: PIN {currentDist?.primaryPincode}</span>
+          {/* Mobile Hamburger Menu Button on Top Left below Header */}
+          <button
+            type="button"
+            className="mobile-hamburger-btn"
+            onClick={() => setIsMobileNavOpen(true)}
+            aria-label="Open Hub Navigation Menu"
+            title="Open Hub Navigation Menu"
+          >
+            <Menu size={18} strokeWidth={2.4} />
+            <span className="mobile-hamburger-text">Menu</span>
+            <span className="mobile-hamburger-active-pill">
+              {NAV_ITEMS.find(n => n.id === activeTab)?.label || 'Overview'}
+            </span>
+          </button>
+
+          <div className="quick-strip-desktop-info">
+            <span className="live-status-dot"></span>
+            <span className="live-status-title">Atomy India Regional Hub Logistics Console</span>
+            <span className="live-store-tag">Assigned Area: PIN {currentDist?.primaryPincode}</span>
+          </div>
         </div>
 
         <div className="quick-strip-right">
@@ -621,7 +662,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           {onLogout && (
             <button
               type="button"
-              className="quick-refresh-btn"
+              className="quick-refresh-btn quick-strip-logout-btn"
               onClick={onLogout}
               style={{
                 textDecoration: 'none',
@@ -642,6 +683,90 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           )}
         </div>
       </div>
+
+      {/* Mobile Slide-Out Sidebar Drawer */}
+      {isMobileNavOpen && (
+        <div className="mobile-sidebar-overlay" onClick={() => setIsMobileNavOpen(false)}>
+          <div className="mobile-sidebar-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-drawer-header">
+              <div className="mobile-drawer-brand">
+                <div className="mobile-drawer-avatar">
+                  {(currentDist?.businessName || currentDist?.contactPerson || 'A').charAt(0).toUpperCase()}
+                </div>
+                <div className="mobile-drawer-meta">
+                  <span className="mobile-drawer-title">
+                    {currentDist?.businessName || 'Regional Hub'}
+                  </span>
+                  <span className="mobile-drawer-pin">
+                    Assigned Area: PIN {currentDist?.primaryPincode}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mobile-drawer-close-btn"
+                onClick={() => setIsMobileNavOpen(false)}
+                aria-label="Close Navigation Menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <nav className="mobile-drawer-nav">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`mobile-drawer-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={() => {
+                      setIsEditingProductView(false);
+                      setActiveTab(item.id);
+                      setIsMobileNavOpen(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    <div className="mobile-drawer-nav-icon">
+                      <Icon size={18} />
+                    </div>
+                    <span className="mobile-drawer-nav-label">{item.label}</span>
+                    {item.badge && (
+                      <span className="mobile-drawer-badge">{item.badge}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="mobile-drawer-footer">
+              <a
+                href="http://localhost:5173"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mobile-drawer-store-btn"
+              >
+                <ExternalLink size={15} />
+                <span>Customer Store (5173)</span>
+              </a>
+              {onLogout && (
+                <button
+                  type="button"
+                  className="mobile-drawer-logout-btn"
+                  onClick={() => {
+                    setIsMobileNavOpen(false);
+                    onLogout();
+                  }}
+                >
+                  <LogOut size={15} />
+                  <span>Sign Out</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. Connected Two-Column Layout */}
       <div className="admin-connected-body">

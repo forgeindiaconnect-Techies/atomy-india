@@ -120,20 +120,93 @@ function isStorePickupOrder(order) {
 // Compute target stage from order status matching website
 function computeTargetStage(order) {
   if (!order) return 1;
-  const raw = (order.status || order.orderStatus || order.pickupStatus || '').toUpperCase().trim();
   const isPickup = isStorePickupOrder(order);
+  const orderStatus = String(order.orderStatus || '').toUpperCase().trim();
+  const status = String(order.status || '').toUpperCase().trim();
+  const pickupStatus = String(order.pickupStatus || '').toUpperCase().trim();
+  const trackingStatus = String(order.tracking?.currentStatus || '').toUpperCase().trim();
+
+  // If order explicitly marked cancelled
+  if (orderStatus.includes('CANCEL') || status.includes('CANCEL') || trackingStatus.includes('CANCEL')) {
+    return 3;
+  }
 
   if (isPickup) {
-    if (raw.includes('DELIVERED') || raw.includes('COLLECT')) return 4;
-    if (raw.includes('READY')) return 3;
-    if (raw.includes('PREPAR') || raw.includes('PROCESS') || raw.includes('PACK')) return 2;
+    // Stage 4: Delivered / Collected
+    if (
+      orderStatus === 'DELIVERED' ||
+      pickupStatus === 'COLLECTED' ||
+      trackingStatus === 'DELIVERED' ||
+      status === 'DELIVERED' ||
+      orderStatus.includes('DELIVER') ||
+      pickupStatus.includes('COLLECT') ||
+      status.includes('DELIVER') ||
+      status.includes('COLLECT')
+    ) {
+      return 4;
+    }
+    // Stage 3: Ready for Pickup
+    if (
+      orderStatus === 'READY_FOR_PICKUP' ||
+      orderStatus === 'READY_TO_PICKUP' ||
+      pickupStatus === 'READY_FOR_PICKUP' ||
+      pickupStatus === 'READY_TO_PICKUP' ||
+      trackingStatus === 'READY_FOR_PICKUP' ||
+      trackingStatus === 'READY_TO_PICKUP' ||
+      orderStatus.includes('READY') ||
+      status.includes('READY') ||
+      pickupStatus.includes('READY')
+    ) {
+      return 3;
+    }
+    // Stage 2: Preparing / Packing (ONLY when explicitly set by Admin/Distributor)
+    if (
+      orderStatus === 'PROCESSING' ||
+      orderStatus === 'PREPARING' ||
+      trackingStatus === 'PROCESSING' ||
+      trackingStatus === 'PREPARING' ||
+      status === 'PREPARING' ||
+      status === 'PROCESSING' ||
+      pickupStatus === 'PREPARING' ||
+      pickupStatus === 'PACKING' ||
+      (status.includes('PREPAR') && !status.includes('PLACED'))
+    ) {
+      return 2;
+    }
+    // Otherwise Stage 1: Order Placed (Default for new orders, PLACED, Cash on Delivery, Payment Completed, PENDING_PACKING)
     return 1;
   }
 
-  if (raw.includes('DELIVERED')) return 5;
-  if (raw.includes('OUT') || raw.includes('LOCAL')) return 4;
-  if (raw.includes('TRANSIT') || raw.includes('SHIPPED') || raw.includes('DISPATCH')) return 3;
-  if (raw.includes('PREPAR') || raw.includes('PROCESS') || raw.includes('PACK')) return 2;
+  // Courier Doorstep Delivery:
+  if (orderStatus === 'DELIVERED' || trackingStatus === 'DELIVERED' || status.includes('DELIVER')) {
+    return 5;
+  }
+  if (orderStatus === 'OUT_FOR_DELIVERY' || trackingStatus === 'OUT_FOR_DELIVERY' || status.includes('OUT') || status.includes('LOCAL')) {
+    return 4;
+  }
+  if (
+    orderStatus === 'SHIPPED' ||
+    orderStatus === 'IN_TRANSIT' ||
+    trackingStatus === 'SHIPPED' ||
+    trackingStatus === 'IN_TRANSIT' ||
+    status.includes('TRANSIT') ||
+    status.includes('SHIPPED') ||
+    status.includes('DISPATCH')
+  ) {
+    return 3;
+  }
+  if (
+    orderStatus === 'PROCESSING' ||
+    orderStatus === 'PREPARING' ||
+    trackingStatus === 'PROCESSING' ||
+    trackingStatus === 'PREPARING' ||
+    status.includes('PREPAR') ||
+    status.includes('PROCESS') ||
+    (status.includes('PACK') && !status.includes('PENDING') && !status.includes('PLACED'))
+  ) {
+    return 2;
+  }
+  // Otherwise Stage 1: Order Placed (Default)
   return 1;
 }
 
@@ -311,8 +384,10 @@ function VerticalDeliveryStepper({ order, defaultMode = 'vertical' }) {
           contentContainerStyle={styles.horizontalStepperContent}
         >
           {stages.map((st, idx) => {
-            const isCompleted = currentStep > st.num;
-            const isCurrent = currentStep === st.num;
+            const isFinalStage = isPickup ? st.num === 4 : st.num === 5;
+            const isDelivered = isPickup ? currentStep >= 4 : currentStep >= 5;
+            const isCompleted = currentStep > st.num || (st.num === 1 && currentStep >= 1) || (isFinalStage && isDelivered);
+            const isCurrent = currentStep === st.num && !(isFinalStage && isDelivered);
             const isLast = idx === stages.length - 1;
 
             return (
@@ -341,7 +416,14 @@ function VerticalDeliveryStepper({ order, defaultMode = 'vertical' }) {
                   {isCurrent && (
                     <View style={styles.hLiveBadge}>
                       <Text style={styles.hLiveBadgeText}>
-                        {st.num === (isPickup ? 4 : 5) ? 'DELIVERED 🎉' : 'IN PROGRESS'}
+                        {isFinalStage ? 'DELIVERED 🎉' : 'IN PROGRESS'}
+                      </Text>
+                    </View>
+                  )}
+                  {isFinalStage && isDelivered && !isCurrent && (
+                    <View style={[styles.hLiveBadge, { backgroundColor: '#10b981' }]}>
+                      <Text style={styles.hLiveBadgeText}>
+                        DELIVERED 🎉
                       </Text>
                     </View>
                   )}
@@ -1760,13 +1842,42 @@ export default function OrderDeliveryPage({
                   </View>
                 </View>
 
-                {/* Delivery Destination */}
-                <View style={styles.invoiceShippingBox}>
-                  <Text style={styles.invoiceShippingBoxLabel}>Delivery Destination:</Text>
-                  <Text style={styles.invoiceShippingBoxText}>
-                    {activeInvoiceOrder.shippingAddress || 'Registered Delivery Address'}
-                  </Text>
-                </View>
+                {/* Fulfillment Destination / Pickup Location */}
+                {isStorePickupOrder(activeInvoiceOrder) ? (
+                  <View style={[styles.invoiceShippingBox, { backgroundColor: '#f8fafc', borderColor: '#bae6fd', borderWidth: 1 }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={[styles.invoiceShippingBoxLabel, { color: '#0369a1', fontWeight: '800', marginBottom: 0 }]}>📍 PICKUP LOCATION:</Text>
+                      <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                        <Text style={{ color: '#0284c7', fontSize: 10, fontWeight: '700' }}>Direct Hub Pickup</Text>
+                      </View>
+                    </View>
+                    <View style={{ backgroundColor: '#ffffff', borderRadius: 6, padding: 8, borderWidth: 1, borderColor: '#bae6fd', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#0284c7', textTransform: 'uppercase' }}>Regional Hub Pickup Counter:</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', marginTop: 2 }}>{activeInvoiceOrder.hubName || 'Selva Atomy Regional Hub'}</Text>
+                      <Text style={{ fontSize: 12, color: '#334155', marginTop: 2 }}>{activeInvoiceOrder.hubAddress || activeInvoiceOrder.shippingAddress || 'Regional Logistics Hub Desk'}</Text>
+                      <Text style={{ fontSize: 10.5, color: '#0284c7', fontWeight: '600', marginTop: 4 }}>✓ In-Person Collection Desk</Text>
+                    </View>
+                    <View style={{ backgroundColor: '#ffffff', borderRadius: 6, padding: 8, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Customer Location:</Text>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', marginTop: 2 }}>{activeInvoiceOrder.customerName || activeInvoiceOrder.recipient || 'Customer'}</Text>
+                      <Text style={{ fontSize: 12, color: '#334155', marginTop: 2 }}>
+                        {activeInvoiceOrder.customerAddress || activeInvoiceOrder.customerLocation || [activeInvoiceOrder.city, activeInvoiceOrder.state, activeInvoiceOrder.pincode ? `PIN: ${activeInvoiceOrder.pincode}` : ''].filter(Boolean).join(', ') || 'Customer Registered Location'}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.invoiceShippingBox}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={[styles.invoiceShippingBoxLabel, { marginBottom: 0 }]}>🚚 DELIVERY LOCATION:</Text>
+                      <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                        <Text style={{ color: '#475569', fontSize: 10, fontWeight: '700' }}>Doorstep Delivery</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.invoiceShippingBoxText}>
+                      {activeInvoiceOrder.shippingAddress || 'Registered Delivery Address'}
+                    </Text>
+                  </View>
+                )}
 
                 {/* Items List */}
                 <View style={styles.invoiceItemsSection}>

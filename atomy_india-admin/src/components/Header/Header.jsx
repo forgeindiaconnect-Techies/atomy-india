@@ -449,22 +449,37 @@ export default function Header({
                   </div>
                 </a>
 
-                <div
-                  className="team-phoenix-col fic-brand-col"
-                  onClick={() => onNavigateHome && onNavigateHome()}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="team-phoenix-title fic-brand-title">
-                    <span className="fic-forge-text">FORGE</span>
-                    <span className="fic-india-text">
-                      <IndiaMap className="fic-india-map-svg" />
-                      NDIA
+                {currentView === 'admin' ? (
+                  <div
+                    className="admin-portal-header-brand"
+                    onClick={() => onNavigateHome && onNavigateHome()}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="admin-portal-brand-main">
+                      {adminProfile?.portalTitle || 'Atomy Regional Hub'}
+                    </span>
+                    <span className="admin-portal-brand-sub">
+                      {adminProfile?.portalSubtitle || 'Logistics Console'}
                     </span>
                   </div>
-                  <div className="team-phoenix-sub fic-brand-sub">
-                    <span className="fic-connect-text">CONNECT</span>
+                ) : (
+                  <div
+                    className="team-phoenix-col fic-brand-col"
+                    onClick={() => onNavigateHome && onNavigateHome()}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="team-phoenix-title fic-brand-title">
+                      <span className="fic-forge-text">FORGE</span>
+                      <span className="fic-india-text">
+                        <IndiaMap className="fic-india-map-svg" />
+                        NDIA
+                      </span>
+                    </div>
+                    <div className="team-phoenix-sub fic-brand-sub">
+                      <span className="fic-connect-text">CONNECT</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Shopping Mall / My Office Portal Tabs - Hidden for Admin */}
                 {currentView !== 'admin' && (
@@ -807,11 +822,25 @@ export default function Header({
                     </div>
                     <div className="admin-master-info">
                       <span className="admin-master-name">
-                        {adminProfile?.name ? adminProfile.name.split(' ')[0] : 'Naveen'}
+                        {adminProfile?.name ? adminProfile.name.split(' ')[0] : 'Admin'}
                       </span>
-                      <span className="admin-master-role">
-                        {adminProfile?.role || 'Super Administrator'}
-                      </span>
+                      {adminProfile?.assignedAreaText ? (
+                        <span className="admin-master-assigned-pin">
+                          {adminProfile.assignedAreaText}
+                        </span>
+                      ) : adminProfile?.pincode ? (
+                        <span className="admin-master-assigned-pin">
+                          Assigned Area: PIN {adminProfile.pincode}
+                        </span>
+                      ) : adminProfile?.role && adminProfile.role.includes('PIN:') ? (
+                        <span className="admin-master-assigned-pin">
+                          Assigned Area: PIN {adminProfile.role.match(/PIN:\s*(\d+)/)?.[1] || ''}
+                        </span>
+                      ) : (
+                        <span className="admin-master-role">
+                          {adminProfile?.role || 'Super Administrator'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
