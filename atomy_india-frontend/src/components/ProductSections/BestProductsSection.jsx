@@ -189,8 +189,9 @@ export default function BestProductsSection({
                     <button
                       className="product-cart-quick-btn"
                       disabled={isOutOfStock}
-                      style={isOutOfStock ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
-                      onClick={() => {
+                      style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (isOutOfStock) return;
                         onAddToCart && onAddToCart(product);
                       }}
@@ -237,6 +238,7 @@ export default function BestProductsSection({
                           .filter(tag => {
                             const upper = tag.toUpperCase().replace(/^#/, '').trim();
                             if (upper.includes('FREE DELIVERY') || upper.includes('FREE_DELIVERY')) return false;
+                            if (upper.includes('GST') || upper.includes('REDUCED')) return false;
                             const blacklist = [
                               'HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING',
                               'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY',

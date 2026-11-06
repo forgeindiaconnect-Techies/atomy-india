@@ -513,16 +513,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     employeeId: currentDist?.distributorId || 'DIST-IN'
   };
 
-  const NAV_ITEMS = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Stock', icon: Boxes },
-    { id: 'orders', label: 'Customer Orders', icon: Package, badge: delayedOrders.length > 0 ? `${delayedOrders.length} Late` : null },
-    { id: 'customers', label: 'Customer Details', icon: Users },
-    { id: 'support', label: 'Customer Support', icon: Headphones },
-    { id: 'membership', label: 'Membership Accounts', icon: Crown },
-    { id: 'finance', label: 'Finance & Settlements', icon: IndianRupee },
-    { id: 'settings', label: 'Hub Settings', icon: Settings }
-  ];
+
 
   // Deduplicated delayed orders in territory for notification bell
   const delayedOrders = useMemo(() => {
@@ -565,6 +556,17 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     unreadLowStockCount: 0,
     recentNewOrders: recentNewOrders
   };
+
+  const NAV_ITEMS = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Stock', icon: Boxes },
+    { id: 'orders', label: 'Customer Orders', icon: Package, badge: delayedOrders.length > 0 ? `${delayedOrders.length} Late` : null },
+    { id: 'customers', label: 'Customer Details', icon: Users },
+    { id: 'support', label: 'Customer Support', icon: Headphones },
+    { id: 'membership', label: 'Membership Accounts', icon: Crown },
+    { id: 'finance', label: 'Finance & Settlements', icon: IndianRupee },
+    { id: 'settings', label: 'Hub Settings', icon: Settings }
+  ];
 
   return (
     <div className="admin-master-wrapper">
