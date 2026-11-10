@@ -85,6 +85,31 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const isSubstituteInCommand = isSubDistributor && isPrimaryOnLeave;
   const isSubstituteStandby = isSubDistributor && !isPrimaryOnLeave;
 
+  // Temporary Command Active banner auto-dismiss state
+  const [showCommandBanner, setShowCommandBanner] = useState(false);
+
+  useEffect(() => {
+    if (isSubstituteInCommand) {
+      setShowCommandBanner(true);
+      const timer = setTimeout(() => {
+        setShowCommandBanner(false);
+      }, 7000); // Auto-disappear after 7 seconds
+      return () => clearTimeout(timer);
+    } else {
+      setShowCommandBanner(false);
+    }
+  }, [isSubstituteInCommand]);
+
+  // High-priority alert banner auto-dismiss
+  useEffect(() => {
+    if (activeAlert) {
+      const timer = setTimeout(() => {
+        setActiveAlert(null);
+      }, 9000); // Auto-dismiss alert banner after 9 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [activeAlert]);
+
   const alertedHandoverRef = useRef(false);
 
   const showToast = (msg) => {
@@ -1119,7 +1144,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           ) : (
             <>
               {/* TEMPORARY COMMAND ACTIVE BANNER */}
-              {isSubstituteInCommand && (
+              {isSubstituteInCommand && showCommandBanner && (
                 <div style={{
                   background: '#ecfdf5',
                   border: '1.5px solid #a7f3d0',
@@ -1129,7 +1154,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)'
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
+                  animation: 'fadeIn 0.3s ease-out'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
@@ -1144,9 +1170,34 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                       </div>
                     </div>
                   </div>
-                  <span style={{ fontSize: '11px', fontWeight: 800, background: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0', padding: '5px 12px', borderRadius: '20px' }}>
-                    IN COMMAND
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, background: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0', padding: '5px 12px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
+                      IN COMMAND
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowCommandBanner(false)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#065f46',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '6px',
+                        opacity: 0.75,
+                        transition: 'opacity 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                      onMouseOut={(e) => e.currentTarget.style.opacity = '0.75'}
+                      title="Dismiss banner"
+                      aria-label="Dismiss banner"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
               )}
 
