@@ -53,7 +53,22 @@ import '../Admin/AdminDashboard.css';
 export default function DistributorDashboard({ distributorUser, onLogout, onBackToStore }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false); // overview | inventory | orders | customers | support | membership | finance | settings
-  const [liveDistributor, setLiveDistributor] = useState(distributorUser);
+  const [liveDistributor, setLiveDistributor] = useState(() => {
+    try {
+      const cachedTeam = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('atomy_cached_hub_team') : null;
+      if (cachedTeam) {
+        const parsedTeam = JSON.parse(cachedTeam);
+        if (parsedTeam?.primaryManager?.onLeave !== undefined) {
+          return {
+            ...distributorUser,
+            isSubstituteActive: Boolean(parsedTeam.primaryManager.onLeave),
+            status: parsedTeam.primaryManager.onLeave ? 'ACTIVE' : 'STANDBY'
+          };
+        }
+      }
+    } catch (e) {}
+    return distributorUser;
+  });
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -70,7 +85,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const [isEditingProductView, setIsEditingProductView] = useState(false);
   const [currentEditingProduct, setCurrentEditingProduct] = useState(null);
   const [refreshInventoryKey, setRefreshInventoryKey] = useState(0);
-  const [hubTeamInfo, setHubTeamInfo] = useState(null);
+  const [hubTeamInfo, setHubTeamInfo] = useState(() => {
+    try {
+      const cached = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('atomy_cached_hub_team') : null;
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+    return null;
+  });
 
   const currentDist = liveDistributor || distributorUser;
   const distId = currentDist?.distributorId || currentDist?.id || '';
@@ -85,20 +106,12 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const isSubstituteInCommand = isSubDistributor && isPrimaryOnLeave;
   const isSubstituteStandby = isSubDistributor && !isPrimaryOnLeave;
 
-  // Temporary Command Active banner auto-dismiss state
+  // Temporary Command Active banner state
   const [showCommandBanner, setShowCommandBanner] = useState(false);
 
-  useEffect(() => {
-    if (isSubstituteInCommand) {
-      setShowCommandBanner(true);
-      const timer = setTimeout(() => {
-        setShowCommandBanner(false);
-      }, 7000); // Auto-disappear after 7 seconds
-      return () => clearTimeout(timer);
-    } else {
-      setShowCommandBanner(false);
-    }
-  }, [isSubstituteInCommand]);
+  // Track previous leave status to only alert on LIVE state changes, never on page load/refresh
+  const prevLeaveStatusRef = useRef(null);
+  const handoverStorageKey = `atomy_handover_alerted_${distId || 'sub'}`;
 
   // High-priority alert banner auto-dismiss
   useEffect(() => {
@@ -109,8 +122,6 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       return () => clearTimeout(timer);
     }
   }, [activeAlert]);
-
-  const alertedHandoverRef = useRef(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -152,13 +163,35 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     });
   };
 
-  // Handover Notification: When primary takes leave, notify substitute first (ONCE), and then ring order notifications
+  // Handover Notification: Only trigger when a LIVE transition from Active -> Leave occurs
   useEffect(() => {
     if (!isSubDistributor) return;
 
-    // Transition from Standby -> In Command (Primary just went on leave)
-    if (isPrimaryOnLeave && !alertedHandoverRef.current) {
-      alertedHandoverRef.current = true; // Lock so desktop notifications don't fire repeatedly like spam
+    const wasAlertedInSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(handoverStorageKey) === 'true';
+
+    // Initial mount / page refresh: capture existing status WITHOUT firing desktop alerts or fanfare
+    if (prevLeaveStatusRef.current === null) {
+      prevLeaveStatusRef.current = Boolean(isPrimaryOnLeave);
+      if (isPrimaryOnLeave) {
+        try {
+          sessionStorage.setItem(handoverStorageKey, 'true');
+        } catch (e) {}
+      }
+      return;
+    }
+
+    // LIVE Transition from Standby -> In Command (Primary just went on leave while substitute is live in session)
+    if (isPrimaryOnLeave && !prevLeaveStatusRef.current && !wasAlertedInSession) {
+      prevLeaveStatusRef.current = true;
+      try {
+        sessionStorage.setItem(handoverStorageKey, 'true');
+      } catch (e) {}
+
+      // Show temporary command banner for 7 seconds
+      setShowCommandBanner(true);
+      const bannerTimer = setTimeout(() => {
+        setShowCommandBanner(false);
+      }, 7000);
 
       // Reset any stale local dismissed order IDs so the newly unlocked substitute gets fresh alerts in bell
       try {
@@ -191,12 +224,19 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         }
       }, 1800);
 
-      return () => clearTimeout(orderRingTimer);
+      return () => {
+        clearTimeout(bannerTimer);
+        clearTimeout(orderRingTimer);
+      };
     }
 
-    // Transition from In Command -> Standby (Primary returned from leave)
-    if (!isPrimaryOnLeave && alertedHandoverRef.current) {
-      alertedHandoverRef.current = false; // Reset lock so next time primary takes leave it will notify
+    // LIVE Transition from In Command -> Standby (Primary returned from leave)
+    if (!isPrimaryOnLeave && prevLeaveStatusRef.current) {
+      prevLeaveStatusRef.current = false;
+      try {
+        sessionStorage.removeItem(handoverStorageKey);
+      } catch (e) {}
+      setShowCommandBanner(false);
       showToast('🔒 Primary Distributor has returned. Hub console returned to Standby mode.');
       setActiveAlert(null);
     }
@@ -226,6 +266,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
       if (teamRes.status === 'fulfilled' && teamRes.value) {
         setHubTeamInfo(teamRes.value);
+        try {
+          sessionStorage.setItem('atomy_cached_hub_team', JSON.stringify(teamRes.value));
+        } catch (e) {}
       }
       if (profileRes.status === 'fulfilled' && profileRes.value) {
         setLiveDistributor(prev => ({ ...prev, ...profileRes.value }));
@@ -300,13 +343,19 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           const data = event.data;
           if (data && data.type === 'HUB_HANDOVER_STATUS_CHANGED') {
             if (isSubDistributor) {
-              setHubTeamInfo(prev => ({
-                ...(prev || {}),
-                primaryManager: {
-                  ...(prev?.primaryManager || {}),
-                  onLeave: Boolean(data.onLeave)
-                }
-              }));
+              setHubTeamInfo(prev => {
+                const updated = {
+                  ...(prev || {}),
+                  primaryManager: {
+                    ...(prev?.primaryManager || {}),
+                    onLeave: Boolean(data.onLeave)
+                  }
+                };
+                try {
+                  sessionStorage.setItem('atomy_cached_hub_team', JSON.stringify(updated));
+                } catch (e) {}
+                return updated;
+              });
               setLiveDistributor(prev => ({
                 ...(prev || {}),
                 isSubstituteActive: Boolean(data.onLeave),
@@ -946,6 +995,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                 setCurrentEditingProduct(null);
               }}
             />
+          ) : isSubDistributor && hubTeamInfo === null && isLoading ? (
+            <div className="admin-tab-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '440px', gap: '14px' }}>
+              <RefreshCw size={32} className="animate-spin" color="#00a3e0" />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#475569' }}>
+                Connecting to Regional Logistics Hub...
+              </span>
+            </div>
           ) : isSubstituteStandby && activeTab !== 'settings' ? (
             <div className="admin-tab-content standby-lockout-tab" style={{ padding: '24px 20px' }}>
               <div style={{
