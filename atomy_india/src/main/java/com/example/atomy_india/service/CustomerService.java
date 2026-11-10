@@ -85,14 +85,17 @@ public class CustomerService {
             throw new IllegalArgumentException("Cannot place order with empty cart");
         }
 
-        // Use provided Order ID or generate human-friendly Order ID (e.g. ORD-20261003-8472)
-        String timestamp = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // Use provided Order ID or generate human-friendly Order ID (e.g.
+        // ORD-20261003-8472)
+        String timestamp = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata"))
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         int randomCode = 1000 + new Random().nextInt(9000);
         String orderId = (req.getOrderId() != null && !req.getOrderId().trim().isEmpty())
                 ? req.getOrderId().trim()
                 : "ORD-" + timestamp + "-" + randomCode;
 
-        // Idempotency: if order ID already exists in MongoDB, return it directly to avoid duplication
+        // Idempotency: if order ID already exists in MongoDB, return it directly to
+        // avoid duplication
         Optional<CustomerOrder> existing = orderRepository.findById(orderId);
         if (existing.isPresent()) {
             return existing.get();
@@ -118,7 +121,8 @@ public class CustomerService {
                         .filter(p -> p.getName() != null && p.getName().trim().equalsIgnoreCase(searchName))
                         .findFirst();
             }
-            if (!prodOpt.isPresent() && itemDto.getProductName() != null && !itemDto.getProductName().trim().isEmpty()) {
+            if (!prodOpt.isPresent() && itemDto.getProductName() != null
+                    && !itemDto.getProductName().trim().isEmpty()) {
                 String searchName = itemDto.getProductName().trim();
                 prodOpt = productRepository.findAll().stream()
                         .filter(p -> p.getName() != null && p.getName().trim().equalsIgnoreCase(searchName))
@@ -126,12 +130,20 @@ public class CustomerService {
             }
 
             Product product = prodOpt.orElse(null);
-            String effectiveId = product != null ? product.getId() : (!rawId.isEmpty() ? rawId : "PROD-" + UUID.randomUUID().toString().substring(0, 8));
-            String effectiveName = product != null ? product.getName() : (itemDto.getName() != null ? itemDto.getName() : (itemDto.getProductName() != null ? itemDto.getProductName() : "Atomy Product " + effectiveId));
-            String effectiveImage = product != null ? product.getImage() : (itemDto.getImage() != null ? itemDto.getImage() : "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg");
-            BigDecimal effectivePrice = (itemDto.getPrice() != null && itemDto.getPrice().compareTo(BigDecimal.ZERO) > 0)
-                    ? itemDto.getPrice()
-                    : (product != null && product.getPrice() != null ? product.getPrice() : new BigDecimal("1000.00"));
+            String effectiveId = product != null ? product.getId()
+                    : (!rawId.isEmpty() ? rawId : "PROD-" + UUID.randomUUID().toString().substring(0, 8));
+            String effectiveName = product != null ? product.getName()
+                    : (itemDto.getName() != null ? itemDto.getName()
+                            : (itemDto.getProductName() != null ? itemDto.getProductName()
+                                    : "Atomy Product " + effectiveId));
+            String effectiveImage = product != null ? product.getImage()
+                    : (itemDto.getImage() != null ? itemDto.getImage()
+                            : "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg");
+            BigDecimal effectivePrice = (itemDto.getPrice() != null
+                    && itemDto.getPrice().compareTo(BigDecimal.ZERO) > 0)
+                            ? itemDto.getPrice()
+                            : (product != null && product.getPrice() != null ? product.getPrice()
+                                    : new BigDecimal("1000.00"));
             int qty = Math.max(1, itemDto.getQuantity());
 
             // Inventory check & deduction
@@ -159,16 +171,17 @@ public class CustomerService {
                     effectiveName,
                     effectiveImage,
                     effectivePrice,
-                    qty
-            );
+                    qty);
             orderItems.add(orderItem);
             totalAmount = totalAmount.add(orderItem.getSubtotal());
         }
 
-        // Calculate shipping fee and final total: prefer explicit request values if provided
+        // Calculate shipping fee and final total: prefer explicit request values if
+        // provided
         BigDecimal shippingFee = req.getShippingFee();
         if (shippingFee == null) {
-            shippingFee = (totalAmount.compareTo(new BigDecimal("1500")) >= 0) ? BigDecimal.ZERO : new BigDecimal("100.00");
+            shippingFee = (totalAmount.compareTo(new BigDecimal("1500")) >= 0) ? BigDecimal.ZERO
+                    : new BigDecimal("100.00");
         }
         BigDecimal finalTotal = req.getTotalAmount();
         if (finalTotal == null || finalTotal.compareTo(BigDecimal.ZERO) <= 0) {
@@ -178,8 +191,10 @@ public class CustomerService {
         // Ensure the order's customer name is the registered account holder name
         String effectiveCustomerName = req.getCustomerName();
         if (req.getCustomerEmail() != null && !req.getCustomerEmail().trim().isEmpty()) {
-            Optional<CustomerUser> userOpt = customerUserRepository.findByEmailIgnoreCase(req.getCustomerEmail().trim());
-            if (userOpt.isPresent() && userOpt.get().getFullName() != null && !userOpt.get().getFullName().trim().isEmpty()) {
+            Optional<CustomerUser> userOpt = customerUserRepository
+                    .findByEmailIgnoreCase(req.getCustomerEmail().trim());
+            if (userOpt.isPresent() && userOpt.get().getFullName() != null
+                    && !userOpt.get().getFullName().trim().isEmpty()) {
                 effectiveCustomerName = userOpt.get().getFullName();
             }
         }
@@ -198,8 +213,7 @@ public class CustomerService {
                 req.getPincode(),
                 finalTotal,
                 shippingFee,
-                req.getPaymentMethod() != null ? req.getPaymentMethod() : CustomerOrder.PaymentMethod.ONLINE_UPI
-        );
+                req.getPaymentMethod() != null ? req.getPaymentMethod() : CustomerOrder.PaymentMethod.ONLINE_UPI);
 
         // Order Source (Web Browser vs Mobile App)
         String src = (req.getOrderSource() != null && !req.getOrderSource().trim().isEmpty())
@@ -220,16 +234,19 @@ public class CustomerService {
             }
         }
 
-        // Determine static delivery date: 2 business days for standard nearby hub, 3 days for remote mountain/forest
+        // Determine static delivery date: 2 business days for standard nearby hub, 3
+        // days for remote mountain/forest
         String addressText = (String.valueOf(req.getShippingAddress()) + " "
                 + String.valueOf(req.getCity()) + " "
                 + String.valueOf(req.getState()) + " "
                 + String.valueOf(req.getPincode())).toLowerCase();
-        boolean isRemote = addressText.matches(".*(forest|mountain|hill|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur).*");
+        boolean isRemote = addressText.matches(
+                ".*(forest|mountain|hill|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur).*");
         int slaDays = isRemote ? 3 : 2;
         LocalDateTime targetDate = LocalDateTime.now().plusDays(slaDays);
         String staticDeliveryDateStr = targetDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
-        String staticDeliveryTimeFrame = isRemote ? "Within 3 Days (Remote Mountain/Forest Area)" : "Within 2 Days (Nearby Hub)";
+        String staticDeliveryTimeFrame = isRemote ? "Within 3 Days (Remote Mountain/Forest Area)"
+                : "Within 2 Days (Nearby Hub)";
 
         order.setEstimatedDeliveryDate(staticDeliveryDateStr);
         order.setEstimatedDelivery(staticDeliveryTimeFrame);
@@ -237,17 +254,21 @@ public class CustomerService {
         // Auto-Route to local assigned distributor by shipping delivery PIN code
         String pin = req.getPincode() != null ? req.getPincode().trim() : "";
         if (!pin.isEmpty()) {
-            java.util.Optional<com.example.atomy_india.model.DistributorUser> distOpt = distributorRepository.findByPrimaryPincode(pin)
+            java.util.Optional<com.example.atomy_india.model.DistributorUser> distOpt = distributorRepository
+                    .findByPrimaryPincode(pin)
                     .or(() -> distributorRepository.findByAssignedPincodesContaining(pin));
 
             if (distOpt.isEmpty()) {
-                java.util.Optional<com.example.atomy_india.model.IndiaPincode> pinOpt = indiaPincodeRepository.findByPincode(pin);
-                if (pinOpt.isPresent() && pinOpt.get().getAssignedDistributorId() != null && !pinOpt.get().getAssignedDistributorId().trim().isEmpty()) {
+                java.util.Optional<com.example.atomy_india.model.IndiaPincode> pinOpt = indiaPincodeRepository
+                        .findByPincode(pin);
+                if (pinOpt.isPresent() && pinOpt.get().getAssignedDistributorId() != null
+                        && !pinOpt.get().getAssignedDistributorId().trim().isEmpty()) {
                     distOpt = distributorRepository.findByDistributorId(pinOpt.get().getAssignedDistributorId());
                 }
             }
 
-            // Strict PIN routing only: orders are never assigned across different PIN codes via city/district fallback.
+            // Strict PIN routing only: orders are never assigned across different PIN codes
+            // via city/district fallback.
 
             if (distOpt.isPresent()) {
                 com.example.atomy_india.model.DistributorUser d = distOpt.get();
@@ -255,34 +276,42 @@ public class CustomerService {
 
                 // Validate stock availability in the assigned regional hub
                 for (OrderItem oi : orderItems) {
-                    java.util.Optional<com.example.atomy_india.model.DistributorInventory> diOpt = 
-                            distributorInventoryRepository.findByDistributorIdAndProductId(distId, oi.getProductId());
-                    int available = diOpt.map(com.example.atomy_india.model.DistributorInventory::getStockQuantity).orElse(0);
-                    boolean isAvail = diOpt.map(com.example.atomy_india.model.DistributorInventory::isAvailable).orElse(false);
+                    java.util.Optional<com.example.atomy_india.model.DistributorInventory> diOpt = distributorInventoryRepository
+                            .findByDistributorIdAndProductId(distId, oi.getProductId());
+                    int available = diOpt.map(com.example.atomy_india.model.DistributorInventory::getStockQuantity)
+                            .orElse(0);
+                    boolean isAvail = diOpt.map(com.example.atomy_india.model.DistributorInventory::isAvailable)
+                            .orElse(false);
                     int maxOrderable = Math.max(0, available - 1);
                     if (!isAvail || available < 2 || oi.getQuantity() > maxOrderable) {
-                        String prodName = (oi.getProductName() != null && !oi.getProductName().trim().isEmpty()) 
-                                ? oi.getProductName().trim() 
+                        String prodName = (oi.getProductName() != null && !oi.getProductName().trim().isEmpty())
+                                ? oi.getProductName().trim()
                                 : oi.getProductId();
-                        throw new IllegalArgumentException("This item (" + prodName + ") is not in stock for delivery to PIN " + pin + ". Please select another address or remove the item.");
+                        throw new IllegalArgumentException(
+                                "This item (" + prodName + ") is not in stock for delivery to PIN " + pin
+                                        + ". Please select another address or remove the item.");
                     }
                 }
 
                 order.setAssignedDistributorId(d.getDistributorId());
-                order.setAssignedDistributorName(d.getBusinessName() != null ? d.getBusinessName() : "Regional Distributor");
+                order.setAssignedDistributorName(
+                        d.getBusinessName() != null ? d.getBusinessName() : "Regional Distributor");
                 if (order.getHubAddress() == null || order.getHubAddress().trim().isEmpty()) {
-                    order.setHubAddress(d.getHubAddress() != null && !d.getHubAddress().trim().isEmpty() 
-                            ? d.getHubAddress() 
+                    order.setHubAddress(d.getHubAddress() != null && !d.getHubAddress().trim().isEmpty()
+                            ? d.getHubAddress()
                             : (d.getCity() != null ? d.getCity() + ", " + d.getState() : "Regional Logistics Hub"));
                 }
                 double rate = d.getCommissionRate() > 0 ? d.getCommissionRate() : 8.0;
-                BigDecimal comm = finalTotal.multiply(BigDecimal.valueOf(rate)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                BigDecimal comm = finalTotal.multiply(BigDecimal.valueOf(rate)).divide(BigDecimal.valueOf(100), 2,
+                        java.math.RoundingMode.HALF_UP);
                 order.setDistributorCommission(comm);
             } else {
-                throw new IllegalArgumentException("This item is not in stock for delivery to PIN " + pin + ". Please select another address or remove the item.");
+                throw new IllegalArgumentException("This item is not in stock for delivery to PIN " + pin
+                        + ". Please select another address or remove the item.");
             }
         } else {
-            throw new IllegalArgumentException("Please select a valid delivery address with a 6-digit PIN code to place your order.");
+            throw new IllegalArgumentException(
+                    "Please select a valid delivery address with a 6-digit PIN code to place your order.");
         }
         order.setDistributorDispatchStatus("RECEIVED");
 
@@ -315,7 +344,8 @@ public class CustomerService {
 
         // Initialize Live Order Tracking Record with Initial Checkpoint
         String trackingNumber = "ATMY-" + timestamp + "-" + (100000 + new Random().nextInt(900000));
-        String initialCheckpoint = "[{\"timestamp\":\"" + LocalDateTime.now() + "\",\"status\":\"ORDER_PLACED\",\"location\":\"Online System\",\"description\":\"Order received and confirmed successfully.\"}]";
+        String initialCheckpoint = "[{\"timestamp\":\"" + LocalDateTime.now()
+                + "\",\"status\":\"ORDER_PLACED\",\"location\":\"Online System\",\"description\":\"Order received and confirmed successfully.\"}]";
 
         OrderTracking tracking = new OrderTracking(
                 savedOrder.getOrderId(),
@@ -324,8 +354,7 @@ public class CustomerService {
                 "PLACED",
                 "Order Processing Center, Gurugram",
                 staticDeliveryTimeFrame,
-                initialCheckpoint
-        );
+                initialCheckpoint);
         trackingRepository.save(tracking);
 
         // Dispatch transactional emails asynchronously via Brevo
@@ -346,11 +375,11 @@ public class CustomerService {
                                 + String.format(java.util.Locale.ENGLISH, "%.2f", savedOrder.getTotalAmount())
                                 + " has been placed. Packaging and dispatch initiated.",
                         "order_placed",
-                        savedOrder.getOrderId()
-                );
+                        savedOrder.getOrderId());
                 customerNotificationRepository.save(notif);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         return savedOrder;
     }
@@ -360,7 +389,8 @@ public class CustomerService {
     }
 
     public List<CustomerOrder> getOrdersByEmail(String email) {
-        if (email == null || email.trim().isEmpty()) return Collections.emptyList();
+        if (email == null || email.trim().isEmpty())
+            return Collections.emptyList();
         return orderRepository.findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(email.trim());
     }
 
@@ -388,7 +418,8 @@ public class CustomerService {
             return byTracking;
         }
 
-        // 3. Fallback: Check orderRepository. If order exists, auto-generate tracking entity and persist
+        // 3. Fallback: Check orderRepository. If order exists, auto-generate tracking
+        // entity and persist
         Optional<CustomerOrder> orderOpt = orderRepository.findById(cleanId);
         if (!orderOpt.isPresent()) {
             orderOpt = orderRepository.findAll().stream()
@@ -400,11 +431,15 @@ public class CustomerService {
             CustomerOrder order = orderOpt.get();
             String awb = "BD" + (100000000 + Math.abs(order.getOrderId().hashCode() % 900000000)) + "IN";
             String estDelivery = order.getEstimatedDeliveryDate() != null
-                    ? order.getEstimatedDeliveryDate() + " (" + (order.getEstimatedDelivery() != null ? order.getEstimatedDelivery() : "Within 2 Days") + ")"
-                    : (order.getEstimatedDelivery() != null ? order.getEstimatedDelivery() : "Within 2 - 3 business days");
+                    ? order.getEstimatedDeliveryDate() + " ("
+                            + (order.getEstimatedDelivery() != null ? order.getEstimatedDelivery() : "Within 2 Days")
+                            + ")"
+                    : (order.getEstimatedDelivery() != null ? order.getEstimatedDelivery()
+                            : "Within 2 - 3 business days");
             String initialStatus = order.getOrderStatus() != null ? order.getOrderStatus().name() : "PLACED";
 
-            String initCheckpoints = "[{\"timestamp\":\"" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
+            String initCheckpoints = "[{\"timestamp\":\""
+                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
                     + "\",\"status\":\"ORDER_PLACED\",\"location\":\"Gurugram Central Fulfillment Center\",\"description\":\"Order received and confirmed. Package is being prepared for dispatch.\"}]";
 
             OrderTracking newTracking = new OrderTracking(
@@ -414,8 +449,7 @@ public class CustomerService {
                     initialStatus,
                     "Order Processing Center, Gurugram",
                     estDelivery,
-                    initCheckpoints
-            );
+                    initCheckpoints);
             return Optional.of(trackingRepository.save(newTracking));
         }
 
@@ -443,8 +477,7 @@ public class CustomerService {
                 req.getOrderId(),
                 req.getSubject() != null ? req.getSubject() : "Support Inquiry",
                 req.getCategory() != null ? req.getCategory() : SupportTicket.TicketCategory.GENERAL_SUPPORT,
-                req.getPriority() != null ? req.getPriority() : SupportTicket.TicketPriority.MEDIUM
-        );
+                req.getPriority() != null ? req.getPriority() : SupportTicket.TicketPriority.MEDIUM);
 
         if (req.getInitialMessage() != null && !req.getInitialMessage().trim().isEmpty()) {
             TicketMessage initialMsg = new TicketMessage(TicketMessage.MessageSender.CUSTOMER, req.getInitialMessage());
@@ -455,25 +488,29 @@ public class CustomerService {
     }
 
     public Optional<SupportTicket> getTicketById(String ticketId) {
-        if (ticketId == null || ticketId.trim().isEmpty()) return Optional.empty();
+        if (ticketId == null || ticketId.trim().isEmpty())
+            return Optional.empty();
         String tid = ticketId.trim();
         Optional<SupportTicket> res = ticketRepository.findById(tid);
-        if (res.isPresent()) return res;
+        if (res.isPresent())
+            return res;
 
         // Support case-insensitive and prefix variants (TCK vs TICK)
         if (tid.toUpperCase().startsWith("TCK-")) {
             res = ticketRepository.findById("TICK-" + tid.substring(4));
-            if (res.isPresent()) return res;
+            if (res.isPresent())
+                return res;
         } else if (tid.toUpperCase().startsWith("TICK-")) {
             res = ticketRepository.findById("TCK-" + tid.substring(5));
-            if (res.isPresent()) return res;
+            if (res.isPresent())
+                return res;
         }
 
         return ticketRepository.findAll().stream()
                 .filter(t -> t.getTicketId().equalsIgnoreCase(tid) ||
-                             t.getTicketId().toLowerCase().contains(tid.toLowerCase()) ||
-                             (t.getCustomerEmail() != null && t.getCustomerEmail().equalsIgnoreCase(tid)) ||
-                             (t.getSubject() != null && t.getSubject().toLowerCase().contains(tid.toLowerCase())))
+                        t.getTicketId().toLowerCase().contains(tid.toLowerCase()) ||
+                        (t.getCustomerEmail() != null && t.getCustomerEmail().equalsIgnoreCase(tid)) ||
+                        (t.getSubject() != null && t.getSubject().toLowerCase().contains(tid.toLowerCase())))
                 .findFirst();
     }
 
@@ -492,7 +529,8 @@ public class CustomerService {
 
         TicketMessage msg = new TicketMessage(TicketMessage.MessageSender.CUSTOMER, messageText);
         ticket.addMessage(msg);
-        if (ticket.getStatus() == SupportTicket.TicketStatus.RESOLVED || ticket.getStatus() == SupportTicket.TicketStatus.CLOSED) {
+        if (ticket.getStatus() == SupportTicket.TicketStatus.RESOLVED
+                || ticket.getStatus() == SupportTicket.TicketStatus.CLOSED) {
             ticket.setStatus(SupportTicket.TicketStatus.IN_PROGRESS);
         }
         ticketRepository.save(ticket);

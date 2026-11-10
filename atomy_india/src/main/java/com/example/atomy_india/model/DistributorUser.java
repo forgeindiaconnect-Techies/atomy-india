@@ -53,6 +53,27 @@ public class DistributorUser {
 
     private String role = "DISTRIBUTOR_ADMIN";
 
+    @Field("distributor_role")
+    private String distributorRole = "PRIMARY_MANAGER"; // PRIMARY_MANAGER | SUB_DISTRIBUTOR
+
+    @Field("parent_hub_id")
+    private String parentHubId; // e.g. "DIST-635002"
+
+    @Field("parent_hub_name")
+    private String parentHubName;
+
+    @Field("on_leave")
+    private boolean onLeave = false;
+
+    @Field("delegated_to_id")
+    private String delegatedToId;
+
+    @Field("delegated_to_name")
+    private String delegatedToName;
+
+    @Field("leave_reason")
+    private String leaveReason;
+
     @Field("created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -127,6 +148,34 @@ public class DistributorUser {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getDistributorRole() { return distributorRole; }
+    public void setDistributorRole(String distributorRole) { this.distributorRole = distributorRole; }
+
+    public String getParentHubId() { return parentHubId; }
+    public void setParentHubId(String parentHubId) { this.parentHubId = parentHubId; }
+
+    public String getParentHubName() { return parentHubName; }
+    public void setParentHubName(String parentHubName) { this.parentHubName = parentHubName; }
+
+    public String getEffectiveHubId() {
+        if (parentHubId != null && !parentHubId.trim().isEmpty()) {
+            return parentHubId.trim();
+        }
+        return distributorId;
+    }
+
+    public boolean isOnLeave() { return onLeave; }
+    public void setOnLeave(boolean onLeave) { this.onLeave = onLeave; }
+
+    public String getDelegatedToId() { return delegatedToId; }
+    public void setDelegatedToId(String delegatedToId) { this.delegatedToId = delegatedToId; }
+
+    public String getDelegatedToName() { return delegatedToName; }
+    public void setDelegatedToName(String delegatedToName) { this.delegatedToName = delegatedToName; }
+
+    public String getLeaveReason() { return leaveReason; }
+    public void setLeaveReason(String leaveReason) { this.leaveReason = leaveReason; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

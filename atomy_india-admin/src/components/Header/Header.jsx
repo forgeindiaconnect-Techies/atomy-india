@@ -195,7 +195,8 @@ export default function Header({
 
   const ticketsCount = overviewStats?.unreadTicketsCount || 0;
   const stockCount = overviewStats?.unreadLowStockCount || 0;
-  const effectiveCount = uniqueRecentOrders.length + uniqueDelayedOrders.length + ticketsCount + stockCount;
+  const hasHandover = Boolean(overviewStats?.handoverNotification);
+  const effectiveCount = (hasHandover ? 1 : 0) + uniqueRecentOrders.length + uniqueDelayedOrders.length + ticketsCount + stockCount;
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -449,37 +450,22 @@ export default function Header({
                   </div>
                 </a>
 
-                {currentView === 'admin' ? (
-                  <div
-                    className="admin-portal-header-brand"
-                    onClick={() => onNavigateHome && onNavigateHome()}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <span className="admin-portal-brand-main">
-                      {adminProfile?.portalTitle || 'Atomy Regional Hub'}
-                    </span>
-                    <span className="admin-portal-brand-sub">
-                      {adminProfile?.portalSubtitle || 'Logistics Console'}
+                <div
+                  className="team-phoenix-col fic-brand-col"
+                  onClick={() => onNavigateHome && onNavigateHome()}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="team-phoenix-title fic-brand-title">
+                    <span className="fic-forge-text">FORGE</span>
+                    <span className="fic-india-text">
+                      <IndiaMap className="fic-india-map-svg" />
+                      NDIA
                     </span>
                   </div>
-                ) : (
-                  <div
-                    className="team-phoenix-col fic-brand-col"
-                    onClick={() => onNavigateHome && onNavigateHome()}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="team-phoenix-title fic-brand-title">
-                      <span className="fic-forge-text">FORGE</span>
-                      <span className="fic-india-text">
-                        <IndiaMap className="fic-india-map-svg" />
-                        NDIA
-                      </span>
-                    </div>
-                    <div className="team-phoenix-sub fic-brand-sub">
-                      <span className="fic-connect-text">CONNECT</span>
-                    </div>
+                  <div className="team-phoenix-sub fic-brand-sub">
+                    <span className="fic-connect-text">CONNECT</span>
                   </div>
-                )}
+                </div>
 
                 {/* Shopping Mall / My Office Portal Tabs - Hidden for Admin */}
                 {currentView !== 'admin' && (
@@ -663,6 +649,36 @@ export default function Header({
                           )}
                         </div>
                         <div className="notif-dropdown-body">
+                          {overviewStats?.handoverNotification && (
+                            <div
+                              className="notif-item handover-notif-item"
+                              style={{
+                                borderLeft: '4px solid #10b981',
+                                backgroundColor: '#ecfdf5',
+                                padding: '12px 14px',
+                                marginBottom: '10px',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => {
+                                onSelectNotificationTab && onSelectNotificationTab('orders');
+                                setIsAdminNotifOpen(false);
+                              }}
+                            >
+                              <div className="notif-icon-circle" style={{ background: '#d1fae5', color: '#059669' }}>
+                                <Sparkles size={16} />
+                              </div>
+                              <div className="notif-text" style={{ flex: 1 }}>
+                                <strong style={{ color: '#065f46', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <span>⚡ Operational Handover Active</span>
+                                  <span style={{ fontSize: '10px', background: '#d1fae5', color: '#047857', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>ACTIVE</span>
+                                </strong>
+                                <span style={{ color: '#047857', fontSize: '12px', lineHeight: 1.35, marginTop: '3px', display: 'block' }}>
+                                  {overviewStats.handoverNotification.message}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                           {uniqueRecentOrders.length > 0 ? (
                             uniqueRecentOrders.map(ro => {
                               const orderId = ro.orderId || ro.id;
@@ -825,15 +841,15 @@ export default function Header({
                         {adminProfile?.name ? adminProfile.name.split(' ')[0] : 'Admin'}
                       </span>
                       {adminProfile?.assignedAreaText ? (
-                        <span className="admin-master-assigned-pin">
+                        <span className={`admin-master-assigned-pin ${adminProfile.assignedAreaText.toLowerCase().includes('substitute') ? 'is-substitute' : 'is-primary'}`}>
                           {adminProfile.assignedAreaText}
                         </span>
                       ) : adminProfile?.pincode ? (
-                        <span className="admin-master-assigned-pin">
+                        <span className="admin-master-assigned-pin is-primary">
                           Assigned Area: PIN {adminProfile.pincode}
                         </span>
                       ) : adminProfile?.role && adminProfile.role.includes('PIN:') ? (
-                        <span className="admin-master-assigned-pin">
+                        <span className="admin-master-assigned-pin is-primary">
                           Assigned Area: PIN {adminProfile.role.match(/PIN:\s*(\d+)/)?.[1] || ''}
                         </span>
                       ) : (

@@ -294,9 +294,14 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
                   {dist.businessName || dist.distributorName} — Overall Overview
                 </h3>
-                <span style={{ fontSize: '11px', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '6px', border: '1px solid #86efac' }}>
-                  ACTIVE SUB-ADMIN
+                <span style={{ fontSize: '11px', fontWeight: 800, background: dist.distributorRole === 'SUB_DISTRIBUTOR' ? '#ecfdf5' : '#dcfce7', color: dist.distributorRole === 'SUB_DISTRIBUTOR' ? '#047857' : '#15803d', padding: '2px 8px', borderRadius: '6px', border: dist.distributorRole === 'SUB_DISTRIBUTOR' ? '1px solid #a7f3d0' : '1px solid #86efac' }}>
+                  {dist.distributorRole === 'SUB_DISTRIBUTOR' ? 'CO-MANAGER (MODEL 1)' : 'PRIMARY SUB-ADMIN'}
                 </span>
+                {dist.onLeave && (
+                  <span style={{ fontSize: '11px', fontWeight: 800, background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                    🌴 ON LEAVE (DELEGATED)
+                  </span>
+                )}
                 <span style={{ fontSize: '11.5px', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', padding: '3px 10px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
                   PIN: {dist.primaryPincode}
                 </span>
@@ -864,11 +869,27 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
                         <Building2 size={18} />
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '13.5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {d.businessName || d.distributorName}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 800, color: '#0f172a', fontSize: '13.5px' }}>
+                            {d.businessName || d.distributorName}
+                          </span>
+                          {d.distributorRole === 'SUB_DISTRIBUTOR' ? (
+                            <span style={{ fontSize: '10px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                              Co-Manager (Shared Hub)
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '10px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                              Primary Franchise
+                            </span>
+                          )}
+                          {d.onLeave && (
+                            <span style={{ fontSize: '10px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                              🌴 On Leave
+                            </span>
+                          )}
                         </div>
                         <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>
-                          ID: {d.distributorId}
+                          ID: {d.distributorId} {d.parentHubId ? `• Parent: ${d.parentHubId}` : ''}
                         </span>
                       </div>
                     </div>

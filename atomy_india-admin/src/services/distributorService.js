@@ -40,6 +40,10 @@ export async function loginAdminOrDistributor(username, password) {
       return {
         role: 'DISTRIBUTOR_ADMIN',
         distributorId: 'DIST-635002',
+        distributorRole: 'PRIMARY_MANAGER',
+        parentHubId: null,
+        parentHubName: null,
+        effectiveHubId: 'DIST-635002',
         businessName: 'Selva Atomy Regional Hub',
         contactPerson: 'Selva Kumar',
         email: 'selvakumarc029@gmail.com',
@@ -51,7 +55,33 @@ export async function loginAdminOrDistributor(username, password) {
         state: 'Tamil Nadu',
         commissionRate: 8.0,
         territoryFee: 35000,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        onLeave: false
+      };
+    } else if (
+      (lower.includes('sub') || lower.includes('co-manager') || lower.includes('krishnagiri.sub@atomy.in') || lower === 'subdistributor@gmail.com') &&
+      (password === 'Admin@123' || password === 'admin123')
+    ) {
+      return {
+        role: 'DISTRIBUTOR_ADMIN',
+        distributorId: 'DIST-635002-SUB1',
+        distributorRole: 'SUB_DISTRIBUTOR',
+        parentHubId: 'DIST-635002',
+        parentHubName: 'Selva Atomy Regional Hub',
+        effectiveHubId: 'DIST-635002',
+        businessName: 'Selva Regional Hub (Co-Manager)',
+        contactPerson: 'Hub Co-Manager',
+        email: 'subdistributor@gmail.com',
+        phone: '+91 98400 12345',
+        assignedPincodes: ['635002'],
+        primaryPincode: '635002',
+        hubAddress: 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002',
+        city: 'Krishnagiri',
+        state: 'Tamil Nadu',
+        commissionRate: 8.0,
+        territoryFee: 0,
+        status: 'ACTIVE',
+        onLeave: false
       };
     }
     throw err;
@@ -365,6 +395,28 @@ export async function processDistributorReplacement(orderId, distributorId, payl
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || 'Failed to issue replacement');
+  }
+  return res.json();
+}
+
+export async function fetchHubTeam(distributorId) {
+  const res = await fetch(`${API_BASE}/distributor/team?distributorId=${encodeURIComponent(distributorId)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch hub team and co-managers');
+  }
+  return res.json();
+}
+
+export async function updateHubLeaveStatus(distributorId, { onLeave, delegatedToId, delegatedToName }) {
+  const res = await fetch(`${API_BASE}/distributor/leave-status?distributorId=${encodeURIComponent(distributorId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ onLeave, delegatedToId, delegatedToName })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to update hub operational / leave status');
   }
   return res.json();
 }

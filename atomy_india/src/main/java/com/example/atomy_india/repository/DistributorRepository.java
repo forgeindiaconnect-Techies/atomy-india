@@ -20,6 +20,8 @@ public interface DistributorRepository extends MongoRepository<DistributorUser, 
 
     List<DistributorUser> findByStatus(String status);
 
+    List<DistributorUser> findByParentHubId(String parentHubId);
+
     long countByStatus(String status);
 }
 

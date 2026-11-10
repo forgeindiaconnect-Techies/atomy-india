@@ -60,6 +60,17 @@ public class DistributorController {
                 .or(() -> distributorRepository.findByPrimaryPincode(clean));
     }
 
+    private boolean isSubstituteBlocked(DistributorUser dist) {
+        if (dist != null && "SUB_DISTRIBUTOR".equalsIgnoreCase(dist.getDistributorRole()) && dist.getParentHubId() != null) {
+            Optional<DistributorUser> parentOpt = findDistributor(dist.getParentHubId());
+            if (parentOpt.isPresent()) {
+                // If primary parent is NOT on leave, substitute is blocked in STANDBY
+                return !parentOpt.get().isOnLeave();
+            }
+        }
+        return false;
+    }
+
     @GetMapping("/profile")
     public ResponseEntity<?> getProfile(@RequestParam(required = false) String distributorId,
                                         @RequestParam(required = false) String email) {
@@ -68,7 +79,43 @@ public class DistributorController {
         if (distOpt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("error", "Distributor not found"));
         }
-        return ResponseEntity.ok(distOpt.get());
+        DistributorUser dist = distOpt.get();
+
+        boolean isSubstituteActive = false;
+        String primaryManagerName = null;
+        if ("SUB_DISTRIBUTOR".equalsIgnoreCase(dist.getDistributorRole()) && dist.getParentHubId() != null) {
+            Optional<DistributorUser> parentOpt = distributorRepository.findByDistributorId(dist.getParentHubId());
+            if (parentOpt.isPresent()) {
+                DistributorUser parent = parentOpt.get();
+                isSubstituteActive = parent.isOnLeave();
+                primaryManagerName = parent.getContactPerson();
+            }
+        }
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("distributorId", dist.getDistributorId());
+        resp.put("businessName", dist.getBusinessName());
+        resp.put("contactPerson", dist.getContactPerson());
+        resp.put("email", dist.getEmail());
+        resp.put("phone", dist.getPhone());
+        resp.put("assignedPincodes", dist.getAssignedPincodes());
+        resp.put("primaryPincode", dist.getPrimaryPincode());
+        resp.put("hubAddress", dist.getHubAddress());
+        resp.put("city", dist.getCity());
+        resp.put("state", dist.getState());
+        resp.put("commissionRate", dist.getCommissionRate());
+        resp.put("territoryFee", dist.getTerritoryFee());
+        resp.put("status", dist.getStatus());
+        resp.put("distributorRole", dist.getDistributorRole() != null ? dist.getDistributorRole() : "PRIMARY_MANAGER");
+        resp.put("parentHubId", dist.getParentHubId());
+        resp.put("parentHubName", dist.getParentHubName());
+        resp.put("effectiveHubId", dist.getEffectiveHubId());
+        resp.put("onLeave", dist.isOnLeave());
+        resp.put("leaveReason", dist.getLeaveReason());
+        resp.put("isSubstituteActive", isSubstituteActive);
+        resp.put("primaryManagerName", primaryManagerName);
+
+        return ResponseEntity.ok(resp);
     }
 
     @GetMapping("/stats")
@@ -140,6 +187,14 @@ public class DistributorController {
         resp.put("deliveredOrders", deliveredCount);
         resp.put("delayedOrders", delayedCount);
         resp.put("customerCount", customerEmails.size());
+        resp.put("distributorRole", dist.getDistributorRole() != null ? dist.getDistributorRole() : "PRIMARY_MANAGER");
+        resp.put("parentHubId", dist.getParentHubId());
+        resp.put("parentHubName", dist.getParentHubName());
+        resp.put("effectiveHubId", dist.getEffectiveHubId());
+        resp.put("onLeave", dist.isOnLeave());
+        resp.put("delegatedToId", dist.getDelegatedToId());
+        resp.put("delegatedToName", dist.getDelegatedToName());
+        resp.put("status", dist.getStatus());
 
         return ResponseEntity.ok(resp);
     }
@@ -219,6 +274,10 @@ public class DistributorController {
         }
         DistributorUser dist = distOpt.get();
 
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
+
         Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("error", "Order not found: " + orderId));
@@ -266,6 +325,10 @@ public class DistributorController {
             return ResponseEntity.status(404).body(Map.of("error", "Distributor not found"));
         }
         DistributorUser dist = distOpt.get();
+
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
 
         Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
@@ -327,6 +390,10 @@ public class DistributorController {
         Optional<DistributorUser> distOpt = findDistributor(distributorId);
         if (distOpt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("error", "Distributor not found: " + distributorId));
+        }
+        DistributorUser dist = distOpt.get();
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
         }
         Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
@@ -542,6 +609,10 @@ public class DistributorController {
         }
         DistributorUser dist = distOpt.get();
 
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
+
         Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
             return ResponseEntity.status(404).body(Map.of("error", "Order not found: " + orderId));
@@ -613,6 +684,10 @@ public class DistributorController {
             return ResponseEntity.status(404).body(Map.of("error", "Distributor not found"));
         }
         DistributorUser dist = distOpt.get();
+
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
 
         Optional<CustomerOrder> orderOpt = customerOrderRepository.findById(orderId);
         if (orderOpt.isEmpty()) {
@@ -773,7 +848,10 @@ public class DistributorController {
             return ResponseEntity.badRequest().body(Map.of("error", "Distributor not found: " + distributorId));
         }
         DistributorUser dist = distOpt.get();
-        String distId = dist.getDistributorId();
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
+        String distId = dist.getEffectiveHubId();
         String pincode = dist.getPrimaryPincode() != null ? dist.getPrimaryPincode() : "110001";
 
         List<Product> catalog = productRepository.findByActiveTrue();
@@ -837,7 +915,10 @@ public class DistributorController {
             return ResponseEntity.badRequest().body(Map.of("error", "Distributor not found: " + distributorId));
         }
         DistributorUser dist = distOpt.get();
-        String distId = dist.getDistributorId();
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
+        String distId = dist.getEffectiveHubId();
 
         List<Product> catalog = productRepository.findByActiveTrue();
         List<DistributorInventory> existing = inventoryRepository.findByDistributorId(distId);
@@ -862,7 +943,10 @@ public class DistributorController {
             return ResponseEntity.badRequest().body(Map.of("error", "Distributor not found: " + distributorId));
         }
         DistributorUser dist = distOpt.get();
-        String distId = dist.getDistributorId();
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
+        String distId = dist.getEffectiveHubId();
         String pincode = dist.getPrimaryPincode() != null ? dist.getPrimaryPincode() : "110001";
 
         int qty = 25;
@@ -896,7 +980,10 @@ public class DistributorController {
             return ResponseEntity.badRequest().body(Map.of("error", "Distributor not found: " + distributorId));
         }
         DistributorUser dist = distOpt.get();
-        String distId = dist.getDistributorId();
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
+        String distId = dist.getEffectiveHubId();
 
         inventoryRepository.findByDistributorIdAndProductId(distId, productId).ifPresent(inv -> {
             inv.setAvailable(false);
@@ -916,7 +1003,10 @@ public class DistributorController {
             return ResponseEntity.badRequest().body(Map.of("error", "Distributor not found: " + distributorId));
         }
         DistributorUser dist = distOpt.get();
-        String distId = dist.getDistributorId();
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Operations locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty."));
+        }
+        String distId = dist.getEffectiveHubId();
         String pincode = dist.getPrimaryPincode() != null ? dist.getPrimaryPincode() : "110001";
 
         int qty = 0;
@@ -970,13 +1060,103 @@ public class DistributorController {
             return true;
         }
 
+        // Shared Hub check: if assigned directly to distributor or parent hub
+        String assignedDist = o.getAssignedDistributorId();
+        if (assignedDist != null) {
+            if (assignedDist.equalsIgnoreCase(dist.getDistributorId()) || 
+                assignedDist.equalsIgnoreCase(dist.getEffectiveHubId())) {
+                return true;
+            }
+        }
+
         // Also check if IndiaPincode master explicitly assigned this pin
         Optional<IndiaPincode> pinDoc = indiaPincodeRepository.findByPincode(orderPin);
-        if (pinDoc.isPresent() && distId.equalsIgnoreCase(pinDoc.get().getAssignedDistributorId())) {
-            return true;
+        if (pinDoc.isPresent()) {
+            String pDist = pinDoc.get().getAssignedDistributorId();
+            if (pDist != null && (pDist.equalsIgnoreCase(dist.getDistributorId()) || pDist.equalsIgnoreCase(dist.getEffectiveHubId()))) {
+                return true;
+            }
         }
 
         return false;
+    }
+
+    @GetMapping("/team")
+    public ResponseEntity<?> getHubTeam(@RequestParam String distributorId) {
+        Optional<DistributorUser> distOpt = findDistributor(distributorId);
+        if (distOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Distributor not found: " + distributorId));
+        }
+        DistributorUser dist = distOpt.get();
+        String effectiveHub = dist.getEffectiveHubId();
+
+        Optional<DistributorUser> primaryOpt = distributorRepository.findByDistributorId(effectiveHub);
+        List<DistributorUser> coManagers = distributorRepository.findByParentHubId(effectiveHub);
+
+        List<DistributorUser> allMembers = new ArrayList<>();
+        primaryOpt.ifPresent(allMembers::add);
+        for (DistributorUser sub : coManagers) {
+            if (primaryOpt.isEmpty() || !sub.getDistributorId().equals(primaryOpt.get().getDistributorId())) {
+                allMembers.add(sub);
+            }
+        }
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("effectiveHubId", effectiveHub);
+        resp.put("primaryManager", primaryOpt.orElse(null));
+        resp.put("coManagers", coManagers);
+        resp.put("allMembers", allMembers);
+        resp.put("currentRequesterRole", dist.getDistributorRole());
+
+        return ResponseEntity.ok(resp);
+    }
+
+    @PutMapping("/leave-status")
+    public ResponseEntity<?> toggleLeaveStatus(@RequestParam String distributorId, @RequestBody Map<String, Object> body) {
+        Optional<DistributorUser> distOpt = findDistributor(distributorId);
+        if (distOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Distributor not found: " + distributorId));
+        }
+        DistributorUser dist = distOpt.get();
+
+        boolean onLeave = body.get("onLeave") != null && Boolean.parseBoolean(body.get("onLeave").toString());
+        String delegatedToId = body.get("delegatedToId") != null ? body.get("delegatedToId").toString() : null;
+        String delegatedToName = body.get("delegatedToName") != null ? body.get("delegatedToName").toString() : null;
+        String leaveReason = body.get("leaveReason") != null ? body.get("leaveReason").toString() : null;
+
+        dist.setOnLeave(onLeave);
+        dist.setDelegatedToId(delegatedToId);
+        dist.setDelegatedToName(delegatedToName);
+        dist.setLeaveReason(onLeave ? leaveReason : null);
+        if (onLeave) {
+            dist.setStatus("ON_LEAVE");
+        } else {
+            dist.setStatus("ACTIVE");
+        }
+        distributorRepository.save(dist);
+
+        // Synchronize substitute status: exactly ONE manager is ACTIVE at any time
+        if (!"SUB_DISTRIBUTOR".equalsIgnoreCase(dist.getDistributorRole())) {
+            List<DistributorUser> subs = distributorRepository.findByParentHubId(dist.getDistributorId());
+            for (DistributorUser sub : subs) {
+                if (onLeave) {
+                    sub.setStatus("ACTIVE");
+                } else {
+                    sub.setStatus("STANDBY");
+                }
+                distributorRepository.save(sub);
+            }
+        }
+
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("success", true);
+        responseMap.put("message", onLeave ? "Hub marked ON LEAVE; dispatches delegated to " + (delegatedToName != null ? delegatedToName : "Co-Manager") : "Hub returned to ACTIVE duty.");
+        responseMap.put("onLeave", dist.isOnLeave());
+        responseMap.put("status", dist.getStatus());
+        responseMap.put("delegatedToName", dist.getDelegatedToName() != null ? dist.getDelegatedToName() : "");
+        responseMap.put("leaveReason", dist.getLeaveReason() != null ? dist.getLeaveReason() : "");
+
+        return ResponseEntity.ok(responseMap);
     }
 
     private LocalDateTime getTargetSlaDate(CustomerOrder o) {

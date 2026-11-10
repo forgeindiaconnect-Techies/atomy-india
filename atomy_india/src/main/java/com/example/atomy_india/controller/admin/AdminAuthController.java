@@ -92,6 +92,18 @@ public class AdminAuthController {
                         .body(Map.of("error", "Your distributor account is currently suspended. Please contact Super Admin."));
             }
 
+            boolean isSubDist = "SUB_DISTRIBUTOR".equalsIgnoreCase(dist.getDistributorRole());
+            boolean isSubstituteActive = false;
+            String primaryManagerName = null;
+            if (isSubDist && dist.getParentHubId() != null) {
+                Optional<DistributorUser> parentOpt = distributorRepository.findByDistributorId(dist.getParentHubId());
+                if (parentOpt.isPresent()) {
+                    DistributorUser parent = parentOpt.get();
+                    isSubstituteActive = parent.isOnLeave();
+                    primaryManagerName = parent.getContactPerson();
+                }
+            }
+
             Map<String, Object> resp = new HashMap<>();
             resp.put("role", "DISTRIBUTOR_ADMIN");
             resp.put("distributorId", dist.getDistributorId());
@@ -107,6 +119,13 @@ public class AdminAuthController {
             resp.put("commissionRate", dist.getCommissionRate());
             resp.put("territoryFee", dist.getTerritoryFee());
             resp.put("status", dist.getStatus());
+            resp.put("distributorRole", dist.getDistributorRole() != null ? dist.getDistributorRole() : "PRIMARY_MANAGER");
+            resp.put("parentHubId", dist.getParentHubId());
+            resp.put("parentHubName", dist.getParentHubName());
+            resp.put("effectiveHubId", dist.getEffectiveHubId());
+            resp.put("onLeave", dist.isOnLeave());
+            resp.put("isSubstituteActive", isSubstituteActive);
+            resp.put("primaryManagerName", primaryManagerName);
             resp.put("lastLogin", "Just now (IST)");
             return ResponseEntity.ok(resp);
         }

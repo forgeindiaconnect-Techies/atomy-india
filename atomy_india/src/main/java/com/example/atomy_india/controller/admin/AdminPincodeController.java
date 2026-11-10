@@ -127,8 +127,8 @@ public class AdminPincodeController {
             DistributorUser dist = distOpt.get();
             distributorRepository.delete(dist);
 
-            // Unassign pincodes
-            if (dist.getAssignedPincodes() != null) {
+            // Unassign pincodes only if primary distributor is being removed
+            if (!"SUB_DISTRIBUTOR".equalsIgnoreCase(dist.getDistributorRole()) && dist.getAssignedPincodes() != null) {
                 for (String pin : dist.getAssignedPincodes()) {
                     indiaPincodeRepository.findByPincode(pin).ifPresent(p -> {
                         p.setStatus("VACANT");
@@ -175,12 +175,45 @@ public class AdminPincodeController {
                         .body(Map.of("error", "Distributor with this email already exists: " + email));
             }
 
-            String distributorId = "DIST-" + pincode;
+            boolean isSub = req.get("isSubDistributor") != null 
+                    && Boolean.parseBoolean(req.get("isSubDistributor").toString());
+            Optional<DistributorUser> primaryHubOpt = distributorRepository.findByDistributorId("DIST-" + pincode);
+
+            String distributorId;
+            String role = "PRIMARY_MANAGER";
+            String parentHubId = null;
+            String parentHubName = null;
+
+            // Model 1: If marked as sub-distributor OR primary manager already exists for this PIN, configure as Shared Hub Co-Manager
+            if (isSub || primaryHubOpt.isPresent()) {
+                role = "SUB_DISTRIBUTOR";
+                parentHubId = "DIST-" + pincode;
+                DistributorUser primaryHub = primaryHubOpt.orElse(null);
+                parentHubName = primaryHub != null ? primaryHub.getBusinessName() : "Primary Hub (" + pincode + ")";
+
+                List<DistributorUser> existingSubs = distributorRepository.findByParentHubId(parentHubId);
+                distributorId = parentHubId + "-SUB" + (existingSubs.size() + 1);
+
+                if (hubAddress.isEmpty() && primaryHub != null && primaryHub.getHubAddress() != null) {
+                    hubAddress = primaryHub.getHubAddress();
+                }
+            } else {
+                distributorId = "DIST-" + pincode;
+            }
+
             DistributorUser d = new DistributorUser(distributorId, name, contact, email, phone, pincode, city, state);
+            d.setDistributorRole(role);
+            d.setParentHubId(parentHubId);
+            d.setParentHubName(parentHubName);
             d.setHubAddress(hubAddress);
             d.setPasswordHash(password); // Simple auth for operations portal
             d.setPrimaryPincode(pincode);
             d.setAssignedPincodes(new ArrayList<>(Collections.singletonList(pincode)));
+
+            if ("SUB_DISTRIBUTOR".equalsIgnoreCase(role)) {
+                boolean primaryOnLeave = primaryHubOpt.map(DistributorUser::isOnLeave).orElse(false);
+                d.setStatus(primaryOnLeave ? "ACTIVE" : "STANDBY");
+            }
 
             if (req.get("commissionRate") != null) {
                 try {
@@ -197,19 +230,23 @@ public class AdminPincodeController {
 
             DistributorUser saved = distributorRepository.save(d);
 
-            // Update matched PIN code in master registry to ASSIGNED
-            indiaPincodeRepository.findByPincode(pincode).ifPresent(pinDoc -> {
-                pinDoc.setStatus("ASSIGNED");
-                pinDoc.setAssignedDistributorId(saved.getDistributorId());
-                pinDoc.setAssignedDistributorName(saved.getBusinessName());
-                pinDoc.setAssignedDistributorEmail(saved.getEmail());
-                pinDoc.setAssignedDistributorPhone(saved.getPhone());
-                pinDoc.setAssignedAt(LocalDateTime.now());
-                pinDoc.setCommissionRate(saved.getCommissionRate());
-                pinDoc.setTerritoryFee(saved.getTerritoryFee());
-                pinDoc.setUpdatedAt(LocalDateTime.now());
-                indiaPincodeRepository.save(pinDoc);
-            });
+            // Update matched PIN code in master registry to ASSIGNED only if primary manager
+            if (!"SUB_DISTRIBUTOR".equalsIgnoreCase(role)) {
+                Optional<IndiaPincode> pinOpt = indiaPincodeRepository.findByPincode(pincode);
+                if (pinOpt.isPresent()) {
+                    IndiaPincode pinDoc = pinOpt.get();
+                    pinDoc.setStatus("ASSIGNED");
+                    pinDoc.setAssignedDistributorId(saved.getDistributorId());
+                    pinDoc.setAssignedDistributorName(saved.getBusinessName());
+                    pinDoc.setAssignedDistributorEmail(saved.getEmail());
+                    pinDoc.setAssignedDistributorPhone(saved.getPhone());
+                    pinDoc.setAssignedAt(LocalDateTime.now());
+                    pinDoc.setCommissionRate(saved.getCommissionRate());
+                    pinDoc.setTerritoryFee(saved.getTerritoryFee());
+                    pinDoc.setUpdatedAt(LocalDateTime.now());
+                    indiaPincodeRepository.save(pinDoc);
+                }
+            }
 
             // Send invitation email via Brevo
             try {

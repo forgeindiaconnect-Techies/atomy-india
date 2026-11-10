@@ -19,7 +19,11 @@ import {
   Bell,
   Headphones,
   Menu,
-  X
+  X,
+  ShieldCheck,
+  Sparkles,
+  Lock,
+  User
 } from 'lucide-react';
 import Header from '../Header/Header';
 import DistributorOverviewTab from './DistributorOverviewTab';
@@ -40,7 +44,8 @@ import {
   updateDistributorOrderStatus,
   fetchDistributorCustomers,
   fetchDistributorProfile,
-  updateDistributorStock
+  updateDistributorStock,
+  fetchHubTeam
 } from '../../services/distributorService';
 import { playOrderAlertSound, sendDesktopNotification } from '../../services/soundAlerts';
 import '../Admin/AdminDashboard.css';
@@ -65,10 +70,22 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const [isEditingProductView, setIsEditingProductView] = useState(false);
   const [currentEditingProduct, setCurrentEditingProduct] = useState(null);
   const [refreshInventoryKey, setRefreshInventoryKey] = useState(0);
+  const [hubTeamInfo, setHubTeamInfo] = useState(null);
 
   const currentDist = liveDistributor || distributorUser;
   const distId = currentDist?.distributorId || currentDist?.id || '';
   const assignedPins = currentDist?.assignedPincodes || [currentDist?.primaryPincode].filter(Boolean);
+
+  const isSubDistributor = currentDist?.distributorRole === 'SUB_DISTRIBUTOR';
+  const primaryManager = hubTeamInfo?.primaryManager;
+  // Follow primary manager's live leave status
+  const isPrimaryOnLeave = primaryManager !== undefined && primaryManager !== null
+    ? Boolean(primaryManager.onLeave)
+    : Boolean(currentDist?.isSubstituteActive || currentDist?.status === 'ACTIVE');
+  const isSubstituteInCommand = isSubDistributor && isPrimaryOnLeave;
+  const isSubstituteStandby = isSubDistributor && !isPrimaryOnLeave;
+
+  const alertedHandoverRef = useRef(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -78,6 +95,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const alertedOrderIdsRef = useRef(new Map());
 
   const triggerDistributorOrderAlert = (order, isLiveRealtime = false) => {
+    // If substitute is in standby (locked), DO NOT alert or ring order fanfare!
+    if (isSubstituteStandby) return;
     if (!order) return;
     const orderIdStr = String(order.orderId || order.id || '');
     if (!orderIdStr) return;
@@ -108,6 +127,56 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     });
   };
 
+  // Handover Notification: When primary takes leave, notify substitute first (ONCE), and then ring order notifications
+  useEffect(() => {
+    if (!isSubDistributor) return;
+
+    // Transition from Standby -> In Command (Primary just went on leave)
+    if (isPrimaryOnLeave && !alertedHandoverRef.current) {
+      alertedHandoverRef.current = true; // Lock so desktop notifications don't fire repeatedly like spam
+
+      // Reset any stale local dismissed order IDs so the newly unlocked substitute gets fresh alerts in bell
+      try {
+        localStorage.removeItem('atomy_admin_read_notifs_v3');
+      } catch (e) {}
+
+      // 1. FIRST: Handover notification & chime
+      playOrderAlertSound(1.0);
+      setActiveAlert({
+        type: 'order',
+        title: '⚡ PRIMARY DISTRIBUTOR ON LEAVE — HUB HANDOVER ACTIVATED!',
+        message: `Primary Distributor ${primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Franchise Owner'} has taken leave. You are now unlocked and in full operational command of Regional Hub (PIN: ${currentDist?.primaryPincode}). All order fulfillment and stock controls are active.`,
+        time: 'Just now',
+        targetId: 'handover'
+      });
+      sendDesktopNotification('⚡ Atomy Hub Handover: Operational Command Transferred!', {
+        body: `Primary Distributor is on leave. Full operational authority of Regional Hub PIN ${currentDist?.primaryPincode} has been transferred to you.`
+      });
+      showToast('⚡ Primary Distributor is on leave — Operational command handed over to you!');
+
+      // 2. THEN ONLY: Ring the order notification fanfare for active orders waiting to be fulfilled
+      const orderRingTimer = setTimeout(() => {
+        const pendingOrders = (orders || []).filter(o => {
+          const st = String(o.orderStatus || 'PLACED').toUpperCase();
+          return st !== 'DELIVERED' && st !== 'CANCELLED';
+        });
+        if (pendingOrders.length > 0) {
+          playOrderAlertSound(0.95);
+          showToast(`🔔 Hub Unlocked: ${pendingOrders.length} active customer orders waiting for fulfillment!`);
+        }
+      }, 1800);
+
+      return () => clearTimeout(orderRingTimer);
+    }
+
+    // Transition from In Command -> Standby (Primary returned from leave)
+    if (!isPrimaryOnLeave && alertedHandoverRef.current) {
+      alertedHandoverRef.current = false; // Reset lock so next time primary takes leave it will notify
+      showToast('🔒 Primary Distributor has returned. Hub console returned to Standby mode.');
+      setActiveAlert(null);
+    }
+  }, [isSubDistributor, isPrimaryOnLeave]);
+
   const matchesDistributorTerritory = (o) => {
     if (!o) return false;
     const pin = String(o.pincode || o.shippingAddress?.pincode || '').trim();
@@ -122,13 +191,17 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const loadDashboardData = async (isBackground = false) => {
     if (!isBackground) setIsLoading(true);
     try {
-      const [profileRes, statsRes, ordersRes, custsRes] = await Promise.allSettled([
+      const [profileRes, statsRes, ordersRes, custsRes, teamRes] = await Promise.allSettled([
         fetchDistributorProfile(distId),
         fetchDistributorStats(distId),
         fetchDistributorOrders(distId, 'ALL'),
-        fetchDistributorCustomers(distId)
+        fetchDistributorCustomers(distId),
+        fetchHubTeam(distId)
       ]);
 
+      if (teamRes.status === 'fulfilled' && teamRes.value) {
+        setHubTeamInfo(teamRes.value);
+      }
       if (profileRes.status === 'fulfilled' && profileRes.value) {
         setLiveDistributor(prev => ({ ...prev, ...profileRes.value }));
       }
@@ -200,6 +273,24 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         syncChannel = new BroadcastChannel('atomy_sync_channel');
         syncChannel.onmessage = (event) => {
           const data = event.data;
+          if (data && data.type === 'HUB_HANDOVER_STATUS_CHANGED') {
+            if (isSubDistributor) {
+              setHubTeamInfo(prev => ({
+                ...(prev || {}),
+                primaryManager: {
+                  ...(prev?.primaryManager || {}),
+                  onLeave: Boolean(data.onLeave)
+                }
+              }));
+              setLiveDistributor(prev => ({
+                ...(prev || {}),
+                isSubstituteActive: Boolean(data.onLeave),
+                status: data.onLeave ? 'ACTIVE' : 'STANDBY'
+              }));
+            }
+            loadDashboardData(true);
+            return;
+          }
           if (data && (data.type === 'ORDER_PLACED' || data.type === 'NEW_ORDER') && data.order) {
             const o = data.order;
             if (matchesDistributorTerritory(o)) {
@@ -217,7 +308,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     const pollInterval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
       loadDashboardData(true);
-    }, 15000);
+    }, 5000);
 
     return () => {
       if (orderChannel) orderChannel.close();
@@ -227,6 +318,10 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   }, [distId, JSON.stringify(assignedPins)]);
 
   const handleUpdateTracking = async (orderId, trackingPayload) => {
+    if (isSubstituteStandby) {
+      showToast('Action locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty.');
+      return;
+    }
     const targetStatus = trackingPayload.orderStatus || trackingPayload.currentStatus || 'SHIPPED';
 
     // 1. Optimistic update immediately in memory for instant UI response
@@ -336,6 +431,10 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   };
 
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    if (isSubstituteStandby) {
+      showToast('Action locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty.');
+      return;
+    }
     // 1. Optimistic update immediately in memory for instant UI response
     setOrders(prev => prev.map(o => {
       if (o.orderId === orderId || o.id === orderId) {
@@ -430,6 +529,10 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
   // Open Full Product Editor for the Sub-Admin
   const handleOpenEditProduct = (prod) => {
+    if (isSubstituteStandby) {
+      showToast('Action locked: Temporary Substitute is in STANDBY mode while Primary Distributor is on active duty.');
+      return;
+    }
     const isHemohim = prod.categoryId === 'hemohim' || (prod.name && prod.name.toLowerCase().includes('hemohim')) || prod.id === 'D00101' || prod.id === 'D00102' || prod.id === 'D00104';
     setCurrentEditingProduct({
       ...prod,
@@ -501,15 +604,21 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
   // Header profile mapping
   const headerAdminProfile = {
-    name: currentDist?.businessName || currentDist?.contactPerson || 'Regional Distributor Hub',
+    name: isSubDistributor
+      ? (currentDist?.contactPerson || 'Temporary Substitute')
+      : (currentDist?.businessName || currentDist?.contactPerson || 'Regional Distributor Hub'),
     email: currentDist?.email || 'distributor@atomy.com',
-    role: `Regional Distributor (PIN: ${currentDist?.primaryPincode})`,
+    role: isSubDistributor
+      ? (isSubstituteInCommand ? 'Temporary Substitute (In Command)' : 'Temporary Substitute (Standby)')
+      : `Regional Distributor (PIN: ${currentDist?.primaryPincode})`,
     pincode: currentDist?.primaryPincode,
-    assignedAreaText: `Assigned Area: PIN ${currentDist?.primaryPincode || '635002'}`,
-    portalTitle: 'Atomy Regional Hub',
-    portalSubtitle: 'Logistics Console',
+    assignedAreaText: isSubDistributor
+      ? `Substitute: PIN ${currentDist?.primaryPincode || '635002'}`
+      : `Assigned Area: PIN ${currentDist?.primaryPincode || '635002'}`,
+    portalTitle: isSubDistributor ? `${currentDist?.contactPerson || 'Substitute'} Portal` : 'Atomy Regional Hub',
+    portalSubtitle: isSubDistributor ? `Substitute for ${currentDist?.parentHubName || 'Regional Hub'}` : 'Logistics Console',
     location: `${currentDist?.city || 'Regional Hub'}, ${currentDist?.state || 'India'}`,
-    department: `Territory Hub Logistics (PIN: ${currentDist?.primaryPincode || '110001'})`,
+    department: isSubDistributor ? `Temporary Substitute Hub Operations` : `Territory Hub Logistics (PIN: ${currentDist?.primaryPincode || '110001'})`,
     employeeId: currentDist?.distributorId || 'DIST-IN'
   };
 
@@ -517,6 +626,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
   // Deduplicated delayed orders in territory for notification bell
   const delayedOrders = useMemo(() => {
+    // While in standby relief mode, hide order alerts from notification bell
+    if (isSubstituteStandby) return [];
     const seen = new Set();
     return orders.filter(o => {
       const st = String(o.orderStatus || 'PLACED').toUpperCase();
@@ -531,10 +642,12 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       }
       return false;
     });
-  }, [orders]);
+  }, [orders, isSubstituteStandby]);
 
   // Deduplicated recent new unfulfilled orders
   const recentNewOrders = useMemo(() => {
+    // While in standby relief mode, hide order alerts from notification bell
+    if (isSubstituteStandby) return [];
     const seen = new Set();
     return orders.filter(o => {
       const st = String(o.orderStatus || 'PLACED').toUpperCase();
@@ -544,28 +657,32 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       seen.add(oid);
       return true;
     }).slice(0, 5);
-  }, [orders]);
+  }, [orders, isSubstituteStandby]);
 
   const overviewStatsMapped = {
-    todayOrdersCount: (orders || []).filter(o => new Date(o.createdAt || Date.now()) >= new Date(new Date().setHours(0,0,0,0))).length,
-    unreadOrdersCount: recentNewOrders.length,
-    delayedCount: delayedOrders.length,
-    delayedOrders: delayedOrders,
-    unreadDelayedCount: delayedOrders.length,
+    todayOrdersCount: isSubstituteStandby ? 0 : (orders || []).filter(o => new Date(o.createdAt || Date.now()) >= new Date(new Date().setHours(0,0,0,0))).length,
+    unreadOrdersCount: isSubstituteStandby ? 0 : recentNewOrders.length,
+    delayedCount: isSubstituteStandby ? 0 : delayedOrders.length,
+    delayedOrders: isSubstituteStandby ? [] : delayedOrders,
+    unreadDelayedCount: isSubstituteStandby ? 0 : delayedOrders.length,
     unreadTicketsCount: 0,
     unreadLowStockCount: 0,
-    recentNewOrders: recentNewOrders
+    recentNewOrders: isSubstituteStandby ? [] : recentNewOrders,
+    handoverNotification: (isSubDistributor && isSubstituteInCommand) ? {
+      title: '⚡ Handover Active: In Command',
+      message: `Primary Distributor ${primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Franchise Owner'} is on leave. Full operational authority of Regional Hub PIN ${currentDist?.primaryPincode} is transferred to you.`
+    } : null
   };
 
   const NAV_ITEMS = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Stock', icon: Boxes },
-    { id: 'orders', label: 'Customer Orders', icon: Package, badge: delayedOrders.length > 0 ? `${delayedOrders.length} Late` : null },
-    { id: 'customers', label: 'Customer Details', icon: Users },
-    { id: 'support', label: 'Customer Support', icon: Headphones },
-    { id: 'membership', label: 'Membership Accounts', icon: Crown },
-    { id: 'finance', label: 'Finance & Settlements', icon: IndianRupee },
-    { id: 'settings', label: 'Hub Settings', icon: Settings }
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard, isLocked: isSubstituteStandby },
+    { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Stock', icon: Boxes, isLocked: isSubstituteStandby },
+    { id: 'orders', label: 'Customer Orders', icon: Package, badge: (!isSubstituteStandby && delayedOrders.length > 0) ? `${delayedOrders.length} Late` : null, isLocked: isSubstituteStandby },
+    { id: 'customers', label: 'Customer Details', icon: Users, isLocked: isSubstituteStandby },
+    { id: 'support', label: 'Customer Support', icon: Headphones, isLocked: isSubstituteStandby },
+    { id: 'membership', label: 'Membership Accounts', icon: Crown, isLocked: isSubstituteStandby },
+    { id: 'finance', label: 'Finance & Settlements', icon: IndianRupee, isLocked: isSubstituteStandby },
+    { id: 'settings', label: isSubDistributor ? 'Profile Settings' : 'Hub Settings', icon: isSubDistributor ? User : Settings, isLocked: false }
   ];
 
   return (
@@ -582,7 +699,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           setIsEditingProductView(false);
           setActiveTab('settings');
         }}
-        notificationCount={delayedOrders.length}
+        notificationCount={isSubstituteStandby ? 0 : (delayedOrders.length + (overviewStatsMapped.handoverNotification ? 1 : 0))}
         overviewStats={overviewStatsMapped}
         onSelectNotificationTab={(tab) => {
           setIsEditingProductView(false);
@@ -645,6 +762,21 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
             <span className="live-status-dot"></span>
             <span className="live-status-title">Atomy India Regional Hub Logistics Console</span>
             <span className="live-store-tag">Assigned Area: PIN {currentDist?.primaryPincode}</span>
+            {isSubDistributor && isSubstituteStandby && (
+              <span style={{ fontSize: '11px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={11} /> STANDBY RELIEF MODE (Primary Active)
+              </span>
+            )}
+            {isSubDistributor && isSubstituteInCommand && (
+              <span style={{ fontSize: '11px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Sparkles size={11} /> TEMPORARY COMMAND ACTIVE
+              </span>
+            )}
+            {currentDist?.onLeave && (
+              <span style={{ fontSize: '11px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                🌴 On Leave (Delegated to {currentDist?.delegatedToName || 'Temporary Substitute'})
+              </span>
+            )}
           </div>
         </div>
 
@@ -660,29 +792,6 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
             <ExternalLink size={13} />
             <span>Customer Store (5173)</span>
           </a>
-
-          {onLogout && (
-            <button
-              type="button"
-              className="quick-refresh-btn quick-strip-logout-btn"
-              onClick={onLogout}
-              style={{
-                textDecoration: 'none',
-                background: '#fee2e2',
-                color: '#dc2626',
-                border: '1px solid #fecaca',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
-                fontWeight: 700
-              }}
-              title="Sign Out of Regional Hub Console"
-            >
-              <LogOut size={13} />
-              <span>Sign Out</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -752,19 +861,6 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                 <ExternalLink size={15} />
                 <span>Customer Store (5173)</span>
               </a>
-              {onLogout && (
-                <button
-                  type="button"
-                  className="mobile-drawer-logout-btn"
-                  onClick={() => {
-                    setIsMobileNavOpen(false);
-                    onLogout();
-                  }}
-                >
-                  <LogOut size={15} />
-                  <span>Sign Out</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -775,114 +871,40 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         {/* Left Master Sidebar */}
         <aside className="admin-master-sidebar">
           <nav className="sidebar-nav-menu">
-            <button
-              className={`sidebar-nav-button ${activeTab === 'overview' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => {
-                setIsEditingProductView(false);
-                setActiveTab('overview');
-              }}
-            >
-              <LayoutDashboard size={20} />
-              <span>Overview</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${(activeTab === 'inventory' || isEditingProductView) ? 'active' : ''}`}
-              onClick={() => {
-                setIsEditingProductView(false);
-                setActiveTab('inventory');
-              }}
-            >
-              <Boxes size={20} />
-              <span>{isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Stock'}</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'orders' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => {
-                setIsEditingProductView(false);
-                setActiveTab('orders');
-              }}
-            >
-              <Package size={20} />
-              <span>Customer Orders</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'customers' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => {
-                setIsEditingProductView(false);
-                setActiveTab('customers');
-              }}
-            >
-              <Users size={20} />
-              <span>Customer Details</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'support' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => {
-                setIsEditingProductView(false);
-                setActiveTab('support');
-              }}
-            >
-              <Headphones size={20} />
-              <span>Customer Support</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'membership' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => {
-                setIsEditingProductView(false);
-                setActiveTab('membership');
-              }}
-            >
-              <Crown size={20} />
-              <span>Membership Accounts</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'finance' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => {
-                setIsEditingProductView(false);
-                setActiveTab('finance');
-              }}
-            >
-              <IndianRupee size={20} />
-              <span>Finance &amp; Settlements</span>
-            </button>
-
-            <button
-              className={`sidebar-nav-button ${activeTab === 'settings' && !isEditingProductView ? 'active' : ''}`}
-              onClick={() => {
-                setIsEditingProductView(false);
-                setActiveTab('settings');
-              }}
-            >
-              <Settings size={20} />
-              <span>Hub Settings</span>
-            </button>
-
-            <div style={{ margin: '14px 10px', borderTop: '1px solid #e2e8f0' }}></div>
-
-            <button
-              type="button"
-              className="sidebar-nav-button logout-sidebar-btn"
-              onClick={onLogout}
-              style={{
-                color: '#dc2626',
-                fontWeight: 700
-              }}
-            >
-              <LogOut size={20} />
-              <span>Sign Out</span>
-            </button>
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id && !isEditingProductView;
+              const isLocked = item.isLocked;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`sidebar-nav-button ${isActive ? 'active' : ''} ${isLocked ? 'is-locked-tab' : ''}`}
+                  onClick={() => {
+                    setIsEditingProductView(false);
+                    setActiveTab(item.id);
+                    if (isLocked) {
+                      showToast(`Access Blocked: ${item.label} is locked while Primary is on active duty.`);
+                    }
+                  }}
+                  style={isLocked ? { opacity: 0.68 } : {}}
+                  title={isLocked ? `${item.label} (Locked — Primary Active)` : item.label}
+                >
+                  <Icon size={20} />
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+                    <span>{item.label}</span>
+                    {isLocked && <Lock size={12} style={{ color: '#d97706', marginLeft: 'auto', flexShrink: 0 }} />}
+                    {item.badge && !isLocked && <span className="sidebar-nav-badge">{item.badge}</span>}
+                  </span>
+                </button>
+              );
+            })}
           </nav>
 
           <div className="sidebar-footer-box">
             <div className="admin-status-indicator">
-              <span className="dot-green"></span>
-              <span>Online • PIN {currentDist?.primaryPincode}</span>
+              <span className={isSubstituteStandby ? "dot-amber" : "dot-green"} style={isSubstituteStandby ? { background: '#f59e0b', width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' } : {}}></span>
+              <span>{isSubstituteStandby ? 'Standby' : 'Online'} • PIN {currentDist?.primaryPincode}</span>
             </div>
           </div>
         </aside>
@@ -899,8 +921,235 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                 setCurrentEditingProduct(null);
               }}
             />
+          ) : isSubstituteStandby && activeTab !== 'settings' ? (
+            <div className="admin-tab-content standby-lockout-tab" style={{ padding: '24px 20px' }}>
+              <div style={{
+                maxWidth: '840px',
+                margin: '10px auto',
+                background: '#ffffff',
+                borderRadius: '16px',
+                border: '1.5px solid #fde68a',
+                boxShadow: '0 8px 30px rgba(217, 119, 6, 0.08)',
+                padding: '40px 36px',
+                textAlign: 'center'
+              }}>
+                {/* Big Lock / Shield Graphic */}
+                <div style={{
+                  width: '84px',
+                  height: '84px',
+                  borderRadius: '50%',
+                  background: '#fffbeb',
+                  border: '3px solid #fef3c7',
+                  color: '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 20px auto',
+                  boxShadow: '0 4px 16px rgba(245, 158, 11, 0.15)'
+                }}>
+                  <ShieldCheck size={46} strokeWidth={2.2} />
+                </div>
+
+                <div style={{
+                  display: 'inline-block',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.8px',
+                  background: '#fef3c7',
+                  color: '#b45309',
+                  border: '1px solid #fde68a',
+                  padding: '5px 14px',
+                  borderRadius: '20px',
+                  marginBottom: '14px'
+                }}>
+                  🔒 Standby Relief Mode Active — All Operations Locked
+                </div>
+
+                <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: '0 0 10px 0' }}>
+                  Primary Distributor is Currently Active
+                </h1>
+
+                <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.6, maxWidth: '640px', margin: '0 auto 26px auto' }}>
+                  Primary Distributor <strong style={{ color: '#0f172a' }}>{primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Selva Kumar'}</strong> is on active duty managing this hub. As the Temporary Substitute / Co-Manager, all hub operational pages (Inventory, Orders, Customers, Membership, and Settlements) are locked while the Primary is active.
+                </p>
+
+                {/* Hub & Role Summary Card */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '14px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  textAlign: 'left',
+                  marginBottom: '26px'
+                }}>
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '3px' }}>
+                      Regional Hub Franchise
+                    </span>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Building2 size={15} color="#00A3E0" />
+                      {currentDist?.parentHubName || currentDist?.businessName || 'Regional Hub'}
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      Territory PIN: <strong>{currentDist?.primaryPincode}</strong>
+                    </span>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '3px' }}>
+                      Primary Manager on Duty
+                    </span>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                      {primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Selva Kumar'} (Active)
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      {primaryManager?.email || 'primary.hub@atomy.com'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '3px' }}>
+                      Your Account &amp; Status
+                    </span>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#b45309', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Clock size={15} color="#b45309" />
+                      {currentDist?.contactPerson || 'Temporary Substitute'} (Standby)
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                      Account ID: <strong>{currentDist?.distributorId}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Blocked Pages Overview List */}
+                <div style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fef3c7',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  textAlign: 'left',
+                  marginBottom: '28px'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                    🔒 Hub Operational Pages Blocked in Standby Mode:
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {[
+                      'Overview & Metrics',
+                      'Inventory & Stock Management',
+                      'Customer Orders & Logistics Dispatches',
+                      'Customer Directory & Contact Details',
+                      'Customer Support Escalations',
+                      'Membership Accounts & Tier Approvals',
+                      'Finance & Remittance Settlements'
+                    ].map(p => (
+                      <span key={p} style={{
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: '#ffffff',
+                        color: '#78350f',
+                        border: '1px solid #fde68a',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}>
+                        <Lock size={11} color="#d97706" /> {p}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('settings')}
+                    style={{
+                      background: '#00A3E0',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(0, 163, 224, 0.25)'
+                    }}
+                  >
+                    <User size={18} />
+                    <span>Manage My Profile Settings →</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      loadDashboardData();
+                      showToast('Checking Primary Distributor live status...');
+                    }}
+                    style={{
+                      background: '#f1f5f9',
+                      color: '#334155',
+                      border: '1px solid #cbd5e1',
+                      padding: '12px 20px',
+                      borderRadius: '10px',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <RefreshCw size={16} />
+                    <span>Refresh Live Status</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             <>
+              {/* TEMPORARY COMMAND ACTIVE BANNER */}
+              {isSubstituteInCommand && (
+                <div style={{
+                  background: '#ecfdf5',
+                  border: '1.5px solid #a7f3d0',
+                  borderRadius: '10px',
+                  padding: '14px 18px',
+                  margin: '16px 24px 0 24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
+                      <Sparkles size={22} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '14px', color: '#065f46', marginBottom: '2px' }}>
+                        ⚡ TEMPORARY COMMAND ACTIVE — Full Operational Authority
+                      </div>
+                      <div style={{ fontSize: '12.5px', color: '#047857', lineHeight: 1.4 }}>
+                        Primary Distributor <strong>{primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Franchise Owner'}</strong> is currently on leave. You have full operational control over stock, orders, and customer store pickups.
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: 800, background: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0', padding: '5px 12px', borderRadius: '20px' }}>
+                    IN COMMAND
+                  </span>
+                </div>
+              )}
+
               {activeTab === 'overview' && (
                 <div className="admin-tab-content">
                   <DistributorOverviewTab
@@ -920,6 +1169,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     distributor={currentDist}
                     refreshKey={refreshInventoryKey}
                     onOpenEditProduct={handleOpenEditProduct}
+                    isStandby={isSubstituteStandby}
                   />
                 </div>
               )}
@@ -934,6 +1184,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   onRefreshOrders={loadDashboardData}
                   showToast={showToast}
                   isLoading={isLoading}
+                  isStandby={isSubstituteStandby}
                 />
               )}
 
@@ -983,7 +1234,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     distributor={currentDist}
                     onLogout={onLogout}
                     onSaveSettings={() => {
-                      showToast('Hub settings updated successfully!');
+                      showToast(isSubDistributor ? 'Personal profile updated successfully!' : 'Hub settings updated successfully!');
                       loadDashboardData();
                     }}
                   />

@@ -1582,6 +1582,24 @@
   color: #002c6c;
 }
 
+.admin-master-assigned-pin {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  display: block;
+  line-height: 1.25;
+}
+
+.admin-master-assigned-pin.is-substitute {
+  color: #b45309;
+}
+
+.admin-master-assigned-pin.is-primary {
+  color: #0369a1;
+}
+
 .admin-master-role {
   font-size: 10.5px;
   font-weight: 600;
@@ -1885,11 +1903,19 @@
   }
 
   .admin-master-assigned-pin {
-    font-size: 9.5px !important;
-    font-weight: 600 !important;
-    color: #bae6fd !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #0369a1 !important;
     white-space: nowrap !important;
     display: block !important;
+  }
+
+  .admin-master-assigned-pin.is-substitute {
+    color: #b45309 !important;
+  }
+
+  .admin-master-assigned-pin.is-primary {
+    color: #0369a1 !important;
   }
 
   .admin-master-role {
