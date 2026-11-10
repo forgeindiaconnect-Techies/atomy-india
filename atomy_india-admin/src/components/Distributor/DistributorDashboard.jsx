@@ -167,10 +167,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   useEffect(() => {
     if (!isSubDistributor) return;
 
-    const wasAlertedInSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(handoverStorageKey) === 'true';
-
-    // Initial mount / page refresh: capture existing status WITHOUT firing desktop alerts or fanfare
-    if (prevLeaveStatusRef.current === null) {
+    // During initial mount / page refresh: capture existing status and return without alerts
+    if (isInitialLoadRef.current) {
       prevLeaveStatusRef.current = Boolean(isPrimaryOnLeave);
       if (isPrimaryOnLeave) {
         try {
@@ -179,6 +177,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       }
       return;
     }
+
+    if (prevLeaveStatusRef.current === null) {
+      prevLeaveStatusRef.current = Boolean(isPrimaryOnLeave);
+      return;
+    }
+
+    const wasAlertedInSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(handoverStorageKey) === 'true';
 
     // LIVE Transition from Standby -> In Command (Primary just went on leave while substitute is live in session)
     if (isPrimaryOnLeave && !prevLeaveStatusRef.current && !wasAlertedInSession) {
@@ -192,11 +197,6 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       const bannerTimer = setTimeout(() => {
         setShowCommandBanner(false);
       }, 7000);
-
-      // Reset any stale local dismissed order IDs so the newly unlocked substitute gets fresh alerts in bell
-      try {
-        localStorage.removeItem('atomy_admin_read_notifs_v3');
-      } catch (e) {}
 
       // 1. FIRST: Handover notification & chime
       playOrderAlertSound(1.0);

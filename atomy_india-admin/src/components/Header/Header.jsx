@@ -147,6 +147,7 @@ export default function Header({
         nextSet.add(`delayed_${id}`);
       });
     });
+    nextSet.add('hub_handover_alert');
     setLocalDismissedIds(nextSet);
     try {
       localStorage.setItem('atomy_admin_read_notifs_v3', JSON.stringify(Array.from(nextSet)));
@@ -195,7 +196,7 @@ export default function Header({
 
   const ticketsCount = overviewStats?.unreadTicketsCount || 0;
   const stockCount = overviewStats?.unreadLowStockCount || 0;
-  const hasHandover = Boolean(overviewStats?.handoverNotification);
+  const hasHandover = Boolean(overviewStats?.handoverNotification) && !localDismissedIds.has('hub_handover_alert');
   const effectiveCount = (hasHandover ? 1 : 0) + uniqueRecentOrders.length + uniqueDelayedOrders.length + ticketsCount + stockCount;
 
   useEffect(() => {
@@ -649,7 +650,7 @@ export default function Header({
                           )}
                         </div>
                         <div className="notif-dropdown-body">
-                          {overviewStats?.handoverNotification && (
+                          {hasHandover && (
                             <div
                               className="notif-item handover-notif-item"
                               style={{
@@ -658,14 +659,17 @@ export default function Header({
                                 padding: '12px 14px',
                                 marginBottom: '10px',
                                 borderRadius: '8px',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '10px'
                               }}
                               onClick={() => {
                                 onSelectNotificationTab && onSelectNotificationTab('orders');
                                 setIsAdminNotifOpen(false);
                               }}
                             >
-                              <div className="notif-icon-circle" style={{ background: '#d1fae5', color: '#059669' }}>
+                              <div className="notif-icon-circle" style={{ background: '#d1fae5', color: '#059669', flexShrink: 0 }}>
                                 <Sparkles size={16} />
                               </div>
                               <div className="notif-text" style={{ flex: 1 }}>
@@ -677,6 +681,17 @@ export default function Header({
                                   {overviewStats.handoverNotification.message}
                                 </span>
                               </div>
+                              <button
+                                type="button"
+                                className="notif-dismiss-btn"
+                                title="Dismiss notification"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDismissOrder('hub_handover_alert');
+                                }}
+                              >
+                                <X size={14} />
+                              </button>
                             </div>
                           )}
                           {uniqueRecentOrders.length > 0 ? (
