@@ -40,7 +40,8 @@ public class CustomerProductController {
         String pin = cleanPin.trim();
 
         // 1. Direct primary PIN or explicitly assigned PIN match (strictly 1 distributor per PIN code)
-        Optional<DistributorUser> distOpt = distributorRepository.findByPrimaryPincode(pin)
+        Optional<DistributorUser> distOpt = distributorRepository.findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER")
+                .or(() -> distributorRepository.findByPrimaryPincode(pin).stream().findFirst())
                 .or(() -> distributorRepository.findByAssignedPincodesContaining(pin));
         if (distOpt.isPresent()) return distOpt;
 

@@ -106,6 +106,11 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const isSubstituteInCommand = isSubDistributor && isPrimaryOnLeave;
   const isSubstituteStandby = isSubDistributor && !isPrimaryOnLeave;
 
+  const isSubstituteStandbyRef = useRef(isSubstituteStandby);
+  useEffect(() => {
+    isSubstituteStandbyRef.current = isSubstituteStandby;
+  }, [isSubstituteStandby]);
+
   // Temporary Command Active banner state
   const [showCommandBanner, setShowCommandBanner] = useState(false);
 
@@ -131,8 +136,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const alertedOrderIdsRef = useRef(new Map());
 
   const triggerDistributorOrderAlert = (order, isLiveRealtime = false) => {
-    // If substitute is in standby (locked), DO NOT alert or ring order fanfare!
-    if (isSubstituteStandby) return;
+    // If substitute is in standby (Primary is ACTIVE), strictly DO NOT alert or ring order fanfare!
+    if (isSubDistributor && isSubstituteStandbyRef.current) return;
     if (!order) return;
     const orderIdStr = String(order.orderId || order.id || '');
     if (!orderIdStr) return;
@@ -289,12 +294,14 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
         // Detect newly arrived orders not in initial load
         if (!isInitialLoadRef.current) {
-          freshOrders.forEach(o => {
-            const oid = String(o.orderId || o.id || '');
-            if (oid && !knownOrderIdsRef.current.has(oid)) {
-              triggerDistributorOrderAlert(o, true);
-            }
-          });
+          if (!(isSubDistributor && isSubstituteStandbyRef.current)) {
+            freshOrders.forEach(o => {
+              const oid = String(o.orderId || o.id || '');
+              if (oid && !knownOrderIdsRef.current.has(oid)) {
+                triggerDistributorOrderAlert(o, true);
+              }
+            });
+          }
         }
 
         freshOrders.forEach(o => {
@@ -332,6 +339,10 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           if (data && (data.type === 'ORDER_PLACED' || data.type === 'NEW_ORDER') && data.order) {
             const o = data.order;
             if (matchesDistributorTerritory(o)) {
+              if (isSubDistributor && isSubstituteStandbyRef.current) {
+                // Primary is on active duty: Co-Manager in standby does not receive or ring orders
+                return;
+              }
               triggerDistributorOrderAlert(o, true);
               loadDashboardData(true);
             }
@@ -368,6 +379,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           if (data && (data.type === 'ORDER_PLACED' || data.type === 'NEW_ORDER') && data.order) {
             const o = data.order;
             if (matchesDistributorTerritory(o)) {
+              if (isSubDistributor && isSubstituteStandbyRef.current) {
+                return;
+              }
               triggerDistributorOrderAlert(o, true);
               loadDashboardData(true);
             }

@@ -14,7 +14,9 @@ public interface DistributorRepository extends MongoRepository<DistributorUser, 
 
     Optional<DistributorUser> findByDistributorId(String distributorId);
 
-    Optional<DistributorUser> findByPrimaryPincode(String primaryPincode);
+    List<DistributorUser> findByPrimaryPincode(String primaryPincode);
+
+    Optional<DistributorUser> findByPrimaryPincodeAndDistributorRole(String primaryPincode, String distributorRole);
 
     Optional<DistributorUser> findByAssignedPincodesContaining(String pincode);
 

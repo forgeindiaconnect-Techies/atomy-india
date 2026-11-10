@@ -182,6 +182,15 @@ const getInitialNavHistory = () => {
 
 export default function App() {
   const [cart, setCart] = useState([]);
+  // Isolated instant Buy Now item that does not pollute or persist into the shopping cart
+  const [buyNowItem, setBuyNowItem] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('atomy_buy_now_item');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
@@ -194,6 +203,24 @@ export default function App() {
   // Initialize view from URL if present
   const initialRoute = useMemo(() => parseRouteFromLocation(), []);
   const [currentView, setCurrentView] = useState(initialRoute.view);
+
+  // Keep sessionStorage in sync for Buy Now item across refreshes on /order-sheet
+  useEffect(() => {
+    try {
+      if (buyNowItem) {
+        sessionStorage.setItem('atomy_buy_now_item', JSON.stringify(buyNowItem));
+      } else {
+        sessionStorage.removeItem('atomy_buy_now_item');
+      }
+    } catch {}
+  }, [buyNowItem]);
+
+  // When user leaves /order-sheet without ordering, automatically clear buyNowItem
+  useEffect(() => {
+    if (currentView !== 'order-sheet' && buyNowItem) {
+      setBuyNowItem(null);
+    }
+  }, [currentView]);
   const [authMode, setAuthMode] = useState(initialRoute.authMode || 'signin');
   const [selectedCategory, setSelectedCategory] = useState(initialRoute.categoryId || 'health');
   const [selectedMembershipPlan, setSelectedMembershipPlan] = useState(initialRoute.plan || 'MONTHLY');
@@ -1175,6 +1202,8 @@ export default function App() {
       } catch { return null; }
     })();
     if (!activeAuthUser) return requireAuth('sign in to proceed to checkout and payment');
+    // Clear any one-off instant Buy Now item so normal cart checkout takes precedence
+    setBuyNowItem(null);
     if (Array.isArray(itemsToCheckout) && itemsToCheckout.length > 0) {
       setCart(itemsToCheckout);
     }
@@ -1353,24 +1382,19 @@ export default function App() {
     const buyQty = Math.min(requestedQty, maxOrderable);
     recordProductAddedToCart(product.id, buyQty);
     const pricing = calculateProductPricing(product, isMember);
-    const itemToCart = {
+    const instantItem = {
       ...product,
       stockQuantity: availableStock,
       price: pricing.activePrice,
       isMemberPrice: isMember,
-      pv: pricing.pv
+      pv: pricing.pv,
+      qty: buyQty
     };
 
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.id === product.id ? { ...item, ...itemToCart, qty: Math.min(maxOrderable, item.qty + buyQty) } : item
-        );
-      }
-      return [...prev, { ...itemToCart, qty: buyQty }];
-    });
-    handleNavigateOrderSheet();
+    // Isolated instant purchase: does NOT pollute or persist into the permanent shopping cart
+    setBuyNowItem(instantItem);
+    setIsCartOpen(false);
+    navigateTo('order-sheet');
   };
 
   const handleUpdateQty = (id, newQty) => {
@@ -1415,7 +1439,11 @@ export default function App() {
   };
 
   const handleOrderSuccess = (placedOrder) => {
-    setCart([]);
+    if (buyNowItem) {
+      setBuyNowItem(null);
+    } else {
+      setCart([]);
+    }
     setPlacedOrders((prev) => [placedOrder, ...prev]);
     // Record purchased count for each item!
     if (Array.isArray(placedOrder?.items)) {
@@ -1643,15 +1671,48 @@ export default function App() {
           /* Atomy Official Order Sheet & Payment Details Page matching https://in.atomy.com/order/sheet */
           <div className="shopping-body-wrapper order-sheet-body-wrapper">
             <OrderSheetPage
-              cartItems={cart}
-              onUpdateQty={handleUpdateQty}
-              onRemoveItem={handleRemoveItem}
-              onNavigateHome={handleNavigateHome}
-              onNavigateBack={handleGoBack}
-              onNavigateCart={handleNavigateCart}
+              cartItems={buyNowItem ? [buyNowItem] : cart}
+              onUpdateQty={(id, newQty) => {
+                if (buyNowItem && buyNowItem.id === id) {
+                  if (newQty <= 0) {
+                    setBuyNowItem(null);
+                    handleNavigateHome();
+                  } else {
+                    setBuyNowItem(prev => prev ? { ...prev, qty: newQty } : null);
+                  }
+                } else {
+                  handleUpdateQty(id, newQty);
+                }
+              }}
+              onRemoveItem={(id) => {
+                if (buyNowItem && buyNowItem.id === id) {
+                  setBuyNowItem(null);
+                  handleNavigateHome();
+                } else {
+                  handleRemoveItem(id);
+                }
+              }}
+              onNavigateHome={() => {
+                setBuyNowItem(null);
+                handleNavigateHome();
+              }}
+              onNavigateBack={() => {
+                setBuyNowItem(null);
+                handleGoBack();
+              }}
+              onNavigateCart={() => {
+                setBuyNowItem(null);
+                handleNavigateCart();
+              }}
               onNavigateOrders={handleNavigateOrders}
               onOrderSuccess={handleOrderSuccess}
-              onClearCart={() => setCart([])}
+              onClearCart={() => {
+                if (buyNowItem) {
+                  setBuyNowItem(null);
+                } else {
+                  setCart([]);
+                }
+              }}
               onAddToCart={handleAddToCart}
               onProductClick={handleSelectProduct}
               isMember={isMember}

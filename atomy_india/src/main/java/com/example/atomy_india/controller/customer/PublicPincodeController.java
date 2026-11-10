@@ -30,7 +30,7 @@ public class PublicPincodeController {
         try {
             List<DistributorUser> dists = distributorRepository.findAll();
             for (DistributorUser d : dists) {
-                if ("ACTIVE".equalsIgnoreCase(d.getStatus()) || d.getStatus() == null) {
+                if ("ACTIVE".equalsIgnoreCase(d.getStatus()) || "ON_LEAVE".equalsIgnoreCase(d.getStatus()) || d.getStatus() == null) {
                     String pin = d.getPrimaryPincode();
                     if (pin != null && !pin.trim().isEmpty() && !seenPins.contains(pin.trim())) {
                         Map<String, Object> h = new HashMap<>();
@@ -120,44 +120,103 @@ public class PublicPincodeController {
     @GetMapping("/hub-details")
     public ResponseEntity<?> getHubDetails(@RequestParam(required = false) String pincode) {
         String pin = (pincode != null) ? pincode.trim() : "";
-        DistributorUser foundDist = null;
+        DistributorUser primaryDist = null;
 
         if (!pin.isEmpty()) {
-            Optional<DistributorUser> byPrimary = distributorRepository.findByPrimaryPincode(pin);
-            if (byPrimary.isPresent() && ("ACTIVE".equalsIgnoreCase(byPrimary.get().getStatus()) || byPrimary.get().getStatus() == null)) {
-                foundDist = byPrimary.get();
+            // 1. Try finding primary manager for this pincode
+            Optional<DistributorUser> byPrimaryRole = distributorRepository.findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER");
+            if (byPrimaryRole.isPresent()) {
+                primaryDist = byPrimaryRole.get();
             } else {
+                List<DistributorUser> byPinList = distributorRepository.findByPrimaryPincode(pin);
+                if (!byPinList.isEmpty()) {
+                    primaryDist = byPinList.stream()
+                            .filter(d -> !"SUB_DISTRIBUTOR".equalsIgnoreCase(d.getDistributorRole()))
+                            .findFirst()
+                            .orElse(byPinList.get(0));
+                }
+            }
+
+            // 2. Try assigned pincodes
+            if (primaryDist == null) {
                 Optional<DistributorUser> byAssigned = distributorRepository.findByAssignedPincodesContaining(pin);
-                if (byAssigned.isPresent() && ("ACTIVE".equalsIgnoreCase(byAssigned.get().getStatus()) || byAssigned.get().getStatus() == null)) {
-                    foundDist = byAssigned.get();
-                } else {
-                    Optional<IndiaPincode> ipOpt = indiaPincodeRepository.findByPincode(pin);
-                    if (ipOpt.isPresent() && ipOpt.get().getAssignedDistributorId() != null && !ipOpt.get().getAssignedDistributorId().trim().isEmpty()) {
-                        Optional<DistributorUser> byId = distributorRepository.findByDistributorId(ipOpt.get().getAssignedDistributorId());
-                        if (byId.isPresent() && ("ACTIVE".equalsIgnoreCase(byId.get().getStatus()) || byId.get().getStatus() == null)) {
-                            foundDist = byId.get();
-                        }
-                    }
+                if (byAssigned.isPresent()) {
+                    primaryDist = byAssigned.get();
+                }
+            }
+
+            // 3. Try IndiaPincode table
+            if (primaryDist == null) {
+                Optional<IndiaPincode> ipOpt = indiaPincodeRepository.findByPincode(pin);
+                if (ipOpt.isPresent() && ipOpt.get().getAssignedDistributorId() != null && !ipOpt.get().getAssignedDistributorId().trim().isEmpty()) {
+                    primaryDist = distributorRepository.findByDistributorId(ipOpt.get().getAssignedDistributorId()).orElse(null);
                 }
             }
         }
 
+        // If the distributor found happens to be a SUB_DISTRIBUTOR, resolve to their parent hub owner
+        if (primaryDist != null && "SUB_DISTRIBUTOR".equalsIgnoreCase(primaryDist.getDistributorRole()) && primaryDist.getParentHubId() != null) {
+            Optional<DistributorUser> parent = distributorRepository.findByDistributorId(primaryDist.getParentHubId());
+            if (parent.isPresent()) {
+                primaryDist = parent.get();
+            }
+        }
+
         Map<String, Object> res = new HashMap<>();
-        if (foundDist != null) {
+        if (primaryDist != null) {
+            boolean isPrimaryOnLeave = primaryDist.isOnLeave() || "ON_LEAVE".equalsIgnoreCase(primaryDist.getStatus());
+
+            DistributorUser substitute = null;
+            if (isPrimaryOnLeave) {
+                // Find designated substitute / co-manager dynamically
+                if (primaryDist.getDelegatedToId() != null && !primaryDist.getDelegatedToId().trim().isEmpty()) {
+                    substitute = distributorRepository.findByDistributorId(primaryDist.getDelegatedToId()).orElse(null);
+                }
+                if (substitute == null) {
+                    List<DistributorUser> subList = distributorRepository.findByParentHubId(primaryDist.getDistributorId());
+                    if (!subList.isEmpty()) {
+                        substitute = subList.stream()
+                                .filter(s -> "ACTIVE".equalsIgnoreCase(s.getStatus()) || !s.isOnLeave())
+                                .findFirst()
+                                .orElse(subList.get(0));
+                    }
+                }
+            }
+
+            boolean isSubActive = isPrimaryOnLeave && substitute != null;
+
             res.put("found", true);
-            res.put("distributorId", foundDist.getDistributorId());
-            res.put("hubName", foundDist.getBusinessName() != null ? foundDist.getBusinessName() : "Atomy Regional Logistics Hub");
-            res.put("contactPerson", foundDist.getContactPerson() != null ? foundDist.getContactPerson() : "Hub Manager");
-            res.put("phone", foundDist.getPhone() != null ? foundDist.getPhone() : "+91 98401 23456");
-            res.put("email", foundDist.getEmail() != null ? foundDist.getEmail() : "support.logistics@atomy.com");
-            res.put("pincode", foundDist.getPrimaryPincode() != null ? foundDist.getPrimaryPincode() : pin);
-            res.put("city", foundDist.getCity() != null ? foundDist.getCity() : "Regional Hub");
-            res.put("state", foundDist.getState() != null ? foundDist.getState() : "India");
-            res.put("hubAddress", foundDist.getHubAddress() != null && !foundDist.getHubAddress().trim().isEmpty()
-                    ? foundDist.getHubAddress()
-                    : foundDist.getBusinessName() + ", Near Main Depot, " + foundDist.getCity() + " - " + foundDist.getPrimaryPincode());
+            res.put("distributorId", primaryDist.getDistributorId());
+            res.put("hubName", primaryDist.getBusinessName() != null ? primaryDist.getBusinessName() : "Atomy Regional Logistics Hub");
+            res.put("pincode", primaryDist.getPrimaryPincode() != null ? primaryDist.getPrimaryPincode() : pin);
+            res.put("city", primaryDist.getCity() != null ? primaryDist.getCity() : "Regional Hub");
+            res.put("state", primaryDist.getState() != null ? primaryDist.getState() : "India");
+            res.put("hubAddress", primaryDist.getHubAddress() != null && !primaryDist.getHubAddress().trim().isEmpty()
+                    ? primaryDist.getHubAddress()
+                    : primaryDist.getBusinessName() + ", Near Main Depot, " + primaryDist.getCity() + " - " + primaryDist.getPrimaryPincode());
             res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM (Sun: 10:00 AM – 2:00 PM)");
             res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the hub counter to collect your packed items.");
+
+            res.put("isSubstituteActive", isSubActive);
+            res.put("onLeave", isPrimaryOnLeave);
+            res.put("leaveReason", primaryDist.getLeaveReason());
+            res.put("primaryManagerName", primaryDist.getContactPerson());
+
+            if (isSubActive) {
+                res.put("actingManagerName", substitute.getContactPerson());
+                res.put("actingDistributorId", substitute.getDistributorId());
+                res.put("contactPerson", substitute.getContactPerson() + " (Acting Hub Manager)");
+                res.put("phone", substitute.getPhone() != null ? substitute.getPhone() : primaryDist.getPhone());
+                res.put("email", substitute.getEmail() != null ? substitute.getEmail() : primaryDist.getEmail());
+                res.put("distributorRole", "SUB_DISTRIBUTOR");
+            } else {
+                res.put("actingManagerName", null);
+                res.put("actingDistributorId", null);
+                res.put("contactPerson", primaryDist.getContactPerson() != null ? primaryDist.getContactPerson() + " (Hub Manager)" : "Hub Manager");
+                res.put("phone", primaryDist.getPhone() != null ? primaryDist.getPhone() : "+91 98401 23456");
+                res.put("email", primaryDist.getEmail() != null ? primaryDist.getEmail() : "support.logistics@atomy.com");
+                res.put("distributorRole", "PRIMARY_MANAGER");
+            }
         } else {
             res.put("found", false);
             res.put("distributorId", null);
@@ -172,6 +231,8 @@ public class PublicPincodeController {
             res.put("operatingHours", "N/A");
             res.put("pickupInstructions", "Delivery is currently unavailable for this PIN code.");
             res.put("isDeliverable", false);
+            res.put("isSubstituteActive", false);
+            res.put("onLeave", false);
             res.put("message", "Delivery is currently not available for PIN " + pin);
         }
         return ResponseEntity.ok(res);

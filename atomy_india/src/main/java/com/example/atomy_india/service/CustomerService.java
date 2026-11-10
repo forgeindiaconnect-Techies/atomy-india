@@ -3,6 +3,8 @@ package com.example.atomy_india.service;
 import com.example.atomy_india.dto.CreateOrderRequest;
 import com.example.atomy_india.dto.CreateTicketRequest;
 import com.example.atomy_india.model.*;
+import com.example.atomy_india.model.DistributorUser;
+import com.example.atomy_india.model.DistributorInventory;
 import com.example.atomy_india.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -254,13 +256,13 @@ public class CustomerService {
         // Auto-Route to local assigned distributor by shipping delivery PIN code
         String pin = req.getPincode() != null ? req.getPincode().trim() : "";
         if (!pin.isEmpty()) {
-            java.util.Optional<com.example.atomy_india.model.DistributorUser> distOpt = distributorRepository
-                    .findByPrimaryPincode(pin)
+            Optional<DistributorUser> distOpt = distributorRepository
+                    .findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER")
+                    .or(() -> distributorRepository.findByPrimaryPincode(pin).stream().findFirst())
                     .or(() -> distributorRepository.findByAssignedPincodesContaining(pin));
 
             if (distOpt.isEmpty()) {
-                java.util.Optional<com.example.atomy_india.model.IndiaPincode> pinOpt = indiaPincodeRepository
-                        .findByPincode(pin);
+                Optional<IndiaPincode> pinOpt = indiaPincodeRepository.findByPincode(pin);
                 if (pinOpt.isPresent() && pinOpt.get().getAssignedDistributorId() != null
                         && !pinOpt.get().getAssignedDistributorId().trim().isEmpty()) {
                     distOpt = distributorRepository.findByDistributorId(pinOpt.get().getAssignedDistributorId());
@@ -271,17 +273,23 @@ public class CustomerService {
             // via city/district fallback.
 
             if (distOpt.isPresent()) {
-                com.example.atomy_india.model.DistributorUser d = distOpt.get();
-                String distId = d.getDistributorId();
+                DistributorUser resolvedDist = distOpt.get();
+
+                // Orders belong to the PRIMARY FRANCHISE HUB, never directly to a Co-Manager / Substitute
+                if ("SUB_DISTRIBUTOR".equalsIgnoreCase(resolvedDist.getDistributorRole()) && resolvedDist.getParentHubId() != null) {
+                    Optional<DistributorUser> parent = distributorRepository.findByDistributorId(resolvedDist.getParentHubId());
+                    if (parent.isPresent()) {
+                        resolvedDist = parent.get();
+                    }
+                }
+                final DistributorUser d = resolvedDist;
+                final String distId = d.getEffectiveHubId() != null ? d.getEffectiveHubId() : d.getDistributorId();
 
                 // Validate stock availability in the assigned regional hub
                 for (OrderItem oi : orderItems) {
-                    java.util.Optional<com.example.atomy_india.model.DistributorInventory> diOpt = distributorInventoryRepository
-                            .findByDistributorIdAndProductId(distId, oi.getProductId());
-                    int available = diOpt.map(com.example.atomy_india.model.DistributorInventory::getStockQuantity)
-                            .orElse(0);
-                    boolean isAvail = diOpt.map(com.example.atomy_india.model.DistributorInventory::isAvailable)
-                            .orElse(false);
+                    Optional<DistributorInventory> diOpt = distributorInventoryRepository.findByDistributorIdAndProductId(distId, oi.getProductId());
+                    int available = diOpt.map(DistributorInventory::getStockQuantity).orElse(0);
+                    boolean isAvail = diOpt.map(DistributorInventory::isAvailable).orElse(false);
                     int maxOrderable = Math.max(0, available - 1);
                     if (!isAvail || available < 2 || oi.getQuantity() > maxOrderable) {
                         String prodName = (oi.getProductName() != null && !oi.getProductName().trim().isEmpty())
@@ -293,7 +301,7 @@ public class CustomerService {
                     }
                 }
 
-                order.setAssignedDistributorId(d.getDistributorId());
+                order.setAssignedDistributorId(distId);
                 order.setAssignedDistributorName(
                         d.getBusinessName() != null ? d.getBusinessName() : "Regional Distributor");
                 if (order.getHubAddress() == null || order.getHubAddress().trim().isEmpty()) {
@@ -378,7 +386,8 @@ public class CustomerService {
                         savedOrder.getOrderId());
                 customerNotificationRepository.save(notif);
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            // Non-blocking customer notification failure
         }
 
         return savedOrder;

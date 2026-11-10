@@ -57,7 +57,8 @@ public class DistributorController {
         String clean = identifier.trim();
         return distributorRepository.findByDistributorId(clean)
                 .or(() -> distributorRepository.findByEmailIgnoreCase(clean))
-                .or(() -> distributorRepository.findByPrimaryPincode(clean));
+                .or(() -> distributorRepository.findByPrimaryPincodeAndDistributorRole(clean, "PRIMARY_MANAGER"))
+                .or(() -> distributorRepository.findByPrimaryPincode(clean).stream().findFirst());
     }
 
     private boolean isSubstituteBlocked(DistributorUser dist) {

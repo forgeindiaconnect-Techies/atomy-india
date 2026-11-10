@@ -1651,9 +1651,28 @@ export default function OrderSheetPage({
 
                             {/* Hub Manager / Sub-Admin Contact */}
                             <div style={{ borderLeft: '1px solid #f1f5f9', paddingLeft: '14px' }}>
-                              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#0284c7', fontWeight: 700, letterSpacing: '0.5px' }}>
-                                Distributor / Hub Manager
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#0284c7', fontWeight: 700, letterSpacing: '0.5px' }}>
+                                  Distributor / Hub Manager
+                                </span>
+                                {hubDetails?.isSubstituteActive && (
+                                  <span style={{
+                                    fontSize: '10px',
+                                    fontWeight: 700,
+                                    color: '#059669',
+                                    background: '#ecfdf5',
+                                    border: '1px solid #a7f3d0',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    letterSpacing: '0.3px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}>
+                                    ⚡ Acting Manager
+                                  </span>
+                                )}
+                              </div>
                               <h5 style={{ margin: '4px 0 6px', fontSize: '13.5px', color: '#1e293b', fontWeight: 600 }}>
                                 {hubDetails?.contactPerson || 'Hub Manager'}
                               </h5>
@@ -1675,6 +1694,11 @@ export default function OrderSheetPage({
                                 <span style={{ color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px' }}>
                                   <Clock size={13} /> {hubDetails?.operatingHours || 'Mon – Sat: 9:30 AM – 7:30 PM'}
                                 </span>
+                                {hubDetails?.isSubstituteActive && hubDetails?.primaryManagerName && (
+                                  <span style={{ color: '#b45309', fontSize: '11px', fontWeight: 500, marginTop: '2px' }}>
+                                    (Relief Standby — Primary: {hubDetails.primaryManagerName} on leave)
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
