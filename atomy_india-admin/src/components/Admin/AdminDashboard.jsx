@@ -44,7 +44,8 @@ import {
   Crown,
   Ticket,
   Menu,
-  UserPlus
+  UserPlus,
+  Tag
 } from 'lucide-react';
 import Header from '../Header/Header';
 import Footer from '../Footer/Footer';
