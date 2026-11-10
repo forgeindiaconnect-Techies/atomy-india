@@ -2108,7 +2108,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Catalog', icon: Boxes },
     { id: 'territories', label: 'Distributor / Territories', icon: MapPin },
-    { id: 'orders', label: 'Customer Orders', icon: Package, badge: delayedOrders.length > 0 ? `${delayedOrders.length} Late` : null },
+    { id: 'orders', label: 'Customer Orders', icon: Package, badge: (overviewStats?.allDelayedOrders?.length || 0) > 0 ? `${overviewStats.allDelayedOrders.length} Late` : null },
     { id: 'customers', label: 'Customer Accounts', icon: Users },
     { id: 'membership', label: 'Membership Verification', icon: Crown },
     { id: 'coupons', label: 'Promotions & Coupons', icon: Tag },
