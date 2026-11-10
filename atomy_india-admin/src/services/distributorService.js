@@ -34,19 +34,19 @@ export async function loginAdminOrDistributor(username, password) {
         lastLogin: 'Just now (IST)'
       };
     } else if (
-      (lower === 'dist-635002' || lower === 'selva.hub@atomy.in' || lower === 'selva@atomy.in' || lower === 'selva') && 
-      (password === 'Admin@123' || password === 'admin123')
+      (lower === 'dist-635002' || lower === 'selva.hub@atomy.in' || lower === 'selva@atomy.in' || lower === 'selva' || lower === 'selvakumarc029@gmail.com' || lower === 'selvakumar' || lower.includes('selvakumar')) && 
+      (password === 'Admin@123' || password === 'admin123' || password === 'Selva@123')
     ) {
       return {
         role: 'DISTRIBUTOR_ADMIN',
         distributorId: 'DIST-635002',
         businessName: 'Selva Atomy Regional Hub',
-        contactPerson: 'Selva',
-        email: 'selva.hub@atomy.in',
-        phone: '+91 94432 10000',
+        contactPerson: 'Selva Kumar',
+        email: 'selvakumarc029@gmail.com',
+        phone: '+91 95388 53454',
         assignedPincodes: ['635002'],
         primaryPincode: '635002',
-        hubAddress: 'Gandhi Road, Regional Logistics Hub, Krishnagiri',
+        hubAddress: 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002',
         city: 'Krishnagiri',
         state: 'Tamil Nadu',
         commissionRate: 8.0,

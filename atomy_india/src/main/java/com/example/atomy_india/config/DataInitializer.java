@@ -297,16 +297,16 @@ public class DataInitializer implements CommandLineRunner {
                 DistributorUser selva = new DistributorUser(
                         "DIST-635002",
                         "Selva Atomy Regional Hub",
-                        "Selva",
-                        "selva.hub@atomy.in",
-                        "+91 94432 10000",
+                        "Selva Kumar",
+                        "selvakumarc029@gmail.com",
+                        "+91 95388 53454",
                         "635002",
                         "Krishnagiri",
                         "Tamil Nadu"
                 );
                 selva.setPrimaryPincode("635002");
                 selva.setAssignedPincodes(new ArrayList<>(selvaTerritoryPins));
-                selva.setHubAddress("Gandhi Road, Regional Logistics Hub, Krishnagiri");
+                selva.setHubAddress("RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002");
                 selva.setCommissionRate(8.0);
                 selva.setTerritoryFee(new BigDecimal("35000"));
                 selva.setPasswordHash("Admin@123");
@@ -318,6 +318,10 @@ public class DataInitializer implements CommandLineRunner {
                     if ("DIST-635002".equalsIgnoreCase(d.getDistributorId())) {
                         d.setPrimaryPincode("635002");
                         d.setAssignedPincodes(new ArrayList<>(selvaTerritoryPins));
+                        d.setEmail("selvakumarc029@gmail.com");
+                        d.setContactPerson("Selva Kumar");
+                        d.setPhone("+91 95388 53454");
+                        d.setHubAddress("RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002");
                         distributorRepository.save(d);
                     }
                 });
