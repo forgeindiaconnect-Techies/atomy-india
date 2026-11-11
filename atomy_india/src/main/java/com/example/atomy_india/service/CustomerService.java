@@ -5,7 +5,6 @@ import com.example.atomy_india.dto.CreateTicketRequest;
 import com.example.atomy_india.model.Category;
 import com.example.atomy_india.model.CustomerNotification;
 import com.example.atomy_india.model.CustomerOrder;
-import com.example.atomy_india.model.CustomerUser;
 import com.example.atomy_india.model.DistributorInventory;
 import com.example.atomy_india.model.DistributorUser;
 import com.example.atomy_india.model.OrderItem;
@@ -16,7 +15,6 @@ import com.example.atomy_india.model.TicketMessage;
 import com.example.atomy_india.repository.CategoryRepository;
 import com.example.atomy_india.repository.CustomerNotificationRepository;
 import com.example.atomy_india.repository.CustomerOrderRepository;
-import com.example.atomy_india.repository.CustomerUserRepository;
 import com.example.atomy_india.repository.DistributorInventoryRepository;
 import com.example.atomy_india.repository.DistributorRepository;
 import com.example.atomy_india.repository.OrderItemRepository;
@@ -60,9 +58,6 @@ public class CustomerService {
 
     @Autowired
     private BrevoEmailService brevoEmailService;
-
-    @Autowired
-    private CustomerUserRepository customerUserRepository;
 
     @Autowired
     private CustomerNotificationRepository customerNotificationRepository;

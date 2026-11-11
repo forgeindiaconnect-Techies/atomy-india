@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import LandingProductCard from '../Products/LandingProductCard';
 
 const TABS = ['ALL', 'BEST', 'NEW', 'RECOMMENDATION'];
 
-export default function BestProductsSection({
+function BestProductsSection({
   onAddToCart,
   onProductClick,
   favorites = [],
@@ -23,10 +23,12 @@ export default function BestProductsSection({
   const [activeTab, setActiveTab] = useState('ALL');
   const [visibleLimit, setVisibleLimit] = useState(10); // 5 rows x 2 products = 10 limit
 
-  const filteredProducts = BEST_PRODUCTS.filter((item) => {
-    if (activeTab === 'ALL') return true;
-    return item.categoryTab && item.categoryTab.includes(activeTab);
-  });
+  const filteredProducts = useMemo(() => {
+    return BEST_PRODUCTS.filter((item) => {
+      if (activeTab === 'ALL') return true;
+      return item.categoryTab && item.categoryTab.includes(activeTab);
+    });
+  }, [activeTab]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -235,3 +237,5 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
 });
+
+export default React.memo(BestProductsSection);

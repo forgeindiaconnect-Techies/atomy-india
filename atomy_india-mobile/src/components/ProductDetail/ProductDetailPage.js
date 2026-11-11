@@ -23,6 +23,7 @@ import {
 } from '../../data/productDetailsData';
 import { getProductYoutubeVideo } from '../../data/productYoutubeVideos';
 import { getHighResImageUrl } from '../../utils/imageUtils';
+import { fetchProductReviewsApi } from '../../services/api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -195,10 +196,46 @@ export default function ProductDetailPage({
   const totalPrice = activePrice * qty;
   const totalPv = pv * qty;
 
-  // Real dynamic reviews
-  const productReviews = Array.isArray(product?.reviews) ? product.reviews : [];
+  // Real dynamic reviews & live rating calculation from backend
+  const [liveReviews, setLiveReviews] = useState(Array.isArray(product?.reviews) ? product.reviews : []);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    let isMounted = true;
+    fetchProductReviewsApi(product.id)
+      .then((data) => {
+        if (Array.isArray(data) && isMounted && data.length > 0) {
+          setLiveReviews(data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [product?.id]);
+
+  const productReviews = liveReviews.length > 0 ? liveReviews : (Array.isArray(product?.reviews) ? product.reviews : []);
   const reviewsCount = productReviews.length || (Number(product?.reviewsCount) > 0 ? Number(product.reviewsCount) : 0);
-  const ratingValue = reviewsCount > 0 ? (product?.rating || '5.0') : '0.0';
+  const avgRatingNum = productReviews.length > 0
+    ? productReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / productReviews.length
+    : product?.rating
+    ? Number(product.rating)
+    : 0;
+  const ratingValue = reviewsCount > 0 ? (avgRatingNum > 0 ? avgRatingNum.toFixed(1) : product?.rating || '5.0') : '0.0';
+
+  const starDistribution = useMemo(() => {
+    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    productReviews.forEach((r) => {
+      const star = Math.max(1, Math.min(5, Math.round(Number(r.rating) || 5)));
+      counts[star] = (counts[star] || 0) + 1;
+    });
+    const total = productReviews.length;
+    return [5, 4, 3, 2, 1].map((star) => ({
+      star,
+      count: counts[star],
+      percent: total > 0 ? Math.round((counts[star] / total) * 100) : 0,
+    }));
+  }, [productReviews]);
 
   // Regional delivery inventory status
   const isOutOfDelivery = Boolean(
@@ -991,46 +1028,42 @@ export default function ProductDetailPage({
                     </Text>
 
                     <View style={styles.ratingsBarsList}>
-                      <View style={styles.barRow}>
-                        <Text style={styles.barRowLabel}>5 Star</Text>
-                        <View style={styles.barTrack}>
-                          <View style={[styles.barFill, { width: '100%' }]} />
+                      {starDistribution.map(({ star, percent }) => (
+                        <View key={star} style={styles.barRow}>
+                          <Text style={styles.barRowLabel}>{star} Star</Text>
+                          <View style={styles.barTrack}>
+                            <View style={[styles.barFill, { width: `${percent}%` }]} />
+                          </View>
+                          <Text style={styles.barRowPercent}>{percent}%</Text>
                         </View>
-                        <Text style={styles.barRowPercent}>100%</Text>
-                      </View>
-                      <View style={styles.barRow}>
-                        <Text style={styles.barRowLabel}>4 Star</Text>
-                        <View style={styles.barTrack}>
-                          <View style={[styles.barFill, { width: '0%' }]} />
-                        </View>
-                        <Text style={styles.barRowPercent}>0%</Text>
-                      </View>
-                      <View style={styles.barRow}>
-                        <Text style={styles.barRowLabel}>3 Star</Text>
-                        <View style={styles.barTrack}>
-                          <View style={[styles.barFill, { width: '0%' }]} />
-                        </View>
-                        <Text style={styles.barRowPercent}>0%</Text>
-                      </View>
+                      ))}
                     </View>
                   </View>
 
                   <View style={styles.reviewsStream}>
                     {productReviews.map((r, idx) => (
-                      <View key={idx} style={styles.singleReviewCard}>
+                      <View key={r.id || idx} style={styles.singleReviewCard}>
                         <View style={styles.reviewTopRow}>
                           <Text style={styles.reviewerName}>
-                            {r.author || r.reviewer || r.name || 'Verified Customer'}
+                            {r.customerName || r.author || r.reviewer || r.name || 'Verified Customer'}
                           </Text>
                           <View style={styles.verifiedBadge}>
                             <Ionicons name="checkmark-circle" size={13} color="#10B981" />
                             <Text style={styles.verifiedBadgeText}>Verified Customer</Text>
                           </View>
                         </View>
-                        <View style={styles.reviewStars}>
-                          {[...Array(r.rating || 5)].map((_, i) => (
-                            <Ionicons key={i} name="star" size={13} color="#F59E0B" />
-                          ))}
+                        {r.title ? (
+                          <Text style={styles.reviewHeadlineText}>{r.title}</Text>
+                        ) : null}
+                        <View style={styles.reviewStarsRow}>
+                          <View style={styles.reviewStars}>
+                            {[...Array(Number(r.rating) || 5)].map((_, i) => (
+                              <Ionicons key={i} name="star" size={13} color="#F59E0B" />
+                            ))}
+                          </View>
+                          <Text style={styles.reviewDateText}>
+                            {r.formattedDate || r.date || 'Recent'}
+                          </Text>
                         </View>
                         <Text style={styles.reviewBody}>
                           {r.comment || r.body || r.text || ''}
@@ -2271,10 +2304,26 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '700',
   },
+  reviewHeadlineText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  reviewStarsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   reviewStars: {
     flexDirection: 'row',
     gap: 2,
-    marginBottom: 4,
+  },
+  reviewDateText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
   reviewBody: {
     fontSize: 12,

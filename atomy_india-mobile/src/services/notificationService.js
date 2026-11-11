@@ -67,18 +67,23 @@ export const formatRelativeTime = (isoString) => {
   }
 };
 
+const getCandidateBases = () => {
+  const isLocalWeb = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  return isLocalWeb ? [LOCAL_API_BASE] : [LOCAL_API_BASE, CLOUD_API_BASE];
+};
+
 /**
  * Fetch live notifications from backend API (queries Cloud & Local candidate bases)
  */
 export const fetchNotificationsApi = async (email) => {
   if (!email || email === 'guest') return [];
 
-  const candidateBases = [CLOUD_API_BASE, LOCAL_API_BASE];
+  const candidateBases = getCandidateBases();
 
   for (const base of candidateBases) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 4000);
+      const timer = setTimeout(() => controller.abort(), 2500);
       const res = await fetch(`${base}/notifications?email=${encodeURIComponent(email.trim().toLowerCase())}`, {
         signal: controller.signal,
       });
@@ -156,7 +161,7 @@ export const addNotification = async (email, notif) => {
   saveStoredNotifications(email, updated);
 
   // Broadcast to backend
-  const candidateBases = [CLOUD_API_BASE, LOCAL_API_BASE];
+  const candidateBases = getCandidateBases();
   Promise.allSettled(
     candidateBases.map((base) =>
       fetch(`${base}/notifications`, {
@@ -184,7 +189,7 @@ export const markNotificationAsRead = async (email, notifId) => {
   const updated = current.map((n) => (n.id === notifId ? { ...n, unread: false } : n));
   saveStoredNotifications(email, updated);
 
-  const candidateBases = [CLOUD_API_BASE, LOCAL_API_BASE];
+  const candidateBases = getCandidateBases();
   Promise.allSettled(
     candidateBases.map((base) =>
       fetch(`${base}/notifications/${notifId}/read`, { method: 'PUT' })
@@ -203,7 +208,7 @@ export const markAllNotificationsAsRead = async (email) => {
   saveStoredNotifications(email, updated);
 
   if (email && email !== 'guest') {
-    const candidateBases = [CLOUD_API_BASE, LOCAL_API_BASE];
+    const candidateBases = getCandidateBases();
     Promise.allSettled(
       candidateBases.map((base) =>
         fetch(`${base}/notifications/read-all?email=${encodeURIComponent(email.trim().toLowerCase())}`, {
@@ -224,7 +229,7 @@ export const deleteNotification = async (email, notifId) => {
   const updated = current.filter((n) => n.id !== notifId);
   saveStoredNotifications(email, updated);
 
-  const candidateBases = [CLOUD_API_BASE, LOCAL_API_BASE];
+  const candidateBases = getCandidateBases();
   Promise.allSettled(
     candidateBases.map((base) =>
       fetch(`${base}/notifications/${notifId}`, { method: 'DELETE' })
@@ -241,7 +246,7 @@ export const clearAllNotifications = async (email) => {
   saveStoredNotifications(email, []);
 
   if (email && email !== 'guest') {
-    const candidateBases = [CLOUD_API_BASE, LOCAL_API_BASE];
+    const candidateBases = getCandidateBases();
     await Promise.allSettled(
       candidateBases.map((base) =>
         fetch(`${base}/notifications/clear?email=${encodeURIComponent(email.trim().toLowerCase())}`, {

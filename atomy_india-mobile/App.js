@@ -19,6 +19,8 @@ import {
 LogBox.ignoreLogs([
   '[expo-notifications] Push notifications',
   'Push notifications (remote notifications) are unavailable in Expo Go',
+  "Cannot find native module 'ExpoTopicSubscriptionModule'",
+  'ExpoTopicSubscriptionModule',
 ]);
 
 import { StatusBar } from 'expo-status-bar';
@@ -81,7 +83,14 @@ import {
   updateCustomerProfileApi,
 } from './src/services/api';
 import { syncCatalogFromBackend, onCatalogUpdate, setCustomerDeliveryPincode } from './src/services/catalogSyncService';
-import storageService from './src/services/storageService';
+import storageService, {
+  initStorage,
+  saveUserSession,
+  getUserSession,
+  clearUserSession,
+  saveMembershipStatus,
+  saveMembershipData,
+} from './src/services/storageService';
 import {
   ALL_PRODUCTS,
   HERO_SLIDES,
@@ -164,6 +173,38 @@ const loadInitialRecentlyViewed = () => {
     }
   } catch (e) {}
   return [];
+};
+
+const persistMembershipData = (data) => {
+  try {
+    if (typeof saveMembershipData === 'function') {
+      return saveMembershipData(data);
+    }
+    if (typeof storageService?.saveMembershipData === 'function') {
+      return storageService.saveMembershipData(data);
+    }
+    if (typeof storageService?.default?.saveMembershipData === 'function') {
+      return storageService.default.saveMembershipData(data);
+    }
+  } catch (err) {
+    console.warn('[Storage] persistMembershipData error:', err);
+  }
+};
+
+const persistMembershipStatus = (status) => {
+  try {
+    if (typeof saveMembershipStatus === 'function') {
+      return saveMembershipStatus(status);
+    }
+    if (typeof storageService?.saveMembershipStatus === 'function') {
+      return storageService.saveMembershipStatus(status);
+    }
+    if (typeof storageService?.default?.saveMembershipStatus === 'function') {
+      return storageService.default.saveMembershipStatus(status);
+    }
+  } catch (err) {
+    console.warn('[Storage] persistMembershipStatus error:', err);
+  }
 };
 
 export default function App() {
@@ -398,13 +439,13 @@ export default function App() {
               if (typeof mem.isMember === 'boolean') {
                 const active = Boolean(mem.isMember);
                 setIsMember(active);
-                storageService.saveMembershipStatus(active);
+                persistMembershipStatus(active);
                 if (active && mem.membership) {
                   setMembershipData(mem.membership);
-                  storageService.saveMembershipData(mem.membership);
+                  persistMembershipData(mem.membership);
                 } else {
                   setMembershipData(null);
-                  storageService.saveMembershipData(null);
+                  persistMembershipData(null);
                 }
               }
             }
@@ -496,10 +537,10 @@ export default function App() {
 
           if (typeof liveProfile.isMember === 'boolean') {
             setIsMember(liveProfile.isMember);
-            storageService.saveMembershipStatus(liveProfile.isMember);
+            persistMembershipStatus(liveProfile.isMember);
             if (!liveProfile.isMember) {
               setMembershipData(null);
-              storageService.saveMembershipData(null);
+              persistMembershipData(null);
             }
           }
         }
@@ -513,13 +554,13 @@ export default function App() {
         if (memData && typeof memData.isMember === 'boolean') {
           const active = Boolean(memData.isMember);
           setIsMember(active);
-          storageService.saveMembershipStatus(active);
+          persistMembershipStatus(active);
           if (active && memData.membership) {
             setMembershipData(memData.membership);
-            storageService.saveMembershipData(memData.membership);
+            persistMembershipData(memData.membership);
           } else {
             setMembershipData(null);
-            storageService.saveMembershipData(null);
+            persistMembershipData(null);
           }
           if (typeof window !== 'undefined' && window.localStorage) {
             window.localStorage.setItem('atomy_is_member', active ? 'true' : 'false');
@@ -527,10 +568,10 @@ export default function App() {
         } else if (currentUser?.isMember !== undefined) {
           const fallback = Boolean(currentUser.isMember);
           setIsMember(fallback);
-          storageService.saveMembershipStatus(fallback);
+          persistMembershipStatus(fallback);
           if (!fallback) {
             setMembershipData(null);
-            storageService.saveMembershipData(null);
+            persistMembershipData(null);
           }
           if (typeof window !== 'undefined' && window.localStorage) {
             window.localStorage.setItem('atomy_is_member', fallback ? 'true' : 'false');
@@ -549,35 +590,97 @@ export default function App() {
             if (raw.includes('DELIVER')) return 'Delivered';
             if (raw.includes('OUT')) return 'Out for Delivery';
             if (raw.includes('TRANSIT') || raw.includes('SHIPPED') || raw.includes('DISPATCH')) return 'In Transit';
-            if (raw.includes('PREPAR') || raw.includes('PACK')) return 'Preparing';
-            return 'Processing';
+            if (raw.includes('PREPAR') || raw.includes('PACK') || raw.includes('PROCESS')) return 'Preparing Shipment';
+            if (raw.includes('CANCEL')) return 'Cancelled';
+            return 'Payment Completed';
           };
 
-          const formatted = remoteOrders.map((o) => ({
-            id: o.orderId,
-            date: new Date(o.createdAt || Date.now()).toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            }),
-            status: mapStatus(o.orderStatus),
-            itemsCount: o.items ? o.items.length : 1,
-            total: `₹ ${Number(o.totalAmount || 0).toLocaleString('en-IN')}`,
-            pv: `${(o.items || []).reduce((acc, i) => acc + (i.pv || 0), 0).toLocaleString('en-IN')} PV`,
-            title: (o.items || []).map((i) => i.productName || i.productId).join(' + ') || 'Atomy Products',
-            shippingAddress: o.shippingAddress ? `${o.shippingAddress}, ${o.city || ''} ${o.pincode || ''}` : '',
-            awb: o.trackingNumber || `ATMY-${(o.orderId || '').replace(/[^0-9]/g, '')}`,
-            courier: 'Blue Dart Express',
-            eta: 'Within 48 Hours',
-            trackStatus: `Order ${o.orderStatus} • Synced with Central Database`,
-            items: (o.items || []).map((i) => ({
-              id: i.productId,
-              name: i.productName || i.productId,
-              price: i.price,
-              qty: i.quantity,
-              img: i.productImage || 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg',
-            })),
-          }));
+          const getStableAwb = (orderId, existingTracking) => {
+            if (existingTracking && typeof existingTracking === 'string' && existingTracking.trim() && !existingTracking.startsWith('ATMY-')) {
+              return existingTracking.trim();
+            }
+            if (!orderId) return 'BD942817260IN';
+            let hash = 0;
+            for (let i = 0; i < orderId.length; i++) {
+              hash = ((hash << 5) - hash) + orderId.charCodeAt(i);
+              hash |= 0;
+            }
+            const positive = Math.abs(hash);
+            const num = 100000000 + (positive % 900000000);
+            return `BD${num}IN`;
+          };
+
+          const formatted = remoteOrders.map((o) => {
+            const street = o.shippingAddress || '';
+            const city = o.city || '';
+            const state = o.state || '';
+            const pin = o.pincode || '';
+            const fullAddr = [street, city, state, pin ? `PIN: ${pin}` : ''].filter(Boolean).join(', ');
+
+            const items = (o.items || []).map((i) => {
+              const price = Number(i.price) || 0;
+              const qty = Number(i.quantity || i.qty || 1);
+              const pv = (i.pv && Number(i.pv) > 0) ? Number(i.pv) : Math.round(price * 4.5);
+              return {
+                id: i.productId,
+                name: i.productName || i.productId,
+                price: price,
+                qty: qty,
+                pv: pv,
+                image: i.productImage || i.image,
+                img: i.productImage || i.image || 'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg',
+              };
+            });
+
+            const totalPv = items.reduce((acc, it) => acc + (it.pv * it.qty), 0);
+            const totalAmount = Number(o.totalAmount || 0);
+            const shippingFee = Number(o.shippingFee !== undefined && o.shippingFee !== null ? o.shippingFee : (totalAmount > 0 && totalAmount < 1500 ? 150 : 0));
+            const subtotal = Math.max(0, totalAmount - shippingFee);
+            const awb = getStableAwb(o.orderId, o.trackingNumber);
+
+            return {
+              ...o,
+              id: o.orderId,
+              orderId: o.orderId,
+              date: new Date(o.createdAt || Date.now()).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              }),
+              status: mapStatus(o.orderStatus),
+              itemsCount: items.length > 0 ? items.length : 1,
+              total: `₹ ${totalAmount.toLocaleString('en-IN')}`,
+              grandTotal: totalAmount,
+              totalAmount: totalAmount,
+              shippingFee: shippingFee,
+              subtotal: subtotal,
+              pv: `${totalPv.toLocaleString('en-IN')} PV`,
+              totalPv: totalPv,
+              title: items.map((i) => i.name).join(' + ') || 'Atomy Products',
+              shippingAddress: fullAddr || street || 'Registered Delivery Address',
+              fullAddress: fullAddr || street || 'Registered Delivery Address',
+              customerAddress: fullAddr || street,
+              recipient: o.customerName || currentUser?.name || 'Customer',
+              customerName: o.customerName || currentUser?.name || 'Customer',
+              phone: o.customerPhone || currentUser?.phone || '',
+              customerPhone: o.customerPhone || currentUser?.phone || '',
+              city: city,
+              state: state,
+              pincode: pin,
+              awb: awb,
+              trackingNumber: awb,
+              courier: o.courier || 'Blue Dart Express (Assigned)',
+              paymentMethod: o.paymentMethod === 'ONLINE_UPI' ? 'UPI (Google Pay / PhonePe)'
+                : o.paymentMethod === 'CREDIT_DEBIT_CARD' ? 'Credit / Debit Card'
+                : o.paymentMethod === 'NET_BANKING' ? 'Net Banking'
+                : o.paymentMethod === 'CASH_ON_DELIVERY' ? 'Cash on Delivery'
+                : (o.paymentMethod || 'Online Payment'),
+              eta: 'Within 48 Hours',
+              trackStatus: `Order ${o.orderStatus} • Synced with Central Database`,
+              image: (items[0]?.image || items[0]?.img) || o.productImage,
+              items: items,
+            };
+          });
           setPlacedOrders(formatted);
         }
       } catch (e) {
@@ -805,13 +908,13 @@ export default function App() {
       if (memData && typeof memData.isMember === 'boolean') {
         const active = Boolean(memData.isMember);
         setIsMember(active);
-        storageService.saveMembershipStatus(active);
+        persistMembershipStatus(active);
         if (active && memData.membership) {
           setMembershipData(memData.membership);
-          storageService.saveMembershipData(memData.membership);
+          persistMembershipData(memData.membership);
         } else {
           setMembershipData(null);
-          storageService.saveMembershipData(null);
+          persistMembershipData(null);
         }
         if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.setItem('atomy_is_member', active ? 'true' : 'false');
@@ -819,9 +922,9 @@ export default function App() {
       } else {
         const fallbackMem = Boolean(user.isMember);
         setIsMember(fallbackMem);
-        storageService.saveMembershipStatus(fallbackMem);
+        persistMembershipStatus(fallbackMem);
         setMembershipData(null);
-        storageService.saveMembershipData(null);
+        persistMembershipData(null);
         if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.setItem('atomy_is_member', fallbackMem ? 'true' : 'false');
         }
@@ -829,9 +932,9 @@ export default function App() {
     } catch (e) {
       const fallbackMem = Boolean(user.isMember);
       setIsMember(fallbackMem);
-      storageService.saveMembershipStatus(fallbackMem);
+      persistMembershipStatus(fallbackMem);
       setMembershipData(null);
-      storageService.saveMembershipData(null);
+      persistMembershipData(null);
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem('atomy_is_member', fallbackMem ? 'true' : 'false');
       }
@@ -1142,6 +1245,16 @@ export default function App() {
                 pv: formattedPv,
                 title: (orderDetails?.items || checkoutItems).map((i) => i.name).join(' + '),
                 trackStatus: 'Order confirmed • Synced with Admin Database',
+                items: (orderDetails?.items || checkoutItems).map((it) => ({
+                  id: it.id || it.productId,
+                  name: it.name || it.productName,
+                  price: it.price,
+                  qty: it.quantity || it.qty || 1,
+                  image: it.image || it.img,
+                  img: it.img || it.image,
+                  pv: it.pv,
+                })),
+                image: (orderDetails?.items || checkoutItems)?.[0]?.image || (orderDetails?.items || checkoutItems)?.[0]?.img,
               };
               setPlacedOrders((prev) => [newOrder, ...prev]);
               showToast('Order Placed & Synced with Database! 🎉');
@@ -1314,7 +1427,7 @@ export default function App() {
             onNavigateBack={handleNavigateBack}
             onMembershipActivated={async (member) => {
               setIsMember(true);
-              storageService.saveMembershipStatus(true);
+              persistMembershipStatus(true);
               try {
                 if (typeof window !== 'undefined' && window.localStorage) {
                   window.localStorage.setItem('atomy_is_member', 'true');
@@ -1343,7 +1456,7 @@ export default function App() {
 
               if (member) {
                 setMembershipData(member);
-                storageService.saveMembershipData(member);
+                persistMembershipData(member);
               }
 
               showToast('Official Distributor Membership Activated & Synced with Database! 🎉');
@@ -1352,8 +1465,8 @@ export default function App() {
             onMembershipCancelled={() => {
               setIsMember(false);
               setMembershipData(null);
-              storageService.saveMembershipStatus(false);
-              storageService.saveMembershipData(null);
+              persistMembershipStatus(false);
+              persistMembershipData(null);
               showToast('Distributor Membership Cancelled');
             }}
           />
@@ -1484,6 +1597,7 @@ export default function App() {
               onNavigateBack={handleNavigateBack}
               onCartPress={() => navigateTo('cart')}
               onProductClick={handleOpenProductDetail}
+              onAddToCart={handleAddToCart}
               cartCount={totalCartCount}
             />
             <BottomNavBar
@@ -2006,7 +2120,7 @@ export default function App() {
         }}
         onToggleMembership={(newStatus) => {
           setIsMember(newStatus);
-          storageService.saveMembershipStatus(newStatus);
+          persistMembershipStatus(newStatus);
           showToast(
             newStatus
               ? 'Switched to Member View (Distributor DP Prices Active ★)'

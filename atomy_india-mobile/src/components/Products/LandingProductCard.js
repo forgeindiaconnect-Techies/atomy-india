@@ -19,7 +19,7 @@ function formatInr(val) {
   });
 }
 
-export default function LandingProductCard({
+function LandingProductCard({
   product,
   onPress,
   onAddToCart,
@@ -76,6 +76,10 @@ export default function LandingProductCard({
     ? product.tags.split(',').map((t) => t.trim()).filter(Boolean)
     : [];
 
+  // Regional Hub Inventory Resolution
+  const stockQty = product.stockQuantity !== undefined ? Number(product.stockQuantity) : 50;
+  const isOutOfStock = product.inStock === false || stockQty < 2;
+
   return (
     <TouchableOpacity
       style={[
@@ -127,18 +131,35 @@ export default function LandingProductCard({
               'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg'
             ),
           }}
-          style={styles.productImg}
+          style={[styles.productImg, isOutOfStock && styles.productImgOutOfStock]}
           resizeMode="contain"
         />
 
-        {/* Floating Cart Button on Product Image (matching website) */}
+        {/* Out of Stock Overlay matching authentic website */}
+        {isOutOfStock && (
+          <View style={styles.outOfStockOverlay}>
+            <View style={styles.outOfStockBadge}>
+              <Text style={styles.outOfStockBadgeText}>OUT OF STOCK</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Floating Cart Button on Product Image (disabled when out of stock) */}
         <TouchableOpacity
-          style={styles.imageCartBtn}
-          activeOpacity={0.8}
-          onPress={() => onAddToCart && onAddToCart(product)}
-          accessibilityLabel="Add to cart"
+          style={[styles.imageCartBtn, isOutOfStock && styles.imageCartBtnDisabled]}
+          activeOpacity={isOutOfStock ? 1 : 0.8}
+          onPress={() => {
+            if (isOutOfStock) return;
+            onAddToCart && onAddToCart(product);
+          }}
+          disabled={isOutOfStock}
+          accessibilityLabel={isOutOfStock ? "Out of stock" : "Add to cart"}
         >
-          <Ionicons name="cart-outline" size={19} color={COLORS.primary} />
+          <Ionicons
+            name={isOutOfStock ? "ban-outline" : "cart-outline"}
+            size={18}
+            color={isOutOfStock ? "#64748B" : COLORS.primary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -177,6 +198,23 @@ export default function LandingProductCard({
         <Text style={styles.pvNote}>
           {pv.toLocaleString('en-IN')} PV
         </Text>
+
+        {/* Regional Hub Inventory Status */}
+        {isOutOfStock ? (
+          <View style={styles.oosNoticeRow}>
+            <Ionicons name="alert-circle" size={11} color="#DC2626" />
+            <Text style={styles.oosNoticeText}>
+              Out of stock at {product.regionalHubName || 'this hub'}
+            </Text>
+          </View>
+        ) : product.regionalHubName ? (
+          <View style={styles.inStockNoticeRow}>
+            <View style={styles.inStockDot} />
+            <Text style={styles.inStockNoticeText} numberOfLines={1}>
+              In stock at {product.regionalHubName}
+            </Text>
+          </View>
+        ) : null}
 
         {/* Non-Member Unlock Hint Banner matching authentic website */}
         {!isMember ? (
@@ -467,4 +505,65 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#475569',
   },
+  productImgOutOfStock: {
+    opacity: 0.45,
+  },
+  outOfStockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4,
+  },
+  outOfStockBadge: {
+    backgroundColor: 'rgba(15, 23, 42, 0.82)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  outOfStockBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  imageCartBtnDisabled: {
+    backgroundColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
+    opacity: 0.65,
+  },
+  oosNoticeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  oosNoticeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#DC2626',
+    flex: 1,
+  },
+  inStockNoticeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  inStockDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16A34A',
+  },
+  inStockNoticeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#16A34A',
+    flex: 1,
+  },
 });
+
+export default React.memo(LandingProductCard);

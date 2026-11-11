@@ -53,6 +53,12 @@ public class Product {
     @Field("dp_price")
     private BigDecimal dpPrice;
 
+    @Field("rating")
+    private Double rating = 0.0;
+
+    @Field("reviews_count")
+    private Integer reviewsCount = 0;
+
     private Boolean active = true;
 
     @org.springframework.data.annotation.Transient
@@ -167,6 +173,12 @@ public class Product {
 
     public BigDecimal getDpPrice() { return dpPrice; }
     public void setDpPrice(BigDecimal dpPrice) { this.dpPrice = dpPrice; }
+
+    public Double getRating() { return rating != null ? rating : 0.0; }
+    public void setRating(Double rating) { this.rating = rating != null ? rating : 0.0; }
+
+    public Integer getReviewsCount() { return reviewsCount != null ? reviewsCount : 0; }
+    public void setReviewsCount(Integer reviewsCount) { this.reviewsCount = reviewsCount != null ? reviewsCount : 0; }
 
     public Boolean isActive() { return active != null ? active : true; }
     public Boolean getActive() { return active != null ? active : true; }

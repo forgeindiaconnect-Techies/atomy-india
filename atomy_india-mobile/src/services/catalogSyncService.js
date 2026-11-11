@@ -320,6 +320,8 @@ export async function setCustomerDeliveryPincode(pincode) {
   }
 }
 
+let lastCatalogFingerprint = '';
+
 /**
  * Fetch catalog products from database via Spring Boot API resolved by destination pincode
  */
@@ -328,8 +330,12 @@ export async function syncCatalogFromBackend(customPin = null) {
     const pin = customPin || getCustomerDeliveryPincode();
     const products = await fetchLiveProducts(null, null, pin);
     if (Array.isArray(products) && products.length > 0) {
+      const fingerprint = `${pin}:${products.length}:${products.map((p) => `${p.id}:${p.price}:${p.inStock}:${p.stockQuantity}`).join('|')}`;
       products.forEach((p) => mergeProductIntoCatalog(p));
-      notifyListeners(products);
+      if (fingerprint !== lastCatalogFingerprint) {
+        lastCatalogFingerprint = fingerprint;
+        notifyListeners(products);
+      }
       return products;
     }
   } catch (err) {

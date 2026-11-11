@@ -15,9 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { CATEGORIES, CATEGORY_CONFIGS, ALL_PRODUCTS } from '../../data/mockData';
 import { onCatalogUpdate, syncCatalogFromBackend } from '../../services/catalogSyncService';
+import { addLocationListener } from '../../services/locationService';
+import storageService from '../../services/storageService';
+import { fetchLiveProducts } from '../../services/api';
 import LandingProductCard from '../Products/LandingProductCard';
 import HeroBannerCarousel from '../Banner/HeroBannerCarousel';
 import AtomyFooter from '../Navigation/AtomyFooter';
+import DeliveryLocationBar from '../Header/DeliveryLocationBar';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BANNER_HEIGHT = Math.round(SCREEN_WIDTH * (360 / 720));
@@ -47,14 +51,9 @@ export default function CategoryPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [, setCatalogTick] = useState(0);
-
-  // Live database catalog sync
-  useEffect(() => {
-    syncCatalogFromBackend();
-    return onCatalogUpdate(() => {
-      setCatalogTick((t) => t + 1);
-    });
-  }, []);
+  const [currentPincode, setCurrentPincode] = useState(() => storageService.getDeliveryPincode() || '635002');
+  const [liveProductsMap, setLiveProductsMap] = useState({});
+  const [inStockOnly, setInStockOnly] = useState(false);
 
   // Normalize category key
   const categoryKey = useMemo(() => {
@@ -73,6 +72,44 @@ export default function CategoryPage({
     }
     return cfg;
   }, [categoryKey]);
+
+  // Live database catalog sync & location change listener
+  useEffect(() => {
+    let isCurrent = true;
+    const pin = currentPincode || storageService.getDeliveryPincode() || '635002';
+
+    // Fetch live regional inventory from backend
+    fetchLiveProducts(null, null, pin)
+      .then((prods) => {
+        if (!isCurrent) return;
+        if (Array.isArray(prods) && prods.length > 0) {
+          const map = {};
+          prods.forEach((p) => {
+            map[p.id] = p;
+          });
+          setLiveProductsMap(map);
+        }
+      })
+      .catch(() => {});
+
+    syncCatalogFromBackend(pin);
+
+    const unsubLoc = addLocationListener((data) => {
+      if (data?.pincode) {
+        setCurrentPincode(data.pincode);
+      }
+    });
+
+    const unsubCat = onCatalogUpdate(() => {
+      setCatalogTick((t) => t + 1);
+    });
+
+    return () => {
+      isCurrent = false;
+      unsubLoc();
+      unsubCat();
+    };
+  }, [categoryKey, currentPincode]);
 
   // Reset subcategory to 'All' when category changes
   useEffect(() => {
@@ -145,10 +182,53 @@ export default function CategoryPage({
     return sorted;
   }, [categoryConfig, activeSubcategory, searchQuery, sortBy]);
 
-  // Best products for this category
+  // Merge live regional hub inventory (stockQuantity, inStock, regionalHubName)
+  const mergedProducts = useMemo(() => {
+    return filteredProducts.map((p) => {
+      const live = liveProductsMap[p.id];
+      if (live) {
+        return {
+          ...p,
+          ...live,
+          stockQuantity: live.stockQuantity !== undefined ? Number(live.stockQuantity) : p.stockQuantity,
+          inStock: live.inStock !== undefined ? Boolean(live.inStock) : p.inStock,
+          regionalHubId: live.regionalHubId || p.regionalHubId,
+          regionalHubName: live.regionalHubName || p.regionalHubName,
+          regionalPincode: live.regionalPincode || currentPincode,
+        };
+      }
+      return p;
+    });
+  }, [filteredProducts, liveProductsMap, currentPincode]);
+
+  // Apply In-Stock filter if toggled
+  const displayProducts = useMemo(() => {
+    if (!inStockOnly) return mergedProducts;
+    return mergedProducts.filter((p) => {
+      const qty = p.stockQuantity !== undefined ? Number(p.stockQuantity) : 50;
+      return p.inStock !== false && qty >= 2;
+    });
+  }, [mergedProducts, inStockOnly]);
+
+  // Best products for this category merged with live hub stock
   const bestProducts = useMemo(() => {
-    return categoryConfig.bestProducts || [];
-  }, [categoryConfig]);
+    const list = categoryConfig.bestProducts || [];
+    return list.map((p) => {
+      const live = liveProductsMap[p.id];
+      if (live) {
+        return {
+          ...p,
+          ...live,
+          stockQuantity: live.stockQuantity !== undefined ? Number(live.stockQuantity) : p.stockQuantity,
+          inStock: live.inStock !== undefined ? Boolean(live.inStock) : p.inStock,
+          regionalHubId: live.regionalHubId || p.regionalHubId,
+          regionalHubName: live.regionalHubName || p.regionalHubName,
+          regionalPincode: live.regionalPincode || currentPincode,
+        };
+      }
+      return p;
+    });
+  }, [categoryConfig, liveProductsMap, currentPincode]);
 
   return (
     <View style={styles.screenContainer}>
@@ -261,6 +341,15 @@ export default function CategoryPage({
         </TouchableOpacity>
       </View>
 
+      {/* 2.1 Regional Hub & Current Delivery Location Bar */}
+      <DeliveryLocationBar
+        onLocationChange={(loc) => {
+          if (loc?.pincode) {
+            setCurrentPincode(loc.pincode);
+          }
+        }}
+      />
+
       <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
@@ -350,11 +439,25 @@ export default function CategoryPage({
 
         {/* 5. All Products Grid Section */}
         <View style={styles.gridSection}>
-          {/* Header Row: Count & Sorting */}
+          {/* Header Row: Count, In-Stock Filter & Sorting */}
           <View style={styles.gridHeaderRow}>
-            <Text style={styles.productCountText}>
-              All ({filteredProducts.length})
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.productCountText}>
+                All ({displayProducts.length})
+              </Text>
+
+              {/* In-Stock at Hub Only Filter Pill */}
+              <TouchableOpacity
+                style={[styles.inStockFilterPill, inStockOnly && styles.inStockFilterPillActive]}
+                onPress={() => setInStockOnly(!inStockOnly)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.filterDot, inStockOnly && styles.filterDotActive]} />
+                <Text style={[styles.inStockFilterText, inStockOnly && styles.inStockFilterTextActive]}>
+                  In Stock Only
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Sort Filter Selector */}
             <TouchableOpacity
@@ -377,7 +480,7 @@ export default function CategoryPage({
 
           {/* Product Cards Grid */}
           <View style={styles.productGrid}>
-            {filteredProducts.map((prod) => (
+            {displayProducts.map((prod) => (
               <View key={prod.id} style={styles.gridItem}>
                 <LandingProductCard
                   product={{
@@ -875,6 +978,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#475569',
+  },
+  inStockFilterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4.5,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  inStockFilterPillActive: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC',
+  },
+  filterDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#94A3B8',
+  },
+  filterDotActive: {
+    backgroundColor: '#16A34A',
+  },
+  inStockFilterText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  inStockFilterTextActive: {
+    color: '#15803D',
   },
   productGrid: {
     flexDirection: 'row',

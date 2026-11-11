@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ShoppingCart,
   Heart,
@@ -58,9 +58,50 @@ export default function ProductDetailPage({
   onToggleFavorite,
   isMember = false
 }) {
-  const productReviews = Array.isArray(product?.reviews) ? product.reviews : [];
+  const [liveReviews, setLiveReviews] = useState(Array.isArray(product?.reviews) ? product.reviews : []);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    let isMounted = true;
+    const fetchReviews = async () => {
+      try {
+        const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+        const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
+        const res = await fetch(`${API_BASE}/customer/reviews?productId=${encodeURIComponent(product.id)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && isMounted && data.length > 0) {
+            setLiveReviews(data);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch reviews:', err);
+      }
+    };
+    fetchReviews();
+    return () => { isMounted = false; };
+  }, [product?.id]);
+
+  const productReviews = liveReviews.length > 0 ? liveReviews : (Array.isArray(product?.reviews) ? product.reviews : []);
   const reviewsCount = productReviews.length || (Number(product?.reviewsCount) > 0 ? Number(product.reviewsCount) : 0);
-  const ratingValue = reviewsCount > 0 ? (product?.rating || '5.0') : '0.0';
+  const avgRatingNum = productReviews.length > 0
+    ? (productReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / productReviews.length)
+    : (product?.rating ? Number(product.rating) : 0);
+  const ratingValue = reviewsCount > 0 ? (avgRatingNum > 0 ? avgRatingNum.toFixed(1) : (product?.rating || '5.0')) : '0.0';
+
+  const starDistribution = useMemo(() => {
+    const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    productReviews.forEach(r => {
+      const star = Math.max(1, Math.min(5, Math.round(Number(r.rating) || 5)));
+      counts[star] = (counts[star] || 0) + 1;
+    });
+    const total = productReviews.length;
+    return [5, 4, 3, 2, 1].map(star => ({
+      star,
+      count: counts[star],
+      percent: total > 0 ? Math.round((counts[star] / total) * 100) : 0
+    }));
+  }, [productReviews]);
 
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   const [isImgModalOpen, setIsImgModalOpen] = useState(false);
@@ -1198,21 +1239,15 @@ export default function ProductDetailPage({
                       </div>
 
                       <div className="ratings-bars-list">
-                        <div className="bar-row">
-                          <span>5 Star</span>
-                          <div className="bar-track"><div className="bar-fill" style={{ width: '100%' }}></div></div>
-                          <span>100%</span>
-                        </div>
-                        <div className="bar-row">
-                          <span>4 Star</span>
-                          <div className="bar-track"><div className="bar-fill" style={{ width: '0%' }}></div></div>
-                          <span>0%</span>
-                        </div>
-                        <div className="bar-row">
-                          <span>3 Star</span>
-                          <div className="bar-track"><div className="bar-fill" style={{ width: '0%' }}></div></div>
-                          <span>0%</span>
-                        </div>
+                        {starDistribution.map(({ star, percent }) => (
+                          <div key={star} className="bar-row">
+                            <span>{star} Star</span>
+                            <div className="bar-track">
+                              <div className="bar-fill" style={{ width: `${percent}%` }}></div>
+                            </div>
+                            <span>{percent}%</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -1220,10 +1255,13 @@ export default function ProductDetailPage({
                       {productReviews.map((rev, idx) => (
                         <div key={rev.id || idx} className="single-review-card">
                           <div className="review-top-row">
-                            <span className="reviewer-name">{rev.author || rev.reviewerName || rev.customerName || 'Verified Customer'}</span>
+                            <span className="reviewer-name">{rev.customerName || rev.author || rev.reviewerName || 'Verified Customer'}</span>
                             <span className="verified-badge"><CheckCircle2 size={13} /> Verified Customer</span>
-                            <span className="review-date">{rev.date || 'Recent'}</span>
+                            <span className="review-date">{rev.formattedDate || rev.date || 'Recent'}</span>
                           </div>
+                          {rev.title && (
+                            <div className="review-headline-title">{rev.title}</div>
+                          )}
                           <div className="review-stars">
                             {[...Array(Number(rev.rating) || 5)].map((_, i) => (
                               <Star key={i} size={14} fill="#f59e0b" color="#f59e0b" />

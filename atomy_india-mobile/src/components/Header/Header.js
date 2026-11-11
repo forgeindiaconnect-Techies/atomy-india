@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { SUB_NAV_LINKS } from '../../data/mockData';
+import DeliveryLocationBar from './DeliveryLocationBar';
 
 // Authentic logos
 const ficLogo = require('../../../assets/fic-symbol.png');
@@ -41,6 +42,8 @@ export default function Header({
   recentlyViewedCount = 0,
   isMember = false,
   onMemberBadgePress,
+  showLocationBar = true,
+  onLocationChange,
 }) {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -192,6 +195,11 @@ export default function Header({
           />
         </TouchableOpacity>
       </View>
+
+      {/* 3. Authentic Mobile Delivery Location Strip ("Current Area: Krishnagiri (635002) Change ˅") */}
+      {showLocationBar && (
+        <DeliveryLocationBar onLocationChange={onLocationChange} />
+      )}
 
       {/* Clear Pop-up in the Right Half showing only the sub-navigation buttons */}
       <Modal

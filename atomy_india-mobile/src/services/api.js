@@ -35,8 +35,8 @@ const getLocalApiBase = () => {
 
 export const LOCAL_API_BASE = getLocalApiBase();
 
-// Default API Base: Prioritizes live cloud production server for mobile builds and standalone APK
-export const API_BASE = CLOUD_API_BASE;
+// Default API Base: Prioritizes responsive local backend, falls back to cloud
+export const API_BASE = LOCAL_API_BASE || CLOUD_API_BASE;
 
 /**
  * Fetch all active products live from database (tries Local Backend first for instant response, falls back to Cloud)
@@ -55,14 +55,14 @@ export async function fetchLiveProducts(categoryId = null, search = null, pincod
   const queryString = params.length > 0 ? `?${params.join('&')}` : '';
 
   const candidateUrls = [
-    `${CLOUD_API_BASE}/products${queryString}`,
     `${LOCAL_API_BASE}/products${queryString}`,
+    `${CLOUD_API_BASE}/products${queryString}`,
   ];
 
   for (const url of candidateUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
 
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -126,8 +126,8 @@ export async function checkPincodeInventory(pincode) {
   if (!pin) return { isDeliverable: true, itemsStock: {} };
 
   const candidateUrls = [
-    `${CLOUD_API_BASE}/products?pincode=${encodeURIComponent(pin)}`,
     `${LOCAL_API_BASE}/products?pincode=${encodeURIComponent(pin)}`,
+    `${CLOUD_API_BASE}/products?pincode=${encodeURIComponent(pin)}`,
   ];
 
   for (const url of candidateUrls) {
@@ -165,13 +165,93 @@ export async function checkPincodeInventory(pincode) {
 }
 
 /**
+ * Fetch real-time Hub & Sub-Admin / Distributor Contact Details (including Co-Manager delegation)
+ */
+export async function fetchHubDetails(pincode) {
+  const pin = String(pincode || '').trim() || '635001';
+  const candidateUrls = [
+    `${LOCAL_API_BASE}/pincodes/hub-details?pincode=${encodeURIComponent(pin)}`,
+    `${CLOUD_API_BASE}/pincodes/hub-details?pincode=${encodeURIComponent(pin)}`,
+  ];
+
+  for (const url of candidateUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {}
+  }
+
+  // Authentic 1:1 distributor hub fallback
+  if (pin === '635002') {
+    return {
+      found: true,
+      distributorId: 'DIST-635002',
+      hubName: 'Selva Regional Logistics Hub',
+      hubAddress: 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002',
+      contactPerson: 'Selva Kumar (Hub Manager)',
+      phone: '+91 95388 53454',
+      email: 'selvakumarc029@gmail.com',
+      pincode: '635002',
+      city: 'Krishnagiri',
+      state: 'Tamil Nadu',
+      operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
+      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.',
+      isSubstituteActive: false,
+      coManagerName: 'Hub Co-Manager',
+      coManagerPhone: '+91 98401 23456',
+    };
+  } else if (pin === '635202') {
+    return {
+      found: true,
+      distributorId: 'DIST-635202',
+      hubName: 'Krishnapuram Regional Hub',
+      hubAddress: 'No 55, MN traders, Krishnapuram, Dharmapuri - 635202',
+      contactPerson: 'Munusamy (Hub Manager)',
+      phone: '+91 98765 43210',
+      email: 'krishnapuram.hub@atomy.in',
+      pincode: '635202',
+      city: 'Dharmapuri',
+      state: 'Tamil Nadu',
+      operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
+      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.',
+      isSubstituteActive: false,
+      coManagerName: 'Hub Co-Manager (Model 1)',
+      coManagerPhone: '+91 98401 23456',
+    };
+  }
+
+  return {
+    found: true,
+    distributorId: `DIST-${pin}`,
+    hubName: 'Atomy Regional Logistics Hub',
+    hubAddress: `Designated Regional Logistics Centre, Sector Hub - ${pin}`,
+    contactPerson: 'Selva Kumar (Hub Manager)',
+    phone: '+91 95388 53454',
+    email: 'support.india@atomy.com',
+    pincode: pin,
+    city: 'Regional District',
+    state: 'India',
+    operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
+    pickupInstructions: 'Present your Order ID or invoice at the counter to collect your parcel.',
+    isSubstituteActive: false,
+    coManagerName: 'Hub Co-Manager (Standby)',
+    coManagerPhone: '+91 98401 23456',
+  };
+}
+
+/**
  * Check customer membership status from database (Cloud first + Local fallback)
  */
 export async function fetchMembershipStatusApi(email) {
   if (!email) return null;
   const candidateUrls = [
-    `${CLOUD_API_BASE}/membership/status?email=${encodeURIComponent(email)}`,
     `${LOCAL_API_BASE}/membership/status?email=${encodeURIComponent(email)}`,
+    `${CLOUD_API_BASE}/membership/status?email=${encodeURIComponent(email)}`,
   ];
 
   for (const url of candidateUrls) {
@@ -196,40 +276,37 @@ export async function fetchMembershipStatusApi(email) {
  */
 export async function createOrderApi(orderPayload) {
   const targetUrls = [
-    `${CLOUD_API_BASE}/orders`,
     `${LOCAL_API_BASE}/orders`,
+    `${CLOUD_API_BASE}/orders`,
   ];
 
   let successfulResult = null;
   let lastErrorMessage = null;
 
-  await Promise.allSettled(
-    targetUrls.map(async (url) => {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderPayload),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
 
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.orderId) {
-          console.log(`[API] Order successfully received by: ${url} (Order ID: ${data.orderId})`);
-          successfulResult = { success: true, order: data };
-        } else {
-          lastErrorMessage = data.error || data.message || `Failed on ${url}`;
-        }
-      } catch (err) {
-        console.warn(`[API] Order dispatch to ${url} failed:`, err.message);
-        lastErrorMessage = err.message;
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.orderId) {
+        console.log(`[API] Order successfully received by: ${url} (Order ID: ${data.orderId})`);
+        return { success: true, order: data };
+      } else {
+        lastErrorMessage = data.error || data.message || `Failed on ${url}`;
       }
-    })
-  );
+    } catch (err) {
+      lastErrorMessage = err.message;
+    }
+  }
 
   if (successfulResult) {
     return successfulResult;
@@ -247,8 +324,8 @@ export async function fetchOrderHistoryApi(email, phone) {
   else return [];
 
   const candidateUrls = [
-    `${CLOUD_API_BASE}/orders/history?${param}`,
     `${LOCAL_API_BASE}/orders/history?${param}`,
+    `${CLOUD_API_BASE}/orders/history?${param}`,
   ];
 
   for (const url of candidateUrls) {
@@ -273,8 +350,8 @@ export async function fetchOrderHistoryApi(email, phone) {
  */
 export async function fetchTrackingApi(orderId) {
   const candidateUrls = [
-    `${CLOUD_API_BASE}/tracking/${encodeURIComponent(orderId)}`,
     `${LOCAL_API_BASE}/tracking/${encodeURIComponent(orderId)}`,
+    `${CLOUD_API_BASE}/tracking/${encodeURIComponent(orderId)}`,
   ];
 
   for (const url of candidateUrls) {
@@ -289,33 +366,29 @@ export async function fetchTrackingApi(orderId) {
 }
 
 /**
- * Join Membership in Cloud Server AND Local Host in parallel
+ * Join Membership in Cloud Server AND Local Host
  */
 export async function joinMembershipApi(memberPayload) {
   const targetUrls = [
-    `${CLOUD_API_BASE}/membership/join`,
     `${LOCAL_API_BASE}/membership/join`,
+    `${CLOUD_API_BASE}/membership/join`,
   ];
 
-  let successfulResult = null;
+  for (const url of targetUrls) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(memberPayload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        return { success: true, member: data };
+      }
+    } catch (err) {}
+  }
 
-  await Promise.allSettled(
-    targetUrls.map(async (url) => {
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(memberPayload),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-          successfulResult = { success: true, member: data };
-        }
-      } catch (err) {}
-    })
-  );
-
-  return successfulResult || { success: false, error: 'Failed to join membership on server' };
+  return { success: false, error: 'Failed to join membership on server' };
 }
 
 /**
@@ -333,8 +406,8 @@ export async function registerCustomerApi(customerData) {
   };
 
   const targetUrls = [
-    `${CLOUD_API_BASE}/auth/register`,
     `${LOCAL_API_BASE}/auth/register`,
+    `${CLOUD_API_BASE}/auth/register`,
   ];
 
   let lastError = 'Failed to register on server';
@@ -380,8 +453,8 @@ export async function loginCustomerApi(credentials) {
   };
 
   const targetUrls = [
-    `${CLOUD_API_BASE}/auth/login`,
     `${LOCAL_API_BASE}/auth/login`,
+    `${CLOUD_API_BASE}/auth/login`,
   ];
 
   let lastError = 'Failed to log in on server';
@@ -425,14 +498,14 @@ export async function loginCustomerApi(credentials) {
 export async function fetchCustomerProfileApi(email) {
   if (!email) return null;
   const candidateUrls = [
-    `${CLOUD_API_BASE}/auth/profile?email=${encodeURIComponent(email)}`,
     `${LOCAL_API_BASE}/auth/profile?email=${encodeURIComponent(email)}`,
+    `${CLOUD_API_BASE}/auth/profile?email=${encodeURIComponent(email)}`,
   ];
 
   for (const url of candidateUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.ok) {
@@ -447,7 +520,7 @@ export async function fetchCustomerProfileApi(email) {
 }
 
 /**
- * Update customer profile in database (Cloud Server AND Local Host in parallel)
+ * Update customer profile in database
  */
 export async function updateCustomerProfileApi(profileData) {
   const payload = {
@@ -464,38 +537,35 @@ export async function updateCustomerProfileApi(profileData) {
   };
 
   const targetUrls = [
-    `${CLOUD_API_BASE}/auth/profile`,
     `${LOCAL_API_BASE}/auth/profile`,
+    `${CLOUD_API_BASE}/auth/profile`,
   ];
 
-  let successfulResult = null;
   let lastError = null;
 
-  await Promise.allSettled(
-    targetUrls.map(async (url) => {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        const res = await fetch(url, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data.customer) {
-          successfulResult = { success: true, customer: data.customer };
-        } else {
-          lastError = data.message || 'Failed to update profile';
-        }
-      } catch (err) {
-        lastError = err.message;
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.customer) {
+        return { success: true, customer: data.customer };
+      } else {
+        lastError = data.message || 'Failed to update profile';
       }
-    })
-  );
+    } catch (err) {
+      lastError = err.message;
+    }
+  }
 
-  return successfulResult || { success: false, error: lastError || 'Failed to update profile' };
+  return { success: false, error: lastError || 'Failed to update profile' };
 }
 
 /**
@@ -503,8 +573,8 @@ export async function updateCustomerProfileApi(profileData) {
  */
 export async function googleAuthCustomerApi(googleData) {
   const targetUrls = [
-    `${CLOUD_API_BASE}/auth/google`,
     `${LOCAL_API_BASE}/auth/google`,
+    `${CLOUD_API_BASE}/auth/google`,
   ];
 
   let lastError = 'Google sign-in failed on server';
@@ -656,8 +726,8 @@ export async function fetchFloatingAdConfigApi() {
  */
 export async function requestForgotPasswordOtp(email) {
   const targetUrls = [
-    `${CLOUD_API_BASE}/auth/forgot-password`,
     `${LOCAL_API_BASE}/auth/forgot-password`,
+    `${CLOUD_API_BASE}/auth/forgot-password`,
   ];
 
   let lastError = null;
@@ -687,8 +757,8 @@ export async function requestForgotPasswordOtp(email) {
  */
 export async function verifyPasswordOtp(email, otp) {
   const targetUrls = [
-    `${CLOUD_API_BASE}/auth/verify-otp`,
     `${LOCAL_API_BASE}/auth/verify-otp`,
+    `${CLOUD_API_BASE}/auth/verify-otp`,
   ];
 
   let lastError = null;
@@ -718,8 +788,8 @@ export async function verifyPasswordOtp(email, otp) {
  */
 export async function resetCustomerPassword(email, otp, newPassword) {
   const targetUrls = [
-    `${CLOUD_API_BASE}/auth/reset-password`,
     `${LOCAL_API_BASE}/auth/reset-password`,
+    `${CLOUD_API_BASE}/auth/reset-password`,
   ];
 
   let lastError = null;
@@ -757,8 +827,8 @@ export async function resetCustomerPassword(email, otp, newPassword) {
  */
 export async function fetchCouponsApi() {
   const targetUrls = [
-    `${CLOUD_API_BASE}/coupons`,
     `${LOCAL_API_BASE}/coupons`,
+    `${CLOUD_API_BASE}/coupons`,
   ];
 
   for (const url of targetUrls) {
@@ -781,8 +851,8 @@ export async function fetchCouponsApi() {
  */
 export async function applyCouponApi(code, cartAmount = 0, cartItems = [], isFirstOrder = true) {
   const targetUrls = [
-    `${CLOUD_API_BASE}/coupons/apply`,
     `${LOCAL_API_BASE}/coupons/apply`,
+    `${CLOUD_API_BASE}/coupons/apply`,
   ];
 
   for (const url of targetUrls) {
@@ -803,4 +873,92 @@ export async function applyCouponApi(code, cartAmount = 0, cartItems = [], isFir
   }
   return { valid: false, message: 'Could not connect to coupon verification server.' };
 }
+
+/**
+ * Fetch product customer reviews live from backend
+ */
+export async function fetchProductReviewsApi(productId) {
+  if (!productId) return [];
+  const targetUrls = [
+    `${LOCAL_API_BASE}/customer/reviews?productId=${encodeURIComponent(productId)}`,
+    `${CLOUD_API_BASE}/customer/reviews?productId=${encodeURIComponent(productId)}`,
+  ];
+
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
+      }
+    } catch (err) {}
+  }
+  return [];
+}
+
+/**
+ * Fetch verified product reviews submitted for a specific order ID
+ */
+export async function fetchOrderReviewsApi(orderId) {
+  if (!orderId) return [];
+  const targetUrls = [
+    `${LOCAL_API_BASE}/customer/reviews/order/${encodeURIComponent(orderId)}`,
+    `${CLOUD_API_BASE}/customer/reviews/order/${encodeURIComponent(orderId)}`,
+  ];
+
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
+      }
+    } catch (err) {}
+  }
+  return [];
+}
+
+/**
+ * Submit verified product rating & review
+ */
+export async function submitProductReviewApi(reviewData) {
+  const targetUrls = [
+    `${LOCAL_API_BASE}/customer/reviews`,
+    `${CLOUD_API_BASE}/customer/reviews`,
+  ];
+
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reviewData),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        return await res.json();
+      } else {
+        const errJson = await res.json().catch(() => null);
+        if (errJson && errJson.error) {
+          throw new Error(errJson.error);
+        }
+      }
+    } catch (err) {
+      if (err.message && !err.message.includes('abort') && !err.message.includes('Network')) {
+        throw err;
+      }
+    }
+  }
+  throw new Error('Unable to submit review. Server unreachable.');
+}
+
 

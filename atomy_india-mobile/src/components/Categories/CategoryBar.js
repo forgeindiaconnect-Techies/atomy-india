@@ -75,13 +75,13 @@ export default function CategoryBar({
           toValue: 1,
           duration: 650,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(glowAnim, {
           toValue: 0.3,
           duration: 650,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ])
     );

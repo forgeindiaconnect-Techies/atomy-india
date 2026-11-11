@@ -26,10 +26,12 @@ import {
   Banknote,
   Download,
   Printer,
-  Building2
+  Building2,
+  Star
 } from 'lucide-react';
 import DeliveryStatusStepper from './DeliveryStatusStepper';
 import { updateAdminOrderStatus, syncUnsyncedOrdersToBackend } from '../../services/api';
+import { mergeProductIntoCatalog } from '../../services/catalogSyncService';
 import './OrderHistoryPage.css';
 
 // Benchmark Reason Catalog (Amazon / Myntra / Flipkart standard)
@@ -295,6 +297,22 @@ export default function OrderHistoryPage({
 
   const [returnModalOrder, setReturnModalOrder] = useState(null);
 
+  // Flipkart-Style Rate & Review Modal State
+  const [reviewModalOrder, setReviewModalOrder] = useState(null);
+  const [reviewProduct, setReviewProduct] = useState(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewedProductMap, setReviewedProductMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_reviewed_orders_map');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
   const [activeRulesTab, setActiveRulesTab] = useState('cancellation'); // 'cancellation' | 'replacement' | 'refund_guarantee' | 'timelines'
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
@@ -306,6 +324,74 @@ export default function OrderHistoryPage({
     const timer = setTimeout(() => setToastMessage(null), 5000);
     return () => clearTimeout(timer);
   }, [toastMessage]);
+
+  // Live sync with reviews from backend and BroadcastChannel (from mobile app or another tab)
+  useEffect(() => {
+    let isMounted = true;
+    const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+    const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
+
+    // 1. Sync from storage
+    try {
+      const saved1 = localStorage.getItem('atomy_reviewed_orders_map');
+      const saved2 = localStorage.getItem('@atomy_reviewed_orders_map');
+      const combined = { ...(saved1 ? JSON.parse(saved1) : {}), ...(saved2 ? JSON.parse(saved2) : {}) };
+      if (Object.keys(combined).length > 0) {
+        setReviewedProductMap(prev => ({ ...prev, ...combined }));
+      }
+    } catch {}
+
+    // 2. Fetch order reviews from backend
+    if (Array.isArray(placedOrders)) {
+      placedOrders.forEach(order => {
+        const ordId = order.orderId || order.id;
+        if (!ordId) return;
+        fetch(`${API_BASE}/customer/reviews/order/${encodeURIComponent(ordId)}`)
+          .then(res => res.ok ? res.json() : [])
+          .then(reviews => {
+            if (Array.isArray(reviews) && reviews.length > 0 && isMounted) {
+              setReviewedProductMap(prev => {
+                const updated = { ...prev, [ordId]: true };
+                reviews.forEach(r => {
+                  if (r.productId) {
+                    updated[`${ordId}_${r.productId}`] = r;
+                  }
+                });
+                try {
+                  localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updated));
+                  localStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updated));
+                } catch {}
+                return updated;
+              });
+            }
+          })
+          .catch(() => {});
+      });
+    }
+
+    // 3. Listen to live BroadcastChannel
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('atomy_sync_channel');
+        bc.onmessage = (event) => {
+          if (event.data && (event.data.type === 'PRODUCT_UPDATED' || event.data.type === 'REVIEW_SUBMITTED')) {
+            try {
+              const s1 = localStorage.getItem('atomy_reviewed_orders_map');
+              const s2 = localStorage.getItem('@atomy_reviewed_orders_map');
+              const c = { ...(s1 ? JSON.parse(s1) : {}), ...(s2 ? JSON.parse(s2) : {}) };
+              setReviewedProductMap(prev => ({ ...prev, ...c }));
+            } catch {}
+          }
+        };
+        return () => {
+          isMounted = false;
+          bc.close();
+        };
+      } catch {}
+    }
+
+    return () => { isMounted = false; };
+  }, [placedOrders]);
 
   // Load any previously persisted cancellations/replacements
   useEffect(() => {
@@ -362,14 +448,23 @@ export default function OrderHistoryPage({
       }
       const paymentStatus = override.paymentStatus || o.paymentStatus || (status === 'Cancelled' ? 'REFUNDED' : isCod ? 'PENDING' : 'PAID');
 
-      const rawItems = (o.items || []).map((it) => ({
-        id: it.id || it.productId,
-        name: it.name || it.productName,
-        image: it.image || it.productImage,
-        qty: it.qty || it.quantity || 1,
-        price: it.price || 0,
-        pv: it.pv || 0
-      }));
+      const rawItems = (o.items && o.items.length > 0)
+        ? o.items.map((it) => ({
+            id: it.id || it.productId,
+            name: it.name || it.productName || o.title || 'Atomy Product',
+            image: it.image || it.productImage || it.img || 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg',
+            qty: it.qty || it.quantity || 1,
+            price: it.price || 0,
+            pv: it.pv || 0
+          }))
+        : [{
+            id: o.productId || o.orderId,
+            name: o.title || o.productName || 'Atomy Product',
+            image: o.image || o.productImage || 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg',
+            qty: o.itemsCount || 1,
+            price: o.totalAmount || o.price || 0,
+            pv: o.pv || 0
+          }];
       const itemsSum = rawItems.reduce((sum, it) => sum + (it.price * it.qty), 0);
       let shipFee = (o.shippingFee !== undefined && o.shippingFee !== null) ? Number(o.shippingFee) : (itemsSum > 0 && itemsSum < 1500 ? 150 : 0);
       let orderGrandTotal = (o.grandTotal && Number(o.grandTotal) > 0) ? Number(o.grandTotal) : (o.totalAmount && Number(o.totalAmount) > 0 ? Number(o.totalAmount) : (itemsSum + shipFee));
@@ -696,6 +791,180 @@ export default function OrderHistoryPage({
       setActionNotes('');
     } finally {
       setIsSubmittingAction(false);
+    }
+  };
+
+  // Open Flipkart-Style Review Modal for Delivered Order
+  const handleOpenReviewModal = (order) => {
+    setReviewModalOrder(order);
+    const firstItem = (order.items && order.items.length > 0) ? order.items[0] : null;
+    setReviewProduct(firstItem);
+    const prodId = firstItem?.productId || firstItem?.id || firstItem?._id || '';
+    const key = `${order.orderId}_${prodId}`;
+    const prev = reviewedProductMap[key];
+    if (prev) {
+      setReviewRating(prev.rating || 0);
+      setReviewTitle(prev.title || '');
+      setReviewComment(prev.comment || '');
+    } else {
+      setReviewRating(0);
+      setReviewTitle('');
+      setReviewComment('');
+    }
+  };
+
+  const handleSelectReviewProduct = (item) => {
+    setReviewProduct(item);
+    if (!reviewModalOrder) return;
+    const prodId = item?.productId || item?.id || item?._id || '';
+    const key = `${reviewModalOrder.orderId}_${prodId}`;
+    const prev = reviewedProductMap[key];
+    if (prev) {
+      setReviewRating(prev.rating || 0);
+      setReviewTitle(prev.title || '');
+      setReviewComment(prev.comment || '');
+    } else {
+      setReviewRating(0);
+      setReviewTitle('');
+      setReviewComment('');
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewModalOrder || !reviewProduct) return;
+    if (!reviewRating || reviewRating < 1 || reviewRating > 5) {
+      setToastMessage({
+        type: 'warning',
+        title: 'Rating Required',
+        desc: 'Please select a star rating between 1 and 5 stars.'
+      });
+      return;
+    }
+    if (!reviewComment.trim()) {
+      setToastMessage({
+        type: 'warning',
+        title: 'Review Text Required',
+        desc: 'Please enter your manual text review detailing your product experience.'
+      });
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    const prodId = reviewProduct.productId || reviewProduct.id || reviewProduct._id;
+    const prodName = reviewProduct.name || reviewProduct.productName || 'Atomy Product';
+    const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+    const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
+
+    let customerName = 'Verified Buyer';
+    try {
+      const storedName = localStorage.getItem('atomy_customer_name') || localStorage.getItem('atomy_user_name');
+      if (storedName) customerName = storedName;
+      else if (reviewModalOrder.shippingAddress?.recipient) customerName = reviewModalOrder.shippingAddress.recipient;
+    } catch {}
+
+    const payload = {
+      orderId: reviewModalOrder.orderId,
+      productId: prodId,
+      productName: prodName,
+      rating: reviewRating,
+      title: reviewTitle.trim(),
+      comment: reviewComment.trim(),
+      customerEmail: reviewModalOrder.customerEmail || localStorage.getItem('atomy_customer_email') || 'customer@atomy.in',
+      customerName: customerName
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/customer/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      const updatedRating = (data && data.rating !== undefined) ? data.rating : reviewRating;
+      const updatedCount = (data && data.reviewsCount !== undefined) ? data.reviewsCount : 1;
+
+      // Update local storage review registry
+      const key = `${reviewModalOrder.orderId}_${prodId}`;
+      const updatedMap = {
+        ...reviewedProductMap,
+        [key]: {
+          rating: reviewRating,
+          title: reviewTitle.trim(),
+          comment: reviewComment.trim(),
+          date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        }
+      };
+      setReviewedProductMap(updatedMap);
+      try {
+        localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+        localStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+      } catch {}
+
+      // Update in-memory catalog structures
+      try {
+        mergeProductIntoCatalog({
+          id: prodId,
+          rating: updatedRating,
+          reviewsCount: updatedCount
+        });
+      } catch (e) {
+        console.warn('Catalog merge note:', e);
+      }
+
+      // Broadcast across tabs/windows
+      try {
+        if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('atomy_sync_channel');
+          bc.postMessage({
+            type: 'PRODUCT_UPDATED',
+            product: { id: prodId, rating: updatedRating, reviewsCount: updatedCount },
+            reviewMap: updatedMap
+          });
+          bc.close();
+        }
+      } catch {}
+
+      setToastMessage({
+        type: 'success',
+        title: 'Review Posted to Catalog!',
+        desc: `Thank you! Your ${reviewRating}★ review for "${prodName}" is now live. Catalog overall rating updated to ${updatedRating}★ (${updatedCount} reviews).`
+      });
+      setReviewModalOrder(null);
+    } catch (err) {
+      console.warn('Review submission notice:', err);
+      // Fallback local persistence
+      const key = `${reviewModalOrder.orderId}_${prodId}`;
+      const updatedMap = {
+        ...reviewedProductMap,
+        [key]: {
+          rating: reviewRating,
+          title: reviewTitle.trim(),
+          comment: reviewComment.trim(),
+          date: 'Recent'
+        }
+      };
+      setReviewedProductMap(updatedMap);
+      try {
+        localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+      } catch {}
+
+      try {
+        mergeProductIntoCatalog({
+          id: prodId,
+          rating: reviewRating,
+          reviewsCount: 1
+        });
+      } catch {}
+
+      setToastMessage({
+        type: 'success',
+        title: 'Review Saved Locally',
+        desc: `Thank you! Your ${reviewRating}★ rating for "${prodName}" has been recorded.`
+      });
+      setReviewModalOrder(null);
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
@@ -1544,6 +1813,25 @@ export default function OrderHistoryPage({
                         </button>
                       )}
 
+                      {/* FLIPKART-STYLE RATE & REVIEW BUTTON (Delivered orders only) */}
+                      {isDeliv && (() => {
+                        const firstItem = (order.items && order.items.length > 0) ? order.items[0] : null;
+                        const prodId = firstItem?.productId || firstItem?.id || firstItem?._id || '';
+                        const isReviewed = !!reviewedProductMap[`${order.orderId}_${prodId}`];
+
+                        return (
+                          <button
+                            type="button"
+                            className={`order-btn-review ${isReviewed ? 'is-reviewed' : ''}`}
+                            onClick={() => handleOpenReviewModal(order)}
+                            title="Rate & Review this product (Flipkart benchmark)"
+                          >
+                            <Star size={15} fill={isReviewed ? "#b45309" : "none"} color={isReviewed ? "#b45309" : "#b45309"} />
+                            <span>{isReviewed ? 'Reviewed' : 'Write Review'}</span>
+                          </button>
+                        );
+                      })()}
+
                       <button
                         type="button"
                         className="order-btn-reorder"
@@ -1551,7 +1839,7 @@ export default function OrderHistoryPage({
                         title="Add items to cart again"
                       >
                         <RotateCcw size={15} />
-                        <span>Re-Order</span>
+                        <span>Buy it again</span>
                       </button>
                     </div>
                   </div>
@@ -2394,6 +2682,185 @@ export default function OrderHistoryPage({
           </div>
         </div>
       )}
+
+      {/* ========================================================
+          MODAL 5: FLIPKART-STYLE RATE & REVIEW PRODUCT MODAL
+          ======================================================== */}
+      {reviewModalOrder && reviewProduct && (() => {
+        const prodId = reviewProduct.productId || reviewProduct.id || reviewProduct._id;
+        const key = `${reviewModalOrder.orderId}_${prodId}`;
+        const isAlreadyReviewed = !!reviewedProductMap[key];
+        const activeRating = reviewRating;
+        const RATING_LABELS = {
+          0: { text: 'Select Rating', color: '#94a3b8' },
+          1: { text: 'Very Bad', color: '#ef4444' },
+          2: { text: 'Bad', color: '#f97316' },
+          3: { text: 'Good', color: '#eab308' },
+          4: { text: 'Very Good', color: '#84cc16' },
+          5: { text: 'Excellent', color: '#22c55e' }
+        };
+        const ratingFeedback = RATING_LABELS[activeRating] || RATING_LABELS[0];
+
+        return (
+          <div className="order-modal-backdrop animate-fade" onClick={() => setReviewModalOrder(null)}>
+            <div className="order-action-modal review-custom-modal animate-scale-up" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header-amber">
+                <div className="amber-icon-wrap">
+                  <Star size={24} fill="#b45309" color="#b45309" />
+                </div>
+                <div>
+                  <h3>Rate & Review Product</h3>
+                  <p>Order #{reviewModalOrder.orderId} • Verified Purchase Review</p>
+                </div>
+                <button className="modal-close-x" onClick={() => setReviewModalOrder(null)} aria-label="Close">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="modal-body-content review-modal-body">
+                {/* Product Switcher if order has multiple items */}
+                {reviewModalOrder.items && reviewModalOrder.items.length > 1 && (
+                  <div className="review-items-selector">
+                    <label className="review-field-label">Select Item to Rate & Review:</label>
+                    <div className="review-items-pills">
+                      {reviewModalOrder.items.map((it, idx) => {
+                        const itId = it.productId || it.id || it._id;
+                        const isSelected = itId === prodId;
+                        const itReviewed = !!reviewedProductMap[`${reviewModalOrder.orderId}_${itId}`];
+                        return (
+                          <button
+                            key={itId || idx}
+                            type="button"
+                            className={`review-item-pill ${isSelected ? 'active' : ''}`}
+                            onClick={() => handleSelectReviewProduct(it)}
+                          >
+                            {it.image && <img src={it.image} alt={it.name} className="pill-img" />}
+                            <span className="pill-name">{it.name}</span>
+                            {itReviewed && <span className="pill-check">✓</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Product Hero Card */}
+                <div className="review-product-hero">
+                  {reviewProduct.image && (
+                    <img src={reviewProduct.image} alt={reviewProduct.name} className="review-prod-img" />
+                  )}
+                  <div className="review-prod-info">
+                    <h4 className="review-prod-title">{reviewProduct.name}</h4>
+                    <span className="review-verified-badge">
+                      <CheckCircle2 size={13} color="#15803d" /> Verified Buyer from Delivered Order
+                    </span>
+                    {isAlreadyReviewed && (
+                      <span className="review-updated-badge">
+                        ★ You previously rated this item {reviewedProductMap[key].rating}/5
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* STEP 1: RATING OUT OF 5 */}
+                <div className="review-section-block">
+                  <label className="review-field-label">
+                    1. Rate this Product <span className="review-req-asterisk">*</span>
+                  </label>
+                  <div className="flipkart-stars-row">
+                    {[1, 2, 3, 4, 5].map((starVal) => {
+                      const isFilled = starVal <= activeRating;
+                      return (
+                        <button
+                          key={starVal}
+                          type="button"
+                          className={`flipkart-star-btn ${isFilled ? 'filled' : ''}`}
+                          onClick={() => setReviewRating(starVal)}
+                          aria-label={`${starVal} Star`}
+                        >
+                          <Star
+                            size={32}
+                            fill={isFilled ? "#f59e0b" : "transparent"}
+                            color={isFilled ? "#f59e0b" : "#cbd5e1"}
+                          />
+                        </button>
+                      );
+                    })}
+                    <div className="rating-badge-feedback" style={{ color: ratingFeedback.color }}>
+                      {activeRating > 0 ? (
+                        <>
+                          <span className="score-num">{activeRating} ★</span>
+                          <span className="score-label">{ratingFeedback.text}</span>
+                        </>
+                      ) : (
+                        <span className="score-label" style={{ color: '#94a3b8' }}>Select Rating</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 2: REVIEW TITLE / HEADLINE */}
+                <div className="review-section-block">
+                  <label className="review-field-label">
+                    2. Review Title (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    className="review-input-text"
+                    placeholder="e.g., Authentic Korean quality, silky smooth hair!"
+                    value={reviewTitle}
+                    onChange={(e) => setReviewTitle(e.target.value)}
+                    maxLength={100}
+                  />
+                </div>
+
+                {/* STEP 3: MANUAL TEXT REVIEW */}
+                <div className="review-section-block">
+                  <label className="review-field-label">
+                    3. Detailed Customer Review <span className="review-req-asterisk">*</span>
+                  </label>
+                  <textarea
+                    className="review-textarea"
+                    rows={4}
+                    placeholder="Write your honest manual review here. Tell other customers about the product effectiveness, scent, packaging, or usage results..."
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                  />
+                  <div className="review-help-note">
+                    Your feedback will update the product's catalog rating average and appear in the verified customer review stream.
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-action-footer">
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
+                  onClick={() => setReviewModalOrder(null)}
+                  disabled={isSubmittingReview}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-modal-confirm-amber"
+                  onClick={handleSubmitReview}
+                  disabled={isSubmittingReview || activeRating < 1 || !reviewComment.trim()}
+                >
+                  {isSubmittingReview ? (
+                    'Submitting Review...'
+                  ) : (
+                    <>
+                      <Star size={16} fill="#ffffff" color="#ffffff" />
+                      <span>{isAlreadyReviewed ? 'Update Review' : 'Submit Review'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
 import OrderSuccessCelebration from '../Orders/OrderSuccessCelebration';
-import { createOrderApi, checkPincodeInventory } from '../../services/api';
+import { createOrderApi, checkPincodeInventory, fetchHubDetails } from '../../services/api';
 import { applyCouponBackend, fetchCouponsFromBackend, DEFAULT_STORE_COUPONS } from '../../services/couponService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -67,55 +67,146 @@ const EMPTY_ADDRESS_FORM = {
   isDefault: true,
 };
 
+function getSavedAddressesList(currentUser) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const mobSaved = window.localStorage.getItem('atomy_mobile_saved_addresses');
+      if (mobSaved) {
+        const parsed = JSON.parse(mobSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      const webSaved = window.localStorage.getItem('atomy_customer_addresses');
+      if (webSaved) {
+        const parsed = JSON.parse(webSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    }
+  } catch (e) { }
+
+  if (Array.isArray(currentUser?.addresses) && currentUser.addresses.length > 0) {
+    return currentUser.addresses;
+  }
+
+  if (currentUser && currentUser.name && currentUser.name !== 'Guest User') {
+    return [
+      {
+        id: 'addr-default-profile',
+        tag: 'Home',
+        recipientName: currentUser.name || 'Naveen',
+        recipientPhone: currentUser.phone || '9876543210',
+        pincode: currentUser.pincode || '635202',
+        city: currentUser.city || 'Dharmapuri',
+        state: currentUser.state || 'Tamil Nadu',
+        addressLine1: currentUser.address || 'dNo 45, Rk building, bayanapalli',
+        addressLine2: 'Krishnapuram, Krishnagiri',
+        landmark: 'Near Bus Stand',
+        deliveryMessage: '',
+        isDefault: true,
+      },
+    ];
+  }
+  return [];
+}
+
 function getInitialAddress(currentUser) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const storedSelected = window.localStorage.getItem('atomy_mobile_selected_address');
+      const storedSelected =
+        window.localStorage.getItem('atomy_mobile_selected_address') ||
+        window.localStorage.getItem('atomy_shipping_address');
       if (storedSelected) {
         const parsed = JSON.parse(storedSelected);
         if (parsed && (parsed.addressLine1 || parsed.street) && parsed.pincode) {
           return {
             id: parsed.id || `addr-${Date.now()}`,
             tag: parsed.tag || parsed.type || 'Home',
-            recipientName: parsed.recipientName || parsed.name || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : ''),
-            recipientPhone: parsed.recipientPhone || parsed.phone || currentUser?.phone || '',
-            pincode: parsed.pincode || '',
-            city: parsed.city || '',
-            state: parsed.state || '',
-            addressLine1: parsed.addressLine1 || parsed.street || '',
-            addressLine2: parsed.addressLine2 || '',
+            recipientName: parsed.recipientName || parsed.name || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : 'Naveen'),
+            recipientPhone: parsed.recipientPhone || parsed.phone || currentUser?.phone || '9876543210',
+            pincode: parsed.pincode || '635202',
+            city: parsed.city || 'Dharmapuri',
+            state: parsed.state || 'Tamil Nadu',
+            addressLine1: parsed.addressLine1 || parsed.street || 'dNo 45, Rk building, bayanapalli',
+            addressLine2: parsed.addressLine2 || 'Krishnapuram, Krishnagiri',
             landmark: parsed.landmark || '',
             deliveryMessage: parsed.deliveryMessage || '',
             isDefault: true,
           };
         }
       }
-      const savedList = window.localStorage.getItem('atomy_mobile_saved_addresses');
-      if (savedList) {
-        const list = JSON.parse(savedList);
-        if (Array.isArray(list) && list.length > 0) {
-          const def = list.find((a) => a.isDefault) || list[0];
-          if (def && (def.street || def.addressLine1) && def.pincode) {
-            return {
-              id: def.id || `addr-${Date.now()}`,
-              tag: def.type || def.tag || 'Home',
-              recipientName: def.name || def.recipientName || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : ''),
-              recipientPhone: def.phone || def.recipientPhone || currentUser?.phone || '',
-              pincode: def.pincode || '',
-              city: def.city || '',
-              state: def.state || '',
-              addressLine1: def.street || def.addressLine1 || '',
-              addressLine2: def.addressLine2 || '',
-              landmark: def.landmark || '',
-              deliveryMessage: def.deliveryMessage || '',
-              isDefault: true,
-            };
-          }
+      const list = getSavedAddressesList(currentUser);
+      if (Array.isArray(list) && list.length > 0) {
+        const def = list.find((a) => a.isDefault) || list[0];
+        if (def && (def.street || def.addressLine1) && def.pincode) {
+          return {
+            id: def.id || `addr-${Date.now()}`,
+            tag: def.type || def.tag || 'Home',
+            recipientName: def.name || def.recipientName || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : 'Naveen'),
+            recipientPhone: def.phone || def.recipientPhone || currentUser?.phone || '9876543210',
+            pincode: def.pincode || '635202',
+            city: def.city || 'Dharmapuri',
+            state: def.state || 'Tamil Nadu',
+            addressLine1: def.street || def.addressLine1 || 'dNo 45, Rk building, bayanapalli',
+            addressLine2: def.addressLine2 || 'Krishnapuram, Krishnagiri',
+            landmark: def.landmark || '',
+            deliveryMessage: def.deliveryMessage || '',
+            isDefault: true,
+          };
         }
       }
     }
-  } catch (e) {}
+  } catch (e) { }
+
+  if (currentUser && currentUser.name && currentUser.name !== 'Guest User') {
+    return {
+      id: 'addr-default-profile',
+      tag: 'Home',
+      recipientName: currentUser.name || 'Naveen',
+      recipientPhone: currentUser.phone || '9876543210',
+      pincode: currentUser.pincode || '635202',
+      city: currentUser.city || 'Dharmapuri',
+      state: currentUser.state || 'Tamil Nadu',
+      addressLine1: currentUser.address || 'dNo 45, Rk building, bayanapalli',
+      addressLine2: 'Krishnapuram, Krishnagiri',
+      landmark: 'Near Bus Stand',
+      deliveryMessage: '',
+      isDefault: true,
+    };
+  }
   return null;
+}
+
+function getInitialCoManager(currentUser) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem('atomy_co_manager_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.name) return parsed;
+      }
+    }
+  } catch (e) { }
+
+  if (currentUser?.coManager && currentUser.coManager.name) {
+    return currentUser.coManager;
+  }
+
+  if (currentUser?.spouseName) {
+    return {
+      name: currentUser.spouseName,
+      phone: currentUser.spousePhone || '9840123456',
+      relationship: 'Spouse / Co-Applicant',
+      status: 'Active',
+      isAuthorized: true,
+    };
+  }
+
+  return {
+    name: 'Priya Naveen',
+    phone: '9840123456',
+    relationship: 'Spouse / Co-Applicant',
+    status: 'Active',
+    isAuthorized: true,
+  };
 }
 
 function formatInr(val) {
@@ -231,15 +322,7 @@ export default function PaymentSummaryPage({
   // Address state (Dynamic from user profile / local storage, without hardcoding)
   const [selectedAddress, setSelectedAddress] = useState(() => getInitialAddress(currentUser));
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState(() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const stored = window.localStorage.getItem('atomy_mobile_saved_addresses');
-        if (stored) return JSON.parse(stored) || [];
-      }
-    } catch (e) {}
-    return [];
-  });
+  const [savedAddresses, setSavedAddresses] = useState(() => getSavedAddressesList(currentUser));
   const [addressForm, setAddressForm] = useState(() => {
     const init = getInitialAddress(currentUser);
     return (
@@ -250,6 +333,48 @@ export default function PaymentSummaryPage({
       }
     );
   });
+
+  // Co-Manager & Distributor Plan states
+  const [coManager, setCoManager] = useState(() => getInitialCoManager(currentUser));
+  const [isCoManagerModalOpen, setIsCoManagerModalOpen] = useState(false);
+  const [coManagerForm, setCoManagerForm] = useState(() => {
+    const init = getInitialCoManager(currentUser);
+    return {
+      name: init?.name || '',
+      phone: init?.phone || '',
+      relationship: init?.relationship || 'Spouse / Co-Applicant',
+      isAuthorized: init?.isAuthorized !== false,
+    };
+  });
+
+  const handleSaveCoManager = () => {
+    if (!coManagerForm.name.trim() || !coManagerForm.phone.trim()) {
+      Alert.alert('Required Fields', 'Please enter Co-Manager Full Name and Mobile Number.');
+      return;
+    }
+    const updated = {
+      name: coManagerForm.name.trim(),
+      phone: coManagerForm.phone.trim().replace(/\D/g, ''),
+      relationship: coManagerForm.relationship || 'Spouse / Co-Applicant',
+      status: 'Active',
+      isAuthorized: coManagerForm.isAuthorized !== false,
+    };
+    setCoManager(updated);
+    setIsCoManagerModalOpen(false);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('atomy_co_manager_profile', JSON.stringify(updated));
+      }
+    } catch (e) { }
+    Alert.alert('Co-Manager Updated', `${updated.name} linked as Co-Manager (Joint Distributor Operator).`);
+  };
+
+  // Compact Coupon Dropdown State (Headings only)
+  const [isCouponDropdownOpen, setIsCouponDropdownOpen] = useState(false);
+
+  // Regional Logistics Hub state (including Co-Manager delegation)
+  const [hubDetails, setHubDetails] = useState(null);
+  const [isLoadingHub, setIsLoadingHub] = useState(false);
 
   // Re-sync address when currentUser updates if no address was previously set
   useEffect(() => {
@@ -304,6 +429,20 @@ export default function PaymentSummaryPage({
     };
   }, [deliveryPincode]);
 
+  // Fetch real-time Regional Logistics Hub & Co-Manager details
+  useEffect(() => {
+    const pin = deliveryPincode || '635002';
+    setIsLoadingHub(true);
+    fetchHubDetails(pin)
+      .then((info) => {
+        setHubDetails(info);
+        setIsLoadingHub(false);
+      })
+      .catch(() => {
+        setIsLoadingHub(false);
+      });
+  }, [deliveryPincode]);
+
   // Items out of delivery stock in destination PIN hub (< 2 units or inStock === false)
   const outOfDeliveryItems = useMemo(() => {
     return (checkoutItems || []).filter((item) => {
@@ -333,10 +472,10 @@ export default function PaymentSummaryPage({
   const hasValidAddress = useMemo(() => {
     return Boolean(
       selectedAddress &&
-        selectedAddress.recipientName?.trim() &&
-        selectedAddress.recipientPhone?.trim() &&
-        selectedAddress.pincode?.trim() &&
-        (selectedAddress.addressLine1?.trim() || selectedAddress.street?.trim())
+      selectedAddress.recipientName?.trim() &&
+      selectedAddress.recipientPhone?.trim() &&
+      selectedAddress.pincode?.trim() &&
+      (selectedAddress.addressLine1?.trim() || selectedAddress.street?.trim())
     );
   }, [selectedAddress]);
 
@@ -350,7 +489,7 @@ export default function PaymentSummaryPage({
           if (Array.isArray(parsed) && parsed.length > 0) return false;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return true;
   }, [placedOrders]);
 
@@ -376,12 +515,36 @@ export default function PaymentSummaryPage({
       }
     });
   }, []);
+
+  // Filter eligible store coupons for compact dropdown
+  const eligibleCoupons = useMemo(() => {
+    if (!Array.isArray(availableCoupons) || availableCoupons.length === 0) return [];
+    return availableCoupons.filter((cpn) => {
+      const code = String(cpn.code || '').toUpperCase();
+      const status = String(cpn.status || 'ACTIVE').toUpperCase();
+      if (status !== 'ACTIVE') return false;
+
+      // Welcome coupon only for 1st order
+      const isWelcome = cpn.firstOrderOnly === true || code.includes('WELCOME') || code.includes('FIRST');
+      if (isWelcome && !isFirstOrder) return false;
+
+      // HemoHIM coupon only if HemoHIM in cart
+      const isHemohim = code.includes('HEMO') || String(cpn.targetProduct || '').toUpperCase() === 'HEMOHIM';
+      if (isHemohim && !hasHemohimInCart) return false;
+
+      return true;
+    });
+  }, [availableCoupons, isFirstOrder, hasHemohimInCart]);
   const [isLookingUpPin, setIsLookingUpPin] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [isLocationDetected, setIsLocationDetected] = useState(false);
   const [detectedLocationName, setDetectedLocationName] = useState('');
   const [locationFeedback, setLocationFeedback] = useState(null);
   const [availableAreas, setAvailableAreas] = useState([]);
+
+  // Fulfillment method: Courier Doorstep Delivery vs Direct Regional Hub Pickup
+  const [fulfillmentType, setFulfillmentType] = useState('COURIER_DELIVERY'); // 'COURIER_DELIVERY' | 'STORE_PICKUP'
+  const isStorePickup = fulfillmentType === 'STORE_PICKUP';
 
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState('UPI'); // 'UPI' | 'CARD' | 'COD' | 'NETBANKING'
@@ -441,6 +604,7 @@ export default function PaymentSummaryPage({
 
   const isFreeDelivery = subtotal >= 4500 || hasFreeDeliveryProduct;
   const rawShippingFee = checkoutItems.length > 0 && !isFreeDelivery ? 150 : 0;
+  const effectiveRawShippingFee = isStorePickup ? 0 : rawShippingFee;
 
   const couponDiscount = useMemo(() => {
     if (!appliedCoupon) return 0;
@@ -454,7 +618,7 @@ export default function PaymentSummaryPage({
     return 0;
   }, [appliedCoupon, subtotal]);
 
-  const shippingFee = appliedCoupon?.isFreeShipping ? 0 : rawShippingFee;
+  const shippingFee = appliedCoupon?.isFreeShipping ? 0 : effectiveRawShippingFee;
   const voucherDiscount = isVoucherApplied ? Math.min(subtotal, 500) : 0;
   const grandTotal = Math.max(0, subtotal - couponDiscount - voucherDiscount + shippingFee);
 
@@ -704,7 +868,7 @@ export default function PaymentSummaryPage({
         if (existingSaved) {
           try {
             list = JSON.parse(existingSaved) || [];
-          } catch (e) {}
+          } catch (e) { }
         }
         const profileFormat = {
           id: normalizedAddress.id,
@@ -725,9 +889,83 @@ export default function PaymentSummaryPage({
           list.unshift(profileFormat);
         }
         window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(list));
+        window.localStorage.setItem('atomy_customer_addresses', JSON.stringify(list));
         setSavedAddresses(list);
       }
+    } catch (e) { }
+  };
+
+  const handleSelectSavedAddress = (addr) => {
+    const formatted = {
+      id: addr.id || `addr-${Date.now()}`,
+      tag: addr.type || addr.tag || 'Home',
+      recipientName: addr.name || addr.recipientName || '',
+      recipientPhone: addr.phone || addr.recipientPhone || '',
+      pincode: addr.pincode || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      addressLine1: addr.street || addr.addressLine1 || '',
+      addressLine2: addr.addressLine2 || '',
+      landmark: addr.landmark || '',
+      deliveryMessage: addr.deliveryMessage || '',
+      isDefault: Boolean(addr.isDefault),
+    };
+    setSelectedAddress(formatted);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(formatted));
+        window.localStorage.setItem('atomy_shipping_address', JSON.stringify(formatted));
+      }
     } catch (e) {}
+  };
+
+  const handleDeleteAddress = (addrId) => {
+    Alert.alert(
+      'Remove Address',
+      'Are you sure you want to remove this delivery address?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            const nextList = savedAddresses.filter((a) => a.id !== addrId);
+            setSavedAddresses(nextList);
+            try {
+              if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(nextList));
+                window.localStorage.setItem('atomy_customer_addresses', JSON.stringify(nextList));
+              }
+            } catch (e) {}
+            if (selectedAddress?.id === addrId) {
+              if (nextList.length > 0) {
+                handleSelectSavedAddress(nextList[0]);
+              } else {
+                setSelectedAddress(null);
+              }
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleOpenEditAddress = (addr) => {
+    setAddressForm({
+      id: addr.id,
+      tag: addr.tag || addr.type || 'Home',
+      recipientName: addr.recipientName || addr.name || '',
+      recipientPhone: addr.recipientPhone || addr.phone || '',
+      pincode: addr.pincode || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      addressLine1: addr.addressLine1 || addr.street || '',
+      addressLine2: addr.addressLine2 || '',
+      landmark: addr.landmark || '',
+      deliveryMessage: addr.deliveryMessage || '',
+      isDefault: Boolean(addr.isDefault),
+    });
+    setIsAddressModalOpen(true);
   };
 
   // Direct mobile redirect to installed UPI apps
@@ -896,10 +1134,10 @@ export default function PaymentSummaryPage({
           paymentMethod === 'UPI'
             ? `UPI (${selectedUpiApp === 'gpay' ? 'Google Pay' : selectedUpiApp === 'phonepe' ? 'PhonePe' : selectedUpiApp === 'paytm' ? 'Paytm' : selectedUpiApp === 'bhim' ? 'BHIM' : selectedUpiApp === 'cred' ? 'CRED' : 'UPI Intent'})`
             : paymentMethod === 'COD'
-            ? 'Cash on Delivery (COD)'
-            : paymentMethod === 'NETBANKING'
-            ? `Net Banking (${selectedBank})`
-            : 'Credit / Debit Card',
+              ? 'Cash on Delivery (COD)'
+              : paymentMethod === 'NETBANKING'
+                ? `Net Banking (${selectedBank})`
+                : 'Credit / Debit Card',
         grandTotal,
         totalPV,
         recipient: selectedAddress?.recipientName || currentUser?.name || 'Customer',
@@ -908,8 +1146,14 @@ export default function PaymentSummaryPage({
           ? `${selectedAddress.addressLine1}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`
           : 'Pending Address',
         trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
-        estimatedDelivery: estimatedDelivery.timeFrame,
-        estimatedDeliveryDate: estimatedDelivery.range,
+        estimatedDelivery: isStorePickup ? 'Ready for Pickup within 24h' : estimatedDelivery.timeFrame,
+        estimatedDeliveryDate: isStorePickup ? 'Available at Hub Counter' : estimatedDelivery.range,
+        fulfillmentType: isStorePickup ? 'STORE_PICKUP' : 'COURIER_DELIVERY',
+        shippingMethod: isStorePickup ? 'STORE_PICKUP' : 'COURIER_DELIVERY',
+        isPickup: isStorePickup,
+        pickupStatus: isStorePickup ? 'PENDING_PACKING' : null,
+        hubName: isStorePickup ? 'Selva Regional Logistics Hub' : null,
+        hubAddress: isStorePickup ? 'Krishnagiri Regional Logistics Centre, Tamil Nadu - 635002' : null,
         items: checkoutItems,
       };
 
@@ -919,7 +1163,7 @@ export default function PaymentSummaryPage({
         customerName: selectedAddress.recipientName || currentUser?.name || 'Customer',
         customerEmail: currentUser?.email || 'customer@atomy.com',
         customerPhone: selectedAddress.recipientPhone || currentUser?.phone || '+91 98000 00000',
-        shippingAddress: selectedAddress.addressLine1,
+        shippingAddress: isStorePickup ? 'Direct Store Pickup at Regional Logistics Hub' : selectedAddress.addressLine1,
         city: selectedAddress.city,
         state: selectedAddress.state,
         pincode: selectedAddress.pincode,
@@ -928,8 +1172,14 @@ export default function PaymentSummaryPage({
         shippingFee: shippingFee,
         paymentMethod: paymentMethod === 'COD' ? 'COD' : 'ONLINE_UPI',
         orderStatus: 'PLACED',
-        estimatedDeliveryDate: estimatedDelivery.range,
-        estimatedDelivery: estimatedDelivery.timeFrame,
+        fulfillmentType: isStorePickup ? 'STORE_PICKUP' : 'COURIER_DELIVERY',
+        shippingMethod: isStorePickup ? 'STORE_PICKUP' : 'COURIER_DELIVERY',
+        isPickup: isStorePickup,
+        pickupStatus: isStorePickup ? 'PENDING_PACKING' : null,
+        hubName: isStorePickup ? 'Selva Regional Logistics Hub' : null,
+        hubAddress: isStorePickup ? 'Krishnagiri Regional Logistics Centre, Tamil Nadu - 635002' : null,
+        estimatedDeliveryDate: isStorePickup ? 'Available at Hub Counter' : estimatedDelivery.range,
+        estimatedDelivery: isStorePickup ? 'Ready for Pickup within 24h' : estimatedDelivery.timeFrame,
         items: checkoutItems.map((it) => ({
           productId: it.id,
           productName: it.name,
@@ -1750,97 +2000,12 @@ export default function PaymentSummaryPage({
       </View>
 
       <ScrollView contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>
-        {/* SECTION 1: DELIVERY ADDRESS */}
-        {hasValidAddress ? (
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionCardHeader}>
-              <View style={styles.sectionHeaderLeft}>
-                <Ionicons name="location-outline" size={20} color="#00A3E0" />
-                <Text style={styles.sectionCardTitle}>Delivery Destination</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.editAddressBtn}
-                onPress={() => {
-                  setAddressForm({ ...selectedAddress });
-                  setIsAddressModalOpen(true);
-                }}
-              >
-                <Ionicons name="pencil" size={13} color="#00A3E0" />
-                <Text style={styles.editAddressBtnText}>Change</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.addressBody}>
-              <View style={styles.addressTagRow}>
-                <View style={styles.addressTagBadge}>
-                  <Text style={styles.addressTagText}>{selectedAddress.tag || 'Home'}</Text>
-                </View>
-                <Text style={styles.recipientNameText}>{selectedAddress.recipientName}</Text>
-                <Text style={styles.recipientPhoneText}>(+91 {selectedAddress.recipientPhone})</Text>
-              </View>
-
-              <Text style={styles.addressLineText}>
-                {selectedAddress.addressLine1}
-                {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}
-              </Text>
-              <Text style={styles.addressCityStateText}>
-                {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
-              </Text>
-              {selectedAddress.deliveryMessage ? (
-                <Text style={styles.deliveryNoteText}>Note: "{selectedAddress.deliveryMessage}"</Text>
-              ) : null}
-            </View>
-
-            {/* Delivery Stock Warning if selected PIN has out of stock items */}
-            {hasOutOfDeliveryItems && deliveryPincode ? (
-              <View style={styles.destStockNotice}>
-                <Ionicons name="warning" size={18} color="#DC2626" style={{ marginRight: 8, marginTop: 1 }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.destStockNoticeTitle}>Delivery Stock Notice for PIN {deliveryPincode}</Text>
-                  <Text style={styles.destStockNoticeMsg}>
-                    {outOfDeliveryItems.length === 1
-                      ? `This item is not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove the item.`
-                      : `Some items in your cart are not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove them to proceed.`}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
-          </View>
-        ) : (
-          <View style={styles.addAddressPromptCard}>
-            <View style={styles.addAddressPromptTop}>
-              <View style={styles.addAddressIconCircle}>
-                <Ionicons name="location-outline" size={22} color="#00A3E0" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.addAddressPromptTitle}>No Delivery Address Added</Text>
-                <Text style={styles.addAddressPromptSubtitle}>
-                  Please add your shipping address to calculate fast delivery and proceed.
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.addAddressPromptBtn}
-              onPress={() => {
-                setAddressForm({
-                  ...EMPTY_ADDRESS_FORM,
-                  recipientName: currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : '',
-                  recipientPhone: currentUser?.phone || '',
-                });
-                setIsAddressModalOpen(true);
-              }}
-              activeOpacity={0.88}
-            >
-              <Ionicons name="add-circle" size={18} color="#FFFFFF" />
-              <Text style={styles.addAddressPromptBtnText}>+ Add Delivery Address</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* SECTION 2: ORDERED ITEMS (With Add/Remove Quantity & Corner 'X' Remove Button) */}
+        {/* =========================================================================
+            SECTION 1: ORDER PRODUCTS SUMMARY (Matching Website Section 1)
+            ========================================================================= */}
         <View style={styles.sectionCard}>
           <TouchableOpacity
-            style={styles.accordionHeader}
+            style={styles.sectionCardHeader}
             onPress={() => setIsItemsExpanded(!isItemsExpanded)}
             activeOpacity={0.8}
           >
@@ -1848,7 +2013,10 @@ export default function PaymentSummaryPage({
               <Ionicons name="bag-check-outline" size={20} color="#00A3E0" />
               <Text style={styles.sectionCardTitle}>Ordered Items ({checkoutItems.length})</Text>
             </View>
-            <Ionicons name={isItemsExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#64748B" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.headerPvPreview}>+{totalPV.toLocaleString('en-IN')} PV</Text>
+              <Ionicons name={isItemsExpanded ? 'chevron-up' : 'chevron-down'} size={18} color="#64748B" />
+            </View>
           </TouchableOpacity>
 
           {isItemsExpanded && (
@@ -1881,7 +2049,7 @@ export default function PaymentSummaryPage({
                             uri:
                               item.image ||
                               item.img ||
-                              'https://image.atomy.com/IN/banner/90/471/251100000021471133613.jpg',
+                              'https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg?w=480&h=480',
                           }}
                           style={styles.itemThumb}
                           resizeMode="contain"
@@ -1901,53 +2069,61 @@ export default function PaymentSummaryPage({
 
                         {/* Price & PV Row */}
                         <View style={styles.itemPriceRow}>
-                          {isMember && rawPrice > itemPrice && (
-                            <Text style={styles.itemOriginalPriceStriked}>₹ {formatInr(rawPrice)}</Text>
-                          )}
-                          <Text style={[styles.itemUnitPriceText, isMember && styles.itemUnitPriceGreen]}>
-                            ₹ {formatInr(itemPrice)}
-                          </Text>
-                          {isMember && (
-                            <View style={styles.itemDpBadge}>
-                              <Text style={styles.itemDpBadgeText}>DP Price</Text>
-                            </View>
-                          )}
-                          <Text style={styles.itemPvText}>+{itemPv.toLocaleString('en-IN')} PV</Text>
+                          <View style={styles.priceWithDpGroup}>
+                            {isMember && rawPrice > itemPrice && (
+                              <Text style={styles.itemOriginalPriceStriked}>₹ {formatInr(rawPrice)}</Text>
+                            )}
+                            <Text style={[styles.itemUnitPriceText, isMember && styles.itemUnitPriceGreen]}>
+                              ₹ {formatInr(itemPrice)}
+                            </Text>
+                            {isMember && (
+                              <View style={styles.itemDpBadge}>
+                                <Text style={styles.itemDpBadgeText}>DP Price</Text>
+                              </View>
+                            )}
+                          </View>
+                          <View style={styles.itemPvBadgeWrap}>
+                            <Text style={styles.itemPvText}>+{itemPv.toLocaleString('en-IN')} PV</Text>
+                          </View>
                         </View>
 
-                        {/* Delivery Badge */}
-                        <View style={styles.itemDeliveryBadgeWrap}>
-                          {isFree ? (
-                            <Text style={styles.freeDeliveryBadgeText}>FREE DELIVERY</Text>
-                          ) : (
-                            <Text style={styles.standardDeliveryBadgeText}>DOORSTEP DELIVERY</Text>
-                          )}
+                        {/* Badges Row */}
+                        <View style={styles.itemBadgesRow}>
+                          <View style={isFree ? styles.freeDeliveryPill : styles.standardDeliveryPill}>
+                            <Text style={isFree ? styles.freeDeliveryPillText : styles.standardDeliveryPillText}>
+                              {isFree ? 'FREE DELIVERY' : 'STANDARD DELIVERY'}
+                            </Text>
+                          </View>
+                          <View style={styles.gstTagPill}>
+                            <Text style={styles.gstTagPillText}>GST INCLUDED</Text>
+                          </View>
                         </View>
 
-                        {/* Quantity Stepper: [-] [qty] [+] directly in Payment Summary */}
+                        {/* Quantity Stepper & Line Total */}
                         <View style={styles.stepperContainer}>
-                          <TouchableOpacity
-                            style={styles.stepperBtn}
-                            onPress={() => onUpdateQty && onUpdateQty(item.id, Math.max(1, (item.qty || 1) - 1))}
-                            disabled={(item.qty || 1) <= 1}
-                          >
-                            <Ionicons
-                              name="remove"
-                              size={15}
-                              color={(item.qty || 1) <= 1 ? '#CBD5E1' : '#334155'}
-                            />
-                          </TouchableOpacity>
+                          <View style={styles.stepperControlGroup}>
+                            <TouchableOpacity
+                              style={styles.stepperBtn}
+                              onPress={() => onUpdateQty && onUpdateQty(item.id, Math.max(1, (item.qty || 1) - 1))}
+                              disabled={(item.qty || 1) <= 1}
+                            >
+                              <Ionicons
+                                name="remove"
+                                size={14}
+                                color={(item.qty || 1) <= 1 ? '#CBD5E1' : '#334155'}
+                              />
+                            </TouchableOpacity>
 
-                          <Text style={styles.stepperQtyText}>{item.qty || 1}</Text>
+                            <Text style={styles.stepperQtyText}>{item.qty || 1}</Text>
 
-                          <TouchableOpacity
-                            style={styles.stepperBtn}
-                            onPress={() => onUpdateQty && onUpdateQty(item.id, (item.qty || 1) + 1)}
-                          >
-                            <Ionicons name="add" size={15} color="#334155" />
-                          </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.stepperBtn}
+                              onPress={() => onUpdateQty && onUpdateQty(item.id, (item.qty || 1) + 1)}
+                            >
+                              <Ionicons name="add" size={14} color="#334155" />
+                            </TouchableOpacity>
+                          </View>
 
-                          <View style={{ flex: 1 }} />
                           <Text style={styles.itemLineTotalText}>
                             Total: ₹ {formatInr(itemPrice * (item.qty || 1))}
                           </Text>
@@ -1955,7 +2131,7 @@ export default function PaymentSummaryPage({
                       </View>
                     </View>
 
-                    {/* Destination PIN Stock Alert (Option B) */}
+                    {/* Destination PIN Stock Alert */}
                     {isItemOutOfDelivery && (
                       <View style={styles.itemStockAlertRow}>
                         <Ionicons name="alert-circle" size={16} color="#DC2626" style={{ marginRight: 6, marginTop: 1 }} />
@@ -1980,33 +2156,346 @@ export default function PaymentSummaryPage({
           )}
         </View>
 
-        {/* SECTION 3: EXPRESS TRANSIT GUARANTEE */}
-        <View style={styles.expressTransitCard}>
-          <View style={styles.expressTransitRow}>
-            <Ionicons name="airplane-outline" size={20} color="#00A3E0" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.expressTransitTitle}>Blue Dart Doorstep Express</Text>
-              <Text style={styles.expressTransitSub}>
-                Estimated Delivery: <Text style={{ fontWeight: '800' }}>{estimatedDelivery.range}</Text> (48 Hours)
+        {/* =========================================================================
+            SECTION 2: FULFILLMENT & DELIVERY METHOD (Doorstep vs Hub Pickup)
+            ========================================================================= */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionCardHeader}>
+            <View style={styles.sectionHeaderLeft}>
+              <Ionicons name="car-outline" size={20} color="#00A3E0" />
+              <Text style={styles.sectionCardTitle}>Delivery / Collection Option</Text>
+            </View>
+          </View>
+
+          <View style={styles.fulfillmentToggleRow}>
+            {/* Option 1: Doorstep Delivery */}
+            <TouchableOpacity
+              style={[
+                styles.fulfillmentOptionCard,
+                !isStorePickup && styles.fulfillmentOptionCardActive,
+              ]}
+              onPress={() => setFulfillmentType('COURIER_DELIVERY')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.fulfillmentCardTop}>
+                <Ionicons
+                  name="bicycle-outline"
+                  size={20}
+                  color={!isStorePickup ? '#00A3E0' : '#64748B'}
+                />
+                <Ionicons
+                  name={!isStorePickup ? 'radio-button-on' : 'radio-button-off'}
+                  size={18}
+                  color={!isStorePickup ? '#00A3E0' : '#CBD5E1'}
+                />
+              </View>
+              <Text style={[styles.fulfillmentOptionTitle, !isStorePickup && styles.fulfillmentOptionTitleActive]}>
+                Doorstep Delivery
+              </Text>
+              <Text style={styles.fulfillmentOptionSubtitle}>
+                Blue Dart Express Line-haul
+              </Text>
+              <View style={[styles.fulfillmentFeeTag, isFreeDelivery ? styles.feeTagFree : styles.feeTagPaid]}>
+                <Text style={[styles.fulfillmentFeeTagText, isFreeDelivery ? styles.feeTagFreeText : styles.feeTagPaidText]}>
+                  {isFreeDelivery ? 'FREE Delivery' : '₹ 150.00 Fee'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Option 2: Regional Hub Pickup */}
+            <TouchableOpacity
+              style={[
+                styles.fulfillmentOptionCard,
+                isStorePickup && styles.fulfillmentOptionCardActiveGreen,
+              ]}
+              onPress={() => setFulfillmentType('STORE_PICKUP')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.fulfillmentCardTop}>
+                <Ionicons
+                  name="storefront-outline"
+                  size={20}
+                  color={isStorePickup ? '#10B981' : '#64748B'}
+                />
+                <Ionicons
+                  name={isStorePickup ? 'radio-button-on' : 'radio-button-off'}
+                  size={18}
+                  color={isStorePickup ? '#10B981' : '#CBD5E1'}
+                />
+              </View>
+              <Text style={[styles.fulfillmentOptionTitle, isStorePickup && { color: '#10B981' }]}>
+                Regional Hub Pickup
+              </Text>
+              <Text style={styles.fulfillmentOptionSubtitle}>
+                Self collection at counter
+              </Text>
+              <View style={[styles.fulfillmentFeeTag, styles.feeTagFree]}>
+                <Text style={[styles.fulfillmentFeeTagText, styles.feeTagFreeText]}>
+                  FREE ₹0 FEE
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Regional Logistics Hub Notice Banner & Co-Manager Delegation */}
+          {isStorePickup && (
+            <View style={styles.hubDetailsContainer}>
+              <View style={styles.hubDetailsHeader}>
+                <Ionicons name="business" size={18} color="#059669" />
+                <Text style={styles.hubDetailsHeaderTitle}>
+                  {hubDetails?.hubName || 'Selva Regional Logistics Hub'}
+                </Text>
+              </View>
+              <Text style={styles.hubAddressText}>
+                {hubDetails?.hubAddress || 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002'}
+              </Text>
+              <Text style={styles.hubTimingsText}>
+                Open: {hubDetails?.operatingHours || 'Mon–Sat 9:30 AM – 7:30 PM'}
+              </Text>
+
+              {/* Hub Manager & Co-Manager Contacts */}
+              <View style={styles.hubContactRow}>
+                <View style={styles.hubManagerSection}>
+                  <Text style={styles.hubManagerLabel}>Hub Manager / Sub-Admin:</Text>
+                  <Text style={styles.hubManagerValue}>
+                    {hubDetails?.contactPerson || 'Selva Kumar (Hub Manager)'}
+                  </Text>
+                  <Text style={styles.hubManagerPhone}>
+                    Phone: {hubDetails?.phone || '+91 95388 53454'}
+                  </Text>
+                </View>
+
+                {/* Hub Co-Manager (Model 1: Shared Hub) */}
+                <View style={styles.hubCoManagerBox}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={styles.hubCoManagerTag}>Model 1: Hub Co-Manager</Text>
+                    <Text style={styles.hubCoManagerDuty}>
+                      {hubDetails?.isSubstituteActive ? '⚡ Acting Duty Standby' : 'Shared Hub Standby'}
+                    </Text>
+                  </View>
+                  <Text style={styles.hubCoManagerName}>
+                    {hubDetails?.isSubstituteActive ? (hubDetails.actingManagerName || 'Hub Co-Manager') : (hubDetails?.coManagerName || 'Hub Co-Manager (Standby)')}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.hubPickupNote}>
+                ℹ Present your product invoice or Order ID at the counter to collect your parcel.
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* =========================================================================
+            SECTION 4: DELIVERY ADDRESS (When Doorstep Delivery is chosen)
+            ========================================================================= */}
+        {!isStorePickup ? (
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionCardHeader}>
+              <View style={[styles.sectionHeaderLeft, { flex: 1, minWidth: 0, marginRight: 8 }]}>
+                <Ionicons name="location-outline" size={18} color="#00A3E0" />
+                <Text style={[styles.sectionCardTitle, { flexShrink: 1, fontSize: 14 }]} numberOfLines={1}>
+                  Delivery Address
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.addNewAddressBtn}
+                onPress={() => {
+                  setAddressForm({
+                    ...EMPTY_ADDRESS_FORM,
+                    recipientName: currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : '',
+                    recipientPhone: currentUser?.phone || '',
+                  });
+                  setIsAddressModalOpen(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add" size={14} color="#00A3E0" />
+                <Text style={styles.addNewAddressBtnText}>Add Address</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Saved Addresses List */}
+            {savedAddresses.length > 0 ? (
+              <View style={styles.savedAddressesList}>
+                {savedAddresses.map((addr) => {
+                  const isSelected = selectedAddress?.id === addr.id;
+                  return (
+                    <TouchableOpacity
+                      key={addr.id}
+                      style={[styles.savedAddressCard, isSelected && styles.savedAddressCardSelected]}
+                      onPress={() => handleSelectSavedAddress(addr)}
+                      activeOpacity={0.85}
+                    >
+                      <View style={styles.savedAddressTopRow}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Ionicons
+                            name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                            size={18}
+                            color={isSelected ? '#00A3E0' : '#CBD5E1'}
+                          />
+                          <View style={styles.addressTagBadge}>
+                            <Text style={styles.addressTagText}>{addr.tag || addr.type || 'Home'}</Text>
+                          </View>
+                          {addr.isDefault && (
+                            <View style={styles.defaultAddressBadge}>
+                              <Text style={styles.defaultAddressBadgeText}>Default</Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <TouchableOpacity onPress={() => handleOpenEditAddress(addr)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                            <Ionicons name="pencil-outline" size={15} color="#0284C7" />
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => handleDeleteAddress(addr.id)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                            <Ionicons name="trash-outline" size={15} color="#EF4444" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      <View style={{ marginLeft: 26, marginTop: 4 }}>
+                        <Text style={styles.savedRecipientText}>
+                          {addr.name || addr.recipientName}{' '}
+                          <Text style={{ fontWeight: '400', color: '#64748B' }}>
+                            (+91 {addr.phone || addr.recipientPhone})
+                          </Text>
+                        </Text>
+                        <Text style={styles.savedStreetText}>
+                          {addr.street || addr.addressLine1}
+                          {addr.addressLine2 ? `, ${addr.addressLine2}` : ''}
+                        </Text>
+                        <Text style={styles.savedCityPinText}>
+                          {addr.city}, {addr.state} - <Text style={{ fontWeight: '700' }}>{addr.pincode}</Text>
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : hasValidAddress ? (
+              <View style={styles.singleAddressCard}>
+                <View style={styles.savedAddressTopRow}>
+                  <View style={styles.addressTagBadge}>
+                    <Text style={styles.addressTagText}>{selectedAddress.tag || 'Home'}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleOpenEditAddress(selectedAddress)}>
+                    <Text style={{ fontSize: 13, color: '#00A3E0', fontWeight: '700' }}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.savedRecipientText}>
+                  {selectedAddress.recipientName} (+91 {selectedAddress.recipientPhone})
+                </Text>
+                <Text style={styles.savedStreetText}>
+                  {selectedAddress.addressLine1}
+                  {selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ''}
+                </Text>
+                <Text style={styles.savedCityPinText}>
+                  {selectedAddress.city}, {selectedAddress.state} - {selectedAddress.pincode}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.noAddressPromptBox}>
+                <Ionicons name="location-outline" size={32} color="#00A3E0" style={{ marginBottom: 6 }} />
+                <Text style={styles.noAddressTitle}>No Delivery Address Added</Text>
+                <Text style={styles.noAddressSub}>
+                  Please add your shipping address to calculate express delivery.
+                </Text>
+                <TouchableOpacity
+                  style={styles.addAddressPromptBtn}
+                  onPress={() => {
+                    setAddressForm({
+                      ...EMPTY_ADDRESS_FORM,
+                      recipientName: currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : '',
+                      recipientPhone: currentUser?.phone || '',
+                    });
+                    setIsAddressModalOpen(true);
+                  }}
+                  activeOpacity={0.88}
+                >
+                  <Ionicons name="add-circle" size={18} color="#FFFFFF" />
+                  <Text style={styles.addAddressPromptBtnText}>+ Add Delivery Address</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Delivery Stock Warning if selected PIN has out of stock items */}
+            {hasOutOfDeliveryItems && deliveryPincode ? (
+              <View style={styles.destStockNotice}>
+                <Ionicons name="warning" size={18} color="#DC2626" style={{ marginRight: 8, marginTop: 1 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.destStockNoticeTitle}>Delivery Stock Notice for PIN {deliveryPincode}</Text>
+                  <Text style={styles.destStockNoticeMsg}>
+                    {outOfDeliveryItems.length === 1
+                      ? `This item is not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove the item.`
+                      : `Some items in your cart are not in stock for delivery to PIN ${deliveryPincode}. Please select another address or remove them to proceed.`}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          /* Hub Pickup Contact Card */
+          <View style={styles.sectionCard}>
+            <View style={styles.sectionCardHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Ionicons name="person-circle-outline" size={20} color="#00A3E0" />
+                <Text style={styles.sectionCardTitle}>Customer Pickup Verification Contact</Text>
+              </View>
+            </View>
+            <View style={{ padding: 14 }}>
+              <Text style={{ fontSize: 13, color: '#334155', marginBottom: 6 }}>
+                Recipient Name: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.name || selectedAddress?.recipientName || 'Naveen'}</Text>
+              </Text>
+              <Text style={{ fontSize: 13, color: '#334155', marginBottom: 6 }}>
+                Pickup Verification Phone: <Text style={{ fontWeight: '700', color: '#0F172A' }}>+91 {currentUser?.phone || selectedAddress?.recipientPhone || '9876543210'}</Text>
+              </Text>
+              <Text style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: '600' }}>
+                ✓ SMS Pickup OTP will be dispatched to this mobile number when parcel is ready at hub.
               </Text>
             </View>
           </View>
-        </View>
+        )}
 
-        {/* SECTION 3.5: COUPON / PROMO CARD */}
-        <View style={styles.couponCard}>
-          <View style={styles.couponHeaderRow}>
-            <Ionicons name="pricetag-outline" size={16} color="#00A3E0" />
-            <Text style={styles.couponCardTitle}>Apply Coupon / Voucher</Text>
+        {/* =========================================================================
+            SECTION 5: APPLY COUPON / VOUCHER (COMPACT DROPDOWN OF HEADINGS ONLY)
+            ========================================================================= */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionCardHeader}>
+            <View style={styles.sectionHeaderLeft}>
+              <Ionicons name="pricetag-outline" size={20} color="#00A3E0" />
+              <Text style={styles.sectionCardTitle}>Apply Coupon / Voucher</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.couponDropdownToggleBtn}
+              onPress={() => setIsCouponDropdownOpen(!isCouponDropdownOpen)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.couponDropdownToggleText}>
+                {eligibleCoupons.length} Offers Available
+              </Text>
+              <Ionicons
+                name={isCouponDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                size={15}
+                color="#00A3E0"
+              />
+            </TouchableOpacity>
           </View>
+
+          {/* Applied Coupon Banner */}
           {appliedCoupon ? (
-            <View style={styles.appliedCouponRow}>
-              <View style={styles.appliedCouponBadge}>
-                <Ionicons name="checkmark-circle" size={15} color="#16A34A" />
-                <Text style={styles.appliedCouponCode}>{appliedCoupon.code}</Text>
-                <Text style={styles.appliedCouponDesc}>
-                  {appliedCoupon.message || 'Coupon Applied'}
-                </Text>
+            <View style={styles.appliedCouponBanner}>
+              <View style={styles.appliedCouponLeft}>
+                <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+                <View style={{ marginLeft: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.appliedCouponCode}>{appliedCoupon.code}</Text>
+                    <View style={styles.appliedDiscountPill}>
+                      <Text style={styles.appliedDiscountPillText}>
+                        {appliedCoupon.isFreeShipping ? 'FREE DELIVERY' : `₹ ${formatInr(couponDiscount)} OFF`}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.appliedCouponTitle}>{appliedCoupon.title || 'Coupon Applied Successfully'}</Text>
+                </View>
               </View>
               <TouchableOpacity onPress={handleRemoveCoupon} style={styles.removeCouponBtn}>
                 <Text style={styles.removeCouponBtnText}>Remove</Text>
@@ -2016,7 +2505,7 @@ export default function PaymentSummaryPage({
             <View style={styles.couponInputRow}>
               <TextInput
                 style={styles.couponInput}
-                placeholder="Enter Coupon Code (e.g. WELCOME10)"
+                placeholder="Enter coupon code (e.g. WELCOME10)"
                 placeholderTextColor="#94A3B8"
                 value={couponCode}
                 onChangeText={(t) => {
@@ -2028,7 +2517,7 @@ export default function PaymentSummaryPage({
               <TouchableOpacity
                 style={[styles.applyCouponBtn, couponLoading && { opacity: 0.7 }]}
                 onPress={() => handleApplyCoupon()}
-                disabled={couponLoading}
+                disabled={couponLoading || !couponCode.trim()}
                 activeOpacity={0.85}
               >
                 {couponLoading ? (
@@ -2039,157 +2528,55 @@ export default function PaymentSummaryPage({
               </TouchableOpacity>
             </View>
           )}
-          {couponError ? (
-            <Text style={styles.couponErrorText}>{couponError}</Text>
-          ) : null}
 
-          {/* Available Coupons & Offers Strip */}
-          <View style={styles.availableCouponsSection}>
-            <View style={styles.availableCouponsHeader}>
-              <Ionicons name="gift-outline" size={15} color="#0284C7" />
-              <Text style={styles.availableCouponsTitle}>Available Coupons & Offers</Text>
-            </View>
-            <Text style={styles.availableCouponsSub}>
-              Tap "Apply" on any voucher below to redeem your savings.
-            </Text>
+          {couponError ? <Text style={styles.couponErrorText}>{couponError}</Text> : null}
 
-            <View style={styles.couponsGrid}>
-              {availableCoupons.map((cpn) => {
-                const isWelcome = cpn.code === 'WELCOME10';
-                const isHemohim = cpn.code === 'HEMOHIM20';
-                const isFestive = cpn.code === 'FESTIVE500';
-                const isFreeship = cpn.code === 'FREESHIP';
-                const isAlreadyApplied = appliedCoupon?.code === cpn.code;
-
-                // Eligibility logic
-                let isEligible = true;
-                let eligibilityNote = '';
-                let productScopeBadge = 'All Products';
-
-                if (isWelcome) {
-                  productScopeBadge = 'All Products • First Order';
-                  if (isFirstOrder) {
-                    isEligible = true;
-                    eligibilityNote = '✓ Eligible: You are a New Comer! 10% off your first order.';
-                  } else {
-                    isEligible = false;
-                    eligibilityNote = '⚠️ Restricted: For New Comers only on their 1st order.';
-                  }
-                } else if (isHemohim) {
-                  productScopeBadge = 'Atomy HemoHIM Supplements Only';
-                  if (hasHemohimInCart) {
-                    isEligible = true;
-                    eligibilityNote = '✓ Eligible: HemoHIM is in your cart!';
-                  } else {
-                    isEligible = false;
-                    eligibilityNote = 'Requires Atomy HemoHIM products in cart.';
-                  }
-                } else if (isFestive) {
-                  productScopeBadge = 'All Products • Min ₹5,000';
-                  if (subtotal >= 5000) {
-                    isEligible = true;
-                    eligibilityNote = `✓ Cart qualified (₹${formatInr(subtotal)})!`;
-                  } else {
-                    isEligible = false;
-                    eligibilityNote = `Add ₹${formatInr(5000 - subtotal)} more to qualify.`;
-                  }
-                } else if (isFreeship) {
-                  productScopeBadge = 'All Products Nationwide';
-                  isEligible = true;
-                  eligibilityNote = '✓ 100% Free Doorstep Delivery across India.';
-                }
-
-                return (
-                  <View
-                    key={cpn.id || cpn.code}
-                    style={[
-                      styles.couponTile,
-                      isAlreadyApplied && styles.couponTileApplied,
-                      !isEligible && styles.couponTileIneligible,
-                    ]}
-                  >
-                    <View style={styles.couponTileTop}>
-                      <View style={styles.couponTileBadgeRow}>
-                        <View style={styles.couponTileDiscountBadge}>
-                          <Text style={styles.couponTileDiscountText}>
-                            {cpn.discountDisplay || cpn.discount || 'SPECIAL OFF'}
-                          </Text>
+          {/* Compact Dropdown of Headings ONLY (No verbose paragraphs) */}
+          {isCouponDropdownOpen && !appliedCoupon && (
+            <View style={styles.compactCouponsDropdown}>
+              <Text style={styles.compactDropdownHeader}>Tap Apply to redeem an eligible voucher heading:</Text>
+              {eligibleCoupons.length > 0 ? (
+                eligibleCoupons.map((cpn) => {
+                  const isApplied = appliedCoupon?.code === cpn.code;
+                  return (
+                    <View key={cpn.code || cpn.id} style={styles.compactCouponRow}>
+                      <View style={styles.compactCouponInfo}>
+                        <View style={styles.compactBadgeCluster}>
+                          <Text style={styles.compactCode}>{cpn.code}</Text>
+                          <View style={styles.compactDiscountTag}>
+                            <Text style={styles.compactDiscountTagText}>
+                              {cpn.discountDisplay || cpn.discount || 'OFFER'}
+                            </Text>
+                          </View>
                         </View>
-                        {isWelcome && (
-                          <View style={styles.newComerPill}>
-                            <Ionicons name="sparkles" size={10} color="#7C3AED" />
-                            <Text style={styles.newComerPillText}>New Comers Only</Text>
-                          </View>
-                        )}
-                        {isHemohim && (
-                          <View style={styles.hemohimPill}>
-                            <Ionicons name="medkit" size={10} color="#059669" />
-                            <Text style={styles.hemohimPillText}>HemoHIM Special</Text>
-                          </View>
-                        )}
+                        {/* Heading Only */}
+                        <Text style={styles.compactTitle} numberOfLines={1}>
+                          {cpn.title || `${cpn.code} Privilege Voucher`}
+                        </Text>
                       </View>
-
-                      {isAlreadyApplied ? (
-                        <View style={styles.couponAppliedPill}>
-                          <Ionicons name="checkmark-circle" size={13} color="#16A34A" />
-                          <Text style={styles.couponAppliedPillText}>Applied</Text>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          style={[
-                            styles.couponTileApplyBtn,
-                            (!isEligible || couponLoading) && styles.couponTileApplyBtnDisabled,
-                          ]}
-                          disabled={!isEligible || couponLoading}
-                          onPress={() => handleApplyCoupon(cpn.code)}
-                          activeOpacity={0.8}
-                        >
-                          <Text
-                            style={[
-                              styles.couponTileApplyBtnText,
-                              !isEligible && styles.couponTileApplyBtnTextDisabled,
-                            ]}
-                          >
-                            Apply
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
-                    <Text style={styles.couponTileCode}>{cpn.code}</Text>
-                    <Text style={styles.couponTileTitle}>{cpn.title}</Text>
-                    <Text style={styles.couponTileDesc} numberOfLines={2}>
-                      {cpn.description || cpn.desc}
-                    </Text>
-
-                    <View style={styles.couponScopeRow}>
-                      <Ionicons name="pricetags-outline" size={12} color="#64748B" />
-                      <Text style={styles.couponScopeText}>Applies to: {productScopeBadge}</Text>
-                    </View>
-
-                    <View style={styles.couponEligibilityRow}>
-                      <Ionicons
-                        name={isEligible ? 'checkmark-circle-outline' : 'alert-circle-outline'}
-                        size={13}
-                        color={isEligible ? '#16A34A' : '#D97706'}
-                      />
-                      <Text
-                        style={[
-                          styles.couponEligibilityText,
-                          { color: isEligible ? '#16A34A' : '#D97706' },
-                        ]}
+                      <TouchableOpacity
+                        style={[styles.compactApplyBtn, isApplied && styles.compactApplyBtnApplied]}
+                        onPress={() => handleApplyCoupon(cpn.code)}
+                        disabled={couponLoading || isApplied}
+                        activeOpacity={0.8}
                       >
-                        {eligibilityNote}
-                      </Text>
+                        <Text style={[styles.compactApplyBtnText, isApplied && { color: '#16A34A' }]}>
+                          {isApplied ? 'Applied' : 'Apply'}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
-                  </View>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <Text style={styles.noCouponsText}>No coupons currently match your cart items.</Text>
+              )}
             </View>
-          </View>
+          )}
         </View>
 
-        {/* SECTION 4: PAYMENT SUMMARY CARD (Exact replica of website payment-summary-card) */}
+        {/* =========================================================================
+            SECTION 6: PAYMENT SUMMARY CARD
+            ========================================================================= */}
         <View style={styles.paymentSummaryCard}>
           <Text style={styles.paymentSummaryTitle}>Payment Summary</Text>
 
@@ -2211,7 +2598,7 @@ export default function PaymentSummaryPage({
               <Text style={styles.summaryLineValue}>₹ {formatInr(subtotal)}</Text>
             </TouchableOpacity>
 
-            {/* Collapsible Base Price & GST Breakdown (like website) */}
+            {/* Collapsible Base Price & GST Breakdown */}
             {isTaxBreakdownOpen && (
               <View style={styles.taxBreakdownPanel}>
                 <View style={styles.taxSubRow}>
@@ -2243,16 +2630,25 @@ export default function PaymentSummaryPage({
               </View>
             )}
 
-            {/* Doorstep Delivery Fee */}
+            {/* Delivery Fee */}
             <View style={styles.summaryLine}>
-              <Text style={styles.summaryLineLabel}>Doorstep Delivery Fee</Text>
+              <Text style={styles.summaryLineLabel}>
+                {isStorePickup ? 'Regional Hub Store Pickup Fee' : 'Doorstep Delivery Fee'}
+              </Text>
               <Text style={shippingFee === 0 ? styles.freeDeliveryValue : styles.summaryLineValue}>
                 {shippingFee === 0 ? 'FREE' : `₹ ${formatInr(shippingFee)}`}
               </Text>
             </View>
 
-            {/* Free Delivery Qualification Callout */}
-            {shippingFee === 0 ? (
+            {/* Delivery qualification callout */}
+            {isStorePickup ? (
+              <View style={styles.freeDeliveryQualRow}>
+                <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                <Text style={styles.freeDeliveryQualText}>
+                  Direct Hub Pickup Selected: Zero Delivery Fee (Collect with Invoice)
+                </Text>
+              </View>
+            ) : shippingFee === 0 ? (
               <View style={styles.freeDeliveryQualRow}>
                 <Ionicons name="checkmark-circle" size={14} color="#10B981" />
                 <Text style={styles.freeDeliveryQualText}>
@@ -2271,8 +2667,8 @@ export default function PaymentSummaryPage({
             )}
 
             {/* Estimated Delivery Row in Summary */}
-            <View style={styles.summaryLine}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <View style={[styles.summaryLine, styles.estimatedDeliverySummaryRow]}>
+              <View style={styles.estimatedDeliveryLabelCol}>
                 <Ionicons name="cube-outline" size={14} color="#00A3E0" />
                 <Text style={styles.summaryLineLabel}>Estimated Delivery</Text>
               </View>
@@ -2302,10 +2698,10 @@ export default function PaymentSummaryPage({
               size={19}
               color={agreedTerms ? '#00A3E0' : '#94A3B8'}
             />
-            <Text style={styles.consentText}>I confirm the items and doorstep delivery address details.</Text>
+            <Text style={styles.consentText}>I confirm the items and delivery destination details.</Text>
           </TouchableOpacity>
 
-          {/* Out of Delivery / Stock Alert Banner (Option B) */}
+          {/* Out of Delivery / Stock Alert Banner */}
           {hasOutOfDeliveryItems && deliveryPincode ? (
             <View style={styles.stockAlertBanner}>
               <Ionicons name="warning" size={20} color="#DC2626" style={{ marginRight: 8, marginTop: 2 }} />
@@ -2797,19 +3193,27 @@ const styles = StyleSheet.create({
   },
   itemInfoCol: {
     flex: 1,
-    paddingRight: 24, // Clearance for corner remove button
   },
   itemNameText: {
     fontSize: 13.5,
     fontWeight: '700',
     color: '#0F172A',
     lineHeight: 18,
+    paddingRight: 28, // Clearance for corner remove button
   },
   itemPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: 6,
     marginTop: 4,
+  },
+  priceWithDpGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
   },
   itemUnitPriceText: {
     fontSize: 14,
@@ -2837,10 +3241,25 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: '800',
   },
+  itemPvBadgeWrap: {
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 0.8,
+    borderColor: '#BAE6FD',
+  },
   itemPvText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     color: '#00A3E0',
+  },
+  itemBadgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+    flexWrap: 'wrap',
   },
   itemDeliveryBadgeWrap: {
     marginTop: 4,
@@ -2858,7 +3277,13 @@ const styles = StyleSheet.create({
   stepperContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 8,
+    gap: 6,
+  },
+  stepperControlGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   stepperBtn: {
@@ -2882,6 +3307,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '800',
     color: '#0F172A',
+    textAlign: 'right',
   },
   expressTransitCard: {
     backgroundColor: '#F0F9FF',
@@ -3009,10 +3435,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#D97706',
   },
+  estimatedDeliverySummaryRow: {
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  estimatedDeliveryLabelCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flexShrink: 0,
+    marginTop: 2,
+  },
   etaDateHighlight: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '800',
     color: '#00A3E0',
+    flex: 1,
+    textAlign: 'right',
+    lineHeight: 18,
   },
   destinationSnapshotBox: {
     backgroundColor: '#F8FAFC',
@@ -4471,4 +4911,692 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     lineHeight: 15,
   },
+
+  // Fulfillment Method (Courier vs Regional Hub Pickup)
+  fulfillmentSectionCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 12,
+    marginBottom: 10,
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  fulfillmentSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  fulfillmentToggleRow: {
+    gap: 8,
+  },
+  fulfillmentOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 12,
+  },
+  fulfillmentOptionCardActive: {
+    backgroundColor: '#F0F9FF',
+    borderColor: '#00A3E0',
+  },
+  fulfillmentOptionCardActiveGreen: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#10B981',
+  },
+  fulfillmentOptionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  fulfillmentOptionTitleActive: {
+    color: '#00A3E0',
+    fontWeight: '800',
+  },
+  fulfillmentOptionSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  freeBadgePill: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  freeBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  hubPickupInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+  },
+  hubPickupInfoTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  hubPickupInfoDesc: {
+    fontSize: 11.5,
+    color: '#047857',
+    marginTop: 2,
+  },
+  hubPickupInfoTimings: {
+    fontSize: 10.5,
+    color: '#059669',
+    marginTop: 3,
+    fontWeight: '500',
+  },
+  headerPvPreview: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#00A3E0',
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  itemBadgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  freeDeliveryPill: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 0.8,
+    borderColor: '#86EFAC',
+  },
+  freeDeliveryPillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  standardDeliveryPill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 0.8,
+    borderColor: '#CBD5E1',
+  },
+  standardDeliveryPillText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  gstTagPill: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 0.8,
+    borderColor: '#E2E8F0',
+  },
+  gstTagPillText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  activeDistributorPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  distributorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  activeDistributorPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  distributorBody: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 10,
+  },
+  distributorInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  distributorAvatarBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+  },
+  distributorMemberName: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  distributorIdTag: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#00A3E0',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 0.8,
+    borderColor: '#BAE6FD',
+  },
+  distributorContactText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  dpBenefitCallout: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F0FDF4',
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  dpBenefitCalloutText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#15803D',
+    flex: 1,
+    lineHeight: 16,
+  },
+  coManagerContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  coManagerHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  coManagerSectionTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0284C7',
+  },
+  coManagerActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 0.8,
+    borderColor: '#BAE6FD',
+  },
+  coManagerActionBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#00A3E0',
+  },
+  coManagerBadgeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  coManagerNameText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  coManagerRolePill: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  coManagerRolePillText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0284C7',
+  },
+  coManagerSubText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  noCoManagerNotice: {
+    padding: 6,
+  },
+  noCoManagerNoticeText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  fulfillmentCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  fulfillmentFeeTag: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  feeTagFree: {
+    backgroundColor: '#DCFCE7',
+    borderWidth: 0.8,
+    borderColor: '#86EFAC',
+  },
+  feeTagPaid: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 0.8,
+    borderColor: '#FDE68A',
+  },
+  feeTagFreeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  feeTagPaidText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  hubDetailsContainer: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+  },
+  hubDetailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  hubDetailsHeaderTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#14532D',
+  },
+  hubAddressText: {
+    fontSize: 12,
+    color: '#166534',
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  hubTimingsText: {
+    fontSize: 11.5,
+    color: '#047857',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  hubContactRow: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 10,
+    gap: 10,
+  },
+  hubManagerSection: {
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  hubManagerLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0284C7',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  hubManagerValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginTop: 3,
+  },
+  hubManagerPhone: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+    marginTop: 2,
+  },
+  hubCoManagerBox: {
+    paddingTop: 2,
+  },
+  hubCoManagerTag: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#059669',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  hubCoManagerName: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginTop: 3,
+  },
+  hubCoManagerDuty: {
+    fontSize: 11,
+    color: '#0369A1',
+    fontWeight: '600',
+  },
+  hubPickupNote: {
+    fontSize: 11,
+    color: '#15803D',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  addNewAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    flexShrink: 0,
+  },
+  addNewAddressBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#00A3E0',
+  },
+  savedAddressesList: {
+    gap: 8,
+    marginTop: 4,
+  },
+  savedAddressCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  savedAddressCardSelected: {
+    borderColor: '#00A3E0',
+    backgroundColor: '#F0F9FF',
+  },
+  savedAddressTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  defaultAddressBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 0.8,
+    borderColor: '#A7F3D0',
+  },
+  defaultAddressBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  savedRecipientText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  savedStreetText: {
+    fontSize: 12.5,
+    color: '#334155',
+    marginTop: 2,
+    lineHeight: 17,
+  },
+  savedCityPinText: {
+    fontSize: 12.5,
+    color: '#0F172A',
+    marginTop: 2,
+  },
+  singleAddressCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  noAddressPromptBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+  },
+  noAddressTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  noAddressSub: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 3,
+    marginBottom: 12,
+  },
+  couponDropdownToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  couponDropdownToggleText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#00A3E0',
+  },
+  appliedCouponBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    borderRadius: 8,
+    padding: 10,
+  },
+  appliedCouponLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  appliedCouponCode: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#14532D',
+  },
+  appliedDiscountPill: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  appliedDiscountPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  appliedCouponTitle: {
+    fontSize: 11,
+    color: '#166534',
+    marginTop: 2,
+  },
+  compactCouponsDropdown: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+  },
+  compactDropdownHeader: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 2,
+  },
+  compactCouponRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+  },
+  compactCouponInfo: {
+    flex: 1,
+  },
+  compactBadgeCluster: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+  },
+  compactCode: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0284C7',
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 0.8,
+    borderColor: '#BAE6FD',
+  },
+  compactDiscountTag: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  compactDiscountTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  compactTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  compactApplyBtn: {
+    backgroundColor: '#00A3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  compactApplyBtnApplied: {
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  compactApplyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  noCouponsText: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    paddingVertical: 6,
+  },
+  coManagerModalNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F0F9FF',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    marginBottom: 12,
+  },
+  coManagerModalNoticeText: {
+    fontSize: 11.5,
+    color: '#0369A1',
+    lineHeight: 16,
+    flex: 1,
+  },
+  coManagerAuthCheckboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 14,
+  },
+  coManagerAuthCheckboxText: {
+    fontSize: 12,
+    color: '#475569',
+    flex: 1,
+    lineHeight: 16,
+  },
+
 });

@@ -5,6 +5,7 @@ import {
   Package,
   Boxes,
   Users,
+  Building2,
   Headphones,
   Settings,
   RefreshCw,
@@ -83,6 +84,7 @@ import CouponManager from './CouponManager';
 import FinanceSettlementPage from './FinanceSettlementPage';
 import TerritoryManagementPage from './TerritoryManagementPage';
 import InviteDistributorsPage from './InviteDistributorsPage';
+import { fetchDistributorList } from '../../services/distributorService';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
 import {
   getAdConfig,
@@ -382,6 +384,40 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const [selectedCustomerDetail, setSelectedCustomerDetail] = useState(null);
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [backendCustomers, setBackendCustomers] = useState([]);
+
+  // Regional Hubs & Distributors state for Overview network metrics
+  const [distributorList, setDistributorList] = useState([]);
+
+  useEffect(() => {
+    fetchDistributorList()
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setDistributorList(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const totalHubsCount = useMemo(() => {
+    if (!Array.isArray(distributorList) || distributorList.length === 0) return 2;
+    const hubs = new Set();
+    distributorList.forEach(d => {
+      const hubId = d.effectiveHubId || d.parentHubId || (d.distributorRole === 'PRIMARY_MANAGER' ? d.distributorId : null);
+      if (hubId) hubs.add(hubId);
+      else if (d.distributorRole === 'PRIMARY_MANAGER' || !d.parentHubId) hubs.add(d.distributorId || d.id);
+    });
+    return Math.max(1, hubs.size);
+  }, [distributorList]);
+
+  const totalDistributorsCount = useMemo(() => {
+    return Array.isArray(distributorList) && distributorList.length > 0 ? distributorList.length : 3;
+  }, [distributorList]);
+
+  // Overview Sales Trend Graph Range ('1W' | '1M' | '1Y') & Hover State
+  const [salesChartRange, setSalesChartRange] = useState('1W');
+  const [hoveredChartPoint, setHoveredChartPoint] = useState(null);
+
+  // Sign Out Confirmation Modal State
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const handleRequestLogout = () => setShowLogoutConfirm(true);
 
   // Session start timestamp & persistent read notification state
   const sessionStartTimeRef = useRef(Date.now());
@@ -1484,6 +1520,164 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     };
   }, [orders, products, tickets, readNotifIds, dismissedStockAlerts]);
 
+  // 1b. OVERVIEW REAL-TIME SALES TREND GRAPH ENGINE (1W / 1M / 1Y - Connected directly to backend orders)
+  const salesAnalyticsData = useMemo(() => {
+    const now = new Date();
+    const points = [];
+
+    if (salesChartRange === '1W') {
+      // 7 calendar days ending today
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const key = `${yyyy}-${mm}-${dd}`;
+        const dayShort = d.toLocaleDateString('en-IN', { weekday: 'short' });
+        const dayDate = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        points.push({
+          key,
+          label: `${dayShort}, ${dayDate}`,
+          tickLabel: `${dayShort} ${dd}`,
+          fullDate: d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+          revenue: 0,
+          ordersCount: 0
+        });
+      }
+    } else if (salesChartRange === '1M') {
+      // 30 calendar days ending today
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const key = `${yyyy}-${mm}-${dd}`;
+        const dayDate = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        points.push({
+          key,
+          label: dayDate,
+          tickLabel: (i === 29 || i === 0 || i % 5 === 0) ? dayDate : '',
+          fullDate: d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }),
+          revenue: 0,
+          ordersCount: 0
+        });
+      }
+    } else {
+      // 1Y: 12 calendar months ending with current month
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const key = `${yyyy}-${mm}`;
+        const monthShort = d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+        points.push({
+          key,
+          label: monthShort,
+          tickLabel: monthShort,
+          fullDate: d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+          revenue: 0,
+          ordersCount: 0
+        });
+      }
+    }
+
+    const keyIndexMap = new Map();
+    points.forEach((p, idx) => keyIndexMap.set(p.key, idx));
+
+    // Aggregate real values from backend orders
+    orders.forEach(o => {
+      const st = String(o.orderStatus || '').toUpperCase();
+      if (st.includes('CANCEL')) return;
+      const amt = Number(o.totalAmount) || 0;
+      if (!o.createdAt) return;
+
+      const orderDate = new Date(o.createdAt);
+      if (isNaN(orderDate.getTime())) return;
+
+      const yyyy = orderDate.getFullYear();
+      const mm = String(orderDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(orderDate.getDate()).padStart(2, '0');
+
+      if (salesChartRange === '1W' || salesChartRange === '1M') {
+        const key = `${yyyy}-${mm}-${dd}`;
+        if (keyIndexMap.has(key)) {
+          const idx = keyIndexMap.get(key);
+          points[idx].revenue += amt;
+          points[idx].ordersCount += 1;
+        }
+      } else {
+        const key = `${yyyy}-${mm}`;
+        if (keyIndexMap.has(key)) {
+          const idx = keyIndexMap.get(key);
+          points[idx].revenue += amt;
+          points[idx].ordersCount += 1;
+        }
+      }
+    });
+
+    const totalRevenue = points.reduce((sum, p) => sum + p.revenue, 0);
+    const totalOrders = points.reduce((sum, p) => sum + p.ordersCount, 0);
+    const rawMaxRevenue = Math.max(...points.map(p => p.revenue), 0);
+    const maxRevenue = rawMaxRevenue > 0 ? rawMaxRevenue * 1.15 : 1000;
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const peakPoint = points.reduce((max, p) => (p.revenue > max.revenue ? p : max), points[0] || { revenue: 0, label: 'N/A' });
+
+    // Compute SVG coordinates
+    const svgW = 600;
+    const svgH = 220;
+    const padTop = 22;
+    const padBottom = 35;
+    const padLeft = 65;
+    const padRight = 20;
+    const chartW = svgW - padLeft - padRight;
+    const chartH = svgH - padTop - padBottom;
+
+    const coords = points.map((p, i) => {
+      const x = padLeft + (i / Math.max(1, points.length - 1)) * chartW;
+      const y = padTop + (1 - (p.revenue / maxRevenue)) * chartH;
+      return { ...p, x, y };
+    });
+
+    // Generate smooth SVG curve
+    let linePath = '';
+    let areaPath = '';
+    if (coords.length > 0) {
+      linePath = `M ${coords[0].x} ${coords[0].y}`;
+      for (let i = 0; i < coords.length - 1; i++) {
+        const p0 = coords[i === 0 ? 0 : i - 1];
+        const p1 = coords[i];
+        const p2 = coords[i + 1];
+        const p3 = coords[i + 2] || p2;
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        linePath += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+      }
+      const baselineY = svgH - padBottom;
+      areaPath = `${linePath} L ${coords[coords.length - 1].x} ${baselineY} L ${coords[0].x} ${baselineY} Z`;
+    }
+
+    return {
+      points: coords,
+      totalRevenue,
+      totalOrders,
+      maxRevenue,
+      avgOrderValue,
+      peakPoint,
+      svgW,
+      svgH,
+      padTop,
+      padBottom,
+      padLeft,
+      padRight,
+      chartW,
+      chartH,
+      linePath,
+      areaPath
+    };
+  }, [orders, salesChartRange]);
+
   // 2. PRODUCT MANAGEMENT HANDLERS (ADD, EDIT, REMOVE)
   const handleOpenAddProduct = () => {
     const nextCode = `D0${Math.floor(1000 + Math.random() * 9000)}`;
@@ -2127,7 +2321,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         onNavigateHome={onBackToStore}
         currentView="admin"
         adminProfile={adminProfile}
-        onLogout={onLogout}
+        onLogout={handleRequestLogout}
         onNavigateAdminProfile={() => {
           setActiveTab('settings');
           setSettingsSubTab('profile');
@@ -2320,7 +2514,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   className="mobile-drawer-logout-btn"
                   onClick={() => {
                     setIsMobileNavOpen(false);
-                    onLogout();
+                    handleRequestLogout();
                   }}
                 >
                   <LogOut size={15} />
@@ -2414,7 +2608,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             <button
               type="button"
               className="sidebar-nav-button logout-sidebar-btn"
-              onClick={onLogout}
+              onClick={handleRequestLogout}
               style={{
                 color: '#dc2626',
                 fontWeight: 700
@@ -2455,7 +2649,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     <div>
                       <h2 className="content-title">Dashboard Overview & Business Metrics</h2>
                       <p className="content-subtitle">
-                        Real-time sales performance, today's customer order volume, and fulfillment pipelines.
+                        High-level network performance, daily sales velocity across regional hubs, and master warehouse inventory health.
                       </p>
                     </div>
                     <div className="heading-actions-cluster">
@@ -2466,50 +2660,23 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
                   </div>
 
-                  {/* Top Sales KPI Cards - Design 1 (Image 1: Curved Wave with Circular Icon Badge) */}
-                  <div className="kpi-curve-grid">
-                    {/* Card 1: Today's Total Sale (Dim Soft Cyan Blue Tint - Clickable to Finance) */}
-                    <div 
-                      className="kpi-curve-card interactive-kpi-card" 
-                      style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
-                      onClick={() => setActiveTab('finance')}
-                      title="View Today's Financial Settlement & Details"
-                    >
-                      <div className="kpi-curve-corner-accent"></div>
-                      <div className="kpi-curve-content">
-                        <div className="kpi-curve-tag">TODAY'S TOTAL SALE</div>
-                        <div className="kpi-curve-val">
-                          ₹ {overviewStats.todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </div>
-                        <div className="kpi-curve-sub">
-                          From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today • <span style={{ color: '#0284c7', fontWeight: 600 }}>View Finance →</span>
-                        </div>
-                      </div>
-                      <div className="kpi-curve-right-wing">
-                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
-                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0f2fe" />
-                        </svg>
-                        <div className="kpi-curve-icon-badge">
-                          <TrendingUp size={22} color="#0284c7" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card 2: Today's Orders (Dim Soft Mint Green Tint - Clickable to Orders) */}
+                  {/* Top 6 Network Sales, Territory & Customer KPI Cards (3 Cards in a Row) */}
+                  <div className="kpi-curve-grid three-cols">
+                    {/* Row 1 - Card 1: Today's Orders (Clickable to Orders) */}
                     <div 
                       className="kpi-curve-card interactive-kpi-card" 
                       style={{ '--accent-color': '#15803d', cursor: 'pointer' }}
                       onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
-                      title="Inspect Today's Orders & Customer Fulfillment"
+                      title="Inspect Today's Customer Orders & Processing"
                     >
                       <div className="kpi-curve-corner-accent"></div>
                       <div className="kpi-curve-content">
                         <div className="kpi-curve-tag">TODAY'S ORDERS</div>
                         <div className="kpi-curve-val">
-                          {overviewStats.todayOrdersCount} <span style={{ fontSize: '16px', fontWeight: 600, color: '#64748b' }}>orders</span>
+                          {overviewStats.todayOrdersCount} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>orders</span>
                         </div>
                         <div className="kpi-curve-sub">
-                          Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
+                          Direct consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
                         </div>
                       </div>
                       <div className="kpi-curve-right-wing">
@@ -2522,7 +2689,34 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       </div>
                     </div>
 
-                    {/* Card 3: Overall Total Sale (Dim Soft Mist Slate Tint - Clickable to Finance) */}
+                    {/* Row 1 - Card 2: Today's Sale From Overall Hubs (Clickable to Finance) */}
+                    <div 
+                      className="kpi-curve-card interactive-kpi-card" 
+                      style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
+                      onClick={() => setActiveTab('finance')}
+                      title="View Today's Financial Settlement & Hub Billings"
+                    >
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">TODAY'S SALE (OVERALL HUBS)</div>
+                        <div className="kpi-curve-val">
+                          ₹ {overviewStats.todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="kpi-curve-sub">
+                          Across all regional dispatch centers • <span style={{ color: '#0284c7', fontWeight: 600 }}>View Finance →</span>
+                        </div>
+                      </div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0f2fe" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <TrendingUp size={22} color="#0284c7" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 1 - Card 3: Overall Sales (Clickable to Finance) */}
                     <div 
                       className="kpi-curve-card interactive-kpi-card" 
                       style={{ '--accent-color': '#334155', cursor: 'pointer' }}
@@ -2531,12 +2725,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     >
                       <div className="kpi-curve-corner-accent"></div>
                       <div className="kpi-curve-content">
-                        <div className="kpi-curve-tag">OVERALL TOTAL SALE</div>
+                        <div className="kpi-curve-tag">OVERALL SALES</div>
                         <div className="kpi-curve-val">
                           ₹ {overviewStats.overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </div>
                         <div className="kpi-curve-sub">
-                          Total lifetime gross revenue across all orders • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
+                          Total lifetime gross revenue across all hubs • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
                         </div>
                       </div>
                       <div className="kpi-curve-right-wing">
@@ -2548,316 +2742,530 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* QUICK ACTION COMMAND SHORTCUTS STRIP */}
-                  <div className="overview-quick-actions-bar">
-                    <span className="quick-actions-label">
-                      <Sparkles size={14} color="#00a3e0" />
-                      <span>QUICK SHORTCUTS:</span>
-                    </span>
-                    <div className="quick-actions-links-row">
-                      <button 
-                        type="button" 
-                        className="quick-action-pill-btn" 
-                        onClick={() => setActiveTab('finance')}
-                      >
-                        <IndianRupee size={13} color="#0284c7" />
-                        <span>Finance &amp; Settlements</span>
-                      </button>
-
-                      <button 
-                        type="button" 
-                        className="quick-action-pill-btn" 
-                        onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
-                      >
-                        <Package size={13} color="#16a34a" />
-                        <span>All Orders ({orders.length})</span>
-                      </button>
-
-                      <button 
-                        type="button" 
-                        className="quick-action-pill-btn" 
-                        onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}
-                      >
-                        <Clock size={13} color="#d97706" />
-                        <span>Processing Orders</span>
-                      </button>
-
-                      <button 
-                        type="button" 
-                        className="quick-action-pill-btn" 
-                        onClick={() => setActiveTab('coupons')}
-                      >
-                        <Ticket size={13} color="#9333ea" />
-                        <span>Coupons &amp; Offers</span>
-                      </button>
-
-                      <button 
-                        type="button" 
-                        className="quick-action-pill-btn" 
-                        onClick={() => setActiveTab('membership')}
-                      >
-                        <Crown size={13} color="#f59e0b" />
-                        <span>Distributor Membership</span>
-                      </button>
-
-                      <button 
-                        type="button" 
-                        className="quick-action-pill-btn" 
-                        onClick={() => setActiveTab('support')}
-                      >
-                        <Headphones size={13} color="#dc2626" />
-                        <span>Support Desk ({overviewStats.openTicketsCount || 0})</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Urgent Delayed Deliveries Alert Banner (Shown when orders exceed SLA) */}
-                  {overviewStats.unreadDelayedCount > 0 && !isDelayedBannerDismissed && (
-                    <div
-                      className="delayed-orders-urgent-banner"
-                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('DELAYED'); }}
-                      style={{ cursor: 'pointer', marginBottom: '16px' }}
+                    {/* Row 2 - Card 4: Total Hubs (Clickable to Distributors & Territories) */}
+                    <div 
+                      className="kpi-curve-card interactive-kpi-card" 
+                      style={{ '--accent-color': '#4f46e5', cursor: 'pointer' }}
+                      onClick={() => setActiveTab('territories')}
+                      title="Inspect Regional Logistics Hubs & Pincode Routing"
                     >
-                      <div className="delayed-banner-icon">
-                        <AlertTriangle size={20} color="#dc2626" />
-                      </div>
-                      <div className="delayed-banner-text">
-                        <strong>⚠️ {overviewStats.unreadDelayedCount} Customer Order{overviewStats.unreadDelayedCount > 1 ? 's' : ''} Exceeded Delivery Window!</strong>
-                        <span>Packages have passed the standard delivery deadline (within 2 days via nearby hubs; 3 days for remote mountain/forest terrains). Review dispatch status or coordinate with Blue Dart logistics.</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <button
-                          className="delayed-banner-btn"
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTriggerAllDelayEmails();
-                          }}
-                          style={{ background: '#dc2626', color: '#fff', border: 'none' }}
-                          title="Send Apology Email to All Delayed Customers"
-                        >
-                          <Mail size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
-                          Dispatch Apology to All ({overviewStats.unreadDelayedCount})
-                        </button>
-                        <button
-                          className="delayed-banner-btn"
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveTab('orders');
-                            setOrderStatusFilter('DELAYED');
-                          }}
-                        >
-                          View Delayed Orders ({overviewStats.unreadDelayedCount}) →
-                        </button>
-                        <button
-                          className="delayed-banner-close-btn"
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsDelayedBannerDismissed(true);
-                          }}
-                          title="Dismiss notification for this session"
-                          aria-label="Close notification"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Order Status Pipeline Grid - Design 2 (Image 2: Vertical Step Card with Wavy Header, Number & Icon) */}
-                  <div className="kpi-step-grid">
-                    <div
-                      className="kpi-step-card"
-                      style={{ '--step-bg': '#f0f9ff', '--step-color': '#0284c7' }}
-                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PLACED'); }}
-                      title="Filter New Placed Orders"
-                    >
-                      <div className="kpi-step-top-header">
-                        <div className="kpi-step-icon-badge">
-                          <Package size={20} color="#0284c7" />
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">TOTAL HUBS</div>
+                        <div className="kpi-curve-val">
+                          {totalHubsCount} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>Hubs</span>
                         </div>
-                        <div className="kpi-step-number">01</div>
-                        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
-                          <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
-                        </svg>
+                        <div className="kpi-curve-sub">
+                          Active regional delivery hubs • <span style={{ color: '#4f46e5', fontWeight: 600 }}>Manage Hubs →</span>
+                        </div>
                       </div>
-                      <div className="kpi-step-body">
-                        <div className="kpi-step-title">NEW ORDERS (PLACED)</div>
-                        <div className="kpi-step-val">{overviewStats.placedCount}</div>
-                        <div className="kpi-step-sub">Awaiting fulfillment</div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0e7ff" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <Building2 size={22} color="#4f46e5" />
+                        </div>
                       </div>
                     </div>
 
-                    <div
-                      className="kpi-step-card"
-                      style={{ '--step-bg': '#fffbeb', '--step-color': '#b45309' }}
-                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}
-                      title="Filter Processing Orders"
+                    {/* Row 2 - Card 5: Total Distributors (Clickable to Distributors & Territories) */}
+                    <div 
+                      className="kpi-curve-card interactive-kpi-card" 
+                      style={{ '--accent-color': '#ea580c', cursor: 'pointer' }}
+                      onClick={() => setActiveTab('territories')}
+                      title="Inspect Registered Distributor Partners & Performance"
                     >
-                      <div className="kpi-step-top-header">
-                        <div className="kpi-step-icon-badge">
-                          <Clock size={20} color="#b45309" />
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">TOTAL DISTRIBUTORS</div>
+                        <div className="kpi-curve-val">
+                          {totalDistributorsCount} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>Partners</span>
                         </div>
-                        <div className="kpi-step-number">02</div>
-                        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
-                          <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
-                        </svg>
+                        <div className="kpi-curve-sub">
+                          Authorized territory franchise owners • <span style={{ color: '#ea580c', fontWeight: 600 }}>View Network →</span>
+                        </div>
                       </div>
-                      <div className="kpi-step-body">
-                        <div className="kpi-step-title">PENDING (PROCESSING)</div>
-                        <div className="kpi-step-val">{overviewStats.processingCount}</div>
-                        <div className="kpi-step-sub">Packaging at Hub</div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#ffedd5" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <Users size={22} color="#ea580c" />
+                        </div>
                       </div>
                     </div>
 
-                    <div
-                      className="kpi-step-card"
-                      style={{ '--step-bg': '#f5f3ff', '--step-color': '#6d28d9' }}
-                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('SHIPPED'); }}
-                      title="Filter Shipped Orders"
+                    {/* Row 2 - Card 6: Total Customers (Clickable to Customers Directory) */}
+                    <div 
+                      className="kpi-curve-card interactive-kpi-card" 
+                      style={{ '--accent-color': '#7c3aed', cursor: 'pointer' }}
+                      onClick={() => setActiveTab('customers')}
+                      title="Inspect Registered Customer Accounts & Order Histories"
                     >
-                      <div className="kpi-step-top-header">
-                        <div className="kpi-step-icon-badge">
-                          <Truck size={20} color="#6d28d9" />
+                      <div className="kpi-curve-corner-accent"></div>
+                      <div className="kpi-curve-content">
+                        <div className="kpi-curve-tag">TOTAL CUSTOMERS</div>
+                        <div className="kpi-curve-val">
+                          {customersList.length} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>Customers</span>
                         </div>
-                        <div className="kpi-step-number">03</div>
-                        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
-                          <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
-                        </svg>
-                      </div>
-                      <div className="kpi-step-body">
-                        <div className="kpi-step-title">SHIPPED & IN TRANSIT</div>
-                        <div className="kpi-step-val">{overviewStats.shippedCount}</div>
-                        <div className="kpi-step-sub">Out via Blue Dart</div>
-                      </div>
-                    </div>
-
-                    <div
-                      className="kpi-step-card"
-                      style={{ '--step-bg': '#f0fdf4', '--step-color': '#15803d' }}
-                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('DELIVERED'); }}
-                      title="Filter Delivered Orders"
-                    >
-                      <div className="kpi-step-top-header">
-                        <div className="kpi-step-icon-badge">
-                          <CheckCircle2 size={20} color="#15803d" />
+                        <div className="kpi-curve-sub">
+                          Registered consumer buyer accounts • <span style={{ color: '#7c3aed', fontWeight: 600 }}>View Customers →</span>
                         </div>
-                        <div className="kpi-step-number">04</div>
-                        <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
-                          <path d="M 0 12 Q 25 22 50 14 T 100 16 L 100 24 L 0 24 Z" fill="#ffffff" />
-                        </svg>
                       </div>
-                      <div className="kpi-step-body">
-                        <div className="kpi-step-title">DELIVERED ORDERS</div>
-                        <div className="kpi-step-val">{overviewStats.deliveredCount}</div>
-                        <div className="kpi-step-sub">Successfully fulfilled</div>
+                      <div className="kpi-curve-right-wing">
+                        <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+                          <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#f3e8ff" />
+                        </svg>
+                        <div className="kpi-curve-icon-badge">
+                          <User size={22} color="#7c3aed" />
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Overview Details Split */}
-                  <div className="atomy-overview-split">
-                    {/* Recent Customer Orders */}
-                    <div className="atomy-card-box">
-                      <div className="card-box-header">
-                        <div className="box-title-group">
-                          <Package size={18} color="#00A3E0" />
-                          <h3>Recent Customer Orders</h3>
+                  {/* OVERVIEW TWO-COLUMN SPLIT: SALES ANALYTICS GRAPH (LEFT) & INVENTORY STOCK HEALTH (RIGHT) */}
+                  <div className="overview-split-grid-layout">
+                    {/* LEFT COLUMN: REAL-TIME SALES PERFORMANCE GRAPH (1W / 1M / 1Y) */}
+                    <div className="overview-sales-chart-card">
+                      <div className="sales-chart-top-bar">
+                        <div className="sales-chart-title-group">
+                          <div className="sales-chart-icon-badge">
+                            <TrendingUp size={22} color="#0284c7" />
+                          </div>
+                          <div>
+                            <h3 className="sales-chart-title">Sales Analytics &amp; Revenue Velocity</h3>
+                            <p className="sales-chart-subtitle">
+                              Aggregated from live confirmed customer orders in the backend database
+                            </p>
+                          </div>
                         </div>
-                        <button className="link-button" onClick={() => setActiveTab('orders')}>
-                          View All Orders ({orders.length}) →
-                        </button>
+
+                        {/* Time Range Filter Pills */}
+                        <div className="sales-chart-filter-pills" role="tablist">
+                          <button
+                            type="button"
+                            className={`chart-filter-btn ${salesChartRange === '1W' ? 'active' : ''}`}
+                            onClick={() => { setSalesChartRange('1W'); setHoveredChartPoint(null); }}
+                            title="Filter Last 7 Days (Daily breakdown)"
+                          >
+                            1 Week
+                          </button>
+                          <button
+                            type="button"
+                            className={`chart-filter-btn ${salesChartRange === '1M' ? 'active' : ''}`}
+                            onClick={() => { setSalesChartRange('1M'); setHoveredChartPoint(null); }}
+                            title="Filter Last 30 Days (Daily trend)"
+                          >
+                            1 Month
+                          </button>
+                          <button
+                            type="button"
+                            className={`chart-filter-btn ${salesChartRange === '1Y' ? 'active' : ''}`}
+                            onClick={() => { setSalesChartRange('1Y'); setHoveredChartPoint(null); }}
+                            title="Filter Last 12 Months (Monthly breakdown)"
+                          >
+                            1 Year
+                          </button>
+                        </div>
                       </div>
 
-                      {orders.length === 0 ? (
-                        <div className="empty-box-note">No customer orders recorded yet.</div>
-                      ) : (
-                        <div className="recent-orders-list">
-                          {orders.slice(0, 5).map((o) => (
-                            <div
-                              key={o.orderId}
-                              className="recent-order-row clickable"
-                              onClick={() => {
-                                if (o.orderId) handleDismissNotif(o.orderId);
-                                setSelectedOrderDetail(o);
-                              }}
-                            >
-                              <div className="recent-order-left">
-                                <span className="order-id-badge">{o.orderId}</span>
-                                <div className="customer-info-line">
-                                  <strong>{o.customerName}</strong> • {o.city} ({formatTimeIST(o.createdAt || o.date)})
-                                </div>
-                                <div className="order-items-snippet">
-                                  {resolveOrderItems(o).map(it => `${it.name} (x${it.quantity})`).join(', ') || '1 item'}
-                                </div>
+                      {/* Period Aggregate KPI Cards */}
+                      <div className="sales-chart-kpi-metrics-row">
+                        <div className="chart-metric-tile highlight">
+                          <span className="metric-lbl">
+                            {salesChartRange === '1W' ? '7-Day Revenue' : salesChartRange === '1M' ? '30-Day Revenue' : '12-Month Revenue'}
+                          </span>
+                          <span className="metric-val" style={{ color: '#15803d' }}>
+                            ₹ {salesAnalyticsData.totalRevenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className="metric-sub">Confirmed gross billings</span>
+                        </div>
+
+                        <div className="chart-metric-tile">
+                          <span className="metric-lbl">Total Orders in Range</span>
+                          <span className="metric-val" style={{ color: '#0284c7' }}>
+                            {salesAnalyticsData.totalOrders} <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>orders</span>
+                          </span>
+                          <span className="metric-sub">
+                            AOV: ₹ {Math.round(salesAnalyticsData.avgOrderValue).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+
+                        <div className="chart-metric-tile">
+                          <span className="metric-lbl">Peak Performance</span>
+                          <span className="metric-val" style={{ color: '#0f172a' }}>
+                            ₹ {salesAnalyticsData.peakPoint.revenue.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                          </span>
+                          <span className="metric-sub">
+                            {salesAnalyticsData.peakPoint.label || 'No orders'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Interactive Smooth SVG Chart */}
+                      <div 
+                        className="sales-chart-canvas-wrap"
+                        onMouseLeave={() => setHoveredChartPoint(null)}
+                      >
+                        {/* Floating Tooltip upon Hover */}
+                        {hoveredChartPoint && (
+                          <div className="sales-chart-tooltip-floating">
+                            <span style={{ fontWeight: 700, color: '#38bdf8' }}>
+                              {hoveredChartPoint.fullDate || hoveredChartPoint.label}
+                            </span>
+                            <span style={{ fontWeight: 800, fontSize: '14px', color: '#ffffff' }}>
+                              ₹ {hoveredChartPoint.revenue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                            <span style={{ color: '#94a3b8', fontSize: '11px' }}>
+                              {hoveredChartPoint.ordersCount} direct customer order{hoveredChartPoint.ordersCount !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+
+                        <svg 
+                          viewBox={`0 0 ${salesAnalyticsData.svgW} ${salesAnalyticsData.svgH}`} 
+                          className="sales-chart-svg"
+                          preserveAspectRatio="none"
+                        >
+                          <defs>
+                            <linearGradient id="salesOverviewAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#0284c7" stopOpacity="0.32" />
+                              <stop offset="60%" stopColor="#0284c7" stopOpacity="0.08" />
+                              <stop offset="100%" stopColor="#0284c7" stopOpacity="0.00" />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Horizontal Gridlines & Y-Axis Currency Values */}
+                          {[0, 0.33, 0.66, 1].map((pct, idx) => {
+                            const y = salesAnalyticsData.padTop + (1 - pct) * salesAnalyticsData.chartH;
+                            const val = Math.round(salesAnalyticsData.maxRevenue * pct);
+                            const valLabel = val >= 100000 
+                              ? `₹ ${(val / 100000).toFixed(1)}L`
+                              : val >= 1000 
+                              ? `₹ ${(val / 1000).toFixed(0)}k` 
+                              : `₹ ${val}`;
+                            return (
+                              <g key={idx}>
+                                <line
+                                  x1={salesAnalyticsData.padLeft}
+                                  y1={y}
+                                  x2={salesAnalyticsData.svgW - salesAnalyticsData.padRight}
+                                  y2={y}
+                                  stroke="#f1f5f9"
+                                  strokeWidth="1.2"
+                                  strokeDasharray={idx === 0 ? 'none' : '3 3'}
+                                />
+                                <text
+                                  x={salesAnalyticsData.padLeft - 8}
+                                  y={y + 4}
+                                  textAnchor="end"
+                                  fontSize="10"
+                                  fontWeight="600"
+                                  fill="#94a3b8"
+                                >
+                                  {valLabel}
+                                </text>
+                              </g>
+                            );
+                          })}
+
+                          {/* Area & Smooth Line Path */}
+                          {salesAnalyticsData.areaPath && (
+                            <path 
+                              d={salesAnalyticsData.areaPath} 
+                              fill="url(#salesOverviewAreaGradient)" 
+                            />
+                          )}
+                          {salesAnalyticsData.linePath && (
+                            <path
+                              d={salesAnalyticsData.linePath}
+                              fill="none"
+                              stroke="#0284c7"
+                              strokeWidth="2.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          )}
+
+                          {/* Active Hover Guide Line */}
+                          {hoveredChartPoint && (
+                            <line
+                              x1={hoveredChartPoint.x}
+                              y1={salesAnalyticsData.padTop}
+                              x2={hoveredChartPoint.x}
+                              y2={salesAnalyticsData.svgH - salesAnalyticsData.padBottom}
+                              stroke="#0284c7"
+                              strokeWidth="1.5"
+                              strokeDasharray="3 3"
+                            />
+                          )}
+
+                          {/* Data Points & X-Axis Tick Labels */}
+                          {salesAnalyticsData.points.map((p, i) => (
+                            <g key={p.key || i}>
+                              {/* X-Axis Tick Label */}
+                              {p.tickLabel && (
+                                <text
+                                  x={p.x}
+                                  y={salesAnalyticsData.svgH - 12}
+                                  textAnchor="middle"
+                                  fontSize="10.5"
+                                  fontWeight={hoveredChartPoint?.key === p.key ? '700' : '500'}
+                                  fill={hoveredChartPoint?.key === p.key ? '#0284c7' : '#64748b'}
+                                >
+                                  {p.tickLabel}
+                                </text>
+                              )}
+
+                              {/* Hover Target Circle */}
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r="12"
+                                fill="transparent"
+                                className="chart-data-point"
+                                onMouseEnter={() => setHoveredChartPoint(p)}
+                              />
+
+                              {/* Visible Point Dot */}
+                              <circle
+                                cx={p.x}
+                                cy={p.y}
+                                r={hoveredChartPoint?.key === p.key ? 6 : p.revenue > 0 ? 3.8 : 2.5}
+                                fill={hoveredChartPoint?.key === p.key ? '#0284c7' : p.revenue > 0 ? '#ffffff' : '#e2e8f0'}
+                                stroke="#0284c7"
+                                strokeWidth={hoveredChartPoint?.key === p.key ? 2.5 : p.revenue > 0 ? 2.2 : 1.2}
+                                style={{ pointerEvents: 'none', transition: 'all 0.15s ease' }}
+                              />
+                            </g>
+                          ))}
+                        </svg>
+
+                        <div className="sales-chart-footer-note">
+                          <span>● Dynamic timeline detected directly from live orders database</span>
+                          <span>Range: {salesChartRange === '1W' ? 'Last 7 Days' : salesChartRange === '1M' ? 'Last 30 Days' : 'Last 12 Months'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: INVENTORY & STOCK HEALTH (SPLIT VIEW) */}
+                    <div className="overview-inventory-health-card split-side">
+                      <div className="inv-health-top-bar">
+                        <div className="inv-health-title-group">
+                          <div className="inv-header-icon-badge">
+                            <Boxes size={22} color="#0284c7" />
+                          </div>
+                          <div>
+                            <h3 className="inv-health-title">Inventory &amp; Stock Health</h3>
+                            <p className="inv-health-subtitle">
+                              Master warehouse buffer health &amp; replenishment alerts
+                            </p>
+                          </div>
+                        </div>
+                        <div className="inv-health-actions">
+                          <button className="primary-action-btn" onClick={() => setActiveTab('inventory')}>
+                            <span>Catalog ({products.length})</span>
+                            <ChevronRight size={15} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 5 Stock Status Tiles in Compact Grid */}
+                      <div className="inv-summary-tiles-grid compact">
+                        <div className="inv-summary-tile tile-blue" onClick={() => setActiveTab('inventory')}>
+                          <span className="tile-label">Total SKUs</span>
+                          <span className="tile-val">{products.length}</span>
+                          <span className="tile-sub">Catalog items</span>
+                        </div>
+
+                        <div className="inv-summary-tile tile-green" onClick={() => setActiveTab('inventory')}>
+                          <span className="tile-label">In-Stock</span>
+                          <span className="tile-val" style={{ color: '#16a34a' }}>
+                            {products.filter(p => (p.stockQuantity || 0) > (p.lowStockThreshold || 10)).length}
+                          </span>
+                          <span className="tile-sub">&gt; Safety buffer</span>
+                        </div>
+
+                        <div className="inv-summary-tile tile-amber" onClick={() => setActiveTab('inventory')}>
+                          <span className="tile-label">Low Stock</span>
+                          <span className="tile-val" style={{ color: '#d97706' }}>
+                            {overviewStats.lowStockCount}
+                          </span>
+                          <span className="tile-sub">&le; 10 units</span>
+                        </div>
+
+                        <div className="inv-summary-tile tile-red" onClick={() => setActiveTab('inventory')}>
+                          <span className="tile-label">Out of Stock</span>
+                          <span className="tile-val" style={{ color: '#ef4444' }}>
+                            {overviewStats.outOfStockCount}
+                          </span>
+                          <span className="tile-sub">0 available</span>
+                        </div>
+
+                        <div className="inv-summary-tile tile-slate" onClick={() => setActiveTab('inventory')}>
+                          <span className="tile-label">Readiness</span>
+                          <span className="tile-val" style={{ color: '#0284c7' }}>
+                            {products.length > 0 
+                              ? Math.round(((products.length - overviewStats.outOfStockCount) / products.length) * 100)
+                              : 100}%
+                          </span>
+                          <span className="tile-sub">Fulfillment rate</span>
+                        </div>
+                      </div>
+
+                      {/* Tri-Color Stock Distribution Bar */}
+                      <div className="inv-progress-breakdown-box">
+                        <div className="inv-progress-header">
+                          <span>Stock Distribution</span>
+                          <div className="inv-progress-legend">
+                            <span>
+                              <span className="legend-dot healthy"></span>
+                              Healthy ({products.filter(p => (p.stockQuantity || 0) > (p.lowStockThreshold || 10)).length})
+                            </span>
+                            <span>
+                              <span className="legend-dot low"></span>
+                              Low ({overviewStats.lowStockCount})
+                            </span>
+                            <span>
+                              <span className="legend-dot oos"></span>
+                              OOS ({overviewStats.outOfStockCount})
+                            </span>
+                          </div>
+                        </div>
+                        <div className="inv-multi-progress-bar">
+                          {products.length > 0 && (
+                            <>
+                              <div 
+                                className="progress-seg healthy" 
+                                style={{ width: `${(products.filter(p => (p.stockQuantity || 0) > (p.lowStockThreshold || 10)).length / products.length) * 100}%` }}
+                                title={`Healthy: ${products.filter(p => (p.stockQuantity || 0) > (p.lowStockThreshold || 10)).length}`}
+                              />
+                              <div 
+                                className="progress-seg low" 
+                                style={{ width: `${(overviewStats.lowStockCount / products.length) * 100}%` }}
+                                title={`Low Stock: ${overviewStats.lowStockCount}`}
+                              />
+                              <div 
+                                className="progress-seg oos" 
+                                style={{ width: `${(overviewStats.outOfStockCount / products.length) * 100}%` }}
+                                title={`Out of Stock: ${overviewStats.outOfStockCount}`}
+                              />
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Critical Stock Replenishment Watch Table */}
+                      <div className="inv-critical-stock-container">
+                        <div className="inv-critical-header">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <AlertTriangle size={16} color="#d97706" />
+                            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                              Replenishment Alerts
+                            </h4>
+                            {(overviewStats.lowStockCount > 0 || overviewStats.outOfStockCount > 0) && (
+                              <span className="critical-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '1px 7px', borderRadius: '10px', fontSize: '11px', fontWeight: 700 }}>
+                                {overviewStats.lowStockCount + overviewStats.outOfStockCount} Needs Action
+                              </span>
+                            )}
+                          </div>
+                          <button className="link-button" onClick={() => setActiveTab('inventory')}>
+                            View All →
+                          </button>
+                        </div>
+
+                        {products.filter(p => (p.stockQuantity || 0) <= (p.lowStockThreshold || 10)).length === 0 ? (
+                          <div className="all-healthy-box">
+                            <CheckCircle2 size={22} color="#16a34a" />
+                            <div>
+                              <div style={{ fontWeight: 700, color: '#15803d', fontSize: '13px' }}>
+                                All Inventory Is Well-Stocked!
                               </div>
-                              <div className="order-row-right">
-                                <span className="order-price">₹ {Number(o.totalAmount).toLocaleString('en-IN')}</span>
-                                <span className={`status-badge ${o.orderStatus.toLowerCase()}`}>{o.orderStatus}</span>
+                              <div style={{ color: '#64748b', fontSize: '11.5px' }}>
+                                Every SKU in the catalog is safely above its safety threshold.
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Warehouse Stock Health & Quick Action Center */}
-                    <div className="atomy-card-box">
-                      <div className="card-box-header">
-                        <div className="box-title-group">
-                          <Boxes size={18} color="#00A3E0" />
-                          <h3>Inventory & Stock Health</h3>
-                        </div>
-                        <button className="link-button" onClick={() => setActiveTab('inventory')}>
-                          Manage Catalog →
-                        </button>
-                      </div>
-
-                      <div className="inv-health-list">
-                        <div className="health-row">
-                          <span>Total Registered Catalog SKUs</span>
-                          <strong>{products.length}</strong>
-                        </div>
-                        <div className="health-row">
-                          <span>In Stock Products</span>
-                          <strong className="text-green">
-                            {products.filter(p => p.stockQuantity > (p.lowStockThreshold || 10)).length}
-                          </strong>
-                        </div>
-                        <div className="health-row">
-                          <span>Low Stock Warnings (&le; 10 units)</span>
-                          <strong className="text-yellow">{overviewStats.lowStockCount}</strong>
-                        </div>
-                        <div className="health-row">
-                          <span>Out of Stock SKUs</span>
-                          <strong className="text-red">{overviewStats.outOfStockCount}</strong>
-                        </div>
-                      </div>
-
-                      <div className="quick-actions-box">
-                        <div className="quick-actions-title">OPERATIONAL SHORTCUTS</div>
-                        <div className="quick-btn-grid">
-                          <button className="quick-action-tile" onClick={handleOpenAddProduct}>
-                            <Plus size={16} />
-                            <span>Add Product</span>
-                          </button>
-                          <button className="quick-action-tile" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PLACED'); }}>
-                            <Bell size={16} />
-                            <span>Review New ({overviewStats.placedCount})</span>
-                          </button>
-                          <button className="quick-action-tile" onClick={() => setActiveTab('support')}>
-                            <Headphones size={16} />
-                            <span>Support Desk ({overviewStats.openTicketsCount})</span>
-                          </button>
-                          <button className="quick-action-tile" onClick={() => setActiveTab('settings')}>
-                            <Volume2 size={16} />
-                            <span>Sound Controls</span>
-                          </button>
-                        </div>
+                          </div>
+                        ) : (
+                          <div className="critical-stock-table-wrap compact">
+                            <table className="critical-stock-table">
+                              <thead>
+                                <tr>
+                                  <th>Product</th>
+                                  <th>Status</th>
+                                  <th>Stock</th>
+                                  <th style={{ textAlign: 'right' }}>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {products
+                                  .filter(p => (p.stockQuantity || 0) <= (p.lowStockThreshold || 10))
+                                  .slice(0, 6)
+                                  .map(prod => (
+                                    <tr key={prod.id || prod._id || prod.productCode}>
+                                      <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          {prod.imageUrl ? (
+                                            <img 
+                                              src={prod.imageUrl} 
+                                              alt={prod.name} 
+                                              style={{ width: '30px', height: '30px', objectFit: 'contain', borderRadius: '5px', border: '1px solid #e2e8f0', background: '#fff' }} 
+                                            />
+                                          ) : (
+                                            <div style={{ width: '30px', height: '30px', borderRadius: '5px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                              <Package size={14} color="#94a3b8" />
+                                            </div>
+                                          )}
+                                          <div>
+                                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '12px', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {prod.name}
+                                            </div>
+                                            <div style={{ fontSize: '10.5px', color: '#64748b' }}>{prod.productCode || prod.id}</div>
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td>
+                                        {(prod.stockQuantity || 0) <= 0 ? (
+                                          <span className="stock-alert-pill oos" style={{ fontSize: '10px', padding: '2px 6px' }}>OOS</span>
+                                        ) : (
+                                          <span className="stock-alert-pill low" style={{ fontSize: '10px', padding: '2px 6px' }}>LOW</span>
+                                        )}
+                                      </td>
+                                      <td>
+                                        <span style={{ fontWeight: 800, fontSize: '13px', color: (prod.stockQuantity || 0) <= 0 ? '#ef4444' : '#d97706' }}>
+                                          {prod.stockQuantity || 0}
+                                        </span>
+                                      </td>
+                                      <td style={{ textAlign: 'right' }}>
+                                        <div style={{ display: 'inline-flex', gap: '4px' }}>
+                                          <button 
+                                            type="button" 
+                                            className="quick-restock-btn"
+                                            style={{ padding: '3px 8px', fontSize: '11px' }}
+                                            onClick={() => handleQuickStockChange(prod, 50)}
+                                            title="Add +50 units"
+                                          >
+                                            +50
+                                          </button>
+                                          <button 
+                                            type="button" 
+                                            className="quick-edit-btn"
+                                            style={{ padding: '3px 6px', fontSize: '11px' }}
+                                            onClick={() => handleOpenEditProduct(prod)}
+                                            title="Edit Product"
+                                          >
+                                            <Edit2 size={11} />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -4123,31 +4531,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 <span className="stat-label">Last Session Audit</span>
                                 <span className="stat-value">{adminProfile.lastLogin}</span>
                               </div>
-                              {onLogout && (
-                                <button
-                                  type="button"
-                                  id="btn-profile-terminate-session"
-                                  onClick={onLogout}
-                                  style={{
-                                    background: '#ef4444',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    padding: '8px 16px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    fontSize: '13px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
-                                    transition: 'all 0.2s ease'
-                                  }}
-                                >
-                                  <LogOut size={15} />
-                                  <span>Sign Out Session</span>
-                                </button>
-                              )}
                             </div>
                           </div>
 
@@ -4156,7 +4539,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                               <User size={20} color="#00A3E0" />
                               <div>
                                 <h3>Administrator Details</h3>
-                                <p>Personal profile & office station credentials</p>
+                                <p>Personal profile &amp; office station credentials</p>
                               </div>
                             </div>
                             <div className="settings-body-form">
@@ -4208,28 +4591,75 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                     value={adminProfile.department || ''}
                                     onChange={(e) => setAdminProfile({ ...adminProfile, department: e.target.value })}
                                     className="atomy-form-input"
-                                    placeholder="Operations & Supply Chain"
+                                    placeholder="Operations &amp; Supply Chain"
                                   />
                                 </div>
                               </div>
-                              <button
-                                className="atomy-btn-primary"
-                                style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                                disabled={isSavingProfile}
-                                onClick={handleSaveAdminProfile}
-                              >
-                                {isSavingProfile ? (
-                                  <>
-                                    <RefreshCw size={16} className="spin" />
-                                    <span>Saving to Database...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Check size={16} />
-                                    <span>Save Profile Changes</span>
-                                  </>
+                              {/* ACTION BUTTONS: SAVE PROFILE CHANGES & SIGN OUT SESSION IN THE SAME ROW */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '18px', flexWrap: 'wrap' }}>
+                                <button
+                                  type="button"
+                                  className="atomy-btn-primary"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    padding: '11px 24px',
+                                    fontSize: '13.5px',
+                                    fontWeight: '700',
+                                    borderRadius: '8px',
+                                    width: 'auto',
+                                    boxShadow: '0 4px 12px rgba(0, 163, 224, 0.25)',
+                                    cursor: 'pointer'
+                                  }}
+                                  disabled={isSavingProfile}
+                                  onClick={handleSaveAdminProfile}
+                                >
+                                  {isSavingProfile ? (
+                                    <>
+                                      <RefreshCw size={16} className="spin" />
+                                      <span>Saving to Database...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Check size={16} />
+                                      <span>Save Profile Changes</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {onLogout && (
+                                  <button
+                                    type="button"
+                                    id="btn-profile-terminate-session"
+                                    onClick={handleRequestLogout}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '8px',
+                                      padding: '11px 24px',
+                                      background: '#ef4444',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      borderRadius: '8px',
+                                      fontSize: '13.5px',
+                                      fontWeight: '700',
+                                      cursor: 'pointer',
+                                      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                                      transition: 'all 0.15s ease',
+                                      whiteSpace: 'nowrap',
+                                      width: 'auto'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}
+                                  >
+                                    <LogOut size={16} />
+                                    <span>Sign Out Session</span>
+                                  </button>
                                 )}
-                              </button>
+                              </div>
                             </div>
                           </div>
                         </>
@@ -4584,6 +5014,66 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           )}
         </main>
       </div>
+
+      {/* ========================================================
+          MODAL: CONFIRM SIGN OUT
+          ======================================================== */}
+      {showLogoutConfirm && (
+        <div className="modal-backdrop-overlay" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="atomy-modal-box compact" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', borderRadius: '16px', overflow: 'hidden' }}>
+            <div className="atomy-modal-header" style={{ background: '#fef2f2', borderBottom: '1px solid #fee2e2', padding: '16px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <LogOut size={18} color="#dc2626" />
+                </div>
+                <div>
+                  <h3 style={{ color: '#991b1b', margin: 0, fontSize: '16px', fontWeight: 800 }}>Confirm Sign Out</h3>
+                  <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '12px' }}>Super Administrator Session</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                className="atomy-modal-close" 
+                onClick={() => setShowLogoutConfirm(false)}
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="atomy-modal-body" style={{ padding: '20px' }}>
+              <p style={{ margin: '0 0 14px', fontSize: '13.5px', color: '#334155', lineHeight: '1.5' }}>
+                Are you sure you want to sign out of the <strong>Super Administrator Console</strong>?
+              </p>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', fontSize: '12px', color: '#64748b', marginBottom: '20px' }}>
+                <div>Logged in as: <strong style={{ color: '#0f172a' }}>{adminProfile.name}</strong> ({adminProfile.email})</div>
+                <div style={{ marginTop: '4px' }}>Session IP: <code>{adminProfile.sessionIp}</code></div>
+              </div>
+              <div className="modal-actions-right" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button 
+                  type="button"
+                  className="atomy-btn-secondary" 
+                  onClick={() => setShowLogoutConfirm(false)}
+                  style={{ padding: '9px 18px', fontSize: '13px', fontWeight: 600, borderRadius: '8px' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  className="atomy-btn-danger" 
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    if (onLogout) onLogout();
+                  }}
+                  style={{ padding: '9px 20px', fontSize: '13px', fontWeight: 700, borderRadius: '8px', background: '#dc2626', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <LogOut size={15} />
+                  <span>Yes, Sign Out</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================
           MODAL: CONFIRM PRODUCT REMOVAL

@@ -14,7 +14,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Rect, Circle, Line, Text as SvgText, G } from 'react-native-svg';
 import { COLORS } from '../../constants/theme';
+import { ALL_PRODUCTS } from '../../data/mockData';
 import { addNotification } from '../../services/notificationService';
+import { submitProductReviewApi, fetchOrderReviewsApi } from '../../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const phoenixLogo = require('../../../assets/fic-symbol.png');
 
@@ -105,6 +108,72 @@ function DeliveryBikeModel({ size = 1 }) {
 }
 
 // Check if order is Hub Counter Pickup
+// Resolve high quality authentic product image from item, order, or product catalog
+function resolveOrderProductImage(item, order) {
+  // 1. Direct explicit image
+  const direct = item?.image || item?.img || item?.productImage || order?.image || order?.productImage;
+  const isGenericPlaceholder = typeof direct === 'string' && direct.includes('260326000051085.jpg');
+
+  if (direct && typeof direct === 'string' && direct.startsWith('http') && !isGenericPlaceholder) {
+    return direct;
+  }
+
+  // 2. Lookup by product id or code in ALL_PRODUCTS catalog
+  const rawId = item?.id || item?.productId || item?.code || order?.productId;
+  if (rawId && Array.isArray(ALL_PRODUCTS)) {
+    const idClean = String(rawId).trim().toUpperCase();
+    const matchId = ALL_PRODUCTS.find(p => String(p.id).trim().toUpperCase() === idClean);
+    if (matchId?.img || matchId?.image) return matchId.img || matchId.image;
+  }
+
+  // 3. Lookup by product name or title in ALL_PRODUCTS catalog
+  const rawName = item?.name || item?.productName || item?.title || order?.title || '';
+  const cleanName = String(rawName).toLowerCase().replace(/[*+\-_]/g, ' ').trim();
+  if (cleanName && Array.isArray(ALL_PRODUCTS)) {
+    // Exact or normalized match
+    const exact = ALL_PRODUCTS.find(p => (p.name || '').toLowerCase().trim() === cleanName);
+    if (exact?.img || exact?.image) return exact.img || exact.image;
+
+    // Substring match
+    const matchSub = ALL_PRODUCTS.find(p => {
+      const pName = (p.name || '').toLowerCase().trim();
+      return pName.includes(cleanName) || cleanName.includes(pName);
+    });
+    if (matchSub?.img || matchSub?.image) return matchSub.img || matchSub.image;
+
+    // Token match
+    const tokens = cleanName.split(/\s+/).filter(w => w.length > 3);
+    if (tokens.length > 0) {
+      const tokenMatch = ALL_PRODUCTS.find(p => {
+        const pName = (p.name || '').toLowerCase();
+        return tokens.every(t => pName.includes(t));
+      });
+      if (tokenMatch?.img || tokenMatch?.image) return tokenMatch.img || tokenMatch.image;
+    }
+  }
+
+  if (direct && typeof direct === 'string' && direct.startsWith('http')) {
+    return direct;
+  }
+
+  return 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg';
+}
+
+function getStableAwb(orderId, existingTracking) {
+  if (existingTracking && typeof existingTracking === 'string' && existingTracking.trim() && !existingTracking.startsWith('ATMY-')) {
+    return existingTracking.trim();
+  }
+  if (!orderId) return 'BD942817260IN';
+  let hash = 0;
+  for (let i = 0; i < orderId.length; i++) {
+    hash = ((hash << 5) - hash) + orderId.charCodeAt(i);
+    hash |= 0;
+  }
+  const positive = Math.abs(hash);
+  const num = 100000000 + (positive % 900000000);
+  return `BD${num}IN`;
+}
+
 function isStorePickupOrder(order) {
   if (!order) return false;
   return Boolean(
@@ -616,6 +685,7 @@ export default function OrderDeliveryPage({
   onNavigateBack,
   onCartPress,
   onProductClick,
+  onAddToCart,
   cartCount = 0,
 }) {
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'processing' | 'in_transit' | 'delivered'
@@ -639,6 +709,241 @@ export default function OrderDeliveryPage({
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
   const [activeRulesTab, setActiveRulesTab] = useState('cancellation'); // 'cancellation' | 'replacement' | 'refund_guarantee' | 'timelines'
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+
+  // Flipkart-Style Rate & Review Modal State
+  const [reviewModalOrder, setReviewModalOrder] = useState(null);
+  const [reviewProduct, setReviewProduct] = useState(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewedOrdersMap, setReviewedOrdersMap] = useState({});
+
+  // Reorder Handler: Buy it again adds order items to cart
+  const handleReorderOrder = (order) => {
+    const items = (Array.isArray(order.items) && order.items.length > 0)
+      ? order.items
+      : [{
+          id: order.productId || 'D01526',
+          name: order.title || order.productName || 'Atomy Product',
+          price: order.price || 1020,
+          pv: order.pv || 7000,
+          quantity: 1,
+        }];
+
+    if (onAddToCart) {
+      items.forEach((it) => {
+        onAddToCart({
+          id: it.id || it.productId,
+          name: it.name || it.productName || it.title,
+          price: it.price,
+          pv: it.pv,
+          image: it.image || it.img,
+          quantity: it.quantity || it.qty || 1,
+        });
+      });
+      Alert.alert(
+        'Added to Cart 🛒',
+        `Item(s) from Order #${order.id || order.orderId} have been added to your shopping bag.`,
+        [
+          { text: 'Keep Browsing', style: 'cancel' },
+          { text: 'Go to Cart', onPress: onCartPress },
+        ]
+      );
+    } else if (onCartPress) {
+      onCartPress();
+    }
+  };
+
+  // Sync reviews from AsyncStorage, browser localStorage, and backend
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAndSyncReviews = async () => {
+      let combined = {};
+
+      // 1. AsyncStorage
+      try {
+        const savedAsync = await AsyncStorage.getItem('@atomy_reviewed_orders_map');
+        if (savedAsync) combined = { ...combined, ...JSON.parse(savedAsync) };
+      } catch (e) {}
+
+      // 2. localStorage (browser)
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          const savedWeb = window.localStorage.getItem('atomy_reviewed_orders_map');
+          if (savedWeb) combined = { ...combined, ...JSON.parse(savedWeb) };
+        } catch (e) {}
+      }
+
+      if (isMounted) {
+        setReviewedOrdersMap(combined);
+      }
+
+      // 3. Backend sync for placed orders
+      if (Array.isArray(placedOrders)) {
+        for (const ord of placedOrders) {
+          const ordId = ord.id || ord.orderId;
+          if (!ordId) continue;
+          fetchOrderReviewsApi(ordId)
+            .then((reviews) => {
+              if (Array.isArray(reviews) && reviews.length > 0 && isMounted) {
+                setReviewedOrdersMap((prev) => {
+                  const updated = { ...prev, [ordId]: true };
+                  reviews.forEach((r) => {
+                    if (r.productId) {
+                      updated[`${ordId}_${r.productId}`] = r;
+                    }
+                  });
+                  AsyncStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updated)).catch(() => {});
+                  if (typeof window !== 'undefined' && window.localStorage) {
+                    try {
+                      window.localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updated));
+                    } catch (e) {}
+                  }
+                  return updated;
+                });
+              }
+            })
+            .catch(() => {});
+        }
+      }
+    };
+
+    loadAndSyncReviews();
+
+    // 4. Live BroadcastChannel sync between web tab and mobile app
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('atomy_sync_channel');
+        bc.onmessage = (event) => {
+          if (event.data && (event.data.type === 'PRODUCT_UPDATED' || event.data.type === 'REVIEW_SUBMITTED')) {
+            loadAndSyncReviews();
+          }
+        };
+        return () => {
+          isMounted = false;
+          bc.close();
+        };
+      } catch (e) {}
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [placedOrders]);
+
+  const handleOpenReviewModal = (order) => {
+    setReviewModalOrder(order);
+    const rawFirst = (Array.isArray(order.items) && order.items.length > 0)
+      ? order.items[0]
+      : {
+          id: order.productId || 'D01526',
+          name: order.title || order.productName || 'Atomy Product',
+          price: order.price || 1020,
+          quantity: 1,
+          image: order.image || order.productImage || 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg'
+        };
+    const firstItem = {
+      ...rawFirst,
+      image: resolveOrderProductImage(rawFirst, order),
+      img: resolveOrderProductImage(rawFirst, order),
+    };
+    setReviewProduct(firstItem);
+    const prodId = firstItem.id || firstItem.productId || firstItem._id || '';
+    const key = `${order.id || order.orderId}_${prodId}`;
+    const prev = reviewedOrdersMap[key] || reviewedOrdersMap[order.id || order.orderId];
+    if (prev && typeof prev === 'object') {
+      setReviewRating(prev.rating || 5);
+      setReviewTitle(prev.title || '');
+      setReviewComment(prev.comment || '');
+    } else {
+      setReviewRating(5);
+      setReviewTitle('');
+      setReviewComment('');
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewProduct) {
+      Alert.alert('Selection Error', 'Please select a product to review.');
+      return;
+    }
+    if (!reviewRating || reviewRating < 1 || reviewRating > 5) {
+      Alert.alert('Rating Required', 'Please tap the stars to choose your rating (1 to 5 stars).');
+      return;
+    }
+    if (!reviewComment.trim()) {
+      Alert.alert('Feedback Required', 'Please share a brief comment about your experience with this product.');
+      return;
+    }
+
+    setIsSubmittingReview(true);
+    try {
+      const prodId = reviewProduct.id || reviewProduct.productId || reviewProduct.code || 'D01526';
+      const prodName = reviewProduct.name || reviewProduct.productName || reviewProduct.title || 'Atomy Product';
+      const ordId = reviewModalOrder.id || reviewModalOrder.orderId || '';
+
+      const payload = {
+        productId: prodId,
+        productName: prodName,
+        orderId: ordId,
+        customerEmail: reviewModalOrder.customerEmail || reviewModalOrder.email || 'customer@atomy.in',
+        customerName: reviewModalOrder.customerName || reviewModalOrder.shippingAddress?.recipient || 'Verified Buyer',
+        rating: reviewRating,
+        title: reviewTitle.trim() || 'Verified Purchase Feedback',
+        comment: reviewComment.trim(),
+      };
+
+      const result = await submitProductReviewApi(payload);
+
+      const reviewData = {
+        rating: reviewRating,
+        title: reviewTitle.trim(),
+        comment: reviewComment.trim(),
+        date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        verified: true,
+      };
+
+      const orderKey = ordId;
+      const productOrderKey = `${ordId}_${prodId}`;
+      const updatedMap = {
+        ...reviewedOrdersMap,
+        [orderKey]: reviewData,
+        [productOrderKey]: reviewData
+      };
+
+      setReviewedOrdersMap(updatedMap);
+      await AsyncStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+
+      // Broadcast and synchronize across tabs and storage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+          window.localStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+          window.dispatchEvent(new CustomEvent('atomy_review_updated', { detail: payload }));
+          if ('BroadcastChannel' in window) {
+            const bc = new BroadcastChannel('atomy_sync_channel');
+            bc.postMessage({
+              type: 'PRODUCT_UPDATED',
+              product: { id: prodId, rating: result?.rating || reviewRating, reviewsCount: result?.reviewsCount || 1 },
+            });
+            bc.close();
+          }
+        } catch (e) {}
+      }
+
+      setReviewModalOrder(null);
+      Alert.alert(
+        'Review Published 🎉',
+        'Thank you! Your verified review and rating has been submitted successfully to the customer catalog.'
+      );
+    } catch (err) {
+      Alert.alert('Submission Notice', err.message || 'Could not submit your review. Please try again.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   // Sync with localStorage
   useEffect(() => {
@@ -672,8 +977,25 @@ export default function OrderDeliveryPage({
     return (placedOrders || []).map(o => {
       const id = o.id || o.orderId;
       const override = localOrdersOverrides[id] || {};
+      const awb = isStorePickupOrder(o) ? `PICKUP-${id}` : getStableAwb(id, o.awb || o.trackingNumber);
+      const items = (Array.isArray(o.items) && o.items.length > 0) ? o.items.map(it => {
+        const itPrice = typeof it.price === 'number' ? it.price : parseFloat(String(it.price || '0').replace(/[^0-9.]/g, '')) || 0;
+        const itQty = it.qty || it.quantity || 1;
+        const itPv = (it.pv && Number(it.pv) > 0) ? Number(it.pv) : Math.round(itPrice * 4.5);
+        return { ...it, price: itPrice, qty: itQty, pv: itPv };
+      }) : [];
+      const totalPv = items.reduce((s, it) => s + (it.pv * it.qty), 0);
+      const rawPrice = typeof o.total === 'string' ? parseFloat(o.total.replace(/[^0-9.]/g, '')) || 0 : Number(o.total || o.totalAmount || 0);
+      const finalPv = totalPv > 0 ? `${totalPv.toLocaleString('en-IN')} PV` : (rawPrice > 0 ? `${Math.round(rawPrice * 4.5).toLocaleString('en-IN')} PV` : (o.pv || '0 PV'));
+
       return {
         ...o,
+        awb: awb,
+        trackingNumber: awb,
+        courier: isStorePickupOrder(o) ? 'Direct Hub Pickup' : (o.courier || 'Blue Dart Express (Assigned)'),
+        pv: finalPv,
+        totalPv: totalPv,
+        items: items.length > 0 ? items : o.items,
         status: override.status || o.status || 'Processing',
         trackStatus: override.trackStatus || o.trackStatus,
         replacementRequested: override.replacementRequested || o.replacementRequested || false,
@@ -961,60 +1283,6 @@ export default function OrderDeliveryPage({
           </View>
         ) : (
           <>
-            {/* 2.8 PROMINENT CANCELLATION & REPLACEMENT RULES BANNER */}
-            <View style={styles.mobileRulesBanner}>
-              <View style={styles.rulesBannerHeader}>
-                <View style={styles.rulesBannerShield}>
-                  <Ionicons name="shield-checkmark" size={18} color="#00A3E0" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rulesBannerTitle}>Official Consumer Protection SOP</Text>
-                  <Text style={styles.rulesBannerSub}>
-                    Cancellation, Zero-Cost Replacement & 100% Refund Rules
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.rulesBannerViewBtn}
-                  onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.rulesBannerViewBtnText}>{'All Rules >'}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.rulesBannerPillarsRow}>
-                <TouchableOpacity
-                  style={styles.rulesPillarCard}
-                  onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.rulesPillarDot, { backgroundColor: '#0284C7' }]} />
-                  <Text style={styles.rulesPillarTitle} numberOfLines={1}>Pre-Dispatch Cancel</Text>
-                  <Text style={styles.rulesPillarBody}>Instant 100% refund before package ships.</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.rulesPillarCard}
-                  onPress={() => { setActiveRulesTab('replacement'); setIsRulesModalOpen(true); }}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.rulesPillarDot, { backgroundColor: '#4F46E5' }]} />
-                  <Text style={styles.rulesPillarTitle} numberOfLines={1}>Free Replacement</Text>
-                  <Text style={styles.rulesPillarBody}>7-day transit damage window via Blue Dart.</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.rulesPillarCard}
-                  onPress={() => { setActiveRulesTab('refund_guarantee'); setIsRulesModalOpen(true); }}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.rulesPillarDot, { backgroundColor: '#16A34A' }]} />
-                  <Text style={styles.rulesPillarTitle} numberOfLines={1}>30-Day Refund</Text>
-                  <Text style={styles.rulesPillarBody}>100% satisfaction refund (UPI: 24h, Cards: 3-5d).</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
             {/* 4. TRACKING LOOKUP BAR */}
             <View style={styles.searchSection}>
               <View style={styles.searchBar}>
@@ -1090,33 +1358,36 @@ export default function OrderDeliveryPage({
           </View>
         ) : (
           filteredOrders.map((ord) => {
-            const isDelivered = ord.status === 'Delivered';
             const statusLower = (ord.status || '').toLowerCase();
+            const isDelivered = statusLower.includes('deliver') || statusLower.includes('collect') || (computeTargetStage(ord) >= 4);
             const isCancelled = statusLower.includes('cancel');
+            const isReplacement = statusLower.includes('replac');
+            const canCancel = !isCancelled && !isDelivered;
+            const isInTransit = !isCancelled && (statusLower.includes('ship') || statusLower.includes('transit') || statusLower.includes('out for'));
             const isCurrentlyTracked = !isCancelled && activeTrackedOrder?.id === ord.id;
 
             return (
               <View key={ord.id} style={[styles.orderCard, isCurrentlyTracked && styles.orderCardTracked]}>
                 {/* Order Header */}
                 <View style={styles.orderCardHeader}>
-                  <View>
-                    <Text style={styles.orderIdText}>Order #{ord.id}</Text>
+                  <View style={styles.orderCardHeaderLeft}>
+                    <Text style={styles.orderIdText} numberOfLines={1}>Order #{ord.id}</Text>
                     <Text style={styles.orderDateText}>Placed on {ord.date}</Text>
                   </View>
 
                   <View style={[
                     styles.statusBadge,
-                    isDelivered ? styles.statusBadgeDelivered : styles.statusBadgeTransit,
+                    isDelivered ? styles.statusBadgeDelivered : isCancelled ? styles.statusBadgeCancelled : styles.statusBadgeTransit,
                   ]}>
                     <Ionicons
-                      name={isDelivered ? 'checkmark-circle' : 'airplane-outline'}
-                      size={14}
-                      color={isDelivered ? '#16A34A' : '#0284C7'}
+                      name={isDelivered ? 'checkmark-circle' : isCancelled ? 'close-circle' : 'airplane-outline'}
+                      size={13}
+                      color={isDelivered ? '#16A34A' : isCancelled ? '#DC2626' : '#0284C7'}
                     />
                     <Text style={[
                       styles.statusBadgeText,
-                      isDelivered ? styles.statusBadgeTextDelivered : styles.statusBadgeTransit,
-                    ]}>
+                      isDelivered ? styles.statusBadgeTextDelivered : isCancelled ? styles.statusBadgeTextCancelled : styles.statusBadgeTransit,
+                    ]} numberOfLines={1}>
                       {ord.status}
                     </Text>
                   </View>
@@ -1124,13 +1395,77 @@ export default function OrderDeliveryPage({
 
                 <View style={styles.cardDivider} />
 
-                {/* Items Summary */}
-                <View style={styles.itemTitleRow}>
-                  <Ionicons name="bag-check-outline" size={17} color="#00A3E0" />
-                  <Text style={styles.itemTitleText} numberOfLines={2}>
-                    {ord.title}
-                  </Text>
-                </View>
+                {/* Items in this Order (with Authentic Product Thumbnail Images) */}
+                {(() => {
+                  const orderItems = (Array.isArray(ord.items) && ord.items.length > 0)
+                    ? ord.items
+                    : [{
+                        id: ord.productId || ord.id,
+                        name: ord.title || ord.productName || 'Atomy Product',
+                        price: ord.price || ord.totalAmount,
+                        qty: ord.itemsCount || 1,
+                        pv: ord.pv,
+                      }];
+
+                  return (
+                    <View style={styles.orderProductsContainer}>
+                      {orderItems.map((it, idx) => {
+                        const itImg = resolveOrderProductImage(it, ord);
+                        const itName = it.name || it.productName || it.title || ord.title || 'Atomy Product';
+                        const itQty = it.qty || it.quantity || 1;
+                        const itPrice = it.price || it.total;
+
+                        return (
+                          <View key={it.id || idx} style={[styles.orderProductRow, idx > 0 && styles.orderProductRowBorder]}>
+                            <TouchableOpacity
+                              style={styles.orderProductImgBox}
+                              onPress={() => onProductClick && onProductClick({ ...it, id: it.id || it.productId || ord.productId, name: itName, image: itImg, img: itImg })}
+                              activeOpacity={onProductClick ? 0.82 : 1}
+                            >
+                              <Image
+                                source={{ uri: itImg }}
+                                style={styles.orderProductImg}
+                                resizeMode="contain"
+                              />
+                            </TouchableOpacity>
+
+                            <View style={styles.orderProductDetailsCol}>
+                              <TouchableOpacity
+                                onPress={() => onProductClick && onProductClick({ ...it, id: it.id || it.productId || ord.productId, name: itName, image: itImg, img: itImg })}
+                                activeOpacity={onProductClick ? 0.82 : 1}
+                              >
+                                <Text style={styles.orderProductTitleText} numberOfLines={2}>
+                                  {itName}
+                                </Text>
+                              </TouchableOpacity>
+
+                              <View style={styles.orderProductMetaRow}>
+                                <View style={styles.orderItemQtyPill}>
+                                  <Text style={styles.orderItemQtyText}>Qty: {itQty}</Text>
+                                </View>
+                                {itPrice ? (
+                                  <Text style={styles.orderItemUnitTotal}>
+                                    ₹ {Number(itPrice * (it.price ? itQty : 1)).toLocaleString('en-IN')}
+                                  </Text>
+                                ) : null}
+                                {(() => {
+                                  const itemPv = (it.pv && Number(it.pv) > 0)
+                                    ? Number(it.pv)
+                                    : Math.round((Number(itPrice) || 0) * 4.5);
+                                  return itemPv > 0 ? (
+                                    <Text style={styles.orderItemPvText}>
+                                      • {(itemPv * itQty).toLocaleString('en-IN')} PV
+                                    </Text>
+                                  ) : null;
+                                })()}
+                              </View>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  );
+                })()}
 
                 {/* Courier info */}
                 <View style={styles.courierInfoRow}>
@@ -1172,50 +1507,156 @@ export default function OrderDeliveryPage({
                     <Text style={styles.priceLabel}>Total Paid</Text>
                     <Text style={styles.priceValue}>{ord.total}</Text>
                   </View>
-                  {ord.pv && (
-                    <View style={styles.pvEarnedBadge}>
-                      <Ionicons name="sparkles" size={13} color="#00A3E0" />
-                      <Text style={styles.pvEarnedText}>{ord.pv}</Text>
-                    </View>
-                  )}
+                  {(() => {
+                    const orderPv = (ord.pv && ord.pv !== '0 PV')
+                      ? ord.pv
+                      : (() => {
+                          const items = (Array.isArray(ord.items) && ord.items.length > 0) ? ord.items : [];
+                          const calcPv = items.reduce((s, it) => {
+                            const p = (it.pv && Number(it.pv) > 0) ? Number(it.pv) : Math.round((Number(it.price) || 0) * 4.5);
+                            return s + (p * (it.qty || 1));
+                          }, 0);
+                          if (calcPv > 0) return `${calcPv.toLocaleString('en-IN')} PV`;
+                          const rawPrice = typeof ord.total === 'string' ? parseFloat(ord.total.replace(/[^0-9.]/g, '')) || 0 : Number(ord.total || 0);
+                          return rawPrice > 0 ? `${Math.round(rawPrice * 4.5).toLocaleString('en-IN')} PV` : null;
+                        })();
+                    return orderPv ? (
+                      <View style={styles.pvEarnedBadge}>
+                        <Ionicons name="sparkles" size={13} color="#00A3E0" />
+                        <Text style={styles.pvEarnedText}>{orderPv}</Text>
+                      </View>
+                    ) : null;
+                  })()}
                 </View>
 
-                {/* Action Buttons: Track Status & View GST Invoice */}
-                <View style={styles.cardActionsRow}>
+                {/* Authentic Website Action Buttons Group (flex-wrap row matching website 1-to-1) */}
+                <View style={styles.websiteActionsGroup}>
+                  {/* 1. Invoice */}
+                  <TouchableOpacity
+                    style={[styles.webActionBtn, styles.webBtnInvoice]}
+                    onPress={() => setActiveInvoiceOrder(ord)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="document-text-outline" size={14} color="#475569" />
+                    <Text style={styles.webBtnInvoiceText}>Invoice</Text>
+                  </TouchableOpacity>
+
+                  {/* 2. Track / View Status */}
                   <TouchableOpacity
                     style={[
-                      styles.trackOrderBtn,
-                      expandedOrderId === ord.id && styles.trackOrderBtnActive,
-                      isCancelled && (expandedOrderId === ord.id ? styles.cancelTrackBtnActive : styles.cancelTrackBtn),
-                      isDelivered && (expandedOrderId === ord.id ? styles.deliveredTrackBtnActive : styles.deliveredTrackBtn),
+                      styles.webActionBtn,
+                      isCancelled
+                        ? (expandedOrderId === ord.id ? styles.webBtnStatusCancelledActive : styles.webBtnStatusCancelled)
+                        : isDelivered
+                        ? (expandedOrderId === ord.id ? styles.webBtnStatusDeliveredActive : styles.webBtnStatusDelivered)
+                        : (expandedOrderId === ord.id ? styles.webBtnTrackActive : styles.webBtnTrack),
                     ]}
                     onPress={() => setExpandedOrderId(prev => prev === ord.id ? null : ord.id)}
                     activeOpacity={0.8}
                   >
                     <Ionicons
-                      name={isCancelled ? 'close-circle-outline' : isDelivered ? 'checkmark-circle-outline' : 'location-outline'}
-                      size={15}
-                      color={expandedOrderId === ord.id ? '#FFFFFF' : (isCancelled ? '#DC2626' : isDelivered ? '#16A34A' : '#00A3E0')}
+                      name={
+                        isCancelled
+                          ? 'close-circle-outline'
+                          : isDelivered
+                          ? 'checkmark-circle-outline'
+                          : 'navigate-outline'
+                      }
+                      size={14}
+                      color={
+                        expandedOrderId === ord.id
+                          ? '#FFFFFF'
+                          : isCancelled
+                          ? '#B91C1C'
+                          : isDelivered
+                          ? '#065F46'
+                          : '#FFFFFF'
+                      }
                     />
-                    <Text style={[
-                      styles.trackOrderBtnText,
-                      expandedOrderId === ord.id && styles.trackOrderBtnTextActive,
-                      isCancelled && expandedOrderId !== ord.id && { color: '#DC2626' },
-                      isDelivered && expandedOrderId !== ord.id && { color: '#16A34A' },
-                    ]}>
+                    <Text
+                      style={[
+                        styles.webActionBtnText,
+                        isCancelled
+                          ? (expandedOrderId === ord.id ? { color: '#FFFFFF' } : styles.webBtnStatusCancelledText)
+                          : isDelivered
+                          ? (expandedOrderId === ord.id ? { color: '#FFFFFF' } : styles.webBtnStatusDeliveredText)
+                          : styles.webBtnTrackText,
+                      ]}
+                    >
                       {expandedOrderId === ord.id
                         ? (isCancelled || isDelivered ? 'Hide Status' : 'Hide Tracking')
-                        : (isCancelled || isDelivered ? 'View Status' : 'Track Status')}
+                        : (isCancelled || isDelivered ? 'View Status' : 'Track')}
                     </Text>
                   </TouchableOpacity>
 
+                  {/* 3. Cancel Order (when not delivered and not cancelled) */}
+                  {canCancel && (
+                    <TouchableOpacity
+                      style={[styles.webActionBtn, styles.webBtnCancel]}
+                      onPress={() => handleCancelOrder(ord)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="close-circle-outline" size={14} color="#DC2626" />
+                      <Text style={styles.webBtnCancelText}>Cancel Order</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* 4. Replacement (Delivered only, not already requested) */}
+                  {isDelivered && !isReplacement && (
+                    <TouchableOpacity
+                      style={[styles.webActionBtn, styles.webBtnReplace]}
+                      onPress={() => handleRequestReplacement(ord)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="swap-horizontal-outline" size={14} color="#4338CA" />
+                      <Text style={styles.webBtnReplaceText}>Replacement</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* 5. Return & Refund (Delivered only) */}
+                  {isDelivered && (
+                    <TouchableOpacity
+                      style={[styles.webActionBtn, styles.webBtnRefund]}
+                      onPress={() => handleRequestReturn(ord)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="arrow-undo-outline" size={14} color="#15803D" />
+                      <Text style={styles.webBtnRefundText}>Return &amp; Refund</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* 6. Write Review / Reviewed (Delivered only) */}
+                  {isDelivered && (() => {
+                    const firstItem = (Array.isArray(ord.items) && ord.items.length > 0) ? ord.items[0] : null;
+                    const prodId = firstItem?.id || firstItem?.productId || firstItem?._id || '';
+                    const isReviewed = Boolean(reviewedOrdersMap[`${ord.id || ord.orderId}_${prodId}`] || reviewedOrdersMap[ord.id || ord.orderId]);
+
+                    return (
+                      <TouchableOpacity
+                        style={[styles.webActionBtn, isReviewed ? styles.webBtnReviewed : styles.webBtnReview]}
+                        onPress={() => handleOpenReviewModal(ord)}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons
+                          name={isReviewed ? "checkmark-circle" : "star"}
+                          size={14}
+                          color={isReviewed ? "#047857" : "#B45309"}
+                        />
+                        <Text style={isReviewed ? styles.webBtnReviewedText : styles.webBtnReviewText}>
+                          {isReviewed ? 'Reviewed' : 'Write Review'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })()}
+
+                  {/* 7. Buy it again (Reorder) */}
                   <TouchableOpacity
-                    style={styles.invoiceBtn}
-                    onPress={() => setActiveInvoiceOrder(ord)}
+                    style={[styles.webActionBtn, styles.webBtnReorder]}
+                    onPress={() => handleReorderOrder(ord)}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="document-text-outline" size={15} color="#00A3E0" />
-                    <Text style={styles.invoiceBtnText}>View GST Invoice</Text>
+                    <Ionicons name="refresh-outline" size={14} color="#334155" />
+                    <Text style={styles.webBtnReorderText}>Buy it again</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -1251,118 +1692,17 @@ export default function OrderDeliveryPage({
                   </View>
                 )}
 
-                {/* Customer Section: Pre-Dispatch Cancellation, Zero-Cost Replacement, Return & Policy Rules */}
-                <View style={styles.cardCustomerActionsRow}>
-                  {(() => {
-                    const statusLower = (ord.status || '').toLowerCase();
-                    const isCancelled = statusLower.includes('cancel');
-                    const isReplacement = statusLower.includes('replac');
-                    // Allow cancel for orders that are not delivered or already cancelled
-                    const canCancel = !isCancelled && !statusLower.includes('deliver');
-                    const isInTransit = !isCancelled && (statusLower.includes('ship') || statusLower.includes('transit') || statusLower.includes('out for'));
-                    const canRequestReplacement = !isCancelled && (statusLower.includes('deliver') || statusLower.includes('transit') || isReplacement);
-                    const canRequestReturn = !isCancelled && statusLower.includes('deliver');
-
-                    if (isCancelled) {
-                      return (
-                        <View style={styles.cancelledStatusCard}>
-                          <View style={styles.cancelledStatusLeft}>
-                            <Ionicons name="close-circle" size={18} color="#DC2626" />
-                            <View style={{ flex: 1 }}>
-                              <Text style={styles.cancelledStatusTitle}>Order Cancelled • 100% Refund</Text>
-                              <Text style={styles.cancelledStatusSub}>Reversed to source payment (UPI: 24h, Cards: 3-5d)</Text>
-                            </View>
-                          </View>
-                          <TouchableOpacity
-                            style={styles.cancelledRulesBtn}
-                            onPress={() => { setActiveRulesTab('timelines'); setIsRulesModalOpen(true); }}
-                            activeOpacity={0.8}
-                          >
-                            <Text style={styles.cancelledRulesBtnText}>SLA &gt;</Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    }
-
-                    if (canCancel) {
-                      return (
-                        <View style={styles.cardCustomerBtnRow}>
-                          <TouchableOpacity
-                            style={[styles.customerActionBtn, styles.cancelActionBtn]}
-                            onPress={() => handleCancelOrder(ord)}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="close-circle-outline" size={14} color="#DC2626" />
-                            <Text style={styles.cancelActionBtnText}>
-                              {isInTransit ? 'Cancel Order (No Refund)' : 'Cancel Order (100% Refund)'}
-                            </Text>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={[styles.customerActionBtn, styles.rulesActionBtn]}
-                            onPress={() => { setActiveRulesTab('cancellation'); setIsRulesModalOpen(true); }}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="shield-checkmark-outline" size={14} color="#0284C7" />
-                            <Text style={styles.rulesActionBtnText}>Rules &amp; SOP</Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    }
-
-                    if (canRequestReplacement || canRequestReturn) {
-                      return (
-                        <View style={{ gap: 6, width: '100%' }}>
-                          <View style={styles.cardCustomerBtnRow}>
-                            {canRequestReplacement && (
-                              <TouchableOpacity
-                                style={[styles.customerActionBtn, styles.replaceActionBtn]}
-                                onPress={() => handleRequestReplacement(ord)}
-                                activeOpacity={0.8}
-                              >
-                                <Ionicons name="repeat-outline" size={14} color="#4F46E5" />
-                                <Text style={styles.replaceActionBtnText}>Replace Item (₹0)</Text>
-                              </TouchableOpacity>
-                            )}
-
-                            {canRequestReturn && (
-                              <TouchableOpacity
-                                style={[styles.customerActionBtn, styles.returnActionBtn]}
-                                onPress={() => handleRequestReturn(ord)}
-                                activeOpacity={0.8}
-                              >
-                                <Ionicons name="shield-checkmark-outline" size={14} color="#16A34A" />
-                                <Text style={styles.returnActionBtnText}>30-Day Return</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-
-                          <TouchableOpacity
-                            style={styles.policyLinkRow}
-                            onPress={() => { setActiveRulesTab('refund_guarantee'); setIsRulesModalOpen(true); }}
-                            activeOpacity={0.7}
-                          >
-                            <Ionicons name="information-circle-outline" size={13} color="#0284C7" />
-                            <Text style={styles.policyLinkText}>View 30-Day Money-Back &amp; Free Replacement Policy &gt;</Text>
-                          </TouchableOpacity>
-                        </View>
-                      );
-                    }
-
-                    return (
-                      <View style={styles.cardCustomerBtnRow}>
-                        <TouchableOpacity
-                          style={[styles.customerActionBtn, styles.rulesActionBtn, { flex: 1 }]}
-                          onPress={() => { setActiveRulesTab('timelines'); setIsRulesModalOpen(true); }}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons name="shield-checkmark-outline" size={14} color="#0284C7" />
-                          <Text style={styles.rulesActionBtnText}>View Consumer Protection SOP &amp; Timelines</Text>
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })()}
-                </View>
+                {/* 30-Day Money-Back & Free Replacement Policy Link */}
+                {(isDelivered || isInTransit) && (
+                  <TouchableOpacity
+                    style={styles.policyLinkRow}
+                    onPress={() => { setActiveRulesTab('refund_guarantee'); setIsRulesModalOpen(true); }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="information-circle-outline" size={13} color="#0284C7" />
+                    <Text style={styles.policyLinkText}>View 30-Day Money-Back &amp; Free Replacement Policy &gt;</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })
@@ -1790,183 +2130,413 @@ export default function OrderDeliveryPage({
       </Modal>
 
       {/* ========================================================
-          MODAL 5: AUTHENTIC GST TAX INVOICE MODAL (Matching Website)
+          MODAL 5: AUTHENTIC GST TAX INVOICE MODAL (Matching Website 1-to-1)
           ======================================================== */}
-      {activeInvoiceOrder && (
+      {activeInvoiceOrder && (() => {
+        const rawGrand = (activeInvoiceOrder.grandTotal && Number(activeInvoiceOrder.grandTotal) > 0)
+          ? Number(activeInvoiceOrder.grandTotal)
+          : (activeInvoiceOrder.totalAmount && Number(activeInvoiceOrder.totalAmount) > 0)
+            ? Number(activeInvoiceOrder.totalAmount)
+            : (typeof activeInvoiceOrder.total === 'string'
+              ? parseFloat(activeInvoiceOrder.total.replace(/[^0-9.]/g, '')) || 0
+              : Number(activeInvoiceOrder.total || 0));
+
+        const invShipping = (activeInvoiceOrder.shippingFee !== undefined && activeInvoiceOrder.shippingFee !== null)
+          ? Number(activeInvoiceOrder.shippingFee)
+          : (rawGrand > 0 && rawGrand < 1500 ? 150 : 0);
+
+        const invGrandTotal = rawGrand;
+        const invSubtotal = Math.max(0, invGrandTotal - invShipping);
+        const taxableNet = Number((invSubtotal / 1.18).toFixed(2));
+        const totalGst = Number((invSubtotal - taxableNet).toFixed(2));
+        const cgst = Number((totalGst / 2).toFixed(2));
+        const sgst = Number((totalGst - cgst).toFixed(2));
+
+        const invItems = (Array.isArray(activeInvoiceOrder.items) && activeInvoiceOrder.items.length > 0)
+          ? activeInvoiceOrder.items
+          : [{
+              id: activeInvoiceOrder.productId || activeInvoiceOrder.id,
+              name: activeInvoiceOrder.title || 'Atomy Product',
+              price: invSubtotal,
+              qty: activeInvoiceOrder.itemsCount || 1,
+              pv: Math.round(invSubtotal * 4.5),
+            }];
+
+        const totalAccPv = invItems.reduce((acc, it) => {
+          const itPrice = typeof it.price === 'number' ? it.price : parseFloat(String(it.price || '0').replace(/[^0-9.]/g, '')) || 0;
+          const p = (it.pv && Number(it.pv) > 0) ? Number(it.pv) : Math.round(itPrice * 4.5);
+          return acc + (p * (it.qty || 1));
+        }, 0);
+
+        const recipientName = activeInvoiceOrder.recipient || activeInvoiceOrder.customerName || 'Customer';
+        const recipientPhone = activeInvoiceOrder.phone || activeInvoiceOrder.customerPhone || '';
+        const fullAddress = activeInvoiceOrder.fullAddress || activeInvoiceOrder.shippingAddress || 'Direct Customer Delivery Destination';
+        const trackingAwb = getStableAwb(activeInvoiceOrder.id, activeInvoiceOrder.awb || activeInvoiceOrder.trackingNumber);
+
+        return (
+          <Modal
+            visible={Boolean(activeInvoiceOrder)}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setActiveInvoiceOrder(null)}
+          >
+            <View style={styles.invoiceModalOverlay}>
+              <View style={styles.invoiceModalCard}>
+                {/* Header */}
+                <View style={styles.invoiceModalHeader}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.invoiceTagPill}>
+                      <Text style={styles.invoiceTagText}>Official Tax Invoice</Text>
+                    </View>
+                    <Text style={styles.invoiceModalTitle}>Atomy India Order Details</Text>
+                    <Text style={styles.invoiceOrderNumber}>
+                      Order No: <Text style={styles.monoBold}>{activeInvoiceOrder.id}</Text>
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.invoiceModalCloseBtn}
+                    onPress={() => setActiveInvoiceOrder(null)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="close" size={22} color="#475569" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.invoiceModalScroll} showsVerticalScrollIndicator={false}>
+                  {/* Meta Grid (Order Date, Payment Method, Fulfillment Partner, Tracking AWB) */}
+                  <View style={styles.invoiceMetaGrid}>
+                    <View style={styles.invoiceMetaCol}>
+                      <Text style={styles.invoiceMetaLabel}>Order Date:</Text>
+                      <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.date}</Text>
+                    </View>
+                    <View style={styles.invoiceMetaCol}>
+                      <Text style={styles.invoiceMetaLabel}>Payment Method:</Text>
+                      <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.paymentMethod || 'Online Payment'}</Text>
+                    </View>
+                    <View style={styles.invoiceMetaCol}>
+                      <Text style={styles.invoiceMetaLabel}>Fulfillment Partner:</Text>
+                      <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.courier || 'Blue Dart Express (Assigned)'}</Text>
+                    </View>
+                    <View style={styles.invoiceMetaCol}>
+                      <Text style={styles.invoiceMetaLabel}>Tracking AWB:</Text>
+                      <Text style={[styles.invoiceMetaVal, styles.monoBold, { color: '#0284C7' }]}>
+                        {trackingAwb}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Fulfillment Destination / Pickup Location */}
+                  {isStorePickupOrder(activeInvoiceOrder) ? (
+                    <View style={[styles.invoiceShippingBox, { backgroundColor: '#f8fafc', borderColor: '#bae6fd', borderWidth: 1 }]}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text style={[styles.invoiceShippingBoxLabel, { color: '#0369a1', fontWeight: '800', marginBottom: 0 }]}>📍 PICKUP LOCATION:</Text>
+                        <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                          <Text style={{ color: '#0284c7', fontSize: 10, fontWeight: '700' }}>Direct Hub Pickup</Text>
+                        </View>
+                      </View>
+                      <View style={{ backgroundColor: '#ffffff', borderRadius: 6, padding: 8, borderWidth: 1, borderColor: '#bae6fd', marginBottom: 8 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#0284c7', textTransform: 'uppercase' }}>Regional Hub Pickup Counter:</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', marginTop: 2 }}>{activeInvoiceOrder.hubName || 'Selva Atomy Regional Hub'}</Text>
+                        <Text style={{ fontSize: 12, color: '#334155', marginTop: 2 }}>{activeInvoiceOrder.hubAddress || activeInvoiceOrder.shippingAddress || 'Regional Logistics Hub Desk'}</Text>
+                        <Text style={{ fontSize: 10.5, color: '#0284c7', fontWeight: '600', marginTop: 4 }}>✓ In-Person Collection Desk</Text>
+                      </View>
+                      <View style={{ backgroundColor: '#ffffff', borderRadius: 6, padding: 8, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Customer Location:</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', marginTop: 2 }}>{recipientName} {recipientPhone ? `(${recipientPhone})` : ''}</Text>
+                        <Text style={{ fontSize: 12, color: '#334155', marginTop: 2 }}>
+                          {fullAddress}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={styles.invoiceShippingBox}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <Text style={[styles.invoiceShippingBoxLabel, { marginBottom: 0 }]}>🚚 DELIVERY LOCATION:</Text>
+                        <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                          <Text style={{ color: '#475569', fontSize: 10.5, fontWeight: '700' }}>Doorstep Delivery</Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: '#0F172A', marginBottom: 3 }}>
+                        {recipientName} {recipientPhone ? <Text style={{ fontWeight: '500', color: '#475569' }}>({recipientPhone})</Text> : null}
+                      </Text>
+                      <Text style={styles.invoiceShippingBoxText}>
+                        {fullAddress}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Items Table (Product | Qty | Unit Price | Total) */}
+                  <View style={styles.invoiceTableCard}>
+                    <View style={styles.invoiceTableHeaderRow}>
+                      <Text style={[styles.invoiceThText, { flex: 2.2 }]}>Product</Text>
+                      <Text style={[styles.invoiceThText, { width: 36, textAlign: 'center' }]}>Qty</Text>
+                      <Text style={[styles.invoiceThText, { flex: 1.1, textAlign: 'right' }]}>Unit Price</Text>
+                      <Text style={[styles.invoiceThText, { flex: 1.1, textAlign: 'right' }]}>Total</Text>
+                    </View>
+                    {invItems.map((it, idx) => {
+                      const itPrice = typeof it.price === 'number' ? it.price : parseFloat(String(it.price || '0').replace(/[^0-9.]/g, '')) || 0;
+                      const itQty = it.qty || it.quantity || 1;
+                      const itTotal = itPrice * itQty;
+                      return (
+                        <View key={idx} style={[styles.invoiceTableRow, idx > 0 && styles.invoiceTableRowBorder]}>
+                          <Text style={[styles.invoiceTdProductName, { flex: 2.2 }]} numberOfLines={2}>
+                            {it.name || it.productName || activeInvoiceOrder.title || 'Atomy Product'}
+                          </Text>
+                          <Text style={[styles.invoiceTdQty, { width: 36, textAlign: 'center' }]}>
+                            {itQty}
+                          </Text>
+                          <Text style={[styles.invoiceTdUnitPrice, { flex: 1.1, textAlign: 'right' }]}>
+                            ₹ {itPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Text>
+                          <Text style={[styles.invoiceTdTotal, { flex: 1.1, textAlign: 'right' }]}>
+                            ₹ {itTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+
+                  {/* Totals Summary: Matching Website Exactly */}
+                  <View style={styles.invoiceTotalsSummary}>
+                    <View style={styles.invoiceSummaryRow}>
+                      <Text style={styles.invoiceSummaryLabel}>Items Subtotal:</Text>
+                      <Text style={styles.invoiceSummaryValue}>₹ {invSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    </View>
+                    <View style={styles.invoiceSummaryRow}>
+                      <Text style={[styles.invoiceSummaryLabel, { color: '#475569' }]}>Taxable Net Amount:</Text>
+                      <Text style={[styles.invoiceSummaryValue, { color: '#475569' }]}>₹ {taxableNet.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    </View>
+                    <View style={styles.invoiceSummaryRow}>
+                      <Text style={[styles.invoiceSummaryLabel, { color: '#475569' }]}>CGST (9%):</Text>
+                      <Text style={[styles.invoiceSummaryValue, { color: '#475569' }]}>₹ {cgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    </View>
+                    <View style={styles.invoiceSummaryRow}>
+                      <Text style={[styles.invoiceSummaryLabel, { color: '#475569' }]}>SGST (9%):</Text>
+                      <Text style={[styles.invoiceSummaryValue, { color: '#475569' }]}>₹ {sgst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    </View>
+                    <View style={styles.invoiceSummaryRow}>
+                      <Text style={styles.invoiceSummaryLabel}>Delivery &amp; Shipping Fee:</Text>
+                      {invShipping > 0 ? (
+                        <Text style={[styles.invoiceSummaryValue, { fontWeight: '700', color: '#0F172A' }]}>
+                          ₹ {invShipping.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </Text>
+                      ) : (
+                        <Text style={styles.invoiceFreeShipping}>FREE (Standard Atomy Delivery)</Text>
+                      )}
+                    </View>
+                    <View style={styles.invoiceSummaryRow}>
+                      <Text style={styles.invoiceSummaryLabel}>Total Accumulated PV:</Text>
+                      <Text style={styles.invoicePvHighlight}>
+                        {totalAccPv.toLocaleString('en-IN')} PV
+                      </Text>
+                    </View>
+                    <View style={[styles.invoiceSummaryRow, styles.invoiceGrandTotalRow]}>
+                      <Text style={styles.invoiceGrandTotalLabel}>Grand Total (incl. GST):</Text>
+                      <Text style={styles.invoiceGrandTotalValue}>
+                        ₹ {invGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                  </View>
+                </ScrollView>
+
+                {/* Footer Action Buttons */}
+                <View style={styles.invoiceModalFooter}>
+                  <TouchableOpacity
+                    style={styles.invoiceCloseActionBtn}
+                    onPress={() => setActiveInvoiceOrder(null)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.invoiceCloseActionText}>Close</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.invoiceTrackActionBtn}
+                    onPress={() => {
+                      const ordId = activeInvoiceOrder.id;
+                      setActiveInvoiceOrder(null);
+                      setExpandedOrderId(ordId);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="location-outline" size={16} color="#FFFFFF" />
+                    <Text style={styles.invoiceTrackActionText}>Track Consignment</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+        );
+      })()}
+
+      {/* ========================================================
+          MODAL 6: FLIPKART-STYLE RATE & REVIEW PRODUCT MODAL
+          ======================================================== */}
+      {reviewModalOrder && (
         <Modal
-          visible={Boolean(activeInvoiceOrder)}
+          visible={Boolean(reviewModalOrder)}
           transparent
           animationType="fade"
-          onRequestClose={() => setActiveInvoiceOrder(null)}
+          onRequestClose={() => setReviewModalOrder(null)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.invoiceModalCard}>
+            <View style={styles.reviewModalCard}>
               {/* Header */}
-              <View style={styles.invoiceModalHeader}>
+              <View style={styles.reviewModalHeader}>
                 <View style={{ flex: 1 }}>
-                  <View style={styles.invoiceTagPill}>
-                    <Text style={styles.invoiceTagText}>Official Tax Invoice</Text>
+                  <View style={styles.reviewModalTagPill}>
+                    <Text style={styles.reviewModalTagText}>Verified Customer Review</Text>
                   </View>
-                  <Text style={styles.invoiceModalTitle}>Atomy India Order Details</Text>
-                  <Text style={styles.invoiceOrderNumber}>
-                    Order No: <Text style={styles.monoBold}>{activeInvoiceOrder.id}</Text>
+                  <Text style={styles.reviewModalTitle}>Rate & Review Product</Text>
+                  <Text style={styles.reviewModalSubtitle}>
+                    Order #{reviewModalOrder.id || reviewModalOrder.orderId} • Delivered
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.invoiceModalCloseBtn}
-                  onPress={() => setActiveInvoiceOrder(null)}
+                  onPress={() => setReviewModalOrder(null)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons name="close" size={22} color="#475569" />
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={styles.invoiceModalScroll} showsVerticalScrollIndicator={false}>
-                {/* Meta Grid (Order Date, Payment Method, Fulfillment Partner, Tracking AWB) */}
-                <View style={styles.invoiceMetaGrid}>
-                  <View style={styles.invoiceMetaCol}>
-                    <Text style={styles.invoiceMetaLabel}>Order Date:</Text>
-                    <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.date}</Text>
-                  </View>
-                  <View style={styles.invoiceMetaCol}>
-                    <Text style={styles.invoiceMetaLabel}>Payment Method:</Text>
-                    <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.paymentMethod || 'Online Payment'}</Text>
-                  </View>
-                  <View style={styles.invoiceMetaCol}>
-                    <Text style={styles.invoiceMetaLabel}>Fulfillment Partner:</Text>
-                    <Text style={styles.invoiceMetaVal}>{activeInvoiceOrder.courier || 'Blue Dart Express'}</Text>
-                  </View>
-                  <View style={styles.invoiceMetaCol}>
-                    <Text style={styles.invoiceMetaLabel}>Tracking AWB:</Text>
-                    <Text style={[styles.invoiceMetaVal, styles.monoBold]}>{activeInvoiceOrder.awb || `BD-${activeInvoiceOrder.id}`}</Text>
-                  </View>
-                </View>
-
-                {/* Fulfillment Destination / Pickup Location */}
-                {isStorePickupOrder(activeInvoiceOrder) ? (
-                  <View style={[styles.invoiceShippingBox, { backgroundColor: '#f8fafc', borderColor: '#bae6fd', borderWidth: 1 }]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Text style={[styles.invoiceShippingBoxLabel, { color: '#0369a1', fontWeight: '800', marginBottom: 0 }]}>📍 PICKUP LOCATION:</Text>
-                      <View style={{ backgroundColor: '#e0f2fe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
-                        <Text style={{ color: '#0284c7', fontSize: 10, fontWeight: '700' }}>Direct Hub Pickup</Text>
-                      </View>
-                    </View>
-                    <View style={{ backgroundColor: '#ffffff', borderRadius: 6, padding: 8, borderWidth: 1, borderColor: '#bae6fd', marginBottom: 8 }}>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#0284c7', textTransform: 'uppercase' }}>Regional Hub Pickup Counter:</Text>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', marginTop: 2 }}>{activeInvoiceOrder.hubName || 'Selva Atomy Regional Hub'}</Text>
-                      <Text style={{ fontSize: 12, color: '#334155', marginTop: 2 }}>{activeInvoiceOrder.hubAddress || activeInvoiceOrder.shippingAddress || 'Regional Logistics Hub Desk'}</Text>
-                      <Text style={{ fontSize: 10.5, color: '#0284c7', fontWeight: '600', marginTop: 4 }}>✓ In-Person Collection Desk</Text>
-                    </View>
-                    <View style={{ backgroundColor: '#ffffff', borderRadius: 6, padding: 8, borderWidth: 1, borderColor: '#e2e8f0' }}>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Customer Location:</Text>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0f172a', marginTop: 2 }}>{activeInvoiceOrder.customerName || activeInvoiceOrder.recipient || 'Customer'}</Text>
-                      <Text style={{ fontSize: 12, color: '#334155', marginTop: 2 }}>
-                        {activeInvoiceOrder.customerAddress || activeInvoiceOrder.customerLocation || [activeInvoiceOrder.city, activeInvoiceOrder.state, activeInvoiceOrder.pincode ? `PIN: ${activeInvoiceOrder.pincode}` : ''].filter(Boolean).join(', ') || 'Customer Registered Location'}
-                      </Text>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={styles.invoiceShippingBox}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <Text style={[styles.invoiceShippingBoxLabel, { marginBottom: 0 }]}>🚚 DELIVERY LOCATION:</Text>
-                      <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
-                        <Text style={{ color: '#475569', fontSize: 10, fontWeight: '700' }}>Doorstep Delivery</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.invoiceShippingBoxText}>
-                      {activeInvoiceOrder.shippingAddress || 'Registered Delivery Address'}
-                    </Text>
+              <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+                {/* Product Switcher if order has multiple items */}
+                {reviewModalOrder.items && reviewModalOrder.items.length > 1 && (
+                  <View style={styles.reviewItemsSelector}>
+                    <Text style={styles.reviewFieldLabel}>Select Item to Rate &amp; Review:</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewItemsScroll}>
+                      {reviewModalOrder.items.map((it, idx) => {
+                        const itId = it.productId || it.id || it._id;
+                        const isSelected = (reviewProduct?.id || reviewProduct?.productId) === itId;
+                        const itReviewed = Boolean(reviewedOrdersMap[`${reviewModalOrder.id || reviewModalOrder.orderId}_${itId}`]);
+                        return (
+                          <TouchableOpacity
+                            key={itId || idx}
+                            style={[styles.reviewItemPill, isSelected && styles.reviewItemPillActive]}
+                            onPress={() => {
+                              setReviewProduct(it);
+                              const key = `${reviewModalOrder.id || reviewModalOrder.orderId}_${itId}`;
+                              const prev = reviewedOrdersMap[key];
+                              if (prev && typeof prev === 'object') {
+                                setReviewRating(prev.rating || 5);
+                                setReviewTitle(prev.title || '');
+                                setReviewComment(prev.comment || '');
+                              } else {
+                                setReviewRating(5);
+                                setReviewTitle('');
+                                setReviewComment('');
+                              }
+                            }}
+                          >
+                            {it.image && <Image source={{ uri: it.image }} style={styles.pillImg} />}
+                            <Text style={[styles.pillName, isSelected && styles.pillNameActive]} numberOfLines={1}>
+                              {it.name || it.title}
+                            </Text>
+                            {itReviewed && <Ionicons name="checkmark-circle" size={14} color="#16A34A" />}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
                   </View>
                 )}
 
-                {/* Items List */}
-                <View style={styles.invoiceItemsSection}>
-                  <Text style={styles.invoiceSectionTitle}>Ordered Items</Text>
-                  {(activeInvoiceOrder.items && activeInvoiceOrder.items.length > 0 ? activeInvoiceOrder.items : [
-                    {
-                      name: activeInvoiceOrder.title,
-                      qty: activeInvoiceOrder.itemsCount || 1,
-                      price: typeof activeInvoiceOrder.total === 'string'
-                        ? parseFloat(activeInvoiceOrder.total.replace(/[^0-9.]/g, '')) || 0
-                        : activeInvoiceOrder.total || 0,
-                    }
-                  ]).map((it, idx) => {
-                    const unitPrice = typeof it.price === 'number' ? it.price : parseFloat(String(it.price || '0').replace(/[^0-9.]/g, '')) || 0;
-                    const qty = it.qty || 1;
-                    const lineTotal = unitPrice * qty;
-                    return (
-                      <View key={idx} style={styles.invoiceItemRow}>
-                        <View style={{ flex: 1, paddingRight: 8 }}>
-                          <Text style={styles.invoiceItemName} numberOfLines={2}>{it.name}</Text>
-                          <Text style={styles.invoiceItemUnit}>Qty: {qty} • ₹ {unitPrice.toLocaleString('en-IN')} each</Text>
-                        </View>
-                        <Text style={styles.invoiceItemTotal}>₹ {lineTotal.toLocaleString('en-IN')}</Text>
-                      </View>
-                    );
-                  })}
+                {/* Product Preview Card */}
+                {reviewProduct && (
+                  <View style={styles.reviewProductPreviewRow}>
+                    <Image
+                      source={{ uri: reviewProduct.image || reviewProduct.productImage || 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg' }}
+                      style={styles.reviewProductImg}
+                      resizeMode="cover"
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.reviewProductName} numberOfLines={2}>
+                        {reviewProduct.name || reviewProduct.productName || reviewProduct.title || 'Atomy Authentic Product'}
+                      </Text>
+                      <Text style={styles.reviewProductMeta}>
+                        Qty: {reviewProduct.quantity || reviewProduct.qty || 1} • ₹{Number(reviewProduct.price || reviewProduct.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Star Rating Section */}
+                <View style={styles.reviewStarSection}>
+                  <Text style={styles.reviewSectionLabel}>Overall Rating</Text>
+                  <View style={styles.interactiveStarsRow}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setReviewRating(star)}
+                        style={styles.starHitBox}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={star <= reviewRating ? 'star' : 'star-outline'}
+                          size={34}
+                          color={star <= reviewRating ? '#F59E0B' : '#CBD5E1'}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Text style={[styles.ratingSentimentText, reviewRating >= 4 ? { color: '#16A34A' } : reviewRating === 3 ? { color: '#0284C7' } : { color: '#DC2626' }]}>
+                    {reviewRating === 5 && 'Excellent! Loved it! ⭐⭐⭐⭐⭐'}
+                    {reviewRating === 4 && 'Good product & effective ⭐⭐⭐⭐'}
+                    {reviewRating === 3 && 'Fair / Average ⭐⭐⭐'}
+                    {reviewRating === 2 && 'Below expectations ⭐⭐'}
+                    {reviewRating === 1 && 'Terrible / Very disappointed ⭐'}
+                  </Text>
                 </View>
 
-                {/* Totals Summary: Taxable Amount, GST, Delivery Amount, Total Paid */}
-                {(() => {
-                  const rawTotal = typeof activeInvoiceOrder.total === 'string'
-                    ? parseFloat(activeInvoiceOrder.total.replace(/[^0-9.]/g, '')) || 0
-                    : activeInvoiceOrder.total || 0;
-                  const shippingFee = Number(activeInvoiceOrder.shippingFee || activeInvoiceOrder.deliveryFee || 0);
-                  const deliveryDisplay = shippingFee > 0 ? `₹ ${shippingFee.toFixed(2)}` : 'FREE';
-                  const productPortion = Math.max(0, rawTotal - shippingFee);
-                  const taxable = (productPortion / 1.18).toFixed(2);
-                  const gst = (productPortion - Number(taxable)).toFixed(2);
-                  return (
-                    <View style={styles.invoiceTotalsSummary}>
-                      <View style={styles.invoiceSummaryRow}>
-                        <Text style={styles.invoiceSummaryLabel}>Taxable Amount:</Text>
-                        <Text style={styles.invoiceSummaryValue}>₹ {Number(taxable).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text>
-                      </View>
-                      <View style={styles.invoiceSummaryRow}>
-                        <Text style={styles.invoiceSummaryLabel}>Integrated GST (IGST 18%):</Text>
-                        <Text style={styles.invoiceSummaryValue}>₹ {Number(gst).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text>
-                      </View>
-                      <View style={styles.invoiceSummaryRow}>
-                        <Text style={styles.invoiceSummaryLabel}>Shipping / Delivery:</Text>
-                        <Text style={shippingFee > 0 ? styles.invoiceSummaryValue : styles.invoiceFreeShipping}>
-                          {deliveryDisplay}
-                        </Text>
-                      </View>
-                      {activeInvoiceOrder.pv ? (
-                        <View style={styles.invoiceSummaryRow}>
-                          <Text style={styles.invoiceSummaryLabel}>Accumulated PV:</Text>
-                          <Text style={styles.invoicePvHighlight}>{activeInvoiceOrder.pv}</Text>
-                        </View>
-                      ) : null}
-                      <View style={[styles.invoiceSummaryRow, styles.invoiceGrandTotalRow]}>
-                        <Text style={styles.invoiceGrandTotalLabel}>Total Paid (INR):</Text>
-                        <Text style={styles.invoiceGrandTotalValue}>₹ {rawTotal.toLocaleString('en-IN')}</Text>
-                      </View>
-                    </View>
-                  );
-                })()}
+                {/* Review Title Input */}
+                <View style={styles.reviewFieldGroup}>
+                  <Text style={styles.reviewFieldLabel}>Review Headline / Title</Text>
+                  <TextInput
+                    style={styles.reviewTextInput}
+                    placeholder="e.g. Excellent genuine product & fast delivery!"
+                    placeholderTextColor="#94A3B8"
+                    value={reviewTitle}
+                    onChangeText={setReviewTitle}
+                    maxLength={100}
+                  />
+                </View>
+
+                {/* Detailed Review Input */}
+                <View style={styles.reviewFieldGroup}>
+                  <Text style={styles.reviewFieldLabel}>Detailed Review / Experience</Text>
+                  <TextInput
+                    style={[styles.reviewTextInput, styles.reviewTextArea]}
+                    placeholder="Share your authentic experience with this product to guide fellow Atomy members..."
+                    placeholderTextColor="#94A3B8"
+                    value={reviewComment}
+                    onChangeText={setReviewComment}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    maxLength={1000}
+                  />
+                  <Text style={styles.charCountText}>{reviewComment.length}/1000 characters</Text>
+                </View>
               </ScrollView>
 
-              {/* Footer Action Buttons */}
-              <View style={styles.invoiceModalFooter}>
+              {/* Action Buttons */}
+              <View style={styles.reviewModalActionsRow}>
                 <TouchableOpacity
-                  style={styles.invoiceCloseActionBtn}
-                  onPress={() => setActiveInvoiceOrder(null)}
+                  style={styles.reviewCancelBtn}
+                  onPress={() => setReviewModalOrder(null)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.invoiceCloseActionText}>Close</Text>
+                  <Text style={styles.reviewCancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.invoiceTrackActionBtn}
-                  onPress={() => {
-                    const ordId = activeInvoiceOrder.id;
-                    setActiveInvoiceOrder(null);
-                    setExpandedOrderId(ordId);
-                  }}
+                  style={[styles.reviewSubmitBtn, isSubmittingReview && { opacity: 0.7 }]}
+                  onPress={handleSubmitReview}
+                  disabled={isSubmittingReview}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="location-outline" size={16} color="#FFFFFF" />
-                  <Text style={styles.invoiceTrackActionText}>Track Consignment</Text>
+                  <Ionicons name="checkmark-circle" size={16} color="#FFFFFF" />
+                  <Text style={styles.reviewSubmitBtnText}>
+                    {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -2118,19 +2688,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
+    overflow: 'hidden',
   },
   orderCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+  },
+  orderCardHeaderLeft: {
+    flex: 1,
+    marginRight: 6,
   },
   orderIdText: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '800',
     color: '#0F172A',
   },
   orderDateText: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: '#64748B',
     marginTop: 2,
   },
@@ -2138,9 +2715,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 16,
+    flexShrink: 0,
+    alignSelf: 'center',
   },
   statusBadgeTransit: {
     backgroundColor: '#E0F2FE',
@@ -2148,8 +2727,11 @@ const styles = StyleSheet.create({
   statusBadgeDelivered: {
     backgroundColor: '#DCFCE7',
   },
+  statusBadgeCancelled: {
+    backgroundColor: '#FEF2F2',
+  },
   statusBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   statusBadgeTextTransit: {
@@ -2157,6 +2739,9 @@ const styles = StyleSheet.create({
   },
   statusBadgeTextDelivered: {
     color: '#16A34A',
+  },
+  statusBadgeTextCancelled: {
+    color: '#DC2626',
   },
   cardDivider: {
     height: 1,
@@ -2175,6 +2760,75 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1E293B',
     lineHeight: 20,
+  },
+  // Product Items in Order Styles (with Thumbnails)
+  orderProductsContainer: {
+    marginBottom: 10,
+    gap: 8,
+  },
+  orderProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  orderProductRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  orderProductImgBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    padding: 2,
+  },
+  orderProductImg: {
+    width: '100%',
+    height: '100%',
+  },
+  orderProductDetailsCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  orderProductTitleText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+    lineHeight: 18,
+  },
+  orderProductMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  orderItemQtyPill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  orderItemQtyText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  orderItemUnitTotal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  orderItemPvText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#00A3E0',
   },
   courierInfoRow: {
     flexDirection: 'row',
@@ -3694,18 +4348,80 @@ const styles = StyleSheet.create({
   },
 
   // Official GST Tax Invoice Modal Styles
+  invoiceModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
+  },
   invoiceModalCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 18,
-    width: '94%',
-    maxWidth: 520,
-    maxHeight: '85%',
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '88%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
     elevation: 10,
     overflow: 'hidden',
+  },
+  invoiceTableCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  invoiceTableHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  invoiceThText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  invoiceTableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  invoiceTableRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  invoiceTdProductName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0F172A',
+    paddingRight: 4,
+  },
+  invoiceTdQty: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  invoiceTdUnitPrice: {
+    fontSize: 11,
+    color: '#475569',
+  },
+  invoiceTdTotal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
   },
   invoiceModalHeader: {
     flexDirection: 'row',
@@ -3913,5 +4629,375 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  // Flipkart-Style Rate & Review Modal & Button Styles
+  rateReviewBtn: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    width: '100%',
+  },
+  rateReviewBtnDone: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  rateReviewBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  rateReviewBtnTextDone: {
+    color: '#16A34A',
+  },
+  reviewModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
+    width: '92%',
+    maxWidth: 440,
+    maxHeight: '88%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 12,
+    marginBottom: 12,
+  },
+  reviewModalTagPill: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+  },
+  reviewModalTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#D97706',
+    textTransform: 'uppercase',
+  },
+  reviewModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  reviewModalSubtitle: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  reviewProductPreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  reviewProductImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+  },
+  reviewProductName: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  reviewProductMeta: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  reviewStarSection: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  reviewSectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  interactiveStarsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  starHitBox: {
+    padding: 4,
+  },
+  ratingSentimentText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  reviewFieldGroup: {
+    marginBottom: 12,
+  },
+  reviewFieldLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 6,
+  },
+  reviewTextInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  reviewTextArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  charCountText: {
+    fontSize: 10,
+    color: '#94A3B8',
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  reviewModalActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  reviewCancelBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewCancelBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  reviewSubmitBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 8,
+    backgroundColor: '#00A3E0',
+  },
+  reviewSubmitBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  // Authentic Website Order Action Buttons Group
+  websiteActionsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  webActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  webActionBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // 1. Invoice (White outline)
+  webBtnInvoice: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#CBD5E1',
+  },
+  webBtnInvoiceText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  // 2. Track (Brand Cyan Blue)
+  webBtnTrack: {
+    backgroundColor: '#00A3E0',
+    borderColor: '#00A3E0',
+  },
+  webBtnTrackActive: {
+    backgroundColor: '#0084B4',
+    borderColor: '#0084B4',
+  },
+  webBtnTrackText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  // Status: Delivered (Mint green)
+  webBtnStatusDelivered: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  webBtnStatusDeliveredActive: {
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
+  },
+  webBtnStatusDeliveredText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#065F46',
+  },
+  // Status: Cancelled (Soft red)
+  webBtnStatusCancelled: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  webBtnStatusCancelledActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
+  },
+  webBtnStatusCancelledText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
+  },
+  // 3. Cancel Order (Soft red outline)
+  webBtnCancel: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  webBtnCancelText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+  // 4. Replacement (Indigo/Lavender)
+  webBtnReplace: {
+    backgroundColor: '#E0E7FF',
+    borderColor: '#C7D2FE',
+  },
+  webBtnReplaceText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4338CA',
+  },
+  // 5. Return & Refund (Soft green)
+  webBtnRefund: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#BBF7D0',
+  },
+  webBtnRefundText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#15803D',
+  },
+  // 6. Rate & Review Product (Amber cream)
+  webBtnReview: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  webBtnReviewText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B45309',
+  },
+  // Rate & Review (Reviewed: Mint Green)
+  webBtnReviewed: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  webBtnReviewedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#047857',
+  },
+  // 7. Buy it again (Reorder: Slate grey)
+  webBtnReorder: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+  },
+  webBtnReorderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  // Multi-item review pills
+  reviewItemsSelector: {
+    marginBottom: 14,
+  },
+  reviewItemsScroll: {
+    flexDirection: 'row',
+    marginTop: 6,
+  },
+  reviewItemPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginRight: 8,
+  },
+  reviewItemPillActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
+  },
+  pillImg: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+  },
+  pillName: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#475569',
+    maxWidth: 130,
+  },
+  pillNameActive: {
+    color: '#1D4ED8',
+    fontWeight: '700',
   },
 });

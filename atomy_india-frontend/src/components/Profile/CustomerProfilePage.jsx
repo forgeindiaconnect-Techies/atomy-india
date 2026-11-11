@@ -1143,7 +1143,7 @@ export default function CustomerProfilePage({
                               onNavigateCart && onNavigateCart();
                             }}
                           >
-                            Reorder Items
+                            Buy it again
                           </button>
                         </div>
                       </div>

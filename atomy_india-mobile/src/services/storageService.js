@@ -10,6 +10,8 @@ const KEYS = {
   PLACED_ORDERS: '@atomy_mobile_placed_orders',
   RECENTLY_VIEWED: '@atomy_mobile_recently_viewed',
   DELIVERY_PINCODE: '@atomy_customer_delivery_pincode',
+  DELIVERY_CITY: '@atomy_customer_delivery_city',
+  DELIVERY_STATE: '@atomy_customer_delivery_state',
 };
 
 // In-memory synchronous cache for immediate access
@@ -22,7 +24,9 @@ const memoryCache = {
   favorites: [],
   placedOrders: [],
   recentlyViewed: [],
-  deliveryPincode: '110001',
+  deliveryPincode: '635002',
+  deliveryCity: 'Krishnagiri',
+  deliveryState: 'Tamil Nadu',
 };
 
 /**
@@ -39,6 +43,9 @@ export async function initStorage() {
       savedFavorites,
       savedOrders,
       savedRecent,
+      savedPin,
+      savedCity,
+      savedState,
     ] = await Promise.all([
       AsyncStorage.getItem(KEYS.USER_SESSION),
       AsyncStorage.getItem(KEYS.IS_MEMBER),
@@ -49,10 +56,18 @@ export async function initStorage() {
       AsyncStorage.getItem(KEYS.PLACED_ORDERS),
       AsyncStorage.getItem(KEYS.RECENTLY_VIEWED),
       AsyncStorage.getItem(KEYS.DELIVERY_PINCODE),
+      AsyncStorage.getItem(KEYS.DELIVERY_CITY),
+      AsyncStorage.getItem(KEYS.DELIVERY_STATE),
     ]);
 
     if (savedPin && /^\d{6}$/.test(savedPin.trim())) {
       memoryCache.deliveryPincode = savedPin.trim();
+    }
+    if (savedCity && savedCity.trim()) {
+      memoryCache.deliveryCity = savedCity.trim();
+    }
+    if (savedState && savedState.trim()) {
+      memoryCache.deliveryState = savedState.trim();
     }
 
     memoryCache.isLoggedOut = savedLoggedOut === 'true';
@@ -270,7 +285,21 @@ export async function savePlacedOrders(orders) {
  * Get cached or persisted delivery pincode
  */
 export function getDeliveryPincode() {
-  return memoryCache.deliveryPincode || '110001';
+  return memoryCache.deliveryPincode || '635002';
+}
+
+/**
+ * Get cached or persisted delivery city/area
+ */
+export function getDeliveryCity() {
+  return memoryCache.deliveryCity || 'Krishnagiri';
+}
+
+/**
+ * Get cached or persisted delivery state
+ */
+export function getDeliveryState() {
+  return memoryCache.deliveryState || 'Tamil Nadu';
 }
 
 /**
@@ -285,16 +314,49 @@ export async function saveDeliveryPincode(pincode) {
   } catch (err) {}
 }
 
-export default {
+/**
+ * Persist customer delivery location (pincode, city, state)
+ */
+export async function saveDeliveryLocation(pincode, city = '', state = '') {
+  const clean = String(pincode || '').trim();
+  if (clean && /^\d{6}$/.test(clean)) {
+    memoryCache.deliveryPincode = clean;
+    try {
+      await AsyncStorage.setItem(KEYS.DELIVERY_PINCODE, clean);
+    } catch (err) {}
+  }
+  if (city && city.trim()) {
+    memoryCache.deliveryCity = city.trim();
+    try {
+      await AsyncStorage.setItem(KEYS.DELIVERY_CITY, city.trim());
+    } catch (err) {}
+  }
+  if (state && state.trim()) {
+    memoryCache.deliveryState = state.trim();
+    try {
+      await AsyncStorage.setItem(KEYS.DELIVERY_STATE, state.trim());
+    } catch (err) {}
+  }
+}
+
+const storageService = {
   initStorage,
   saveUserSession,
   getUserSession,
   clearUserSession,
   saveMembershipStatus,
+  saveMembershipData,
   saveRecentlyViewed,
   saveCart,
   saveFavorites,
   savePlacedOrders,
   getDeliveryPincode,
+  getDeliveryCity,
+  getDeliveryState,
   saveDeliveryPincode,
+  saveDeliveryLocation,
 };
+
+storageService.default = storageService;
+
+export default storageService;

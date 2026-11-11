@@ -137,7 +137,7 @@ export default function DeliveryStatusStepper({ order }) {
     { num: 1, label: 'Order Placed', sub: 'Payment Confirmed' },
     { num: 2, label: 'Preparing', sub: 'Warehouse Packed' },
     { num: 3, label: 'In Transit', sub: 'Blue Dart Dispatch' },
-    { num: 4, label: 'Out for Delivery', sub: 'Local Hub Hub' },
+    { num: 4, label: 'Out for Delivery', sub: 'Local Hub Delivery' },
     { num: 5, label: 'Delivered', sub: 'Package Received' }
   ];
 
@@ -373,60 +373,78 @@ export default function DeliveryStatusStepper({ order }) {
             {currentStep === 1 && (
               <div className="status-narrative">
                 <span className="narrative-tag">STAGE 1</span>
-                <strong>Order Placed & Payment Confirmed</strong>: Order received and routed to regional logistics hub for packing.
+                <span className="narrative-text">
+                  <strong>Order Placed & Payment Confirmed:</strong> Order received and routed to regional logistics hub for packing.
+                </span>
               </div>
             )}
             {currentStep === 2 && (
               <div className="status-narrative orange">
                 <span className="narrative-tag orange">STAGE 2</span>
-                <strong>Preparing Order</strong>: Hub team is picking items from shelf and packing parcel.
+                <span className="narrative-text">
+                  <strong>Preparing Order:</strong> Hub team is picking items from shelf and packing parcel.
+                </span>
               </div>
             )}
             {currentStep === 3 && (
               <div className="status-narrative blue">
                 <span className="narrative-tag blue">STAGE 3 • READY TO PICK UP</span>
-                <strong>Parcel Ready for Counter Pickup!</strong> Parcel is packed and waiting at hub counter for customer collection.
+                <span className="narrative-text">
+                  <strong>Parcel Ready for Counter Pickup!</strong> Parcel is packed and waiting at hub counter for customer collection.
+                </span>
               </div>
             )}
             {currentStep === 4 && (
               <div className="status-narrative green">
                 <span className="narrative-tag green">STAGE 4 • DELIVERED</span>
-                <strong>Order Handed Over Successfully!</strong> Parcel collected and verified at regional hub counter.
+                <span className="narrative-text">
+                  <strong>Order Handed Over Successfully!</strong> Parcel collected and verified at regional hub counter.
+                </span>
               </div>
             )}
           </>
         ) : (
           <>
-        {currentStep === 1 && (
-          <div className="status-narrative">
-            <span className="narrative-tag">STAGE 1</span>
-            <strong>Order Placed & Payment Confirmed</strong>: Order details verified. Initial dispatch notification sent to warehouse.
-          </div>
-        )}
-        {currentStep === 2 && (
-          <div className="status-narrative orange">
-            <span className="narrative-tag orange">STAGE 2</span>
-            <strong>Preparing & Product Packing</strong>: Items picked, barcode-verified, and sealed in central fulfillment facility.
-          </div>
-        )}
-        {currentStep === 3 && (
-          <div className="status-narrative blue">
-            <span className="narrative-tag blue">STAGE 3</span>
-            <strong>In Transit to Local Hub</strong>: Blue Dart express line-haul vehicle moving on highway towards local delivery hub.
-          </div>
-        )}
-        {currentStep === 4 && (
-          <div className="status-narrative purple">
-            <span className="narrative-tag purple">STAGE 4</span>
-            <strong>Out for Delivery on Bike</strong>: Delivery executive on motorbike is navigating the final route to your doorstep.
-          </div>
-        )}
-        {currentStep === 5 && (
-          <div className="status-narrative green">
-            <span className="narrative-tag green">STAGE 5 • DELIVERED</span>
-            <strong>Package Successfully Delivered!</strong> Shipment handed over to recipient. Thank you for shopping with Atomy India.
-          </div>
-        )}
+            {currentStep === 1 && (
+              <div className="status-narrative">
+                <span className="narrative-tag">STAGE 1</span>
+                <span className="narrative-text">
+                  <strong>Order Placed & Payment Confirmed — </strong>Order details verified. Initial dispatch notification sent to warehouse.
+                </span>
+              </div>
+            )}
+            {currentStep === 2 && (
+              <div className="status-narrative orange">
+                <span className="narrative-tag orange">STAGE 2</span>
+                <span className="narrative-text">
+                  <strong>Preparing & Product Packing — </strong>Items picked, barcode-verified, and sealed in central fulfillment facility.
+                </span>
+              </div>
+            )}
+            {currentStep === 3 && (
+              <div className="status-narrative blue">
+                <span className="narrative-tag blue">STAGE 3</span>
+                <span className="narrative-text">
+                  <strong>In Transit to Local Hub — </strong>Blue Dart express line-haul vehicle moving on highway towards local delivery hub.
+                </span>
+              </div>
+            )}
+            {currentStep === 4 && (
+              <div className="status-narrative purple">
+                <span className="narrative-tag purple">STAGE 4</span>
+                <span className="narrative-text">
+                  <strong>Out for Delivery on Bike — </strong>Delivery executive on motorbike is navigating the final route to your doorstep.
+                </span>
+              </div>
+            )}
+            {currentStep === 5 && (
+              <div className="status-narrative green">
+                <span className="narrative-tag green">STAGE 5 • DELIVERED</span>
+                <span className="narrative-text">
+                  <strong>Package Successfully Delivered — </strong>Shipment handed over to recipient. Thank you for shopping with Atomy India.
+                </span>
+              </div>
+            )}
           </>
         )}
       </div>
