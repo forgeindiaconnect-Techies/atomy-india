@@ -2,10 +2,27 @@ package com.example.atomy_india.service;
 
 import com.example.atomy_india.dto.CreateOrderRequest;
 import com.example.atomy_india.dto.CreateTicketRequest;
-import com.example.atomy_india.model.*;
-import com.example.atomy_india.model.DistributorUser;
+import com.example.atomy_india.model.Category;
+import com.example.atomy_india.model.CustomerNotification;
+import com.example.atomy_india.model.CustomerOrder;
+import com.example.atomy_india.model.CustomerUser;
 import com.example.atomy_india.model.DistributorInventory;
-import com.example.atomy_india.repository.*;
+import com.example.atomy_india.model.DistributorUser;
+import com.example.atomy_india.model.OrderItem;
+import com.example.atomy_india.model.OrderTracking;
+import com.example.atomy_india.model.Product;
+import com.example.atomy_india.model.SupportTicket;
+import com.example.atomy_india.model.TicketMessage;
+import com.example.atomy_india.repository.CategoryRepository;
+import com.example.atomy_india.repository.CustomerNotificationRepository;
+import com.example.atomy_india.repository.CustomerOrderRepository;
+import com.example.atomy_india.repository.CustomerUserRepository;
+import com.example.atomy_india.repository.DistributorInventoryRepository;
+import com.example.atomy_india.repository.DistributorRepository;
+import com.example.atomy_india.repository.OrderItemRepository;
+import com.example.atomy_india.repository.OrderTrackingRepository;
+import com.example.atomy_india.repository.ProductRepository;
+import com.example.atomy_india.repository.SupportTicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,7 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import java.util.UUID;
 
 @Service
 public class CustomerService {
@@ -31,9 +53,6 @@ public class CustomerService {
     private OrderItemRepository orderItemRepository;
 
     @Autowired
-    private InventoryRepository inventoryRepository;
-
-    @Autowired
     private OrderTrackingRepository trackingRepository;
 
     @Autowired
@@ -46,16 +65,13 @@ public class CustomerService {
     private CustomerUserRepository customerUserRepository;
 
     @Autowired
-    private com.example.atomy_india.repository.IndiaPincodeRepository indiaPincodeRepository;
+    private CustomerNotificationRepository customerNotificationRepository;
 
     @Autowired
-    private com.example.atomy_india.repository.CustomerNotificationRepository customerNotificationRepository;
+    private DistributorInventoryRepository distributorInventoryRepository;
 
     @Autowired
-    private com.example.atomy_india.repository.DistributorInventoryRepository distributorInventoryRepository;
-
-    @Autowired
-    private com.example.atomy_india.repository.DistributorRepository distributorRepository;
+    private DistributorRepository distributorRepository;
 
     // --- Products & Categories ---
 
@@ -87,8 +103,7 @@ public class CustomerService {
             throw new IllegalArgumentException("Cannot place order with empty cart");
         }
 
-        // Use provided Order ID or generate human-friendly Order ID (e.g.
-        // ORD-20261003-8472)
+        // Use provided Order ID or generate human-friendly Order ID (e.g. ORD-20261003-8472)
         String timestamp = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata"))
                 .format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         int randomCode = 1000 + new Random().nextInt(9000);
@@ -96,8 +111,7 @@ public class CustomerService {
                 ? req.getOrderId().trim()
                 : "ORD-" + timestamp + "-" + randomCode;
 
-        // Idempotency: if order ID already exists in MongoDB, return it directly to
-        // avoid duplication
+        // Idempotency: if order ID already exists in MongoDB, return it directly to avoid duplication
         Optional<CustomerOrder> existing = orderRepository.findById(orderId);
         if (existing.isPresent()) {
             return existing.get();
@@ -148,26 +162,6 @@ public class CustomerService {
                                     : new BigDecimal("1000.00"));
             int qty = Math.max(1, itemDto.getQuantity());
 
-            // Inventory check & deduction
-            Optional<Inventory> invOpt = inventoryRepository.findByProductId(effectiveId);
-            if (!invOpt.isPresent()) {
-                invOpt = inventoryRepository.findAll().stream()
-                        .filter(i -> i.getProductId() != null && i.getProductId().equalsIgnoreCase(effectiveId))
-                        .findFirst();
-            }
-
-            if (invOpt.isPresent()) {
-                Inventory inv = invOpt.get();
-                int currentQty = inv.getStockQuantity();
-                int newQty = Math.max(0, currentQty - qty);
-                inv.updateStock(newQty);
-                inventoryRepository.save(inv);
-            } else {
-                int newQty = Math.max(0, 100 - qty);
-                Inventory inv = new Inventory(effectiveId, effectiveName, "SKU-" + effectiveId, newQty, 15);
-                inventoryRepository.save(inv);
-            }
-
             OrderItem orderItem = new OrderItem(
                     effectiveId,
                     effectiveName,
@@ -178,99 +172,76 @@ public class CustomerService {
             totalAmount = totalAmount.add(orderItem.getSubtotal());
         }
 
-        // Calculate shipping fee and final total: prefer explicit request values if
-        // provided
-        BigDecimal shippingFee = req.getShippingFee();
-        if (shippingFee == null) {
-            shippingFee = (totalAmount.compareTo(new BigDecimal("1500")) >= 0) ? BigDecimal.ZERO
-                    : new BigDecimal("100.00");
-        }
-        BigDecimal finalTotal = req.getTotalAmount();
-        if (finalTotal == null || finalTotal.compareTo(BigDecimal.ZERO) <= 0) {
-            finalTotal = totalAmount.add(shippingFee);
+        // Apply Free Delivery above 4500 rule
+        BigDecimal shippingFee = BigDecimal.ZERO;
+        if (req.getShippingFee() != null) {
+            shippingFee = req.getShippingFee();
+        } else if (totalAmount.compareTo(new BigDecimal("4500.00")) < 0) {
+            shippingFee = new BigDecimal("150.00");
         }
 
-        // Ensure the order's customer name is the registered account holder name
-        String effectiveCustomerName = req.getCustomerName();
-        if (req.getCustomerEmail() != null && !req.getCustomerEmail().trim().isEmpty()) {
-            Optional<CustomerUser> userOpt = customerUserRepository
-                    .findByEmailIgnoreCase(req.getCustomerEmail().trim());
-            if (userOpt.isPresent() && userOpt.get().getFullName() != null
-                    && !userOpt.get().getFullName().trim().isEmpty()) {
-                effectiveCustomerName = userOpt.get().getFullName();
-            }
-        }
-        if (effectiveCustomerName == null || effectiveCustomerName.trim().isEmpty()) {
-            effectiveCustomerName = "Valued Customer";
-        }
+        BigDecimal finalTotal = totalAmount.add(shippingFee);
+
+        // Derive Customer Details
+        String custName = req.getCustomerName() != null ? req.getCustomerName() : "Atomy Direct Customer";
+        String custEmail = req.getCustomerEmail() != null ? req.getCustomerEmail() : "guest@atomy.in";
+        String custPhone = req.getCustomerPhone() != null ? req.getCustomerPhone() : "+91 9876543210";
+        String shipAddr = req.getShippingAddress() != null ? req.getShippingAddress() : "Standard Home Delivery";
+        String city = req.getCity() != null ? req.getCity() : "Gurugram";
+        String state = req.getState() != null ? req.getState() : "Haryana";
+        String pincode = req.getPincode() != null ? req.getPincode() : "122001";
+
+        CustomerOrder.PaymentMethod paymentMethod = req.getPaymentMethod() != null
+                ? req.getPaymentMethod()
+                : CustomerOrder.PaymentMethod.ONLINE_UPI;
+
+        // Calculate Guaranteed SLA Dates (Standard: 2 Days; High Terrain/J&K/NE: 3 Days)
+        boolean isRemote = state != null && (state.equalsIgnoreCase("Jammu & Kashmir") ||
+                state.equalsIgnoreCase("Ladakh") ||
+                state.equalsIgnoreCase("Assam") ||
+                state.equalsIgnoreCase("Meghalaya") ||
+                state.equalsIgnoreCase("Arunachal Pradesh") ||
+                state.equalsIgnoreCase("Nagaland") ||
+                state.equalsIgnoreCase("Manipur") ||
+                state.equalsIgnoreCase("Mizoram") ||
+                state.equalsIgnoreCase("Tripura") ||
+                state.equalsIgnoreCase("Sikkim") ||
+                state.equalsIgnoreCase("Himachal Pradesh") ||
+                state.equalsIgnoreCase("Uttarakhand"));
+
+        LocalDateTime baseDate = LocalDateTime.now();
+        LocalDateTime deliveryDate = isRemote ? baseDate.plusDays(3) : baseDate.plusDays(2);
+        String staticDeliveryTimeFrame = deliveryDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
 
         CustomerOrder order = new CustomerOrder(
                 orderId,
-                effectiveCustomerName,
-                req.getCustomerEmail(),
-                req.getCustomerPhone(),
-                req.getShippingAddress(),
-                req.getCity(),
-                req.getState(),
-                req.getPincode(),
+                custName,
+                custEmail,
+                custPhone,
+                shipAddr,
+                city,
+                state,
+                pincode,
                 finalTotal,
                 shippingFee,
-                req.getPaymentMethod() != null ? req.getPaymentMethod() : CustomerOrder.PaymentMethod.ONLINE_UPI);
+                paymentMethod);
+        order.setOrderStatus(CustomerOrder.OrderStatus.PLACED);
+        order.setPaymentStatus(CustomerOrder.PaymentStatus.PAID);
+        order.setEstimatedDelivery(isRemote ? "Within 3 Days (High Terrain Guaranteed)" : "Within 2 Days");
+        order.setEstimatedDeliveryDate(staticDeliveryTimeFrame);
+        order.setCreatedAt(LocalDateTime.now());
+        order.setOrderSource(req.getOrderSource() != null ? req.getOrderSource() : "WEB_BROWSER");
+        order.setFulfillmentType(req.getFulfillmentType() != null && !req.getFulfillmentType().trim().isEmpty()
+                ? req.getFulfillmentType()
+                : "COURIER_DELIVERY");
 
-        // Order Source (Web Browser vs Mobile App)
-        String src = (req.getOrderSource() != null && !req.getOrderSource().trim().isEmpty())
-                ? req.getOrderSource().trim().toUpperCase()
-                : "WEB_BROWSER";
-        order.setOrderSource(src);
-
-        // Fulfillment Type & Direct Hub Pickup Handling
-        String fType = (req.getFulfillmentType() != null && !req.getFulfillmentType().trim().isEmpty())
-                ? req.getFulfillmentType().trim().toUpperCase()
-                : "COURIER_DELIVERY";
-        order.setFulfillmentType(fType);
-        if ("STORE_PICKUP".equals(fType)) {
-            order.setPickupStatus("PENDING_PACKING");
-            order.setShippingFee(BigDecimal.ZERO);
-            if (req.getHubAddress() != null && !req.getHubAddress().trim().isEmpty()) {
-                order.setHubAddress(req.getHubAddress().trim());
+        // Auto-assign Territorial Regional Hub by Delivery Pincode
+        if (pincode != null && !pincode.trim().isEmpty()) {
+            String pin = pincode.trim();
+            Optional<DistributorUser> distOpt = distributorRepository.findByAssignedPincodesContaining(pin).stream().findFirst();
+            if (!distOpt.isPresent()) {
+                distOpt = distributorRepository.findByPrimaryPincode(pin).stream().findFirst();
             }
-        }
-
-        // Determine static delivery date: 2 business days for standard nearby hub, 3
-        // days for remote mountain/forest
-        String addressText = (String.valueOf(req.getShippingAddress()) + " "
-                + String.valueOf(req.getCity()) + " "
-                + String.valueOf(req.getState()) + " "
-                + String.valueOf(req.getPincode())).toLowerCase();
-        boolean isRemote = addressText.matches(
-                ".*(forest|mountain|hill|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur).*");
-        int slaDays = isRemote ? 3 : 2;
-        LocalDateTime targetDate = LocalDateTime.now().plusDays(slaDays);
-        String staticDeliveryDateStr = targetDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
-        String staticDeliveryTimeFrame = isRemote ? "Within 3 Days (Remote Mountain/Forest Area)"
-                : "Within 2 Days (Nearby Hub)";
-
-        order.setEstimatedDeliveryDate(staticDeliveryDateStr);
-        order.setEstimatedDelivery(staticDeliveryTimeFrame);
-
-        // Auto-Route to local assigned distributor by shipping delivery PIN code
-        String pin = req.getPincode() != null ? req.getPincode().trim() : "";
-        if (!pin.isEmpty()) {
-            Optional<DistributorUser> distOpt = distributorRepository
-                    .findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER")
-                    .or(() -> distributorRepository.findByPrimaryPincode(pin).stream().findFirst())
-                    .or(() -> distributorRepository.findByAssignedPincodesContaining(pin));
-
-            if (distOpt.isEmpty()) {
-                Optional<IndiaPincode> pinOpt = indiaPincodeRepository.findByPincode(pin);
-                if (pinOpt.isPresent() && pinOpt.get().getAssignedDistributorId() != null
-                        && !pinOpt.get().getAssignedDistributorId().trim().isEmpty()) {
-                    distOpt = distributorRepository.findByDistributorId(pinOpt.get().getAssignedDistributorId());
-                }
-            }
-
-            // Strict PIN routing only: orders are never assigned across different PIN codes
-            // via city/district fallback.
 
             if (distOpt.isPresent()) {
                 DistributorUser resolvedDist = distOpt.get();
@@ -334,8 +305,8 @@ public class CustomerService {
         CustomerOrder savedOrder = orderRepository.save(order);
         orderItemRepository.saveAll(orderItems);
 
-        // Deduct regional warehouse stock from distributor inventory
-        if (!"CENTRAL_SUPER_HUB".equals(savedOrder.getAssignedDistributorId())) {
+        // Deduct regional warehouse stock from distributor inventory (shared by Primary Distributor and Co-Manager)
+        if (savedOrder.getAssignedDistributorId() != null && !"CENTRAL_SUPER_HUB".equals(savedOrder.getAssignedDistributorId())) {
             String distId = savedOrder.getAssignedDistributorId();
             for (OrderItem oi : orderItems) {
                 String pId = oi.getProductId();
@@ -350,10 +321,9 @@ public class CustomerService {
             }
         }
 
-        // Initialize Live Order Tracking Record with Initial Checkpoint
+        // Initialize Live Order Tracking Record
         String trackingNumber = "ATMY-" + timestamp + "-" + (100000 + new Random().nextInt(900000));
-        String initialCheckpoint = "[{\"timestamp\":\"" + LocalDateTime.now()
-                + "\",\"status\":\"ORDER_PLACED\",\"location\":\"Online System\",\"description\":\"Order received and confirmed successfully.\"}]";
+        String initialCheckpoint = "[]";
 
         OrderTracking tracking = new OrderTracking(
                 savedOrder.getOrderId(),
@@ -376,10 +346,10 @@ public class CustomerService {
         // Live notification for the customer
         try {
             if (savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().trim().isEmpty()) {
-                com.example.atomy_india.model.CustomerNotification notif = new com.example.atomy_india.model.CustomerNotification(
+                CustomerNotification notif = new CustomerNotification(
                         savedOrder.getCustomerEmail().trim().toLowerCase(),
                         "Order #" + savedOrder.getOrderId() + " Confirmed & Placed",
-                        "Your order for " + orderItems.size() + " item(s) totaling ₹"
+                        "Your order for " + orderItems.size() + " item(s) totaling Rs."
                                 + String.format(java.util.Locale.ENGLISH, "%.2f", savedOrder.getTotalAmount())
                                 + " has been placed. Packaging and dispatch initiated.",
                         "order_placed",
@@ -427,8 +397,7 @@ public class CustomerService {
             return byTracking;
         }
 
-        // 3. Fallback: Check orderRepository. If order exists, auto-generate tracking
-        // entity and persist
+        // 3. Fallback: Check orderRepository
         Optional<CustomerOrder> orderOpt = orderRepository.findById(cleanId);
         if (!orderOpt.isPresent()) {
             orderOpt = orderRepository.findAll().stream()
@@ -440,16 +409,11 @@ public class CustomerService {
             CustomerOrder order = orderOpt.get();
             String awb = "BD" + (100000000 + Math.abs(order.getOrderId().hashCode() % 900000000)) + "IN";
             String estDelivery = order.getEstimatedDeliveryDate() != null
-                    ? order.getEstimatedDeliveryDate() + " ("
-                            + (order.getEstimatedDelivery() != null ? order.getEstimatedDelivery() : "Within 2 Days")
-                            + ")"
-                    : (order.getEstimatedDelivery() != null ? order.getEstimatedDelivery()
-                            : "Within 2 - 3 business days");
+                    ? order.getEstimatedDeliveryDate()
+                    : "Within 2 - 3 business days";
             String initialStatus = order.getOrderStatus() != null ? order.getOrderStatus().name() : "PLACED";
 
-            String initCheckpoints = "[{\"timestamp\":\""
-                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"))
-                    + "\",\"status\":\"ORDER_PLACED\",\"location\":\"Gurugram Central Fulfillment Center\",\"description\":\"Order received and confirmed. Package is being prepared for dispatch.\"}]";
+            String initCheckpoints = "[]";
 
             OrderTracking newTracking = new OrderTracking(
                     order.getOrderId(),

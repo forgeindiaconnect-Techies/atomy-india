@@ -143,6 +143,13 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
+.product-cards-slider.mobile-two-col-grid .product-card,
+.product-cards-slider.best-products-display.mobile-two-col-grid .product-card {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 .product-card:hover {
   transform: translateY(-5px);
 }
@@ -784,19 +791,23 @@
   }
 
   /* Mobile 2-in-a-row Grid for Best Products */
-  .product-cards-slider.best-products-display.mobile-two-col-grid {
+  .product-cards-slider.best-products-display.mobile-two-col-grid,
+  .product-cards-slider.best-products-display {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 14px 10px !important;
+    gap: 12px 10px !important;
     align-items: stretch !important;
-    overflow-x: visible !important;
+    overflow-x: hidden !important;
     padding: 4px 0 16px !important;
     width: 100% !important;
+    box-sizing: border-box !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-card {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-card,
+  .product-cards-slider.best-products-display .product-card {
     flex: none !important;
     width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -814,7 +825,8 @@
   }
 
   /* Image box takes exactly the picture width/aspect-ratio 1:1 with zero empty card space */
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-img-wrap {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-img-wrap,
+  .product-cards-slider.best-products-display .product-img-wrap {
     width: 100% !important;
     max-width: 100% !important;
     aspect-ratio: 1 / 1 !important;
@@ -830,7 +842,8 @@
     display: block !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-img {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-img,
+  .product-cards-slider.best-products-display .product-img {
     width: 100% !important;
     height: 100% !important;
     aspect-ratio: 1 / 1 !important;
@@ -842,7 +855,8 @@
   }
 
   /* Quick Add to Cart button contained cleanly inside the product picture at the bottom-right */
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn,
+  .product-cards-slider.best-products-display .product-cart-quick-btn {
     position: absolute !important;
     bottom: 8px !important;
     right: 8px !important;
@@ -862,21 +876,27 @@
     cursor: pointer !important;
     pointer-events: auto !important;
     margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn:active {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn:active,
+  .product-cards-slider.best-products-display .product-cart-quick-btn:active {
     transform: scale(0.92) !important;
     background: #0284c7 !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn svg {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn svg,
+  .product-cards-slider.best-products-display .product-cart-quick-btn svg {
     width: 16px !important;
     height: 16px !important;
     color: #ffffff !important;
     stroke: #ffffff !important;
+    display: block !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-rank-badge {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-rank-badge,
+  .product-cards-slider.best-products-display .product-rank-badge {
     font-size: 11px !important;
     padding: 3px 8px !important;
     top: 0 !important;
@@ -885,7 +905,8 @@
   }
 
   /* GST Reduced flag seal contained cleanly inside the product picture at top-left */
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-gst-badge {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-gst-badge,
+  .product-cards-slider.best-products-display .product-gst-badge {
     position: absolute !important;
     top: 6px !important;
     left: 6px !important;
@@ -899,7 +920,8 @@
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.22)) !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-info-wrap {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-info-wrap,
+  .product-cards-slider.best-products-display .product-info-wrap {
     padding: 8px 8px 10px !important;
     display: flex !important;
     flex-direction: column !important;
@@ -910,11 +932,13 @@
     background: #ffffff !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-title {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-title,
+  .product-cards-slider.best-products-display .product-title {
     font-size: 13px !important;
     line-height: 1.35 !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
     height: 35px !important;
@@ -923,11 +947,13 @@
   }
 
   /* Remove GST reduced tag space from inside card body - kept strictly on top of product image */
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-tags-row {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .product-tags-row,
+  .product-cards-slider.best-products-display .product-tags-row {
     display: none !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .free-delivery-badge {
+  .product-cards-slider.best-products-display.mobile-two-col-grid .free-delivery-badge,
+  .product-cards-slider.best-products-display .free-delivery-badge {
     margin-top: 6px !important;
     font-size: 11px !important;
     padding: 2px 7px !important;
@@ -991,7 +1017,8 @@
 }
 
 @media (max-width: 640px) {
-  .product-card, .hair-body-cards .product-card {
+  .product-cards-slider:not(.best-products-display):not(.mobile-two-col-grid) .product-card,
+  .hair-body-cards .product-card {
     flex: 0 0 195px;
   }
 }
@@ -1002,7 +1029,8 @@
     letter-spacing: -0.3px;
     line-height: 1.25;
   }
-  .product-cards-slider:not(.best-products-display) .product-card, .hair-body-cards .product-card {
+  .product-cards-slider:not(.best-products-display):not(.mobile-two-col-grid) .product-card,
+  .hair-body-cards .product-card {
     flex: 0 0 168px;
   }
   .product-info-details {

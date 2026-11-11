@@ -60,11 +60,13 @@ public class AdminService {
                         orderRepository.delete(o);
                         trackingRepository.findAllByOrderId(o.getOrderId()).forEach(trackingRepository::delete);
                     });
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     public void deleteOrder(String orderId) {
-        if (orderId == null || orderId.trim().isEmpty()) return;
+        if (orderId == null || orderId.trim().isEmpty())
+            return;
         String cleanId = orderId.trim();
         orderRepository.deleteById(cleanId);
         orderItemRepository.findAll().stream()
@@ -117,7 +119,8 @@ public class AdminService {
                 : orderRepository.findAllByOrderByCreatedAtDesc();
 
         for (CustomerOrder o : orders) {
-            if (o.getEstimatedDeliveryDate() == null || o.getEstimatedDelivery() == null || o.getEstimatedDelivery().contains("5-8") || o.getEstimatedDelivery().contains("5 - 8")) {
+            if (o.getEstimatedDeliveryDate() == null || o.getEstimatedDelivery() == null
+                    || o.getEstimatedDelivery().contains("5-8") || o.getEstimatedDelivery().contains("5 - 8")) {
                 LocalDateTime base = (o.getCreatedAt() != null) ? o.getCreatedAt() : LocalDateTime.now();
                 if (o.getOrderId() != null && o.getOrderId().matches("^ORD-\\d{8}.*")) {
                     try {
@@ -126,18 +129,21 @@ public class AdminService {
                         int m = Integer.parseInt(ymd.substring(4, 6));
                         int d = Integer.parseInt(ymd.substring(6, 8));
                         base = LocalDateTime.of(y, m, d, 12, 0);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
                 boolean isRemote = isRemoteTerrain(o);
                 int sla = isRemote ? 3 : 2;
                 LocalDateTime target = base.plusDays(sla);
                 String dateStr = target.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
-                String timeFrame = isRemote ? "Within 3 Days (Remote Mountain/Forest Area)" : "Within 2 Days (Nearby Hub)";
+                String timeFrame = isRemote ? "Within 3 Days (Remote Mountain/Forest Area)"
+                        : "Within 2 Days (Nearby Hub)";
                 o.setEstimatedDeliveryDate(dateStr);
                 o.setEstimatedDelivery(timeFrame);
                 try {
                     orderRepository.save(o);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
         }
         return orders;
@@ -156,12 +162,15 @@ public class AdminService {
         order.setOrderStatus(newStatus);
         if (newStatus == CustomerOrder.OrderStatus.READY_FOR_PICKUP) {
             order.setPickupStatus("READY_FOR_PICKUP");
-        } else if (newStatus == CustomerOrder.OrderStatus.DELIVERED && "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType())) {
+        } else if (newStatus == CustomerOrder.OrderStatus.DELIVERED
+                && "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType())) {
             order.setPickupStatus("COLLECTED");
-        } else if (newStatus == CustomerOrder.OrderStatus.PROCESSING && "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType())) {
+        } else if (newStatus == CustomerOrder.OrderStatus.PROCESSING
+                && "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType())) {
             order.setPickupStatus("PENDING_PACKING");
         }
-        if (newStatus == CustomerOrder.OrderStatus.DELIVERED && order.getPaymentStatus() == CustomerOrder.PaymentStatus.PENDING) {
+        if (newStatus == CustomerOrder.OrderStatus.DELIVERED
+                && order.getPaymentStatus() == CustomerOrder.PaymentStatus.PENDING) {
             order.setPaymentStatus(CustomerOrder.PaymentStatus.PAID);
         }
 
@@ -205,7 +214,8 @@ public class AdminService {
             try {
                 Optional<OrderTracking> trOpt = trackingRepository.findFirstByOrderId(orderId);
                 brevoEmailService.sendOrderShipped(savedOrder, trOpt.orElse(null));
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
 
         // Live notification for the customer on order status update
@@ -232,10 +242,10 @@ public class AdminService {
                         title,
                         message,
                         type,
-                        orderId
-                ));
+                        orderId));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         return savedOrder;
     }
@@ -252,15 +262,20 @@ public class AdminService {
                 .orElse(new OrderTracking(orderId, req.getTrackingNumber(), req.getCourierPartner(),
                         "SHIPPED", req.getInitialLocation(), req.getEstimatedDelivery(), "[]"));
 
-        if (req.getCourierPartner() != null) tracking.setCourierPartner(req.getCourierPartner());
-        if (req.getTrackingNumber() != null) tracking.setTrackingNumber(req.getTrackingNumber());
-        if (req.getEstimatedDelivery() != null) tracking.setEstimatedDelivery(req.getEstimatedDelivery());
-        if (req.getInitialLocation() != null) tracking.setCurrentLocation(req.getInitialLocation());
+        if (req.getCourierPartner() != null)
+            tracking.setCourierPartner(req.getCourierPartner());
+        if (req.getTrackingNumber() != null)
+            tracking.setTrackingNumber(req.getTrackingNumber());
+        if (req.getEstimatedDelivery() != null)
+            tracking.setEstimatedDelivery(req.getEstimatedDelivery());
+        if (req.getInitialLocation() != null)
+            tracking.setCurrentLocation(req.getInitialLocation());
 
         tracking.setCurrentStatus("SHIPPED");
 
         // Append new checkpoint to JSON
-        String newCheckpoint = "{\"timestamp\":\"" + LocalDateTime.now() + "\",\"status\":\"DISPATCHED\",\"location\":\""
+        String newCheckpoint = "{\"timestamp\":\"" + LocalDateTime.now()
+                + "\",\"status\":\"DISPATCHED\",\"location\":\""
                 + (req.getInitialLocation() != null ? req.getInitialLocation() : "Fulfillment Center")
                 + "\",\"description\":\"Package dispatched via " + tracking.getCourierPartner()
                 + " with AWB " + tracking.getTrackingNumber() + "\"}";
@@ -277,7 +292,8 @@ public class AdminService {
         // Dispatch Order Shipped email via Brevo
         try {
             brevoEmailService.sendOrderShipped(order, savedTracking);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
 
         // Live notification for the customer on dispatch
         try {
@@ -290,10 +306,10 @@ public class AdminService {
                         "Order #" + orderId + " Out for Delivery",
                         "Your package is on its way" + courierText + ". Expected delivery within 24-48 hours.",
                         "order_transit",
-                        orderId
-                ));
+                        orderId));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         return savedTracking;
     }
@@ -312,7 +328,8 @@ public class AdminService {
                     order.setOrderStatus(os);
                     orderRepository.save(order);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         if (req.getLocation() != null) {
@@ -349,17 +366,23 @@ public class AdminService {
         Inventory inv = inventoryRepository.findByProductId(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Inventory not found for product: " + productId));
 
-        if (req.isAbsolute()) {
-            inv.updateStock(req.getQuantity());
-        } else {
-            inv.updateStock(inv.getStockQuantity() + req.getQuantity());
-        }
+        int newStock = req.isAbsolute() ? req.getQuantity() : (inv.getStockQuantity() + req.getQuantity());
+        inv.updateStock(newStock);
 
         if (req.getLowStockThreshold() != null && req.getLowStockThreshold() > 0) {
             inv.setLowStockThreshold(req.getLowStockThreshold());
         }
 
-        return inventoryRepository.save(inv);
+        Inventory savedInv = inventoryRepository.save(inv);
+
+        // Synchronize product catalog stock
+        productRepository.findById(productId).ifPresent(p -> {
+            p.setStockQuantity(newStock);
+            p.setInStock(newStock > 0);
+            productRepository.save(p);
+        });
+
+        return savedInv;
     }
 
     // --- 4. Products Management ---
@@ -368,7 +391,8 @@ public class AdminService {
     public Product saveOrUpdateProduct(Product product) {
         Product saved = productRepository.save(product);
 
-        // Ensure matching inventory record exists or synchronize existing inventory record
+        // Ensure matching inventory record exists or synchronize existing inventory
+        // record
         Optional<Inventory> invOpt = inventoryRepository.findByProductId(saved.getId());
         if (invOpt.isPresent()) {
             Inventory inv = invOpt.get();
@@ -377,7 +401,8 @@ public class AdminService {
                 inv.setStockQuantity(saved.getStockQuantity());
                 if (saved.getStockQuantity() <= 0) {
                     inv.setStatus(Inventory.StockStatus.OUT_OF_STOCK);
-                } else if (saved.getLowStockThreshold() != null && saved.getStockQuantity() <= saved.getLowStockThreshold()) {
+                } else if (saved.getLowStockThreshold() != null
+                        && saved.getStockQuantity() <= saved.getLowStockThreshold()) {
                     inv.setStatus(Inventory.StockStatus.LOW_STOCK);
                 } else {
                     inv.setStatus(Inventory.StockStatus.IN_STOCK);
@@ -390,7 +415,8 @@ public class AdminService {
         } else {
             int initialStock = saved.getStockQuantity() != null ? saved.getStockQuantity() : 50;
             int initialLow = saved.getLowStockThreshold() != null ? saved.getLowStockThreshold() : 10;
-            Inventory inv = new Inventory(saved.getId(), saved.getName(), "SKU-" + saved.getId(), initialStock, initialLow);
+            Inventory inv = new Inventory(saved.getId(), saved.getName(), "SKU-" + saved.getId(), initialStock,
+                    initialLow);
             inventoryRepository.save(inv);
         }
 
@@ -399,7 +425,8 @@ public class AdminService {
 
     @Transactional
     public void deleteOrDeactivateProduct(String productId) {
-        if (productId == null) return;
+        if (productId == null)
+            return;
         productRepository.findById(productId).ifPresent(product -> {
             product.setActive(false);
             productRepository.save(product);
@@ -476,20 +503,26 @@ public class AdminService {
                     }
 
                     String pId = it.getString("product_id");
-                    if (pId == null) pId = it.getString("productId");
-                    if (pId == null) pId = "D92676";
+                    if (pId == null)
+                        pId = it.getString("productId");
+                    if (pId == null)
+                        pId = "D92676";
                     it.put("product_id", pId);
                     it.put("productId", pId);
 
                     String pName = it.getString("product_name");
-                    if (pName == null) pName = it.getString("productName");
-                    if (pName == null) pName = "Atomy Premium Cotton T-Shirt";
+                    if (pName == null)
+                        pName = it.getString("productName");
+                    if (pName == null)
+                        pName = "Atomy Premium Cotton T-Shirt";
                     it.put("product_name", pName);
                     it.put("productName", pName);
 
                     String pImg = it.getString("product_image");
-                    if (pImg == null) pImg = it.getString("productImage");
-                    if (pImg == null) pImg = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
+                    if (pImg == null)
+                        pImg = it.getString("productImage");
+                    if (pImg == null)
+                        pImg = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
                     it.put("product_image", pImg);
                     it.put("productImage", pImg);
 
@@ -514,14 +547,12 @@ public class AdminService {
                     mongoTemplate.getCollection("order_items").replaceOne(
                             new org.bson.Document("_id", itemId),
                             orderItemDoc,
-                            new com.mongodb.client.model.ReplaceOptions().upsert(true)
-                    );
+                            new com.mongodb.client.model.ReplaceOptions().upsert(true));
                 }
                 if (orderModified) {
                     mongoTemplate.getCollection("customer_orders").replaceOne(
                             new org.bson.Document("_id", orderId),
-                            orderDoc
-                    );
+                            orderDoc);
                 }
             }
         }
@@ -529,14 +560,17 @@ public class AdminService {
         return java.util.Map.of("beforeCount", beforeCount, "afterCount", afterCount, "status", "SUCCESS");
     }
 
-    // Remote terrain detection helper: forest, mountain, ghats, or hill areas where transportation is limited
+    // Remote terrain detection helper: forest, mountain, ghats, or hill areas where
+    // transportation is limited
     private boolean isRemoteTerrain(CustomerOrder order) {
-        if (order == null) return false;
+        if (order == null)
+            return false;
         String text = (String.valueOf(order.getShippingAddress()) + " "
                 + String.valueOf(order.getCity()) + " "
                 + String.valueOf(order.getState()) + " "
                 + String.valueOf(order.getPincode())).toLowerCase();
-        return text.matches(".*(forest|mountain|hill|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur).*");
+        return text.matches(
+                ".*(forest|mountain|hill|ghat|ooty|nilgiris|kodaikanal|yercaud|munnar|wayanad|valparai|coonoor|shimla|manali|kullu|leh|ladakh|jammu|kashmir|uttarkashi|chamoli|nainital|mussoorie|arunachal|sikkim|meghalaya|nagaland|mizoram|manipur).*");
     }
 
     @Transactional
@@ -557,10 +591,11 @@ public class AdminService {
         LocalDateTime base = (order.getCreatedAt() != null) ? order.getCreatedAt() : LocalDateTime.now();
         LocalDateTime deadline = base.plusDays(slaDays);
         long delayDays = java.time.Duration.between(deadline, LocalDateTime.now()).toDays();
-        if (delayDays < 1) delayDays = 1;
+        if (delayDays < 1)
+            delayDays = 1;
 
-        String expectedDateStr = (estDelivery != null && !estDelivery.trim().isEmpty()) ? estDelivery :
-                deadline.plusDays(1).format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
+        String expectedDateStr = (estDelivery != null && !estDelivery.trim().isEmpty()) ? estDelivery
+                : deadline.plusDays(1).format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
 
         brevoEmailService.sendOrderDelayedApology(order, (int) delayDays, expectedDateStr, courier, awb);
 

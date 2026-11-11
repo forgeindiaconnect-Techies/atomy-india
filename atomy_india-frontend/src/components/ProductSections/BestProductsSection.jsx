@@ -187,6 +187,7 @@ export default function BestProductsSection({
                       style={{ cursor: 'pointer', opacity: isOutOfStock ? 0.6 : 1, filter: isOutOfStock ? 'grayscale(20%)' : 'none' }}
                     />
                     <button
+                      type="button"
                       className="product-cart-quick-btn"
                       disabled={isOutOfStock}
                       style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' } : {}}

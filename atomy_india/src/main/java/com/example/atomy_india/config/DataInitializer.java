@@ -435,8 +435,10 @@ public class DataInitializer implements CommandLineRunner {
                     distributorInventoryRepository.delete(inv);
                 } else {
                     seenProductIds.add(inv.getProductId());
-                    inv.setStockQuantity(50);
-                    inv.setAvailable(true);
+                    // Preserve real-time live stock! Never overwrite with 50!
+                    if (inv.getStockQuantity() <= 0) {
+                        inv.setAvailable(false);
+                    }
                     distributorInventoryRepository.save(inv);
                 }
             }
@@ -464,6 +466,40 @@ public class DataInitializer implements CommandLineRunner {
                     seenProductIds.add(p.getId());
                 }
             }
+
+            // Reconcile live inventory with actually placed non-cancelled orders for DIST-635002
+            try {
+                java.util.Map<String, Integer> orderedQuantities = new java.util.HashMap<>();
+                Query q = new Query(Criteria.where("assignedDistributorId").is("DIST-635002")
+                        .and("orderStatus").ne(CustomerOrder.OrderStatus.CANCELLED));
+                List<CustomerOrder> selvaPlacedOrders = mongoTemplate.find(q, CustomerOrder.class);
+                for (CustomerOrder o : selvaPlacedOrders) {
+                    if (o.getItems() != null) {
+                        for (OrderItem item : o.getItems()) {
+                            if (item.getProductId() != null) {
+                                int count = item.getQuantity() > 0 ? item.getQuantity() : 1;
+                                orderedQuantities.put(item.getProductId(), orderedQuantities.getOrDefault(item.getProductId(), 0) + count);
+                            }
+                        }
+                    }
+                }
+                for (DistributorInventory inv : distributorInventoryRepository.findByDistributorId("DIST-635002")) {
+                    if (orderedQuantities.containsKey(inv.getProductId())) {
+                        int qtyOrdered = orderedQuantities.get(inv.getProductId());
+                        // If stock was reset to 50, deduct the ordered units so live count matches actual remaining inventory
+                        if (inv.getStockQuantity() >= 50) {
+                            int realStock = Math.max(0, 50 - qtyOrdered);
+                            inv.setStockQuantity(realStock);
+                            inv.setAvailable(realStock > 0);
+                            distributorInventoryRepository.save(inv);
+                            System.out.println(">>> Reconciled DIST-635002 live stock: " + inv.getProductId() + " (" + inv.getProductName() + ") -> " + realStock + " units (" + qtyOrdered + " ordered)");
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Notice: Could not reconcile distributor inventory: " + e.getMessage());
+            }
+
             System.out.println(">>> Cleaned distributor_inventory: Selva (DIST-635002) now has exactly " + seenProductIds.size() + " live stocked products in MongoDB.");
 
             // 6. Reconcile Absolute Skincare Set price to 17228.00 in products catalog
