@@ -40,9 +40,9 @@ public class CustomerProductController {
         String pin = cleanPin.trim();
 
         // 1. Direct primary PIN or explicitly assigned PIN match (strictly 1 distributor per PIN code)
-        Optional<DistributorUser> distOpt = distributorRepository.findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER")
+        Optional<DistributorUser> distOpt = distributorRepository.findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER").stream().findFirst()
                 .or(() -> distributorRepository.findByPrimaryPincode(pin).stream().findFirst())
-                .or(() -> distributorRepository.findByAssignedPincodesContaining(pin));
+                .or(() -> distributorRepository.findByAssignedPincodesContaining(pin).stream().findFirst());
         if (distOpt.isPresent()) return distOpt;
 
         // 2. India Pincode master table assignment check

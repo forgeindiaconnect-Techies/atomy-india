@@ -29,9 +29,12 @@ import {
   processDistributorRefund,
   processDistributorReplacement
 } from '../../services/distributorService';
+import { isDemoTicket } from '../../services/api';
 import '../Admin/AdminDashboard.css';
 
-const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const defaultBaseUrl = isLocalhost ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
+const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).trim().replace(/\/+$/, '');
 const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 export default function DistributorSupportPage({ distributor, orders = [], customers = [] }) {
@@ -93,9 +96,16 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          setTickets(data);
-          if (data.length > 0 && !selectedTicket) {
-            setSelectedTicket(data[0]);
+          const clean = data.filter(t => !isDemoTicket(t));
+          setTickets(clean);
+          try {
+            localStorage.setItem('atomy_admin_tickets', JSON.stringify(clean));
+            window.dispatchEvent(new Event('atomy:ticket-updated'));
+          } catch {}
+          if (clean.length > 0 && !selectedTicket) {
+            setSelectedTicket(clean[0]);
+          } else if (clean.length === 0) {
+            setSelectedTicket(null);
           }
           return;
         }
@@ -105,20 +115,44 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          setTickets(parsed);
-          if (parsed.length > 0 && !selectedTicket) {
-            setSelectedTicket(parsed[0]);
+          const clean = parsed.filter(t => !isDemoTicket(t));
+          setTickets(clean);
+          try {
+            localStorage.setItem('atomy_admin_tickets', JSON.stringify(clean));
+            window.dispatchEvent(new Event('atomy:ticket-updated'));
+          } catch {}
+          if (clean.length > 0 && !selectedTicket) {
+            setSelectedTicket(clean[0]);
+          } else if (clean.length === 0) {
+            setSelectedTicket(null);
           }
+          return;
         }
       }
+      setTickets([]);
+      setSelectedTicket(null);
     } catch (err) {
       console.warn('Using local tickets fallback:', err.message);
       const saved = localStorage.getItem('atomy_admin_tickets');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          setTickets(Array.isArray(parsed) ? parsed : []);
-        } catch {}
+          const clean = Array.isArray(parsed) ? parsed.filter(t => !isDemoTicket(t)) : [];
+          setTickets(clean);
+          localStorage.setItem('atomy_admin_tickets', JSON.stringify(clean));
+          window.dispatchEvent(new Event('atomy:ticket-updated'));
+          if (clean.length > 0 && !selectedTicket) {
+            setSelectedTicket(clean[0]);
+          } else if (clean.length === 0) {
+            setSelectedTicket(null);
+          }
+        } catch {
+          setTickets([]);
+          setSelectedTicket(null);
+        }
+      } else {
+        setTickets([]);
+        setSelectedTicket(null);
       }
     } finally {
       setIsLoading(false);
@@ -128,6 +162,15 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
   useEffect(() => {
     fetchTickets();
   }, []);
+
+  useEffect(() => {
+    if (Array.isArray(tickets)) {
+      try {
+        localStorage.setItem('atomy_admin_tickets', JSON.stringify(tickets));
+        window.dispatchEvent(new Event('atomy:ticket-updated'));
+      } catch {}
+    }
+  }, [tickets]);
 
   // Filtered tickets
   const filteredTickets = useMemo(() => {

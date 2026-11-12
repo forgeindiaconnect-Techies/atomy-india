@@ -10,43 +10,31 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import Svg, { SvgUri, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { CATEGORIES } from '../../data/mockData';
 import { COLORS } from '../../constants/theme';
+import SafeSvgUri from '../Common/SafeSvgUri';
 
 function CategoryIcon({ item, size = 32 }) {
-  const [hasSvgError, setHasSvgError] = useState(false);
-
-  // On Web, native <img> handles SVG perfectly
-  if (Platform.OS === 'web') {
-    return (
-      <Image
-        source={{ uri: item.icon }}
-        style={{ width: size, height: size }}
-        resizeMode="contain"
-      />
-    );
-  }
-
-  // On Native (Android / iOS)
-  if (!hasSvgError && item.icon) {
-    return (
-      <SvgUri
-        uri={item.icon}
-        width={size}
-        height={size}
-        onError={() => setHasSvgError(true)}
-      />
-    );
-  }
-
-  // Fallback to high-quality Ionicons with tailored category color
-  return (
+  const fallback = (
     <Ionicons
       name={item.fallbackIcon || 'grid-outline'}
       size={size - 4}
       color={item.color || COLORS.primary}
+    />
+  );
+
+  if (!item.icon) {
+    return fallback;
+  }
+
+  return (
+    <SafeSvgUri
+      uri={item.icon}
+      width={size}
+      height={size}
+      fallback={fallback}
     />
   );
 }

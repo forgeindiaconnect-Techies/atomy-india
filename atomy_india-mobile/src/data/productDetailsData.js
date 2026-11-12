@@ -27,16 +27,23 @@ const PARENT_MAP = {
 
 export function getOfficialProductDetails(productId, productName) {
   if (!productId && !productName) return null;
-  let targetId = productId;
+  const cleanId = String(productId || '').toUpperCase().trim();
+  let targetId = cleanId;
   if (!officialDetails[targetId] && PARENT_MAP[targetId]) {
     targetId = PARENT_MAP[targetId];
   }
+  if (!officialDetails[targetId] && officialDetails[productId]) {
+    targetId = productId;
+  }
   if (!officialDetails[targetId] && productName) {
-    const pLower = productName.toLowerCase();
+    const pLower = String(productName).toLowerCase().trim();
     for (const [id, data] of Object.entries(officialDetails)) {
-      if (pLower.includes(data.name.toLowerCase()) || data.name.toLowerCase().includes(pLower)) {
-        targetId = id;
-        break;
+      if (data && data.name) {
+        const dLower = data.name.toLowerCase().trim();
+        if (pLower.includes(dLower) || dLower.includes(pLower)) {
+          targetId = id;
+          break;
+        }
       }
     }
   }

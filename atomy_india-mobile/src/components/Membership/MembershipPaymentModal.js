@@ -44,11 +44,11 @@ export default function MembershipPaymentModal({
   const [paymentMethod, setPaymentMethod] = useState('UPI'); // 'UPI' | 'CARD' | 'NETBANKING'
   const [selectedUpiApp, setSelectedUpiApp] = useState('GPAY'); // 'GPAY' | 'PHONEPE' | 'PAYTM' | 'CUSTOM'
   const [customUpiId, setCustomUpiId] = useState('');
-  const [cardNumber, setCardNumber] = useState('4532 8920 1142 8821');
-  const [cardExpiry, setCardExpiry] = useState('08/29');
-  const [cardCvv, setCardCvv] = useState('821');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
   const [cardName, setCardName] = useState('');
-  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+  const [selectedBank, setSelectedBank] = useState('');
 
   const [errorMessage, setErrorMessage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -72,12 +72,8 @@ export default function MembershipPaymentModal({
       setName(defaultName);
       setEmail(defaultEmail);
       setPhone(defaultPhone);
-      setCardName(defaultName || 'Atomy Customer');
-      if (defaultEmail) {
-        setCustomUpiId(`${defaultEmail.split('@')[0]}@okhdfcbank`);
-      } else {
-        setCustomUpiId('customer@upi');
-      }
+      setCardName('');
+      setCustomUpiId('');
     }
   }, [visible, currentUser]);
 
@@ -191,10 +187,6 @@ export default function MembershipPaymentModal({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <View style={styles.badgeRow}>
-                <Ionicons name="shield-checkmark" size={13} color="#059669" />
-                <Text style={styles.badgeText}>256-BIT SECURE CHECKOUT</Text>
-              </View>
               <Text style={styles.headerTitle}>
                 {isCompleted ? 'Membership Activated 🎉' : 'Distributor Membership Payment'}
               </Text>

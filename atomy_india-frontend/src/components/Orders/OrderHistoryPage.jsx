@@ -265,13 +265,15 @@ export default function OrderHistoryPage({
   onNavigateHome, 
   onAddToCart, 
   onProductClick,
-  placedOrders = [] 
+  placedOrders = [],
+  initialOrderId = ''
 }) {
   const [selectedPeriod, setSelectedPeriod] = useState('all'); // 'today' | '1week' | '1month' | '3months' | '6months' | 'all'
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'Payment Completed' | 'Preparing Shipment' | 'In Transit' | 'Delivered' | 'Cancelled'
   const [searchQuery, setSearchQuery] = useState('');
   const [activeInvoiceOrder, setActiveInvoiceOrder] = useState(null);
   const [expandedOrderId, setExpandedOrderId] = useState(() => {
+    if (initialOrderId) return initialOrderId;
     try {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
@@ -280,6 +282,12 @@ export default function OrderHistoryPage({
     } catch (e) {}
     return null;
   });
+
+  useEffect(() => {
+    if (initialOrderId) {
+      setExpandedOrderId(initialOrderId);
+    }
+  }, [initialOrderId]);
 
   // Local overrides for cancellations, replacements, and returns
   const [localOrderOverrides, setLocalOrderOverrides] = useState({});
@@ -403,7 +411,7 @@ export default function OrderHistoryPage({
         if (Array.isArray(parsed)) {
           const cleanPlaced = parsed.filter(o => {
             const id = String(o.orderId || '').toUpperCase();
-            if (id.includes('3207') || id.includes('DEMO') || id.includes('TEST')) return false;
+            if (id.includes('4854') || id.includes('3207') || id.includes('DEMO') || id.includes('TEST')) return false;
             return true;
           });
           if (cleanPlaced.length !== parsed.length) {
@@ -434,7 +442,7 @@ export default function OrderHistoryPage({
     return (placedOrders || [])
       .filter(o => {
         const id = String(o.orderId || '').toUpperCase();
-        if (id.includes('3207') || id.includes('DEMO') || id.includes('TEST') || id.startsWith('ORD-20261005') || id.startsWith('ORD-20261008-3800') || id.startsWith('ORD-20261008-1863')) return false;
+        if (id.includes('4854') || id.includes('3207') || id.includes('DEMO') || id.includes('TEST') || id.startsWith('ORD-20261005') || id.startsWith('ORD-20261008-3800') || id.startsWith('ORD-20261008-1863') || id.startsWith('ORD-20261105')) return false;
         return true;
       })
       .map((o) => {

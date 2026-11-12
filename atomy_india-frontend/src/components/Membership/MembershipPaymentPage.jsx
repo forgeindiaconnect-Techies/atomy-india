@@ -35,14 +35,14 @@ export default function MembershipPaymentPage({
   }, [initialPlan]);
 
   const [paymentMethod, setPaymentMethod] = useState('UPI'); // 'UPI' | 'CARD' | 'NETBANKING'
-  const [upiId, setUpiId] = useState(currentUser?.email ? `${currentUser.email.split('@')[0]}@okhdfcbank` : 'naveen.mj2.45@okhdfcbank');
+  const [upiId, setUpiId] = useState('');
   const [selectedUpiApp, setSelectedUpiApp] = useState('gpay');
   const [showQrCode, setShowQrCode] = useState(false);
-  const [cardNumber, setCardNumber] = useState('4532 8920 1142 8821');
-  const [cardExpiry, setCardExpiry] = useState('08/29');
-  const [cardCvv, setCardCvv] = useState('821');
-  const [cardName, setCardName] = useState(currentUser?.name || 'Naveen Kumar');
-  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [selectedBank, setSelectedBank] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completedMember, setCompletedMember] = useState(null);
@@ -54,6 +54,11 @@ export default function MembershipPaymentPage({
   const handlePayNow = async (e) => {
     e.preventDefault();
     if (isProcessing) return;
+
+    if (paymentMethod === 'NETBANKING' && !selectedBank) {
+      alert('Please choose your bank for Net Banking.');
+      return;
+    }
 
     setIsProcessing(true);
 
@@ -268,12 +273,6 @@ export default function MembershipPaymentPage({
               <div className="checkout-main-card">
                 {/* Section Header */}
                 <div className="checkout-card-header">
-                  <div className="header-badge-row">
-                    <div className="secure-shield-tag">
-                      <Lock size={12} color="#059669" />
-                      <span>256-BIT SECURE CHECKOUT</span>
-                    </div>
-                  </div>
                   <h1 className="checkout-page-title">Distributor Membership Checkout</h1>
                   <p className="checkout-page-subtitle">
                     Select your payment method below to activate distributor pricing and personal PV accumulation.
@@ -419,7 +418,7 @@ export default function MembershipPaymentPage({
                               type="text"
                               value={upiId}
                               onChange={(e) => setUpiId(e.target.value)}
-                              placeholder="username@okhdfcbank"
+                              placeholder="e.g. mobile@upi / username@okhdfcbank"
                               required
                               className="vpa-text-input"
                             />
@@ -439,7 +438,8 @@ export default function MembershipPaymentPage({
                             type="text"
                             value={cardNumber}
                             onChange={(e) => setCardNumber(e.target.value)}
-                            placeholder="4532 •••• •••• 8821"
+                            placeholder="e.g. 4532 0000 0000 8821"
+                            maxLength="19"
                             required
                             className="vpa-text-input"
                           />
@@ -454,6 +454,7 @@ export default function MembershipPaymentPage({
                               value={cardExpiry}
                               onChange={(e) => setCardExpiry(e.target.value)}
                               placeholder="MM/YY"
+                              maxLength="5"
                               required
                               className="vpa-text-input"
                             />
@@ -467,7 +468,7 @@ export default function MembershipPaymentPage({
                               maxLength="4"
                               value={cardCvv}
                               onChange={(e) => setCardCvv(e.target.value)}
-                              placeholder="•••"
+                              placeholder="CVV"
                               required
                               className="vpa-text-input"
                             />
@@ -498,8 +499,10 @@ export default function MembershipPaymentPage({
                             id="netbanking-bank-select"
                             value={selectedBank}
                             onChange={(e) => setSelectedBank(e.target.value)}
+                            required
                             className="vpa-text-input bank-select"
                           >
+                            <option value="">-- Choose your bank --</option>
                             <option value="HDFC Bank">HDFC Bank</option>
                             <option value="ICICI Bank">ICICI Bank</option>
                             <option value="State Bank of India">State Bank of India (SBI)</option>

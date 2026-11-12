@@ -17,7 +17,7 @@ import { CATEGORIES, CATEGORY_CONFIGS, ALL_PRODUCTS } from '../../data/mockData'
 import { onCatalogUpdate, syncCatalogFromBackend } from '../../services/catalogSyncService';
 import { addLocationListener } from '../../services/locationService';
 import storageService from '../../services/storageService';
-import { fetchLiveProducts } from '../../services/api';
+import { fetchLiveProducts, resolveProductRegionalInventory } from '../../services/api';
 import LandingProductCard from '../Products/LandingProductCard';
 import HeroBannerCarousel from '../Banner/HeroBannerCarousel';
 import AtomyFooter from '../Navigation/AtomyFooter';
@@ -59,6 +59,7 @@ export default function CategoryPage({
   const categoryKey = useMemo(() => {
     if (!categoryId) return 'personal_care';
     const key = String(categoryId).toLowerCase().replace(/[\s-]+/g, '_');
+    if (key === 'etc' || key === 'others') return 'others';
     if (CATEGORY_CONFIGS[key]) return key;
     if (key === 'all_products' || key === 'all') return 'all_products';
     if (key === 'personal') return 'personal_care';
@@ -185,7 +186,7 @@ export default function CategoryPage({
   // Merge live regional hub inventory (stockQuantity, inStock, regionalHubName)
   const mergedProducts = useMemo(() => {
     return filteredProducts.map((p) => {
-      const live = liveProductsMap[p.id];
+      const live = liveProductsMap[p.id] || resolveProductRegionalInventory(p, currentPincode);
       if (live) {
         return {
           ...p,
@@ -214,7 +215,7 @@ export default function CategoryPage({
   const bestProducts = useMemo(() => {
     const list = categoryConfig.bestProducts || [];
     return list.map((p) => {
-      const live = liveProductsMap[p.id];
+      const live = liveProductsMap[p.id] || resolveProductRegionalInventory(p, currentPincode);
       if (live) {
         return {
           ...p,
@@ -327,7 +328,16 @@ export default function CategoryPage({
         </View>
       </View>
 
-      {/* 2. Sub-Header Bar: Category Title Switcher Dropdown Pill (Centered) */}
+      {/* 2. Regional Hub & Current Delivery Location Bar (Above category heading) */}
+      <DeliveryLocationBar
+        onLocationChange={(loc) => {
+          if (loc?.pincode) {
+            setCurrentPincode(loc.pincode);
+          }
+        }}
+      />
+
+      {/* 2.1 Sub-Header Bar: Category Title Switcher Dropdown Pill (Centered) */}
       <View style={styles.categorySubBar}>
         <TouchableOpacity
           style={styles.categoryTitlePill}
@@ -340,15 +350,6 @@ export default function CategoryPage({
           <Ionicons name="chevron-down" size={15} color="#0F172A" />
         </TouchableOpacity>
       </View>
-
-      {/* 2.1 Regional Hub & Current Delivery Location Bar */}
-      <DeliveryLocationBar
-        onLocationChange={(loc) => {
-          if (loc?.pincode) {
-            setCurrentPincode(loc.pincode);
-          }
-        }}
-      />
 
       <ScrollView
         style={styles.scrollArea}

@@ -233,9 +233,14 @@ public class CustomerService {
         // Auto-assign Territorial Regional Hub by Delivery Pincode
         if (pincode != null && !pincode.trim().isEmpty()) {
             String pin = pincode.trim();
-            Optional<DistributorUser> distOpt = distributorRepository.findByAssignedPincodesContaining(pin).stream().findFirst();
+            List<DistributorUser> byAssigned = distributorRepository.findByAssignedPincodesContaining(pin);
+            Optional<DistributorUser> distOpt = byAssigned.stream()
+                    .filter(d -> !"SUB_DISTRIBUTOR".equalsIgnoreCase(d.getDistributorRole()))
+                    .findFirst()
+                    .or(() -> byAssigned.stream().findFirst());
             if (!distOpt.isPresent()) {
-                distOpt = distributorRepository.findByPrimaryPincode(pin).stream().findFirst();
+                distOpt = distributorRepository.findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER").stream().findFirst()
+                        .or(() -> distributorRepository.findByPrimaryPincode(pin).stream().findFirst());
             }
 
             if (distOpt.isPresent()) {
@@ -254,6 +259,12 @@ public class CustomerService {
                 // Validate stock availability in the assigned regional hub
                 for (OrderItem oi : orderItems) {
                     Optional<DistributorInventory> diOpt = distributorInventoryRepository.findByDistributorIdAndProductId(distId, oi.getProductId());
+                    if (!diOpt.isPresent() && oi.getProductId() != null) {
+                        diOpt = distributorInventoryRepository.findByDistributorId(distId).stream()
+                                .filter(di -> (di.getProductId() != null && di.getProductId().equalsIgnoreCase(oi.getProductId()))
+                                        || (di.getProductName() != null && oi.getProductName() != null && di.getProductName().trim().equalsIgnoreCase(oi.getProductName().trim())))
+                                .findFirst();
+                    }
                     int available = diOpt.map(DistributorInventory::getStockQuantity).orElse(0);
                     boolean isAvail = diOpt.map(DistributorInventory::isAvailable).orElse(false);
                     int maxOrderable = Math.max(0, available - 1);
@@ -270,10 +281,15 @@ public class CustomerService {
                 order.setAssignedDistributorId(distId);
                 order.setAssignedDistributorName(
                         d.getBusinessName() != null ? d.getBusinessName() : "Regional Distributor");
-                if (order.getHubAddress() == null || order.getHubAddress().trim().isEmpty()) {
+                if (req.getHubAddress() != null && !req.getHubAddress().trim().isEmpty()) {
+                    order.setHubAddress(req.getHubAddress().trim());
+                } else if (order.getHubAddress() == null || order.getHubAddress().trim().isEmpty()) {
                     order.setHubAddress(d.getHubAddress() != null && !d.getHubAddress().trim().isEmpty()
                             ? d.getHubAddress()
                             : (d.getCity() != null ? d.getCity() + ", " + d.getState() : "Regional Logistics Hub"));
+                }
+                if (req.getPickupStatus() != null && !req.getPickupStatus().trim().isEmpty()) {
+                    order.setPickupStatus(req.getPickupStatus().trim());
                 }
                 double rate = d.getCommissionRate() > 0 ? d.getCommissionRate() : 8.0;
                 BigDecimal comm = finalTotal.multiply(BigDecimal.valueOf(rate)).divide(BigDecimal.valueOf(100), 2,

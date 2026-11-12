@@ -6,6 +6,8 @@
  * - Subscribable location updates for Header and Shopping Mall views
  */
 
+import { Platform } from 'react-native';
+import * as Location from 'expo-location';
 import storageService from './storageService';
 import { setCustomerDeliveryPincode, syncCatalogFromBackend } from './catalogSyncService';
 import { fetchHubDetails } from './api';
@@ -309,56 +311,125 @@ export async function applyDetectedLocation(loc) {
 }
 
 /**
- * Detect customer's current/live location (GPS -> IP -> Fallback)
+ * Detect customer's current/live location (Native GPS via expo-location -> Web GPS -> Storage -> Fallback)
  */
 export async function detectCustomerLiveLocation({ force = false } = {}) {
-  return new Promise((resolve) => {
-    const fallbackLoc = {
-      pincode: '635002',
-      city: 'Krishnagiri',
-      district: 'Krishnagiri',
-      state: 'Tamil Nadu',
-      method: 'default',
-    };
+  const fallbackLoc = {
+    pincode: '635002',
+    city: 'Krishnagiri',
+    district: 'Krishnagiri',
+    state: 'Tamil Nadu',
+    method: 'default',
+  };
 
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      detectLocationViaIP().then((ipLoc) => {
-        const finalLoc = ipLoc || fallbackLoc;
-        applyDetectedLocation(finalLoc).then(() => resolve(finalLoc));
-      });
-      return;
+  // 1. High-Precision Native Device GPS via expo-location (Android / iOS / Web)
+  try {
+    let perm = await Location.getForegroundPermissionsAsync();
+    if (perm.status !== 'granted') {
+      perm = await Location.requestForegroundPermissionsAsync();
     }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const loc = await reverseGeocodeCoords(latitude, longitude);
-          if (loc && loc.pincode) {
-            await applyDetectedLocation(loc);
-            return resolve(loc);
-          }
-        } catch (e) {}
+    if (perm.status === 'granted') {
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
 
-        const ipLoc = await detectLocationViaIP();
-        const finalLoc = ipLoc || fallbackLoc;
-        await applyDetectedLocation(finalLoc);
-        resolve(finalLoc);
-      },
-      async () => {
-        // GPS permission denied or timed out -> use IP fallback
-        const ipLoc = await detectLocationViaIP();
-        const finalLoc = ipLoc || fallbackLoc;
-        await applyDetectedLocation(finalLoc);
-        resolve(finalLoc);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 6000,
-        maximumAge: force ? 0 : 60000,
+      if (position?.coords) {
+        const { latitude, longitude } = position.coords;
+
+        // A. Native reverse geocoding via device OS (Native mobile only; web uses reverseGeocodeCoords)
+        if (Platform.OS !== 'web') {
+          try {
+            const geocoded = await Location.reverseGeocodeAsync({ latitude, longitude });
+            if (Array.isArray(geocoded) && geocoded.length > 0) {
+              const g = geocoded[0];
+              const rawPostal = String(g.postalCode || '').trim();
+              const cityName = g.city || g.subregion || g.district || g.region || '';
+              const stateName = g.region || 'Tamil Nadu';
+
+              if (rawPostal && /^\d{6}$/.test(rawPostal)) {
+                let cleanPin = rawPostal;
+                if (cleanPin === '635122') cleanPin = '635002';
+                const postalInfo = await lookupPostalPincode(cleanPin);
+                const loc = {
+                  pincode: cleanPin,
+                  city: postalInfo?.areaName || cityName || 'Krishnagiri',
+                  district: postalInfo?.district || g.subregion || g.district || cityName,
+                  state: postalInfo?.state || stateName,
+                  method: 'expo_gps',
+                };
+                await applyDetectedLocation(loc);
+                return loc;
+              }
+            }
+          } catch (geoErr) {}
+        }
+
+        // B. High-Precision Coordinate Bounding Boxes & Reverse Geocoding Clients
+        const loc = await reverseGeocodeCoords(latitude, longitude);
+        if (loc && loc.pincode) {
+          await applyDetectedLocation(loc);
+          return loc;
+        }
       }
-    );
-  });
+    }
+  } catch (err) {
+    console.debug('Expo native location detection note:', err?.message || err);
+  }
+
+  // 2. Web / Browser navigator.geolocation fallback
+  if (typeof navigator !== 'undefined' && navigator.geolocation) {
+    try {
+      const navLoc = await new Promise((resolveNav) => {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              const { latitude, longitude } = position.coords;
+              const loc = await reverseGeocodeCoords(latitude, longitude);
+              if (loc && loc.pincode) {
+                await applyDetectedLocation(loc);
+                return resolveNav(loc);
+              }
+            } catch (e) {}
+            resolveNav(null);
+          },
+          () => resolveNav(null),
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: force ? 0 : 60000 }
+        );
+      });
+      if (navLoc && navLoc.pincode) {
+        return navLoc;
+      }
+    } catch (e) {}
+  }
+
+  // 3. User Saved / Selected Location:
+  // If the customer already has a valid delivery pin saved (e.g. Krishnagiri 635002 or Dharmapuri 635202),
+  // NEVER overwrite it with an inaccurate cellular ISP tower (which resolves to Chennai 600001).
+  const savedPin = storageService.getDeliveryPincode();
+  const savedCity = storageService.getDeliveryCity();
+  if (savedPin && savedPin !== '600001' && /^\d{6}$/.test(savedPin)) {
+    const loc = {
+      pincode: savedPin,
+      city: savedCity || (KNOWN_AREAS[savedPin] ? KNOWN_AREAS[savedPin].areaName : 'Krishnagiri'),
+      district: KNOWN_AREAS[savedPin]?.district || 'Krishnagiri',
+      state: storageService.getDeliveryState() || 'Tamil Nadu',
+      method: 'saved',
+    };
+    await applyDetectedLocation(loc);
+    return loc;
+  }
+
+  // 4. IP-based location fallback (filtering out misleading Chennai 600001 mobile cell towers)
+  const ipLoc = await detectLocationViaIP();
+  if (ipLoc && ipLoc.pincode && ipLoc.pincode !== '600001') {
+    await applyDetectedLocation(ipLoc);
+    return ipLoc;
+  }
+
+  // 5. Default to Primary Operational Hub: Krishnagiri (635002) - Selva Atomy Regional Hub
+  await applyDetectedLocation(fallbackLoc);
+  return fallbackLoc;
 }
 
 const locationService = {

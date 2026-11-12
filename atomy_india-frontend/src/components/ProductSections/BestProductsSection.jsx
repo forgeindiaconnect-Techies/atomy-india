@@ -15,6 +15,32 @@ export default function BestProductsSection({
 }) {
   const [activeTab, setActiveTab] = useState('ALL');
   const [, setCatalogTick] = useState(0);
+
+  // Helper to shuffle the BEST products so the order differs from the ALL view
+  const getShuffledBest = () => {
+    const originalBest = BEST_PRODUCTS.filter(item => 
+      item.categoryTab && Array.isArray(item.categoryTab) && item.categoryTab.includes('BEST')
+    );
+    if (originalBest.length <= 1) return originalBest;
+
+    const shuffled = [...originalBest];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // Ensure shuffled order differs from original if length > 1
+    if (shuffled.every((item, idx) => item.id === originalBest[idx]?.id)) {
+      [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+    }
+
+    return shuffled.map((p, idx) => ({
+      ...p,
+      rank: idx + 1
+    }));
+  };
+
+  const [shuffledBestProducts, setShuffledBestProducts] = useState(() => getShuffledBest());
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window !== 'undefined') return window.innerWidth <= 768;
     return false;
@@ -37,10 +63,20 @@ export default function BestProductsSection({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Reset expansion when switching category tabs
+  // Reset expansion and scroll when switching category tabs
   useEffect(() => {
     setIsMobileExpanded(false);
+    if (sliderRef.current) {
+      sliderRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
   }, [activeTab]);
+
+  const handleTabClick = (tab) => {
+    if (tab === 'BEST') {
+      setShuffledBestProducts(getShuffledBest());
+    }
+    setActiveTab(tab);
+  };
 
   const tabs = ['ALL', 'BEST', 'NEW', 'RECOMMENDATION', 'HEALTH', 'BEAUTY', 'LIVING', 'FOOD'];
 
@@ -51,6 +87,8 @@ export default function BestProductsSection({
     if (activeTab === 'LIVING' && (item.category === 'home' || item.category === 'personal_care')) return true;
     return false;
   });
+
+  const productsToDisplay = activeTab === 'BEST' ? shuffledBestProducts : filteredProducts;
 
   const scrollSlider = (direction) => {
     if (sliderRef.current) {
@@ -74,10 +112,10 @@ export default function BestProductsSection({
 
   // On mobile: limit to 10 products (5 rows of 2), remaining shown via View More button
   const visibleProducts = isMobile && !isMobileExpanded
-    ? filteredProducts.slice(0, 10)
-    : filteredProducts;
+    ? productsToDisplay.slice(0, 10)
+    : productsToDisplay;
 
-  const hiddenCount = filteredProducts.length - 10;
+  const hiddenCount = productsToDisplay.length - 10;
 
   return (
     <section className="product-showcase-section">
@@ -104,7 +142,7 @@ export default function BestProductsSection({
               <button
                 key={tab}
                 className={`filter-tab-pill ${activeTab === tab ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabClick(tab)}
               >
                 {tab}
               </button>

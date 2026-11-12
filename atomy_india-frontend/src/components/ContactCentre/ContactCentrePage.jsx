@@ -10,6 +10,7 @@ import {
   Send, 
   CheckCircle2, 
   ChevronRight, 
+  ChevronDown,
   Building2, 
   MessageSquare,
   Navigation,
@@ -52,7 +53,8 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
   };
 
   // 1:1 Inquiry Form state
-  const [inquiryCategory, setInquiryCategory] = useState('Order & Delivery');
+  const [inquiryCategory, setInquiryCategory] = useState('');
+  const [problemTitle, setProblemTitle] = useState('');
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(() => extractTenDigitPhone(currentUser?.phone));
@@ -60,6 +62,18 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
   const [message, setMessage] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedTicket, setSubmittedTicket] = useState(null);
+
+  // Auto-purge any stale hardcoded demo tickets so view strictly reflects real tickets
+  useEffect(() => {
+    try {
+      const TICKET_PURGE_KEY = 'atomy_tickets_purged_v3';
+      if (localStorage.getItem(TICKET_PURGE_KEY) !== 'true') {
+        localStorage.setItem(TICKET_PURGE_KEY, 'true');
+        localStorage.removeItem('atomy_customer_tickets');
+        localStorage.removeItem('atomy_admin_tickets');
+      }
+    } catch {}
+  }, []);
 
   // 1:1 Tracking & Live Chat state
   const [inquirySubTab, setInquirySubTab] = useState('new'); // 'new' | 'track'
@@ -240,8 +254,34 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
     return 'GENERAL_SUPPORT';
   };
 
+  const isDemoTicket = (t) => {
+    if (!t) return true;
+    const id = String(t.ticketId || t._id || '');
+    const subject = String(t.subject || '').toLowerCase();
+    const emailStr = String(t.customerEmail || '').toLowerCase();
+    return id.startsWith('TCK-20261010-7490') ||
+           id.startsWith('TCK-20261009-550') ||
+           id.startsWith('TCK-514999') ||
+           id.startsWith('TCK-20261030-3778') ||
+           id.startsWith('TCK-20261007-8894') ||
+           id.startsWith('TCK-20261006-4412') ||
+           id.startsWith('TCK-20261005-1109') ||
+           id.startsWith('TCK-20261004-9821') ||
+           id.includes('514999') ||
+           subject.includes('demo') ||
+           emailStr.includes('example.com');
+  };
+
   const handleInquirySubmit = async (e) => {
     e.preventDefault();
+    if (!inquiryCategory) {
+      alert('Please choose an inquiry category.');
+      return;
+    }
+    if (inquiryCategory === 'Other' && !problemTitle.trim()) {
+      alert('Please enter a problem title.');
+      return;
+    }
     if (!name.trim() || !email.trim() || !message.trim()) return;
 
     const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -249,6 +289,10 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
     const uniformTicketId = `TCK-${todayStr}-${randFour}`;
 
     const backendCategory = mapCategoryToEnum(inquiryCategory);
+    const finalSubject = inquiryCategory === 'Other' && problemTitle.trim()
+      ? `[Other] ${problemTitle.trim()}`
+      : `[${inquiryCategory || 'Support'}] Inquiry from ${name.trim()}`;
+
     const backendPayload = {
       ticketId: uniformTicketId,
       customerName: name.trim(),
@@ -257,7 +301,7 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
       orderId: orderNo.trim() || '',
       category: backendCategory,
       priority: 'HIGH',
-      subject: `[${inquiryCategory || 'Support'}] Inquiry from ${name.trim()}`,
+      subject: finalSubject,
       initialMessage: message.trim(),
       message: message.trim()
     };
@@ -278,7 +322,7 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
       orderId: orderNo.trim() || '',
       category: backendCategory,
       priority: 'HIGH',
-      subject: `[${inquiryCategory || 'Support'}] Inquiry from ${name.trim()}`,
+      subject: finalSubject,
       message: message.trim(),
       status: 'OPEN',
       createdAt: backendTicket?.createdAt || new Date().toISOString(),
@@ -293,9 +337,9 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
 
     // 1. Store in localStorage across both admin and customer registries
     try {
-      const existingAdmin = JSON.parse(localStorage.getItem('atomy_admin_tickets') || '[]');
+      const existingAdmin = JSON.parse(localStorage.getItem('atomy_admin_tickets') || '[]').filter(t => !isDemoTicket(t));
       localStorage.setItem('atomy_admin_tickets', JSON.stringify([newTicket, ...existingAdmin]));
-      const existingCustomer = JSON.parse(localStorage.getItem('atomy_customer_tickets') || '[]');
+      const existingCustomer = JSON.parse(localStorage.getItem('atomy_customer_tickets') || '[]').filter(t => !isDemoTicket(t));
       localStorage.setItem('atomy_customer_tickets', JSON.stringify([newTicket, ...existingCustomer]));
     } catch (err) {}
 
@@ -317,6 +361,8 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
   };
 
   const handleResetForm = () => {
+    setInquiryCategory('');
+    setProblemTitle('');
     setName(currentUser?.name || '');
     setEmail(currentUser?.email || '');
     setPhone(currentUser?.phone || '');
@@ -334,7 +380,7 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
     // LocalStorage first
     try {
       const local = JSON.parse(localStorage.getItem('atomy_customer_tickets') || '[]');
-      if (Array.isArray(local)) combined = [...local];
+      if (Array.isArray(local)) combined = local.filter(t => !isDemoTicket(t));
     } catch {}
 
     // Backend tickets by email if available
@@ -342,8 +388,8 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
       try {
         const backendList = await getCustomerTicketsByEmail(userEmail);
         if (Array.isArray(backendList)) {
-          backendList.forEach(bt => {
-            const idx = combined.findIndex(c => c.ticketId === bt.ticketId);
+          backendList.filter(bt => !isDemoTicket(bt)).forEach(bt => {
+            const idx = combined.findIndex(c => (c.ticketId || c._id) === (bt.ticketId || bt._id));
             if (idx === -1) {
               combined.push(bt);
             } else {
@@ -355,6 +401,11 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
     }
 
     setCustomerInquiriesList(combined);
+    if (combined.length === 0) {
+      setTrackedTicket(null);
+    } else if (trackedTicket && isDemoTicket(trackedTicket)) {
+      setTrackedTicket(combined[0]);
+    }
     return combined;
   };
 
@@ -570,9 +621,7 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
             Home
           </button>
           <ChevronRight size={14} className="breadcrumb-separator" />
-          <span className="breadcrumb-current">Customer Support</span>
-          <ChevronRight size={14} className="breadcrumb-separator" />
-          <span className="breadcrumb-active">Find Centre & Map</span>
+          <span className="breadcrumb-active">Customer Support</span>
         </div>
       </div>
 
@@ -580,7 +629,7 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
         {/* 2. Page Header */}
         <div className="contact-page-header">
           <div className="contact-header-left">
-            <h1 className="contact-page-title">Education Centre Map & Support</h1>
+            <h1 className="contact-page-title">Customer Support</h1>
             <p className="contact-page-subtitle">
               Locate authorized Atomy India Education Centres across 15+ states with interactive map navigation and direct support.
             </p>
@@ -962,20 +1011,39 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
                     <div className="form-grid">
                       <div className="form-field full-width">
                         <label>Inquiry Category *</label>
-                        <select
-                          value={inquiryCategory}
-                          onChange={(e) => setInquiryCategory(e.target.value)}
-                          className="form-input"
-                        >
-                          <option value="Order & Delivery">Order & Delivery Inquiries</option>
-                          <option value="Product Details & Quality">Product Details & Usage Guide</option>
-                          <option value="Membership & Verification">Membership, Verification & KYC</option>
-                          <option value="Commission & PV Points">Commission & PV Points</option>
-                          <option value="Returns & Exchanges">Returns, Replacements & Refunds</option>
-                          <option value="Education Centre Guidance">Education Centre Guidance</option>
-                          <option value="Other Inquiries">General / Other Inquiries</option>
-                        </select>
+                        <div className="select-dropdown-wrapper">
+                          <select
+                            value={inquiryCategory}
+                            onChange={(e) => setInquiryCategory(e.target.value)}
+                            className={`form-input custom-select ${!inquiryCategory ? 'is-placeholder' : ''}`}
+                            required
+                          >
+                            <option value="" disabled hidden>Choose Inquiry Category</option>
+                            <option value="Order & Delivery">Order & Delivery Inquiries</option>
+                            <option value="Product Details & Quality">Product Details & Usage Guide</option>
+                            <option value="Membership & Verification">Membership, Verification & KYC</option>
+                            <option value="Commission & PV Points">Commission & PV Points</option>
+                            <option value="Returns & Exchanges">Returns, Replacements & Refunds</option>
+                            <option value="Education Centre Guidance">Education Centre Guidance</option>
+                            <option value="Other">Other Inquiries</option>
+                          </select>
+                          <ChevronDown size={18} className="select-dropdown-arrow" />
+                        </div>
                       </div>
+
+                      {inquiryCategory === 'Other' && (
+                        <div className="form-field full-width animate-fade-in">
+                          <label>Problem Title *</label>
+                          <input
+                            type="text"
+                            placeholder="Enter problem title / brief subject of your issue..."
+                            value={problemTitle}
+                            onChange={(e) => setProblemTitle(e.target.value)}
+                            required
+                            className="form-input"
+                          />
+                        </div>
+                      )}
 
                       <div className="form-field">
                         <label>Your Full Name *</label>

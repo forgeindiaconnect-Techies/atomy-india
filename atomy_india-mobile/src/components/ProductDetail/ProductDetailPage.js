@@ -139,6 +139,11 @@ export default function ProductDetailPage({
 
   const scrollRef = useRef(null);
 
+  useEffect(() => {
+    setCurrentImgIdx(0);
+    setActiveTab('details');
+  }, [product?.id]);
+
   // Official product details data
   const config = useMemo(() => getProductDetailConfig(product), [product]);
   const officialData = config?.officialData || getOfficialProductDetails(product.id, product.name);
@@ -259,24 +264,37 @@ export default function ProductDetailPage({
   // Multi-angle gallery images with crisp high resolution
   const galleryImages = useMemo(() => {
     const list = [];
-    if (Array.isArray(product?.galleryImages) && product.galleryImages.length > 0) {
-      product.galleryImages.forEach((img) => {
-        const clean = getHighResImageUrl(img);
-        if (clean && !list.includes(clean)) list.push(clean);
-      });
-    } else if (officialData?.galleryImages && officialData.galleryImages.length > 0) {
-      officialData.galleryImages.forEach((img) => {
-        const clean = getHighResImageUrl(img);
-        if (clean && !list.includes(clean)) list.push(clean);
-      });
-    }
-    const cleanProductImg = getHighResImageUrl(product.image || product.img);
+    const officialGallery = Array.isArray(officialData?.galleryImages) ? officialData.galleryImages : [];
+    const productGallery = Array.isArray(product?.galleryImages) ? product.galleryImages : [];
+
+    // Prioritize official gallery studio shots if available, or product gallery
+    const candidateImages = productGallery.length > 1
+      ? productGallery
+      : officialGallery.length > 0
+      ? officialGallery
+      : productGallery;
+
+    candidateImages.forEach((img) => {
+      const clean = getHighResImageUrl(img);
+      if (clean && !list.includes(clean)) list.push(clean);
+    });
+
+    const cleanProductImg = getHighResImageUrl(product?.image || product?.img);
     if (cleanProductImg && !list.includes(cleanProductImg)) {
+      list.unshift(cleanProductImg);
+    }
+
+    // Guarantee multi-view thumbnails matching official web style even if single image
+    if (list.length === 1 && cleanProductImg) {
+      list.push(cleanProductImg);
+      list.push(cleanProductImg);
       list.push(cleanProductImg);
     }
 
     if (list.length === 0) {
       list.push('https://image.atomy.com/IN/goods/D00101/org/085/260326000051085.jpg');
+      list.push('https://image.atomy.com/IN/goods/D00101/D00101_01.jpg');
+      list.push('https://image.atomy.com/IN/goods/D00101/D00101_02.jpg');
     }
     return list;
   }, [product, officialData]);
@@ -395,7 +413,12 @@ export default function ProductDetailPage({
             onPress={() => setIsImgModalOpen(true)}
             style={styles.heroImageTouchable}
           >
-            <Image source={{ uri: activeMainImg }} style={styles.heroImage} resizeMode="contain" />
+            <Image
+              key={`hero-${currentImgIdx}-${activeMainImg}`}
+              source={{ uri: activeMainImg }}
+              style={styles.heroImage}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
 
           {/* Next Arrow Overlay */}
@@ -433,7 +456,7 @@ export default function ProductDetailPage({
               const isSelected = idx === currentImgIdx;
               return (
                 <TouchableOpacity
-                  key={`thumb-${idx}`}
+                  key={`thumb-${idx}-${uri}`}
                   style={[styles.thumbItem, isSelected && styles.thumbItemActive]}
                   onPress={() => setCurrentImgIdx(idx)}
                   activeOpacity={0.8}
@@ -676,7 +699,7 @@ export default function ProductDetailPage({
           </View>
         </View>
 
-        {/* 7. 4-Tab Navigation Bar */}
+        {/* 7. 4-Tab Navigation Bar (Equal Spacing between all sections) */}
         <View style={styles.tabsBar}>
           {[
             { id: 'details', label: 'Details' },
@@ -692,7 +715,11 @@ export default function ProductDetailPage({
                 onPress={() => setActiveTab(tab.id)}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.tabNavBtnText, active && styles.tabNavBtnTextActive]}>
+                <Text
+                  style={[styles.tabNavBtnText, active && styles.tabNavBtnTextActive]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
                   {tab.label}
                 </Text>
               </TouchableOpacity>
@@ -1372,17 +1399,69 @@ export default function ProductDetailPage({
             <Text style={styles.imageModalTitle}>
               {currentImgIdx + 1} / {galleryImages.length}
             </Text>
-            <TouchableOpacity onPress={() => setIsImgModalOpen(false)}>
+            <TouchableOpacity
+              onPress={() => setIsImgModalOpen(false)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
               <Ionicons name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+
           <View style={styles.imageModalCenter}>
+            {currentImgIdx > 0 && (
+              <TouchableOpacity
+                style={styles.modalNavBtnPrev}
+                onPress={() => setCurrentImgIdx((prev) => Math.max(0, prev - 1))}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+
             <Image
+              key={`modal-img-${currentImgIdx}-${activeMainImg}`}
               source={{ uri: activeMainImg }}
               style={styles.imageModalMainImg}
               resizeMode="contain"
             />
+
+            {currentImgIdx < galleryImages.length - 1 && (
+              <TouchableOpacity
+                style={styles.modalNavBtnNext}
+                onPress={() => setCurrentImgIdx((prev) => Math.min(galleryImages.length - 1, prev + 1))}
+                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chevron-forward" size={26} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
           </View>
+
+          {/* Bottom Thumbnails Strip for direct tap-to-switch */}
+          {galleryImages.length > 1 && (
+            <View style={styles.modalThumbStripWrap}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.modalThumbStrip}
+              >
+                {galleryImages.map((uri, idx) => {
+                  const isSelected = idx === currentImgIdx;
+                  return (
+                    <TouchableOpacity
+                      key={`modal-thumb-${idx}-${uri}`}
+                      style={[styles.modalThumbItem, isSelected && styles.modalThumbItemActive]}
+                      onPress={() => setCurrentImgIdx(idx)}
+                      activeOpacity={0.8}
+                    >
+                      <Image source={{ uri }} style={styles.modalThumbImg} resizeMode="contain" />
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -1598,21 +1677,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   thumbItem: {
-    width: 58,
-    height: 58,
+    width: 60,
+    height: 60,
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
     padding: 3,
     backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   thumbItemActive: {
     borderColor: '#00A3E0',
     backgroundColor: '#F0F9FF',
+    borderWidth: 2,
   },
   thumbImg: {
-    width: '100%',
-    height: '100%',
+    width: 52,
+    height: 52,
   },
 
   // Page Body Content
@@ -1949,6 +2032,7 @@ const styles = StyleSheet.create({
   // Tabs Bar
   tabsBar: {
     flexDirection: 'row',
+    width: '100%',
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#E2E8F0',
@@ -1957,7 +2041,8 @@ const styles = StyleSheet.create({
   },
   tabNavBtn: {
     flex: 1,
-    paddingVertical: 13,
+    paddingVertical: 12,
+    paddingHorizontal: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1966,9 +2051,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#00A3E0',
   },
   tabNavBtnText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#64748B',
+    textAlign: 'center',
   },
   tabNavBtnTextActive: {
     color: '#00A3E0',
@@ -2649,6 +2735,59 @@ const styles = StyleSheet.create({
   imageModalMainImg: {
     width: SCREEN_WIDTH - 20,
     height: SCREEN_WIDTH - 20,
+  },
+  modalNavBtnPrev: {
+    position: 'absolute',
+    left: 12,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(30, 41, 59, 0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalNavBtnNext: {
+    position: 'absolute',
+    right: 12,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(30, 41, 59, 0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalThumbStripWrap: {
+    paddingVertical: 12,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+  },
+  modalThumbStrip: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  modalThumbItem: {
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#475569',
+    padding: 2,
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  modalThumbItemActive: {
+    borderColor: '#00A3E0',
+    borderWidth: 2,
+    backgroundColor: '#0F172A',
+  },
+  modalThumbImg: {
+    width: 44,
+    height: 44,
   },
 
   // Empty Reviews State

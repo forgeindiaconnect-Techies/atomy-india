@@ -15,8 +15,10 @@ export default function BottomNavBar({
   recentlyViewedCount = 0,
   isMember = false,
   membershipExpiryState = null, // 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED'
+  isHomePage = false,
 }) {
-  const TABS = [
+  // 1. Order for Home Page (original featured home layout)
+  const HOME_TABS = [
     {
       id: 'recent',
       label: 'Recently View',
@@ -50,14 +52,51 @@ export default function BottomNavBar({
     },
   ];
 
+  // 2. Order for Other Pages: Home, Profile, Menu, Fav, Recently View (All Normal Buttons)
+  const OTHER_PAGES_TABS = [
+    {
+      id: 'home',
+      label: 'Home',
+      icon: 'home-outline',
+      activeIcon: 'home',
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: 'person-outline',
+      activeIcon: 'person',
+    },
+    {
+      id: 'menu',
+      label: 'Menu',
+      icon: 'grid-outline',
+      activeIcon: 'grid',
+    },
+    {
+      id: 'favorites',
+      label: 'Fav',
+      icon: 'heart-outline',
+      activeIcon: 'heart',
+      badge: favoritesCount,
+    },
+    {
+      id: 'recent',
+      label: 'Recently View',
+      icon: 'time-outline',
+      activeIcon: 'time',
+    },
+  ];
+
+  const TABS = isHomePage ? HOME_TABS : OTHER_PAGES_TABS;
+
   return (
     <View style={styles.navContainer}>
       <View style={styles.tabsRow}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
 
-          // Featured Enlarged Home Button with Orange Circle Background
-          if (tab.id === 'home') {
+          // Featured Enlarged Home Button with Orange Circle Background ONLY on Home Page
+          if (isHomePage && tab.id === 'home') {
             return (
               <TouchableOpacity
                 key={tab.id}
@@ -86,6 +125,7 @@ export default function BottomNavBar({
             );
           }
 
+          // Normal button for all tabs (including Home when on other pages)
           return (
             <TouchableOpacity
               key={tab.id}

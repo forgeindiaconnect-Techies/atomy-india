@@ -36,10 +36,10 @@ public class BrevoEmailService {
     @Value("${brevo.admin.email:daggerking7828@gmail.com}")
     private String adminEmail;
 
-    @Value("${brevo.storefront.url:https://atomy-india-eta.vercel.app}")
+    @Value("${brevo.storefront.url:http://localhost:5173}")
     private String storefrontUrl;
 
-    @Value("${brevo.admin.url:https://atomy-india-vomh.vercel.app}")
+    @Value("${brevo.admin.url:http://localhost:5174}")
     private String adminUrl;
 
     @Value("${brevo.mobile.scheme:atomyindia}")
@@ -50,23 +50,23 @@ public class BrevoEmailService {
             .build();
 
     /**
-     * Resolves the production-ready storefront URL without localhost fallback
+     * Resolves the storefront URL for customer-facing tracking and portal links
      */
     private String getEffectiveStorefrontUrl() {
-        if (storefrontUrl != null && !storefrontUrl.trim().isEmpty() && !storefrontUrl.contains("localhost")) {
+        if (storefrontUrl != null && !storefrontUrl.trim().isEmpty()) {
             return storefrontUrl.trim().replaceAll("/+$", "");
         }
-        return "https://atomy-india-eta.vercel.app";
+        return "http://localhost:5173";
     }
 
     /**
-     * Resolves the production-ready admin portal URL without localhost fallback
+     * Resolves the admin portal URL for administrator notifications
      */
     private String getEffectiveAdminUrl() {
-        if (adminUrl != null && !adminUrl.trim().isEmpty() && !adminUrl.contains("localhost")) {
+        if (adminUrl != null && !adminUrl.trim().isEmpty()) {
             return adminUrl.trim().replaceAll("/+$", "");
         }
-        return "https://atomy-india-vomh.vercel.app";
+        return "http://localhost:5174";
     }
 
     /**
@@ -315,7 +315,7 @@ public class BrevoEmailService {
                 + "  <div style=\"font-size:12px;color:#475569;margin-top:4px;\">Thank you for shopping with Atomy India. We hope you enjoy your products!</div>"
                 + "</div>"
                 + "<div style=\"text-align:center;margin:24px 0;\">"
-                + "  <a href=\"" + escapeHtml(getEffectiveStorefrontUrl() + "/my-orders") + "\" class=\"btn-block\" style=\"background:#0284c7;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">View Order History</a>"
+                + "  <a href=\"" + escapeHtml(getEffectiveStorefrontUrl() + "/orders") + "\" class=\"btn-block\" style=\"background:#0284c7;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">View Order History</a>"
                 + "</div>";
 
         String html = wrapEmailHtml("Order Collected", "Handover Confirmation", innerContent);

@@ -110,7 +110,7 @@ const INITIAL_SINGLE_PRODUCT = [
 ];
 
 // Local storage initialization key
-const STORAGE_CLEAN_KEY = 'atomy_admin_clean_v8';
+const STORAGE_CLEAN_KEY = 'atomy_admin_clean_v10';
 
 export default function AdminDashboard({ onBackToStore }) {
   // Navigation tabs: 'overview' | 'inventory' | 'orders' | 'customers' | 'support' | 'settings' | 'floating-ad'
@@ -186,31 +186,19 @@ export default function AdminDashboard({ onBackToStore }) {
   const [currentEditingProduct, setCurrentEditingProduct] = useState(null);
   const [productToDelete, setProductToDelete] = useState(null);
 
-  // Orders State (Clean 0 demo orders - only real customer orders from MySQL backend)
+  // Orders State (Clean 0 demo orders - strictly loads real customer orders from backend database)
   const [orders, setOrders] = useState(() => {
     try {
       if (localStorage.getItem(STORAGE_CLEAN_KEY) !== 'true') {
+        localStorage.setItem('atomy_admin_orders', JSON.stringify([]));
+        localStorage.removeItem('atomy_placed_orders');
         return [];
       }
       const adminOrders = localStorage.getItem('atomy_admin_orders');
       if (adminOrders) {
         const parsed = JSON.parse(adminOrders);
         if (Array.isArray(parsed)) {
-          const cleanOrders = parsed.filter(o => 
-            !o.orderId?.startsWith('ORD-20261005') && 
-            !o.orderId?.startsWith('ORD-20261008-3800') && 
-            !o.orderId?.startsWith('ORD-20261008-1863') && 
-            !o.orderId?.includes('3207') &&
-            !o.orderId?.toUpperCase().includes('DEMO') &&
-            !o.orderId?.toUpperCase().includes('TEST') &&
-            !o.customerName?.toLowerCase().includes('test') &&
-            !o.customerEmail?.toLowerCase().includes('example.com') &&
-            !o.customerEmail?.toLowerCase().includes('test')
-          );
-          if (cleanOrders.length !== parsed.length) {
-            localStorage.setItem('atomy_admin_orders', JSON.stringify(cleanOrders));
-          }
-          return cleanOrders;
+          return parsed;
         }
       }
       return [];
@@ -231,14 +219,31 @@ export default function AdminDashboard({ onBackToStore }) {
     estimatedDelivery: 'Within 48 Hours (2 Days)'
   });
 
-  // Support State (Clean state from MySQL database or actual customer interactions)
+  // Support State (Clean state strictly reflecting real customer support tickets from MongoDB database)
+  const isDemoTicket = (t) => {
+    if (!t) return true;
+    const id = String(t.ticketId || t._id || '');
+    const subject = String(t.subject || '').toLowerCase();
+    const email = String(t.customerEmail || '').toLowerCase();
+    return id.startsWith('TCK-20261010-7490') ||
+      id.startsWith('TCK-20261009-550') ||
+      id.startsWith('TCK-514999') ||
+      id.startsWith('TCK-20261030-3778') ||
+      id.startsWith('TCK-20261007-8894') ||
+      id.startsWith('TCK-20261006-4412') ||
+      id.startsWith('TCK-20261005-1109') ||
+      id.startsWith('TCK-20261004-9821') ||
+      id.includes('514999') ||
+      subject.includes('demo') ||
+      email.includes('example.com');
+  };
+
   const [tickets, setTickets] = useState(() => {
     try {
       const saved = localStorage.getItem('atomy_admin_tickets');
       if (saved) {
         const parsed = JSON.parse(saved);
-        const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-        return Array.isArray(parsed) ? parsed.filter(t => !demoIds.includes(t.ticketId)) : [];
+        return Array.isArray(parsed) ? parsed.filter(t => !isDemoTicket(t)) : [];
       }
       return [];
     } catch {
@@ -312,7 +317,7 @@ export default function AdminDashboard({ onBackToStore }) {
         setAdminProfile(prev => ({ ...prev, ...saved }));
         try {
           localStorage.setItem('atomy_admin_profile', JSON.stringify({ ...adminProfile, ...saved }));
-        } catch {}
+        } catch { }
       } else {
         localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
       }
@@ -321,7 +326,7 @@ export default function AdminDashboard({ onBackToStore }) {
       console.warn('Backend sync failed, saved locally:', err);
       try {
         localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
-      } catch {}
+      } catch { }
       showToast('Saved locally. Backend database connecting...', 'warning');
     } finally {
       setIsSavingProfile(false);
@@ -391,31 +396,31 @@ export default function AdminDashboard({ onBackToStore }) {
   useEffect(() => {
     try {
       localStorage.setItem('atomy_admin_products', JSON.stringify(products));
-    } catch {}
+    } catch { }
   }, [products]);
 
   useEffect(() => {
     try {
       localStorage.setItem('atomy_admin_orders', JSON.stringify(orders));
-    } catch {}
+    } catch { }
   }, [orders]);
 
   useEffect(() => {
     try {
       localStorage.setItem('atomy_admin_tickets', JSON.stringify(tickets));
-    } catch {}
+    } catch { }
   }, [tickets]);
 
   useEffect(() => {
     try {
       localStorage.setItem('atomy_admin_sound_settings', JSON.stringify(soundSettings));
-    } catch {}
+    } catch { }
   }, [soundSettings]);
 
   useEffect(() => {
     try {
       localStorage.setItem('atomy_admin_store_settings', JSON.stringify(storeSettings));
-    } catch {}
+    } catch { }
   }, [storeSettings]);
 
   // Initial Data Fetching from Spring Boot Backend
@@ -425,15 +430,14 @@ export default function AdminDashboard({ onBackToStore }) {
       const saved = localStorage.getItem('atomy_admin_tickets');
       if (saved) {
         const parsed = JSON.parse(saved);
-        const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-        const clean = Array.isArray(parsed) ? parsed.filter(t => !demoIds.includes(t.ticketId)) : [];
+        const clean = Array.isArray(parsed) ? parsed.filter(t => !isDemoTicket(t)) : [];
         if (clean.length !== parsed.length) {
           localStorage.setItem('atomy_admin_tickets', JSON.stringify(clean));
           setTickets(clean);
           setSelectedTicket(clean[0] || null);
         }
       }
-    } catch {}
+    } catch { }
     syncWithBackend();
   }, []);
 
@@ -465,7 +469,7 @@ export default function AdminDashboard({ onBackToStore }) {
         }));
         try {
           localStorage.setItem('atomy_admin_profile', JSON.stringify(bp));
-        } catch {}
+        } catch { }
       }
 
       if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value)) {
@@ -498,10 +502,14 @@ export default function AdminDashboard({ onBackToStore }) {
             quantity: it.quantity || it.qty || 1
           })) : [],
           tracking: bo.tracking || null
-        })).filter(o => 
-          !o.orderId?.startsWith('ORD-20261005') && 
-          !o.orderId?.startsWith('ORD-20261008-3800') && 
-          !o.orderId?.startsWith('ORD-20261008-1863') && 
+        })).filter(o =>
+          !o.orderId?.includes('4854') &&
+          !o.orderId?.startsWith('ORD-20261005') &&
+          !o.orderId?.startsWith('ORD-20261008-3800') &&
+          !o.orderId?.startsWith('ORD-20261008-1863') &&
+          !o.orderId?.startsWith('ORD-20261105') &&
+          !o.customerName?.toLowerCase().includes('gopal') &&
+          !o.customerEmail?.toLowerCase().includes('mn7878') &&
           !o.orderId?.toUpperCase().includes('DEMO') &&
           !o.customerName?.toLowerCase().includes('test') &&
           !o.customerEmail?.toLowerCase().includes('example.com') &&
@@ -514,11 +522,10 @@ export default function AdminDashboard({ onBackToStore }) {
         setProducts(prodsRes.value);
         try {
           localStorage.setItem('atomy_admin_products', JSON.stringify(prodsRes.value));
-        } catch {}
+        } catch { }
       }
       if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
-        const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-        const cleanTickets = ticketsRes.value.filter(t => !demoIds.includes(t.ticketId)).map(t => ({
+        const cleanTickets = ticketsRes.value.filter(t => !isDemoTicket(t)).map(t => ({
           ...t,
           messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
             ...m,
@@ -529,7 +536,7 @@ export default function AdminDashboard({ onBackToStore }) {
         setTickets(cleanTickets);
         try {
           localStorage.setItem('atomy_admin_tickets', JSON.stringify(cleanTickets));
-        } catch {}
+        } catch { }
         setSelectedTicket(curr => {
           if (!curr) return cleanTickets[0] || null;
           const match = cleanTickets.find(t => t.ticketId === curr.ticketId);
@@ -607,7 +614,7 @@ export default function AdminDashboard({ onBackToStore }) {
       if (hasChanges) {
         try {
           localStorage.setItem('atomy_admin_products', JSON.stringify(updated));
-        } catch {}
+        } catch { }
         return updated;
       }
       return prevProducts;
@@ -622,9 +629,9 @@ export default function AdminDashboard({ onBackToStore }) {
           setProducts(freshProds);
           try {
             localStorage.setItem('atomy_admin_products', JSON.stringify(freshProds));
-          } catch {}
+          } catch { }
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [activeTab]);
 
@@ -651,9 +658,9 @@ export default function AdminDashboard({ onBackToStore }) {
             setProducts(freshProds);
             try {
               localStorage.setItem('atomy_admin_products', JSON.stringify(freshProds));
-            } catch {}
+            } catch { }
           }
-        }).catch(() => {});
+        }).catch(() => { });
       };
 
       const handleIncomingTicket = (newTicketObj) => {
@@ -683,7 +690,7 @@ export default function AdminDashboard({ onBackToStore }) {
               return match || curr;
             });
           }
-        }).catch(() => {});
+        }).catch(() => { });
       };
 
       syncChannel = new BroadcastChannel('atomy_sync_channel');
@@ -757,7 +764,7 @@ export default function AdminDashboard({ onBackToStore }) {
           handleTicketReplyBroadcast();
         }
       };
-    } catch (e) {}
+    } catch (e) { }
 
     // 2. Cross-tab storage synchronization listener
     const handleStorageUpdate = (e) => {
@@ -767,7 +774,7 @@ export default function AdminDashboard({ onBackToStore }) {
           if (Array.isArray(freshProds) && freshProds.length > 0) {
             setProducts(freshProds);
           }
-        } catch (err) {}
+        } catch (err) { }
       }
       if (e.key === 'atomy_admin_tickets' && e.newValue) {
         try {
@@ -781,7 +788,7 @@ export default function AdminDashboard({ onBackToStore }) {
               });
             });
           }
-        } catch (err) {}
+        } catch (err) { }
       }
     };
     window.addEventListener('storage', handleStorageUpdate);
@@ -816,7 +823,7 @@ export default function AdminDashboard({ onBackToStore }) {
               qty: it.quantity || 1
             })) : [],
             tracking: bo.tracking || null
-          })).filter(o => !o.orderId?.startsWith('ORD-20261005'));
+          })).filter(o => !o.orderId?.startsWith('ORD-20261005') && !o.orderId?.startsWith('ORD-20261105') && !o.customerName?.toLowerCase().includes('gopal'));
 
           setOrders(prev => {
             const prevIds = new Set(prev.map(o => o.orderId));
@@ -835,9 +842,9 @@ export default function AdminDashboard({ onBackToStore }) {
             if (mappedOrders.length === 0) {
               localStorage.removeItem('atomy_placed_orders');
             }
-          } catch {}
+          } catch { }
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // Periodically sync inventory stock from backend database to ensure live accuracy
       try {
@@ -858,7 +865,7 @@ export default function AdminDashboard({ onBackToStore }) {
             return hasDiff ? updated : prev;
           });
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // Poll support tickets from Spring Boot Backend
       try {
@@ -892,7 +899,7 @@ export default function AdminDashboard({ onBackToStore }) {
             return match || curr;
           });
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // Check localStorage for tickets submitted from storefront
       try {
@@ -909,15 +916,15 @@ export default function AdminDashboard({ onBackToStore }) {
             });
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }, intervalTime);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('storage', handleStorageUpdate);
-      try { syncChannel && syncChannel.close(); } catch {}
-      try { orderChannel && orderChannel.close(); } catch {}
-      try { supportChannel && supportChannel.close(); } catch {}
+      try { syncChannel && syncChannel.close(); } catch { }
+      try { orderChannel && orderChannel.close(); } catch { }
+      try { supportChannel && supportChannel.close(); } catch { }
     };
   }, [soundSettings]);
 
@@ -1082,7 +1089,7 @@ export default function AdminDashboard({ onBackToStore }) {
     try {
       const channel = new BroadcastChannel('atomy_product_channel');
       channel.postMessage({ type: 'PRODUCT_UPDATED', product: payload });
-    } catch {}
+    } catch { }
 
     setIsEditingProductView(false);
     setCurrentEditingProduct(null);
@@ -1091,7 +1098,7 @@ export default function AdminDashboard({ onBackToStore }) {
   const handleConfirmDeleteProduct = async () => {
     if (!productToDelete) return;
     try {
-      await deleteAdminProduct(productToDelete.id).catch(() => {});
+      await deleteAdminProduct(productToDelete.id).catch(() => { });
       setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
 
       // Broadcast product deletion across channels to customer website instantly
@@ -1100,7 +1107,7 @@ export default function AdminDashboard({ onBackToStore }) {
         channel.postMessage({ type: 'PRODUCT_DELETED', productId: productToDelete.id });
         const syncChannel = new BroadcastChannel('atomy_sync_channel');
         syncChannel.postMessage({ type: 'PRODUCT_DELETED', productId: productToDelete.id });
-      } catch {}
+      } catch { }
 
       showToast(`Product "${productToDelete.name}" (${productToDelete.id}) removed from catalog.`);
       setProductToDelete(null);
@@ -1118,7 +1125,7 @@ export default function AdminDashboard({ onBackToStore }) {
     };
 
     setProducts(prev => prev.map(p => p.id === prod.id ? updatedProd : p));
-    await updateAdminStock(prod.id, newQty, prod.lowStockThreshold).catch(() => {});
+    await updateAdminStock(prod.id, newQty, prod.lowStockThreshold).catch(() => { });
     showToast(`Stock updated: ${prod.name} (${newQty} units)`);
   };
 
@@ -1157,7 +1164,7 @@ export default function AdminDashboard({ onBackToStore }) {
   // 3. ORDER MANAGEMENT HANDLERS
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     try {
-      await updateAdminOrderStatus(orderId, newStatus).catch(() => {});
+      await updateAdminOrderStatus(orderId, newStatus).catch(() => { });
       setOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, orderStatus: newStatus } : o));
       if (selectedOrderDetail && selectedOrderDetail.orderId === orderId) {
         setSelectedOrderDetail(prev => ({ ...prev, orderStatus: newStatus }));
@@ -1189,13 +1196,13 @@ export default function AdminDashboard({ onBackToStore }) {
           localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
           window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // Broadcast order status update across ports/tabs to customer website instantly
       try {
         const syncChannel = new BroadcastChannel('atomy_sync_channel');
         syncChannel.postMessage({ type: 'ORDER_STATUS_UPDATED', orderId, newStatus });
-      } catch {}
+      } catch { }
 
       showToast(`Order ${orderId} status set to ${newStatus}`);
     } catch (err) {
@@ -1213,7 +1220,7 @@ export default function AdminDashboard({ onBackToStore }) {
       return;
     }
     try {
-      await updateAdminOrderStatus(orderId, 'CANCELLED').catch(() => {});
+      await updateAdminOrderStatus(orderId, 'CANCELLED').catch(() => { });
       setOrders(prev => prev.map(o => o.orderId === orderId ? { ...o, orderStatus: 'CANCELLED', paymentStatus: 'REFUNDED' } : o));
       if (selectedOrderDetail && selectedOrderDetail.orderId === orderId) {
         setSelectedOrderDetail(prev => ({ ...prev, orderStatus: 'CANCELLED', paymentStatus: 'REFUNDED' }));
@@ -1239,9 +1246,9 @@ export default function AdminDashboard({ onBackToStore }) {
     e.preventDefault();
     if (!editingTrackingOrder) return;
     try {
-      await updateAdminOrderTracking(editingTrackingOrder.orderId, trackingForm).catch(() => {});
+      await updateAdminOrderTracking(editingTrackingOrder.orderId, trackingForm).catch(() => { });
       if (trackingForm.currentStatus) {
-        await updateAdminOrderStatus(editingTrackingOrder.orderId, trackingForm.currentStatus).catch(() => {});
+        await updateAdminOrderStatus(editingTrackingOrder.orderId, trackingForm.currentStatus).catch(() => { });
       }
 
       const updatedOrderData = {
@@ -1292,7 +1299,7 @@ export default function AdminDashboard({ onBackToStore }) {
           localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
           window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // Broadcast order status update across ports/tabs to customer website instantly
       try {
@@ -1304,7 +1311,7 @@ export default function AdminDashboard({ onBackToStore }) {
           courier: trackingForm.courierPartner,
           trackingNumber: trackingForm.trackingNumber
         });
-      } catch {}
+      } catch { }
 
       showToast(`Logistics Tracking saved for ${editingTrackingOrder.orderId}`);
       setEditingTrackingOrder(null);
@@ -1400,13 +1407,13 @@ export default function AdminDashboard({ onBackToStore }) {
     setTickets(prev => prev.map(t => t.ticketId === selectedTicket.ticketId ? updated : t));
     setAdminReplyText('');
 
-    await replyAdminTicket(selectedTicket.ticketId, adminReplyText.trim()).catch(() => {});
+    await replyAdminTicket(selectedTicket.ticketId, adminReplyText.trim()).catch(() => { });
     showToast('Reply dispatched to customer ticket!');
   };
 
   const handleUpdateTicketStatus = async (ticketId, newStatus) => {
     try {
-      await updateAdminTicketStatus(ticketId, newStatus).catch(() => {});
+      await updateAdminTicketStatus(ticketId, newStatus).catch(() => { });
       setTickets(prev => prev.map(t => t.ticketId === ticketId ? { ...t, status: newStatus } : t));
       if (selectedTicket && selectedTicket.ticketId === ticketId) {
         setSelectedTicket(prev => ({ ...prev, status: newStatus }));
@@ -1420,13 +1427,13 @@ export default function AdminDashboard({ onBackToStore }) {
   const handleClearAllTickets = async () => {
     if (!window.confirm("Are you sure you want to clear all support tickets and start completely fresh? This will remove all inquiries and messages.")) return;
     try {
-      await clearAllAdminTickets().catch(() => {});
+      await clearAllAdminTickets().catch(() => { });
       setTickets([]);
       setSelectedTicket(null);
       try {
         localStorage.removeItem('atomy_admin_tickets');
         localStorage.removeItem('atomy_customer_tickets');
-      } catch {}
+      } catch { }
       showToast('All support inquiries cleared! Starting fresh.');
     } catch (err) {
       showToast('Error clearing tickets: ' + err.message);
@@ -1519,7 +1526,7 @@ export default function AdminDashboard({ onBackToStore }) {
       {/* 1. Master Atomy Header */}
       <Header
         cartCount={0}
-        onCartClick={() => {}}
+        onCartClick={() => { }}
         onNavigateHome={onBackToStore}
         currentView="admin"
         adminProfile={adminProfile}
@@ -1728,1531 +1735,1531 @@ export default function AdminDashboard({ onBackToStore }) {
                   TAB 1: DASHBOARD OVERVIEW PAGE
                   ======================================================== */}
               {activeTab === 'overview' && (
-            <div className="admin-tab-content">
-              <div className="content-heading-row">
-                <div>
-                  <h2 className="content-title">Dashboard Overview & Business Metrics</h2>
-                  <p className="content-subtitle">
-                    Real-time sales performance, today's customer order volume, and fulfillment pipelines.
-                  </p>
-                </div>
-                <div className="heading-actions-cluster">
-                  <button className="primary-action-btn" onClick={handleOpenAddProduct}>
-                    <Plus size={16} />
-                    <span>Add New Product</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 3 Prominent Requested Sales KPI Cards: Today Sale, Today's Order, Overall Sale (Interactive Links) */}
-              <div className="atomy-sales-kpi-grid">
-                <div 
-                  className="sales-kpi-card highlight-glow interactive-kpi-card" 
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => setActiveTab('finance')}
-                  title="View Today's Financial Settlement & Details"
-                >
-                  <div className="kpi-card-header">
-                    <span className="kpi-card-badge">TODAY'S METRICS</span>
-                    <TrendingUp size={22} className="kpi-icon-blue" />
-                  </div>
-                  <div className="kpi-card-title">Today's Total Sale</div>
-                  <div className="kpi-card-val highlight-blue">
-                    ₹ {overviewStats.todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div className="kpi-card-subtext">
-                    From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today • <span style={{ color: '#0284c7', fontWeight: 600 }}>View Finance →</span>
-                  </div>
-                </div>
-
-                <div 
-                  className="sales-kpi-card interactive-kpi-card"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
-                  title="Inspect Today's Orders & Customer Fulfillment"
-                >
-                  <div className="kpi-card-header">
-                    <span className="kpi-card-badge">TODAY'S VOLUME</span>
-                    <ShoppingBag size={22} className="kpi-icon-green" />
-                  </div>
-                  <div className="kpi-card-title">Today's Orders</div>
-                  <div className="kpi-card-val">
-                    {overviewStats.todayOrdersCount} <span className="kpi-unit">orders</span>
-                  </div>
-                  <div className="kpi-card-subtext">
-                    Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
-                  </div>
-                </div>
-
-                <div 
-                  className="sales-kpi-card highlight-glow interactive-kpi-card"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => setActiveTab('finance')}
-                  title="Open Financial Ledger, Refunds & Settlements"
-                >
-                  <div className="kpi-card-header">
-                    <span className="kpi-card-badge">CUMULATIVE PERFORMANCE</span>
-                    <IndianRupee size={22} className="kpi-icon-navy" />
-                  </div>
-                  <div className="kpi-card-title">Overall Total Sale</div>
-                  <div className="kpi-card-val highlight-navy">
-                    ₹ {overviewStats.overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div className="kpi-card-subtext">
-                    Total lifetime gross revenue across all non-cancelled orders • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* QUICK ACTION COMMAND SHORTCUTS STRIP */}
-              <div className="overview-quick-actions-bar">
-                <span className="quick-actions-label">
-                  <Sparkles size={14} color="#00a3e0" />
-                  <span>QUICK SHORTCUTS:</span>
-                </span>
-                <div className="quick-actions-links-row">
-                  <button 
-                    type="button" 
-                    className="quick-action-pill-btn" 
-                    onClick={() => setActiveTab('finance')}
-                  >
-                    <IndianRupee size={13} color="#0284c7" />
-                    <span>Finance &amp; Settlements</span>
-                  </button>
-
-                  <button 
-                    type="button" 
-                    className="quick-action-pill-btn" 
-                    onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
-                  >
-                    <Package size={13} color="#16a34a" />
-                    <span>All Orders ({orders.length})</span>
-                  </button>
-
-                  <button 
-                    type="button" 
-                    className="quick-action-pill-btn" 
-                    onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}
-                  >
-                    <Clock size={13} color="#d97706" />
-                    <span>Processing Orders</span>
-                  </button>
-
-                  <button 
-                    type="button" 
-                    className="quick-action-pill-btn" 
-                    onClick={() => setActiveTab('support')}
-                  >
-                    <Headphones size={13} color="#dc2626" />
-                    <span>Support Desk ({overviewStats.openTicketsCount || 0})</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Order Status Pipeline Grid */}
-              <div className="pipeline-kpi-strip">
-                <div className="pipeline-card placed" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PLACED'); }}>
-                  <div className="pipeline-label">New Orders (Placed)</div>
-                  <div className="pipeline-val">{overviewStats.placedCount}</div>
-                  <span className="pipeline-sub">Awaiting fulfillment</span>
-                </div>
-                <div className="pipeline-card processing" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}>
-                  <div className="pipeline-label">Pending (Processing)</div>
-                  <div className="pipeline-val">{overviewStats.processingCount}</div>
-                  <span className="pipeline-sub">Packaging at Hub</span>
-                </div>
-                <div className="pipeline-card shipped" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('SHIPPED'); }}>
-                  <div className="pipeline-label">Shipped & In Transit</div>
-                  <div className="pipeline-val">{overviewStats.shippedCount}</div>
-                  <span className="pipeline-sub">Out via Blue Dart</span>
-                </div>
-                <div className="pipeline-card delivered" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('DELIVERED'); }}>
-                  <div className="pipeline-label">Delivered Orders</div>
-                  <div className="pipeline-val">{overviewStats.deliveredCount}</div>
-                  <span className="pipeline-sub">Successfully fulfilled</span>
-                </div>
-              </div>
-
-              {/* Overview Details Split */}
-              <div className="atomy-overview-split">
-                {/* Recent Customer Orders */}
-                <div className="atomy-card-box">
-                  <div className="card-box-header">
-                    <div className="box-title-group">
-                      <Package size={18} color="#00A3E0" />
-                      <h3>Recent Customer Orders</h3>
+                <div className="admin-tab-content">
+                  <div className="content-heading-row">
+                    <div>
+                      <h2 className="content-title">Dashboard Overview & Business Metrics</h2>
+                      <p className="content-subtitle">
+                        Real-time sales performance, today's customer order volume, and fulfillment pipelines.
+                      </p>
                     </div>
-                    <button className="link-button" onClick={() => setActiveTab('orders')}>
-                      View All Orders ({orders.length}) →
-                    </button>
-                  </div>
-
-                  {orders.length === 0 ? (
-                    <div className="empty-box-note">No customer orders recorded yet.</div>
-                  ) : (
-                    <div className="recent-orders-list">
-                      {orders.slice(0, 5).map((o) => (
-                        <div
-                          key={o.orderId}
-                          className="recent-order-row clickable"
-                          onClick={() => { setSelectedOrderDetail(o); }}
-                        >
-                          <div className="recent-order-left">
-                            <span className="order-id-badge">{o.orderId}</span>
-                            <div className="customer-info-line">
-                              <strong>{o.customerName}</strong> • {o.city} ({new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
-                            </div>
-                            <div className="order-items-snippet">
-                              {o.items?.map(it => `${it.productName} (x${it.quantity})`).join(', ') || '1 item'}
-                            </div>
-                          </div>
-                          <div className="order-row-right">
-                            <span className="order-price">₹ {Number(o.totalAmount).toLocaleString('en-IN')}</span>
-                            <span className={`status-badge ${o.orderStatus.toLowerCase()}`}>{o.orderStatus}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Warehouse Stock Health & Quick Action Center */}
-                <div className="atomy-card-box">
-                  <div className="card-box-header">
-                    <div className="box-title-group">
-                      <Boxes size={18} color="#00A3E0" />
-                      <h3>Inventory & Stock Health</h3>
-                    </div>
-                    <button className="link-button" onClick={() => setActiveTab('inventory')}>
-                      Manage Catalog →
-                    </button>
-                  </div>
-
-                  <div className="inv-health-list">
-                    <div className="health-row">
-                      <span>Total Registered Catalog SKUs</span>
-                      <strong>{products.length}</strong>
-                    </div>
-                    <div className="health-row">
-                      <span>In Stock Products</span>
-                      <strong className="text-green">
-                        {products.filter(p => p.stockQuantity > (p.lowStockThreshold || 10)).length}
-                      </strong>
-                    </div>
-                    <div className="health-row">
-                      <span>Low Stock Warnings (&le; 10 units)</span>
-                      <strong className="text-yellow">{overviewStats.lowStockCount}</strong>
-                    </div>
-                    <div className="health-row">
-                      <span>Out of Stock SKUs</span>
-                      <strong className="text-red">{overviewStats.outOfStockCount}</strong>
-                    </div>
-                  </div>
-
-                  <div className="quick-actions-box">
-                    <div className="quick-actions-title">OPERATIONAL SHORTCUTS</div>
-                    <div className="quick-btn-grid">
-                      <button className="quick-action-tile" onClick={handleOpenAddProduct}>
+                    <div className="heading-actions-cluster">
+                      <button className="primary-action-btn" onClick={handleOpenAddProduct}>
                         <Plus size={16} />
-                        <span>Add Product</span>
-                      </button>
-                      <button className="quick-action-tile" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PLACED'); }}>
-                        <Bell size={16} />
-                        <span>Review New ({overviewStats.placedCount})</span>
-                      </button>
-                      <button className="quick-action-tile" onClick={() => setActiveTab('support')}>
-                        <Headphones size={16} />
-                        <span>Support Desk ({overviewStats.openTicketsCount})</span>
-                      </button>
-                      <button className="quick-action-tile" onClick={() => setActiveTab('settings')}>
-                        <Volume2 size={16} />
-                        <span>Sound Controls</span>
+                        <span>Add New Product</span>
                       </button>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* ========================================================
-              TAB 2: INVENTORY & CATALOG MANAGEMENT
-              ======================================================== */}
-          {activeTab === 'inventory' && (
-            <div className="admin-tab-content">
-              <div className="content-heading-row with-filter">
-                <div>
-                  <h2 className="content-title">Warehouse Inventory & Product Catalog</h2>
-                  <p className="content-subtitle">
-                    Add new products, remove items, adjust stock counts, and edit complete specifications.
-                  </p>
-                </div>
-
-                <div className="heading-actions-cluster">
-                  <button className="primary-action-btn" onClick={handleOpenAddProduct}>
-                    <Plus size={16} />
-                    <span>Add New Product Item</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Search & Filter Toolbar */}
-              <div className="inventory-filter-toolbar">
-                <div className="inventory-search-row">
-                  <div className="search-input-wrapper">
-                    <Search size={16} />
-                    <input
-                      type="text"
-                      placeholder="Search by Product Name, Category, or Product Number (e.g., HemoHIM, D00101)..."
-                      value={productSearch}
-                      onChange={(e) => setProductSearch(e.target.value)}
-                      className="atomy-search-input"
-                    />
-                    {productSearch && (
-                      <button className="clear-search-btn" onClick={() => setProductSearch('')}>
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Stock Status Filter */}
-                  <div className="stock-filter-wrapper">
-                    <select
-                      value={productStockFilter}
-                      onChange={(e) => setProductStockFilter(e.target.value)}
-                      className="atomy-dropdown"
+                  {/* 3 Prominent Requested Sales KPI Cards: Today Sale, Today's Order, Overall Sale (Interactive Links) */}
+                  <div className="atomy-sales-kpi-grid">
+                    <div
+                      className="sales-kpi-card highlight-glow interactive-kpi-card"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setActiveTab('finance')}
+                      title="View Today's Financial Settlement & Details"
                     >
-                      <option value="ALL">All Stock Statuses</option>
-                      <option value="LOW">Low Stock Only (&le; 10)</option>
-                      <option value="OUT">Out of Stock (0)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Category Filter Pills */}
-                <div className="category-pill-group">
-                  {[
-                    { id: 'ALL', label: 'All Categories' },
-                    { id: 'hemohim', label: 'HemoHIM' },
-                    { id: 'health', label: 'Health Care' },
-                    { id: 'beauty', label: 'Beauty' },
-                    { id: 'personal_care', label: 'Personal Care' },
-                    { id: 'home', label: 'Home & Living' },
-                    { id: 'food', label: 'Food & Drinks' },
-                    { id: 'others', label: 'ETC / Others' }
-                  ].map(c => (
-                    <button
-                      key={c.id}
-                      className={`cat-filter-pill ${productCategoryFilter === c.id ? 'active' : ''}`}
-                      onClick={() => setProductCategoryFilter(c.id)}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Products Table */}
-              <div className="atomy-table-responsive catalog-scrollable-table">
-                <table className="atomy-data-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '80px' }}>Thumbnail</th>
-                      <th style={{ minWidth: '120px', width: '120px', whiteSpace: 'nowrap' }}>Product ID</th>
-                      <th>Product Name</th>
-                      <th>Category</th>
-                      <th>Customer Price</th>
-                      <th>PV Points</th>
-                      <th>Current Stock</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: 'center' }}>Stock Adjustment</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredProducts.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="table-empty-row">
-                          <Boxes size={36} color="#94a3b8" />
-                          <p>No products found matching your search and filter criteria.</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredProducts.map((p) => (
-                        <tr key={p.id}>
-                          <td>
-                            <img
-                              src={p.image || "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg"}
-                              alt={p.name}
-                              className="table-product-thumb"
-                              onError={(e) => {
-                                e.currentTarget.src = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
-                              }}
-                            />
-                          </td>
-                          <td className="mono-col product-id-cell" style={{ minWidth: '120px', whiteSpace: 'nowrap' }}>
-                            <span className="product-id-pill">{p.id}</span>
-                          </td>
-                          <td>
-                            <div className="cell-primary-text">{p.name}</div>
-                            <div className="cell-secondary-text">{p.subcategory || 'Standard Catalog'}</div>
-                            <div style={{ display: 'flex', gap: '5px', marginTop: '5px', flexWrap: 'wrap' }}>
-                              {p.gstReduced && (
-                                <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd', padding: '1px 7px', borderRadius: '4px' }}>
-                                  5% GST Reduced
-                                </span>
-                              )}
-                              {p.freeDelivery && (
-                                <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', padding: '1px 7px', borderRadius: '4px' }}>
-                                  Free Delivery
-                                </span>
-                              )}
-                              {(Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? p.tags.split(',') : []))
-                                .map(t => String(t).trim())
-                                .filter(t => {
-                                  const u = t.toUpperCase();
-                                  if (u.includes('GST') || u.includes('FREE DELIVERY')) return false;
-                                  const stripped = u.replace(/^#/, '');
-                                  if (['HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING', 'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY', 'HEALTH', 'PERSONAL CARE', 'OTHERS'].includes(stripped)) {
-                                    return false;
-                                  }
-                                  return true;
-                                })
-                                .map((tag, idx) => (
-                                  <span key={idx} style={{ fontSize: '10.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 7px', borderRadius: '4px' }}>
-                                    {tag.startsWith('#') ? tag : '#' + tag}
-                                  </span>
-                                ))}
-                            </div>
-                          </td>
-                          <td>
-                            <span className="category-tag-badge">
-                              {p.categoryId === 'hemohim' || (p.name && p.name.toLowerCase().includes('hemohim'))
-                                ? 'HemoHIM'
-                                : (p.categoryId ? p.categoryId.charAt(0).toUpperCase() + p.categoryId.slice(1).replace('_', ' ') : 'General')}
-                            </span>
-                          </td>
-                          <td className="cell-price">
-                            ₹ {Number(p.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            {p.originalPrice && p.originalPrice > p.price && (
-                              <div className="cell-mrp-sub">MRP: ₹ {p.originalPrice.toLocaleString('en-IN')}</div>
-                            )}
-                          </td>
-                          <td>
-                            <span className="pv-badge">{(Number(p.pv) || 0).toLocaleString('en-IN')} PV</span>
-                          </td>
-                          <td className="stock-number-cell">
-                            <span className={`stock-count-bubble ${p.stockQuantity === 0 ? 'out' : p.stockQuantity <= (p.lowStockThreshold || 10) ? 'low' : 'good'}`}>
-                              {p.stockQuantity} units
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`status-badge ${(p.status || '').toLowerCase()}`}>
-                              {p.stockQuantity === 0 ? 'OUT OF STOCK' : p.stockQuantity <= (p.lowStockThreshold || 10) ? 'LOW STOCK' : 'IN STOCK'}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="stock-step-btn-group">
-                              <button
-                                className="stock-step-btn"
-                                onClick={() => handleQuickStockChange(p, -5)}
-                                title="Reduce 5 units"
-                              >
-                                -5
-                              </button>
-                              <button
-                                className="stock-step-btn"
-                                onClick={() => handleQuickStockChange(p, 10)}
-                                title="Add 10 units"
-                              >
-                                +10
-                              </button>
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div className="row-actions-group">
-                              <button
-                                className="action-icon-btn edit"
-                                onClick={() => handleOpenEditProduct(p)}
-                                title="Edit Product Details & Specifications"
-                              >
-                                <Edit2 size={15} />
-                              </button>
-                              <button
-                                className="action-icon-btn delete"
-                                onClick={() => setProductToDelete(p)}
-                                title="Remove Product from Store"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================
-              TAB 3: CUSTOMER ORDERS & FULFILLMENT
-              ======================================================== */}
-          {activeTab === 'orders' && (
-            <div className="admin-tab-content">
-              <div className="content-heading-row with-filter">
-                <div>
-                  <h2 className="content-title">Customer Orders & Logistics Fulfillment</h2>
-                  <p className="content-subtitle">
-                    Inspect orders placed by direct consumers, update delivery stages, and dispatch courier tracking.
-                  </p>
-                </div>
-              </div>
-
-              {/* Status Tabs Strip */}
-              <div className="orders-status-nav-strip">
-                {[
-                  { id: 'ALL', label: 'All Orders', count: orders.length },
-                  { id: 'PLACED', label: 'New Orders', count: orders.filter(o => o.orderStatus === 'PLACED').length },
-                  { id: 'PROCESSING', label: 'Processing', count: orders.filter(o => o.orderStatus === 'PROCESSING').length },
-                  { id: 'SHIPPED', label: 'Shipped & Out for Delivery', count: orders.filter(o => o.orderStatus === 'SHIPPED' || o.orderStatus === 'OUT_FOR_DELIVERY').length },
-                  { id: 'DELIVERED', label: 'Delivered', count: orders.filter(o => o.orderStatus === 'DELIVERED').length },
-                  { id: 'CANCELLED', label: 'Cancelled', count: orders.filter(o => o.orderStatus === 'CANCELLED').length }
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    className={`order-status-tab ${orderStatusFilter === tab.id ? 'active' : ''}`}
-                    onClick={() => setOrderStatusFilter(tab.id)}
-                  >
-                    <span>{tab.label}</span>
-                    <span className="tab-count-badge">{tab.count}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Orders Search & Summary Filter Bar */}
-              <div className="orders-filter-row">
-                <div className="search-input-wrapper orders-search-box">
-                  <Search size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search by Order ID, Customer Name, Phone, or City..."
-                    value={orderSearchQuery}
-                    onChange={(e) => setOrderSearchQuery(e.target.value)}
-                    className="atomy-search-input"
-                  />
-                  {orderSearchQuery && (
-                    <button className="clear-search-btn" onClick={() => setOrderSearchQuery('')}>
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-                <div className="orders-summary-pill">
-                  <span>Showing <strong>{filteredOrders.length}</strong> of <strong>{orders.length}</strong> Orders</span>
-                </div>
-              </div>
-
-              {/* Orders Data Table */}
-              <div className="atomy-table-responsive orders-table-wrapper">
-                <table className="atomy-data-table orders-data-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '175px', minWidth: '175px' }}>Order ID & Date</th>
-                      <th style={{ width: '210px', minWidth: '210px' }}>Customer Details</th>
-                      <th style={{ minWidth: '240px' }}>Shipping Destination</th>
-                      <th style={{ width: '120px', minWidth: '120px', textAlign: 'center' }}>Items Ordered</th>
-                      <th style={{ width: '140px', minWidth: '140px', textAlign: 'right' }}>Total Amount</th>
-                      <th style={{ width: '130px', minWidth: '130px', textAlign: 'center' }}>Payment</th>
-                      <th style={{ width: '190px', minWidth: '190px', textAlign: 'center' }}>Fulfillment Status</th>
-                      <th style={{ width: '185px', minWidth: '185px', textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="table-empty-row">
-                          <Package size={40} color="#94a3b8" />
-                          <p>No customer orders found in this category.</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredOrders.map((o) => (
-                        <tr key={o.orderId}>
-                          <td>
-                            <div className="order-id-badge">
-                              <span className="order-id-text">{o.orderId}</span>
-                            </div>
-                            <div className="order-date-text">
-                              {new Date(o.createdAt).toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
-                              <span className="order-time-text">
-                                {new Date(o.createdAt).toLocaleTimeString('en-IN', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                  hour12: true
-                                })}
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="cell-primary-text">{o.customerName}</div>
-                            <div className="cell-secondary-text">{o.customerPhone}</div>
-                            <div className="cell-secondary-text">{o.customerEmail}</div>
-                          </td>
-                          <td className="cell-address">
-                            <div className="address-line-primary">{o.shippingAddress}</div>
-                            <div className="address-line-sub">
-                              {o.city}, {o.state} <span className="pincode-pill">{o.pincode}</span>
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span className="items-count-badge">
-                              {o.items?.length || 0} item{(o.items?.length || 0) !== 1 ? 's' : ''}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'right' }} className="cell-price-col">
-                            <span className="order-total-amount">
-                              ₹ {Number(o.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span className={`payment-pill ${(o.paymentStatus || 'PAID').toLowerCase()}`}>
-                              {o.paymentMethod ? o.paymentMethod.replace(/_/g, ' ') : 'ONLINE UPI'}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            {/* Direct Fulfillment Status Dropdown */}
-                            <select
-                              value={o.orderStatus}
-                              onChange={(e) => handleUpdateOrderStatus(o.orderId, e.target.value)}
-                              className={`status-select ${o.orderStatus.toLowerCase()}`}
-                            >
-                              <option value="PLACED">PLACED (New)</option>
-                              <option value="PROCESSING">PROCESSING (Pending)</option>
-                              <option value="SHIPPED">SHIPPED</option>
-                              <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY</option>
-                              <option value="DELIVERED">DELIVERED</option>
-                              <option value="CANCELLED">CANCELLED</option>
-                            </select>
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div className="row-actions-group">
-                              <button
-                                className="action-pill-btn detail"
-                                onClick={() => setSelectedOrderDetail(o)}
-                                title="Inspect Full Order Line Items & Invoice"
-                              >
-                                <Eye size={13} />
-                                <span>Inspect</span>
-                              </button>
-                              <button
-                                className="action-pill-btn tracking"
-                                onClick={() => handleOpenTrackingModal(o)}
-                                title="Update Courier Tracking Details"
-                              >
-                                <Truck size={13} />
-                                <span>Tracking</span>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================
-              TAB: FINANCE, SALES & REFUND SETTLEMENTS
-              ======================================================== */}
-          {activeTab === 'finance' && !isEditingProductView && (
-            <FinanceSettlementPage
-              orders={orders}
-              tickets={tickets}
-              products={products}
-              onProcessRefund={handleProcessRefund}
-              onInspectOrder={(order) => {
-                setSelectedOrderDetail(order);
-                setIsOrderInspectOpen(true);
-              }}
-              onNavigateToOrders={() => {
-                setActiveTab('orders');
-                setOrderStatusFilter('ALL');
-              }}
-              onNavigateToSupport={() => {
-                setActiveTab('support');
-                setTicketStatusFilter('ALL');
-              }}
-            />
-          )}
-
-          {/* ========================================================
-              TAB 4: CUSTOMER DETAILS DIRECTORY
-              ======================================================== */}
-          {activeTab === 'customers' && (
-            <div className="admin-tab-content">
-              <div className="content-heading-row with-filter">
-                <div>
-                  <h2 className="content-title">Customer Directory & Consumer Accounts</h2>
-                  <p className="content-subtitle">
-                    Registered customers, lifetime order frequency, and direct purchase histories.
-                  </p>
-                </div>
-              </div>
-
-              {/* Customer Stats Strip */}
-              <div className="customer-kpi-grid">
-                <div className="sales-kpi-card">
-                  <div className="kpi-card-header">
-                    <span className="kpi-card-badge">TOTAL CONSUMERS</span>
-                    <Users size={20} className="kpi-icon-blue" />
-                  </div>
-                  <div className="kpi-card-title">Registered Accounts</div>
-                  <div className="kpi-card-val highlight-blue">
-                    {customersList.length} <span className="kpi-unit">users</span>
-                  </div>
-                  <div className="kpi-card-subtext">Active registered shoppers</div>
-                </div>
-
-                <div className="sales-kpi-card">
-                  <div className="kpi-card-header">
-                    <span className="kpi-card-badge">REPEAT CUSTOMERS</span>
-                    <ShieldCheck size={20} className="kpi-icon-green" />
-                  </div>
-                  <div className="kpi-card-title">Repeat Buyers</div>
-                  <div className="kpi-card-val" style={{ color: '#16a34a' }}>
-                    {customersList.filter(c => c.totalOrders > 1).length} <span className="kpi-unit">customers</span>
-                  </div>
-                  <div className="kpi-card-subtext">More than 1 purchase</div>
-                </div>
-
-                <div className="sales-kpi-card highlight-glow">
-                  <div className="kpi-card-header">
-                    <span className="kpi-card-badge">AVERAGE SPEND</span>
-                    <IndianRupee size={20} className="kpi-icon-navy" />
-                  </div>
-                  <div className="kpi-card-title">Average Lifetime Value</div>
-                  <div className="kpi-card-val highlight-navy">
-                    ₹ {customersList.length > 0 ? Math.round(overviewStats.overallSale / customersList.length).toLocaleString('en-IN') : 0}
-                  </div>
-                  <div className="kpi-card-subtext">Per consumer lifetime value</div>
-                </div>
-              </div>
-
-              {/* Customer Search Bar */}
-              <div className="orders-filter-row">
-                <div className="search-input-wrapper">
-                  <Search size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search by Customer Name, Email, Phone, or City..."
-                    value={customerSearchQuery}
-                    onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                    className="atomy-search-input"
-                  />
-                  {customerSearchQuery && (
-                    <button className="clear-search-btn" onClick={() => setCustomerSearchQuery('')}>
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Customer Table */}
-              <div className="atomy-table-responsive">
-                <table className="atomy-data-table">
-                  <thead>
-                    <tr>
-                      <th>Customer Name</th>
-                      <th>Contact Details</th>
-                      <th>Location</th>
-                      <th>Total Orders</th>
-                      <th>Lifetime Spend</th>
-                      <th>Customer Tier</th>
-                      <th>Last Order Date</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCustomers.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="table-empty-row">
-                          <Users size={36} color="#94a3b8" />
-                          <p>No customers found matching search.</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredCustomers.map((c, idx) => (
-                        <tr key={idx}>
-                          <td>
-                            <div className="customer-avatar-row">
-                              <div className="customer-avatar-circle">
-                                {(c.name || 'C').slice(0, 1).toUpperCase()}
-                              </div>
-                              <div>
-                                <div className="cell-primary-text">{c.name}</div>
-                                {c.customerId && (
-                                  <div className="cell-secondary-text" style={{ fontSize: '11px', color: '#00A3E0', fontWeight: '700' }}>
-                                    {c.customerId}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="cell-secondary-text">{c.email}</div>
-                            <div className="cell-secondary-text">{c.phone || 'N/A'}</div>
-                          </td>
-                          <td>
-                            <div>{c.city || 'N/A'}, {c.state || ''}</div>
-                            <div className="cell-secondary-text">{c.pincode || ''}</div>
-                          </td>
-                          <td>
-                            <strong>{c.totalOrders || 0} order{(c.totalOrders || 0) > 1 ? 's' : ''}</strong>
-                          </td>
-                          <td className="cell-price">
-                            ₹ {Number(c.totalSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td>
-                            <span className={`tier-badge ${(c.tier || 'Standard').toLowerCase().replace(/\s+/g, '-')}`}>
-                              {c.tier || 'Standard Customer'}
-                            </span>
-                          </td>
-                          <td className="cell-secondary-text">
-                            {c.lastOrderDate || c.createdAt ? new Date(c.lastOrderDate || c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently Joined'}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <button
-                              className="action-pill-btn detail"
-                              onClick={() => setSelectedCustomerDetail(c)}
-                            >
-                              <Clock size={13} />
-                              <span>View History</span>
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================
-              TAB 5: CUSTOMER SUPPORT DESK
-              ======================================================== */}
-          {activeTab === 'support' && (
-            <div className="admin-tab-content">
-              <div className="content-heading-row with-filter">
-                <div>
-                  <h2 className="content-title">Customer Support Desk & Inquiries</h2>
-                  <p className="content-subtitle">
-                    Respond to direct customer tickets, order queries, PV sync assistance, and return requests in real time.
-                  </p>
-                </div>
-                <div className="heading-actions-cluster">
-                  <button
-                    className="primary-action-btn"
-                    onClick={() => setIsNewTicketModalOpen(true)}
-                  >
-                    <Plus size={16} />
-                    <span>Log Customer Ticket</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Support KPI Metrics Cards */}
-              <div className="support-kpi-grid">
-                <div className="support-kpi-card">
-                  <div className="support-kpi-badge">TOTAL INQUIRIES</div>
-                  <div className="support-kpi-val">{tickets.length}</div>
-                  <div className="support-kpi-sub">Lifetime customer tickets logged</div>
-                </div>
-                <div className="support-kpi-card highlight-amber">
-                  <div className="support-kpi-badge">OPEN & AWAITING REPLY</div>
-                  <div className="support-kpi-val">{tickets.filter(t => t.status === 'OPEN').length}</div>
-                  <div className="support-kpi-sub">Immediate response needed</div>
-                </div>
-                <div className="support-kpi-card highlight-blue">
-                  <div className="support-kpi-badge">IN PROGRESS</div>
-                  <div className="support-kpi-val">{tickets.filter(t => t.status === 'IN_PROGRESS').length}</div>
-                  <div className="support-kpi-sub">Investigation / logistics sync</div>
-                </div>
-                <div className="support-kpi-card highlight-green">
-                  <div className="support-kpi-badge">SATISFACTION RATE</div>
-                  <div className="support-kpi-val">98.4%</div>
-                  <div className="support-kpi-sub">Avg resolution: 18 minutes</div>
-                </div>
-              </div>
-
-              {/* Support Search & Status Filter Toolbar */}
-              <div className="orders-filter-row">
-                <div className="search-input-wrapper orders-search-box">
-                  <Search size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search by Ticket ID, Customer Name, Subject, or Order ID..."
-                    value={ticketSearchQuery}
-                    onChange={(e) => setTicketSearchQuery(e.target.value)}
-                    className="atomy-search-input"
-                  />
-                  {ticketSearchQuery && (
-                    <button className="clear-search-btn" onClick={() => setTicketSearchQuery('')}>
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="filter-select-wrapper">
-                  <Filter size={15} />
-                  <select
-                    value={ticketStatusFilter}
-                    onChange={(e) => setTicketStatusFilter(e.target.value)}
-                    className="atomy-dropdown"
-                  >
-                    <option value="ALL">All Statuses ({tickets.length})</option>
-                    <option value="OPEN">OPEN ({tickets.filter(t => t.status === 'OPEN').length})</option>
-                    <option value="IN_PROGRESS">IN PROGRESS ({tickets.filter(t => t.status === 'IN_PROGRESS').length})</option>
-                    <option value="RESOLVED">RESOLVED ({tickets.filter(t => t.status === 'RESOLVED').length})</option>
-                    <option value="CLOSED">CLOSED ({tickets.filter(t => t.status === 'CLOSED').length})</option>
-                  </select>
-                </div>
-
-                {tickets.length > 0 && (
-                  <button
-                    type="button"
-                    className="atomy-btn-secondary"
-                    style={{ color: '#ef4444', borderColor: '#fca5a5', padding: '0 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                    onClick={handleClearAllTickets}
-                    title="Clear all tickets and start fresh"
-                  >
-                    <Trash2 size={14} />
-                    <span>Clear All Inquiries</span>
-                  </button>
-                )}
-              </div>
-
-              {tickets.length === 0 ? (
-                <div className="support-empty-state-box">
-                  <div className="support-empty-icon-bubble">
-                    <Headphones size={38} color="#00A3E0" />
-                  </div>
-                  <h3 className="support-empty-headline">Customer Support Inbox is Clear</h3>
-                  <p className="support-empty-description">
-                    No customer inquiries or return tickets registered in the database yet. When a customer submits an inquiry from the customer storefront, it will immediately populate here in real time.
-                  </p>
-                  <div className="support-empty-status-pills">
-                    <span className="status-pill-clean">
-                      <span className="dot-green"></span> MySQL Database Connected
-                    </span>
-                    <span className="status-pill-clean">
-                      <span className="dot-green"></span> Real-Time Order Sync Active
-                    </span>
-                  </div>
-                  <div style={{ marginTop: '22px' }}>
-                    <button
-                      className="primary-action-btn"
-                      onClick={() => setIsNewTicketModalOpen(true)}
-                    >
-                      <Plus size={15} />
-                      <span>Log Manual Support Ticket</span>
-                    </button>
-                  </div>
-                </div>
-              ) : filteredTickets.length === 0 ? (
-                <div className="table-empty-row" style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '48px' }}>
-                  <Headphones size={44} strokeWidth={1.2} color="#94a3b8" />
-                  <p style={{ marginTop: '12px', fontSize: '15px', color: '#475569', fontWeight: '600' }}>No customer tickets match your current search or filter.</p>
-                  <button
-                    className="atomy-btn-primary"
-                    style={{ marginTop: '16px' }}
-                    onClick={() => {
-                      setTicketStatusFilter('ALL');
-                      setTicketSearchQuery('');
-                    }}
-                  >
-                    Reset Filters
-                  </button>
-                </div>
-              ) : (
-                <div className="atomy-support-split">
-                  {/* Left Tickets List */}
-                  <div className="atomy-tickets-sidebar">
-                    {filteredTickets.map((t) => (
-                      <div
-                        key={t.ticketId}
-                        className={`ticket-summary-item ${selectedTicket?.ticketId === t.ticketId ? 'selected' : ''}`}
-                        onClick={() => setSelectedTicket(t)}
-                      >
-                        <div className="ticket-item-top">
-                          <span className="mono-ticket">{t.ticketId}</span>
-                          <span className={`priority-tag ${(t.priority || '').toLowerCase()}`}>{t.priority}</span>
-                        </div>
-                        <h4 className="ticket-item-subject">{t.subject}</h4>
-                        <div className="ticket-item-footer">
-                          <span>{t.customerName}</span>
-                          <span className={`status-badge ${(t.status || '').toLowerCase()}`}>{t.status}</span>
-                        </div>
+                      <div className="kpi-card-header">
+                        <span className="kpi-card-badge">TODAY'S METRICS</span>
+                        <TrendingUp size={22} className="kpi-icon-blue" />
                       </div>
-                    ))}
+                      <div className="kpi-card-title">Today's Total Sale</div>
+                      <div className="kpi-card-val highlight-blue">
+                        ₹ {overviewStats.todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="kpi-card-subtext">
+                        From <strong>{overviewStats.todayOrdersCount} orders</strong> placed today • <span style={{ color: '#0284c7', fontWeight: 600 }}>View Finance →</span>
+                      </div>
+                    </div>
+
+                    <div
+                      className="sales-kpi-card interactive-kpi-card"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
+                      title="Inspect Today's Orders & Customer Fulfillment"
+                    >
+                      <div className="kpi-card-header">
+                        <span className="kpi-card-badge">TODAY'S VOLUME</span>
+                        <ShoppingBag size={22} className="kpi-icon-green" />
+                      </div>
+                      <div className="kpi-card-title">Today's Orders</div>
+                      <div className="kpi-card-val">
+                        {overviewStats.todayOrdersCount} <span className="kpi-unit">orders</span>
+                      </div>
+                      <div className="kpi-card-subtext">
+                        Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
+                      </div>
+                    </div>
+
+                    <div
+                      className="sales-kpi-card highlight-glow interactive-kpi-card"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setActiveTab('finance')}
+                      title="Open Financial Ledger, Refunds & Settlements"
+                    >
+                      <div className="kpi-card-header">
+                        <span className="kpi-card-badge">CUMULATIVE PERFORMANCE</span>
+                        <IndianRupee size={22} className="kpi-icon-navy" />
+                      </div>
+                      <div className="kpi-card-title">Overall Total Sale</div>
+                      <div className="kpi-card-val highlight-navy">
+                        ₹ {overviewStats.overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="kpi-card-subtext">
+                        Total lifetime gross revenue across all non-cancelled orders • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Right Detail & Chat Thread */}
-                  <div className="atomy-ticket-thread-pane">
-                    {selectedTicket ? (
-                      <div className="thread-wrapper">
-                        <div className="thread-top-bar">
-                          <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-                            <span className="mono-ticket">{selectedTicket.ticketId}</span>
-                            <h3 className="thread-main-subject" style={{ wordBreak: 'break-word' }}>{selectedTicket.subject}</h3>
-                            <div className="thread-customer-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-                              <span>Customer: <strong>{selectedTicket.customerName}</strong> ({selectedTicket.customerEmail}, {selectedTicket.customerPhone})</span>
-                              {selectedTicket.orderId && (
-                                <button
-                                  className="link-button"
-                                  style={{ color: '#00A3E0', fontWeight: '700', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                                  onClick={() => {
-                                    setActiveTab('orders');
-                                    setOrderSearchQuery(selectedTicket.orderId);
-                                  }}
-                                >
-                                  Linked Order: {selectedTicket.orderId} &rarr;
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                  {/* QUICK ACTION COMMAND SHORTCUTS STRIP */}
+                  <div className="overview-quick-actions-bar">
+                    <span className="quick-actions-label">
+                      <Sparkles size={14} color="#00a3e0" />
+                      <span>QUICK SHORTCUTS:</span>
+                    </span>
+                    <div className="quick-actions-links-row">
+                      <button
+                        type="button"
+                        className="quick-action-pill-btn"
+                        onClick={() => setActiveTab('finance')}
+                      >
+                        <IndianRupee size={13} color="#0284c7" />
+                        <span>Finance &amp; Settlements</span>
+                      </button>
 
-                          <div className="thread-status-select-wrap">
-                            <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Status:</label>
-                            <select
-                              value={selectedTicket.status}
-                              onChange={(e) => handleUpdateTicketStatus(selectedTicket.ticketId, e.target.value)}
-                              className="atomy-dropdown"
-                              style={{ minWidth: '140px', fontWeight: 700 }}
-                            >
-                              <option value="OPEN">OPEN</option>
-                              <option value="IN_PROGRESS">IN PROGRESS</option>
-                              <option value="RESOLVED">RESOLVED</option>
-                              <option value="CLOSED">CLOSED</option>
-                            </select>
-                          </div>
+                      <button
+                        type="button"
+                        className="quick-action-pill-btn"
+                        onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
+                      >
+                        <Package size={13} color="#16a34a" />
+                        <span>All Orders ({orders.length})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="quick-action-pill-btn"
+                        onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}
+                      >
+                        <Clock size={13} color="#d97706" />
+                        <span>Processing Orders</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="quick-action-pill-btn"
+                        onClick={() => setActiveTab('support')}
+                      >
+                        <Headphones size={13} color="#dc2626" />
+                        <span>Support Desk ({overviewStats.openTicketsCount || 0})</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Order Status Pipeline Grid */}
+                  <div className="pipeline-kpi-strip">
+                    <div className="pipeline-card placed" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PLACED'); }}>
+                      <div className="pipeline-label">New Orders (Placed)</div>
+                      <div className="pipeline-val">{overviewStats.placedCount}</div>
+                      <span className="pipeline-sub">Awaiting fulfillment</span>
+                    </div>
+                    <div className="pipeline-card processing" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PROCESSING'); }}>
+                      <div className="pipeline-label">Pending (Processing)</div>
+                      <div className="pipeline-val">{overviewStats.processingCount}</div>
+                      <span className="pipeline-sub">Packaging at Hub</span>
+                    </div>
+                    <div className="pipeline-card shipped" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('SHIPPED'); }}>
+                      <div className="pipeline-label">Shipped & In Transit</div>
+                      <div className="pipeline-val">{overviewStats.shippedCount}</div>
+                      <span className="pipeline-sub">Out via Blue Dart</span>
+                    </div>
+                    <div className="pipeline-card delivered" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('DELIVERED'); }}>
+                      <div className="pipeline-label">Delivered Orders</div>
+                      <div className="pipeline-val">{overviewStats.deliveredCount}</div>
+                      <span className="pipeline-sub">Successfully fulfilled</span>
+                    </div>
+                  </div>
+
+                  {/* Overview Details Split */}
+                  <div className="atomy-overview-split">
+                    {/* Recent Customer Orders */}
+                    <div className="atomy-card-box">
+                      <div className="card-box-header">
+                        <div className="box-title-group">
+                          <Package size={18} color="#00A3E0" />
+                          <h3>Recent Customer Orders</h3>
                         </div>
+                        <button className="link-button" onClick={() => setActiveTab('orders')}>
+                          View All Orders ({orders.length}) →
+                        </button>
+                      </div>
 
-                        {/* Chat Messages */}
-                        <div className="atomy-messages-stream">
-                          {selectedTicket.messages?.map((msg, idx) => (
+                      {orders.length === 0 ? (
+                        <div className="empty-box-note">No customer orders recorded yet.</div>
+                      ) : (
+                        <div className="recent-orders-list">
+                          {orders.slice(0, 5).map((o) => (
                             <div
-                              key={idx}
-                              className={`chat-row ${msg.sender === 'ADMIN' ? 'from-admin' : 'from-customer'}`}
+                              key={o.orderId}
+                              className="recent-order-row clickable"
+                              onClick={() => { setSelectedOrderDetail(o); }}
                             >
-                              <div className="chat-bubble">
-                                <div className="chat-bubble-author">
-                                  {msg.sender === 'ADMIN' ? 'Atomy Operations Support (You)' : selectedTicket.customerName}
+                              <div className="recent-order-left">
+                                <span className="order-id-badge">{o.orderId}</span>
+                                <div className="customer-info-line">
+                                  <strong>{o.customerName}</strong> • {o.city} ({new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
                                 </div>
-                                <div className="chat-bubble-text">{msg.message}</div>
-                                <div className="chat-bubble-time">
-                                  {new Date(msg.sentAt || msg.createdAt || msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                <div className="order-items-snippet">
+                                  {o.items?.map(it => `${it.productName} (x${it.quantity})`).join(', ') || '1 item'}
                                 </div>
+                              </div>
+                              <div className="order-row-right">
+                                <span className="order-price">₹ {Number(o.totalAmount).toLocaleString('en-IN')}</span>
+                                <span className={`status-badge ${o.orderStatus.toLowerCase()}`}>{o.orderStatus}</span>
                               </div>
                             </div>
                           ))}
                         </div>
+                      )}
+                    </div>
 
-                        {/* Admin Reply Form */}
-                        <form onSubmit={handleSendTicketReply} className="atomy-reply-form">
-                          <input
-                            type="text"
-                            placeholder="Type a response to the customer..."
-                            value={adminReplyText}
-                            onChange={(e) => setAdminReplyText(e.target.value)}
-                            className="atomy-reply-input"
-                          />
-                          <button type="submit" disabled={!adminReplyText.trim()} className="atomy-btn-primary">
-                            <Send size={15} />
-                            <span>Send Reply</span>
+                    {/* Warehouse Stock Health & Quick Action Center */}
+                    <div className="atomy-card-box">
+                      <div className="card-box-header">
+                        <div className="box-title-group">
+                          <Boxes size={18} color="#00A3E0" />
+                          <h3>Inventory & Stock Health</h3>
+                        </div>
+                        <button className="link-button" onClick={() => setActiveTab('inventory')}>
+                          Manage Catalog →
+                        </button>
+                      </div>
+
+                      <div className="inv-health-list">
+                        <div className="health-row">
+                          <span>Total Registered Catalog SKUs</span>
+                          <strong>{products.length}</strong>
+                        </div>
+                        <div className="health-row">
+                          <span>In Stock Products</span>
+                          <strong className="text-green">
+                            {products.filter(p => p.stockQuantity > (p.lowStockThreshold || 10)).length}
+                          </strong>
+                        </div>
+                        <div className="health-row">
+                          <span>Low Stock Warnings (&le; 10 units)</span>
+                          <strong className="text-yellow">{overviewStats.lowStockCount}</strong>
+                        </div>
+                        <div className="health-row">
+                          <span>Out of Stock SKUs</span>
+                          <strong className="text-red">{overviewStats.outOfStockCount}</strong>
+                        </div>
+                      </div>
+
+                      <div className="quick-actions-box">
+                        <div className="quick-actions-title">OPERATIONAL SHORTCUTS</div>
+                        <div className="quick-btn-grid">
+                          <button className="quick-action-tile" onClick={handleOpenAddProduct}>
+                            <Plus size={16} />
+                            <span>Add Product</span>
                           </button>
-                        </form>
+                          <button className="quick-action-tile" onClick={() => { setActiveTab('orders'); setOrderStatusFilter('PLACED'); }}>
+                            <Bell size={16} />
+                            <span>Review New ({overviewStats.placedCount})</span>
+                          </button>
+                          <button className="quick-action-tile" onClick={() => setActiveTab('support')}>
+                            <Headphones size={16} />
+                            <span>Support Desk ({overviewStats.openTicketsCount})</span>
+                          </button>
+                          <button className="quick-action-tile" onClick={() => setActiveTab('settings')}>
+                            <Volume2 size={16} />
+                            <span>Sound Controls</span>
+                          </button>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="no-ticket-placeholder">
-                        <Headphones size={36} color="#94a3b8" />
-                        <p>Select an inquiry from the left to view customer communication and respond.</p>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* ========================================================
+              {/* ========================================================
+              TAB 2: INVENTORY & CATALOG MANAGEMENT
+              ======================================================== */}
+              {activeTab === 'inventory' && (
+                <div className="admin-tab-content">
+                  <div className="content-heading-row with-filter">
+                    <div>
+                      <h2 className="content-title">Warehouse Inventory & Product Catalog</h2>
+                      <p className="content-subtitle">
+                        Add new products, remove items, adjust stock counts, and edit complete specifications.
+                      </p>
+                    </div>
+
+                    <div className="heading-actions-cluster">
+                      <button className="primary-action-btn" onClick={handleOpenAddProduct}>
+                        <Plus size={16} />
+                        <span>Add New Product Item</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Search & Filter Toolbar */}
+                  <div className="inventory-filter-toolbar">
+                    <div className="inventory-search-row">
+                      <div className="search-input-wrapper">
+                        <Search size={16} />
+                        <input
+                          type="text"
+                          placeholder="Search by Product Name, Category, or Product Number (e.g., HemoHIM, D00101)..."
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          className="atomy-search-input"
+                        />
+                        {productSearch && (
+                          <button className="clear-search-btn" onClick={() => setProductSearch('')}>
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Stock Status Filter */}
+                      <div className="stock-filter-wrapper">
+                        <select
+                          value={productStockFilter}
+                          onChange={(e) => setProductStockFilter(e.target.value)}
+                          className="atomy-dropdown"
+                        >
+                          <option value="ALL">All Stock Statuses</option>
+                          <option value="LOW">Low Stock Only (&le; 10)</option>
+                          <option value="OUT">Out of Stock (0)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Category Filter Pills */}
+                    <div className="category-pill-group">
+                      {[
+                        { id: 'ALL', label: 'All Categories' },
+                        { id: 'hemohim', label: 'HemoHIM' },
+                        { id: 'health', label: 'Health Care' },
+                        { id: 'beauty', label: 'Beauty' },
+                        { id: 'personal_care', label: 'Personal Care' },
+                        { id: 'home', label: 'Home & Living' },
+                        { id: 'food', label: 'Food & Drinks' },
+                        { id: 'others', label: 'ETC / Others' }
+                      ].map(c => (
+                        <button
+                          key={c.id}
+                          className={`cat-filter-pill ${productCategoryFilter === c.id ? 'active' : ''}`}
+                          onClick={() => setProductCategoryFilter(c.id)}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Products Table */}
+                  <div className="atomy-table-responsive catalog-scrollable-table">
+                    <table className="atomy-data-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '80px' }}>Thumbnail</th>
+                          <th style={{ minWidth: '120px', width: '120px', whiteSpace: 'nowrap' }}>Product ID</th>
+                          <th>Product Name</th>
+                          <th>Category</th>
+                          <th>Customer Price</th>
+                          <th>PV Points</th>
+                          <th>Current Stock</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'center' }}>Stock Adjustment</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredProducts.length === 0 ? (
+                          <tr>
+                            <td colSpan={10} className="table-empty-row">
+                              <Boxes size={36} color="#94a3b8" />
+                              <p>No products found matching your search and filter criteria.</p>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredProducts.map((p) => (
+                            <tr key={p.id}>
+                              <td>
+                                <img
+                                  src={p.image || "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg"}
+                                  alt={p.name}
+                                  className="table-product-thumb"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
+                                  }}
+                                />
+                              </td>
+                              <td className="mono-col product-id-cell" style={{ minWidth: '120px', whiteSpace: 'nowrap' }}>
+                                <span className="product-id-pill">{p.id}</span>
+                              </td>
+                              <td>
+                                <div className="cell-primary-text">{p.name}</div>
+                                <div className="cell-secondary-text">{p.subcategory || 'Standard Catalog'}</div>
+                                <div style={{ display: 'flex', gap: '5px', marginTop: '5px', flexWrap: 'wrap' }}>
+                                  {p.gstReduced && (
+                                    <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd', padding: '1px 7px', borderRadius: '4px' }}>
+                                      5% GST Reduced
+                                    </span>
+                                  )}
+                                  {p.freeDelivery && (
+                                    <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', padding: '1px 7px', borderRadius: '4px' }}>
+                                      Free Delivery
+                                    </span>
+                                  )}
+                                  {(Array.isArray(p.tags) ? p.tags : (typeof p.tags === 'string' ? p.tags.split(',') : []))
+                                    .map(t => String(t).trim())
+                                    .filter(t => {
+                                      const u = t.toUpperCase();
+                                      if (u.includes('GST') || u.includes('FREE DELIVERY')) return false;
+                                      const stripped = u.replace(/^#/, '');
+                                      if (['HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING', 'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY', 'HEALTH', 'PERSONAL CARE', 'OTHERS'].includes(stripped)) {
+                                        return false;
+                                      }
+                                      return true;
+                                    })
+                                    .map((tag, idx) => (
+                                      <span key={idx} style={{ fontSize: '10.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 7px', borderRadius: '4px' }}>
+                                        {tag.startsWith('#') ? tag : '#' + tag}
+                                      </span>
+                                    ))}
+                                </div>
+                              </td>
+                              <td>
+                                <span className="category-tag-badge">
+                                  {p.categoryId === 'hemohim' || (p.name && p.name.toLowerCase().includes('hemohim'))
+                                    ? 'HemoHIM'
+                                    : (p.categoryId ? p.categoryId.charAt(0).toUpperCase() + p.categoryId.slice(1).replace('_', ' ') : 'General')}
+                                </span>
+                              </td>
+                              <td className="cell-price">
+                                ₹ {Number(p.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                {p.originalPrice && p.originalPrice > p.price && (
+                                  <div className="cell-mrp-sub">MRP: ₹ {p.originalPrice.toLocaleString('en-IN')}</div>
+                                )}
+                              </td>
+                              <td>
+                                <span className="pv-badge">{(Number(p.pv) || 0).toLocaleString('en-IN')} PV</span>
+                              </td>
+                              <td className="stock-number-cell">
+                                <span className={`stock-count-bubble ${p.stockQuantity === 0 ? 'out' : p.stockQuantity <= (p.lowStockThreshold || 10) ? 'low' : 'good'}`}>
+                                  {p.stockQuantity} units
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`status-badge ${(p.status || '').toLowerCase()}`}>
+                                  {p.stockQuantity === 0 ? 'OUT OF STOCK' : p.stockQuantity <= (p.lowStockThreshold || 10) ? 'LOW STOCK' : 'IN STOCK'}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="stock-step-btn-group">
+                                  <button
+                                    className="stock-step-btn"
+                                    onClick={() => handleQuickStockChange(p, -5)}
+                                    title="Reduce 5 units"
+                                  >
+                                    -5
+                                  </button>
+                                  <button
+                                    className="stock-step-btn"
+                                    onClick={() => handleQuickStockChange(p, 10)}
+                                    title="Add 10 units"
+                                  >
+                                    +10
+                                  </button>
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <div className="row-actions-group">
+                                  <button
+                                    className="action-icon-btn edit"
+                                    onClick={() => handleOpenEditProduct(p)}
+                                    title="Edit Product Details & Specifications"
+                                  >
+                                    <Edit2 size={15} />
+                                  </button>
+                                  <button
+                                    className="action-icon-btn delete"
+                                    onClick={() => setProductToDelete(p)}
+                                    title="Remove Product from Store"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================
+              TAB 3: CUSTOMER ORDERS & FULFILLMENT
+              ======================================================== */}
+              {activeTab === 'orders' && (
+                <div className="admin-tab-content">
+                  <div className="content-heading-row with-filter">
+                    <div>
+                      <h2 className="content-title">Customer Orders & Logistics Fulfillment</h2>
+                      <p className="content-subtitle">
+                        Inspect orders placed by direct consumers, update delivery stages, and dispatch courier tracking.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Tabs Strip */}
+                  <div className="orders-status-nav-strip">
+                    {[
+                      { id: 'ALL', label: 'All Orders', count: orders.length },
+                      { id: 'PLACED', label: 'New Orders', count: orders.filter(o => o.orderStatus === 'PLACED').length },
+                      { id: 'PROCESSING', label: 'Processing', count: orders.filter(o => o.orderStatus === 'PROCESSING').length },
+                      { id: 'SHIPPED', label: 'Shipped & Out for Delivery', count: orders.filter(o => o.orderStatus === 'SHIPPED' || o.orderStatus === 'OUT_FOR_DELIVERY').length },
+                      { id: 'DELIVERED', label: 'Delivered', count: orders.filter(o => o.orderStatus === 'DELIVERED').length },
+                      { id: 'CANCELLED', label: 'Cancelled', count: orders.filter(o => o.orderStatus === 'CANCELLED').length }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        className={`order-status-tab ${orderStatusFilter === tab.id ? 'active' : ''}`}
+                        onClick={() => setOrderStatusFilter(tab.id)}
+                      >
+                        <span>{tab.label}</span>
+                        <span className="tab-count-badge">{tab.count}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Orders Search & Summary Filter Bar */}
+                  <div className="orders-filter-row">
+                    <div className="search-input-wrapper orders-search-box">
+                      <Search size={16} />
+                      <input
+                        type="text"
+                        placeholder="Search by Order ID, Customer Name, Phone, or City..."
+                        value={orderSearchQuery}
+                        onChange={(e) => setOrderSearchQuery(e.target.value)}
+                        className="atomy-search-input"
+                      />
+                      {orderSearchQuery && (
+                        <button className="clear-search-btn" onClick={() => setOrderSearchQuery('')}>
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="orders-summary-pill">
+                      <span>Showing <strong>{filteredOrders.length}</strong> of <strong>{orders.length}</strong> Orders</span>
+                    </div>
+                  </div>
+
+                  {/* Orders Data Table */}
+                  <div className="atomy-table-responsive orders-table-wrapper">
+                    <table className="atomy-data-table orders-data-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '175px', minWidth: '175px' }}>Order ID & Date</th>
+                          <th style={{ width: '210px', minWidth: '210px' }}>Customer Details</th>
+                          <th style={{ minWidth: '240px' }}>Shipping Destination</th>
+                          <th style={{ width: '120px', minWidth: '120px', textAlign: 'center' }}>Items Ordered</th>
+                          <th style={{ width: '140px', minWidth: '140px', textAlign: 'right' }}>Total Amount</th>
+                          <th style={{ width: '130px', minWidth: '130px', textAlign: 'center' }}>Payment</th>
+                          <th style={{ width: '190px', minWidth: '190px', textAlign: 'center' }}>Fulfillment Status</th>
+                          <th style={{ width: '185px', minWidth: '185px', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredOrders.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="table-empty-row">
+                              <Package size={40} color="#94a3b8" />
+                              <p>No customer orders found in this category.</p>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredOrders.map((o) => (
+                            <tr key={o.orderId}>
+                              <td>
+                                <div className="order-id-badge">
+                                  <span className="order-id-text">{o.orderId}</span>
+                                </div>
+                                <div className="order-date-text">
+                                  {new Date(o.createdAt).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                  <span className="order-time-text">
+                                    {new Date(o.createdAt).toLocaleTimeString('en-IN', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hour12: true
+                                    })}
+                                  </span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="cell-primary-text">{o.customerName}</div>
+                                <div className="cell-secondary-text">{o.customerPhone}</div>
+                                <div className="cell-secondary-text">{o.customerEmail}</div>
+                              </td>
+                              <td className="cell-address">
+                                <div className="address-line-primary">{o.shippingAddress}</div>
+                                <div className="address-line-sub">
+                                  {o.city}, {o.state} <span className="pincode-pill">{o.pincode}</span>
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span className="items-count-badge">
+                                  {o.items?.length || 0} item{(o.items?.length || 0) !== 1 ? 's' : ''}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'right' }} className="cell-price-col">
+                                <span className="order-total-amount">
+                                  ₹ {Number(o.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <span className={`payment-pill ${(o.paymentStatus || 'PAID').toLowerCase()}`}>
+                                  {o.paymentMethod ? o.paymentMethod.replace(/_/g, ' ') : 'ONLINE UPI'}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                {/* Direct Fulfillment Status Dropdown */}
+                                <select
+                                  value={o.orderStatus}
+                                  onChange={(e) => handleUpdateOrderStatus(o.orderId, e.target.value)}
+                                  className={`status-select ${o.orderStatus.toLowerCase()}`}
+                                >
+                                  <option value="PLACED">PLACED (New)</option>
+                                  <option value="PROCESSING">PROCESSING (Pending)</option>
+                                  <option value="SHIPPED">SHIPPED</option>
+                                  <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY</option>
+                                  <option value="DELIVERED">DELIVERED</option>
+                                  <option value="CANCELLED">CANCELLED</option>
+                                </select>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <div className="row-actions-group">
+                                  <button
+                                    className="action-pill-btn detail"
+                                    onClick={() => setSelectedOrderDetail(o)}
+                                    title="Inspect Full Order Line Items & Invoice"
+                                  >
+                                    <Eye size={13} />
+                                    <span>Inspect</span>
+                                  </button>
+                                  <button
+                                    className="action-pill-btn tracking"
+                                    onClick={() => handleOpenTrackingModal(o)}
+                                    title="Update Courier Tracking Details"
+                                  >
+                                    <Truck size={13} />
+                                    <span>Tracking</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================
+              TAB: FINANCE, SALES & REFUND SETTLEMENTS
+              ======================================================== */}
+              {activeTab === 'finance' && !isEditingProductView && (
+                <FinanceSettlementPage
+                  orders={orders}
+                  tickets={tickets}
+                  products={products}
+                  onProcessRefund={handleProcessRefund}
+                  onInspectOrder={(order) => {
+                    setSelectedOrderDetail(order);
+                    setIsOrderInspectOpen(true);
+                  }}
+                  onNavigateToOrders={() => {
+                    setActiveTab('orders');
+                    setOrderStatusFilter('ALL');
+                  }}
+                  onNavigateToSupport={() => {
+                    setActiveTab('support');
+                    setTicketStatusFilter('ALL');
+                  }}
+                />
+              )}
+
+              {/* ========================================================
+              TAB 4: CUSTOMER DETAILS DIRECTORY
+              ======================================================== */}
+              {activeTab === 'customers' && (
+                <div className="admin-tab-content">
+                  <div className="content-heading-row with-filter">
+                    <div>
+                      <h2 className="content-title">Customer Directory & Consumer Accounts</h2>
+                      <p className="content-subtitle">
+                        Registered customers, lifetime order frequency, and direct purchase histories.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Customer Stats Strip */}
+                  <div className="customer-kpi-grid">
+                    <div className="sales-kpi-card">
+                      <div className="kpi-card-header">
+                        <span className="kpi-card-badge">TOTAL CONSUMERS</span>
+                        <Users size={20} className="kpi-icon-blue" />
+                      </div>
+                      <div className="kpi-card-title">Registered Accounts</div>
+                      <div className="kpi-card-val highlight-blue">
+                        {customersList.length} <span className="kpi-unit">users</span>
+                      </div>
+                      <div className="kpi-card-subtext">Active registered shoppers</div>
+                    </div>
+
+                    <div className="sales-kpi-card">
+                      <div className="kpi-card-header">
+                        <span className="kpi-card-badge">REPEAT CUSTOMERS</span>
+                        <ShieldCheck size={20} className="kpi-icon-green" />
+                      </div>
+                      <div className="kpi-card-title">Repeat Buyers</div>
+                      <div className="kpi-card-val" style={{ color: '#16a34a' }}>
+                        {customersList.filter(c => c.totalOrders > 1).length} <span className="kpi-unit">customers</span>
+                      </div>
+                      <div className="kpi-card-subtext">More than 1 purchase</div>
+                    </div>
+
+                    <div className="sales-kpi-card highlight-glow">
+                      <div className="kpi-card-header">
+                        <span className="kpi-card-badge">AVERAGE SPEND</span>
+                        <IndianRupee size={20} className="kpi-icon-navy" />
+                      </div>
+                      <div className="kpi-card-title">Average Lifetime Value</div>
+                      <div className="kpi-card-val highlight-navy">
+                        ₹ {customersList.length > 0 ? Math.round(overviewStats.overallSale / customersList.length).toLocaleString('en-IN') : 0}
+                      </div>
+                      <div className="kpi-card-subtext">Per consumer lifetime value</div>
+                    </div>
+                  </div>
+
+                  {/* Customer Search Bar */}
+                  <div className="orders-filter-row">
+                    <div className="search-input-wrapper">
+                      <Search size={16} />
+                      <input
+                        type="text"
+                        placeholder="Search by Customer Name, Email, Phone, or City..."
+                        value={customerSearchQuery}
+                        onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                        className="atomy-search-input"
+                      />
+                      {customerSearchQuery && (
+                        <button className="clear-search-btn" onClick={() => setCustomerSearchQuery('')}>
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Customer Table */}
+                  <div className="atomy-table-responsive">
+                    <table className="atomy-data-table">
+                      <thead>
+                        <tr>
+                          <th>Customer Name</th>
+                          <th>Contact Details</th>
+                          <th>Location</th>
+                          <th>Total Orders</th>
+                          <th>Lifetime Spend</th>
+                          <th>Customer Tier</th>
+                          <th>Last Order Date</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredCustomers.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="table-empty-row">
+                              <Users size={36} color="#94a3b8" />
+                              <p>No customers found matching search.</p>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredCustomers.map((c, idx) => (
+                            <tr key={idx}>
+                              <td>
+                                <div className="customer-avatar-row">
+                                  <div className="customer-avatar-circle">
+                                    {(c.name || 'C').slice(0, 1).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="cell-primary-text">{c.name}</div>
+                                    {c.customerId && (
+                                      <div className="cell-secondary-text" style={{ fontSize: '11px', color: '#00A3E0', fontWeight: '700' }}>
+                                        {c.customerId}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="cell-secondary-text">{c.email}</div>
+                                <div className="cell-secondary-text">{c.phone || 'N/A'}</div>
+                              </td>
+                              <td>
+                                <div>{c.city || 'N/A'}, {c.state || ''}</div>
+                                <div className="cell-secondary-text">{c.pincode || ''}</div>
+                              </td>
+                              <td>
+                                <strong>{c.totalOrders || 0} order{(c.totalOrders || 0) > 1 ? 's' : ''}</strong>
+                              </td>
+                              <td className="cell-price">
+                                ₹ {Number(c.totalSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              </td>
+                              <td>
+                                <span className={`tier-badge ${(c.tier || 'Standard').toLowerCase().replace(/\s+/g, '-')}`}>
+                                  {c.tier || 'Standard Customer'}
+                                </span>
+                              </td>
+                              <td className="cell-secondary-text">
+                                {c.lastOrderDate || c.createdAt ? new Date(c.lastOrderDate || c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently Joined'}
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  className="action-pill-btn detail"
+                                  onClick={() => setSelectedCustomerDetail(c)}
+                                >
+                                  <Clock size={13} />
+                                  <span>View History</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================
+              TAB 5: CUSTOMER SUPPORT DESK
+              ======================================================== */}
+              {activeTab === 'support' && (
+                <div className="admin-tab-content">
+                  <div className="content-heading-row with-filter">
+                    <div>
+                      <h2 className="content-title">Customer Support Desk & Inquiries</h2>
+                      <p className="content-subtitle">
+                        Respond to direct customer tickets, order queries, PV sync assistance, and return requests in real time.
+                      </p>
+                    </div>
+                    <div className="heading-actions-cluster">
+                      <button
+                        className="primary-action-btn"
+                        onClick={() => setIsNewTicketModalOpen(true)}
+                      >
+                        <Plus size={16} />
+                        <span>Log Customer Ticket</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Support KPI Metrics Cards */}
+                  <div className="support-kpi-grid">
+                    <div className="support-kpi-card">
+                      <div className="support-kpi-badge">TOTAL INQUIRIES</div>
+                      <div className="support-kpi-val">{tickets.length}</div>
+                      <div className="support-kpi-sub">Lifetime customer tickets logged</div>
+                    </div>
+                    <div className="support-kpi-card highlight-amber">
+                      <div className="support-kpi-badge">OPEN & AWAITING REPLY</div>
+                      <div className="support-kpi-val">{tickets.filter(t => t.status === 'OPEN').length}</div>
+                      <div className="support-kpi-sub">Immediate response needed</div>
+                    </div>
+                    <div className="support-kpi-card highlight-blue">
+                      <div className="support-kpi-badge">IN PROGRESS</div>
+                      <div className="support-kpi-val">{tickets.filter(t => t.status === 'IN_PROGRESS').length}</div>
+                      <div className="support-kpi-sub">Investigation / logistics sync</div>
+                    </div>
+                    <div className="support-kpi-card highlight-green">
+                      <div className="support-kpi-badge">SATISFACTION RATE</div>
+                      <div className="support-kpi-val">98.4%</div>
+                      <div className="support-kpi-sub">Avg resolution: 18 minutes</div>
+                    </div>
+                  </div>
+
+                  {/* Support Search & Status Filter Toolbar */}
+                  <div className="orders-filter-row">
+                    <div className="search-input-wrapper orders-search-box">
+                      <Search size={16} />
+                      <input
+                        type="text"
+                        placeholder="Search by Ticket ID, Customer Name, Subject, or Order ID..."
+                        value={ticketSearchQuery}
+                        onChange={(e) => setTicketSearchQuery(e.target.value)}
+                        className="atomy-search-input"
+                      />
+                      {ticketSearchQuery && (
+                        <button className="clear-search-btn" onClick={() => setTicketSearchQuery('')}>
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="filter-select-wrapper">
+                      <Filter size={15} />
+                      <select
+                        value={ticketStatusFilter}
+                        onChange={(e) => setTicketStatusFilter(e.target.value)}
+                        className="atomy-dropdown"
+                      >
+                        <option value="ALL">All Statuses ({tickets.length})</option>
+                        <option value="OPEN">OPEN ({tickets.filter(t => t.status === 'OPEN').length})</option>
+                        <option value="IN_PROGRESS">IN PROGRESS ({tickets.filter(t => t.status === 'IN_PROGRESS').length})</option>
+                        <option value="RESOLVED">RESOLVED ({tickets.filter(t => t.status === 'RESOLVED').length})</option>
+                        <option value="CLOSED">CLOSED ({tickets.filter(t => t.status === 'CLOSED').length})</option>
+                      </select>
+                    </div>
+
+                    {tickets.length > 0 && (
+                      <button
+                        type="button"
+                        className="atomy-btn-secondary"
+                        style={{ color: '#ef4444', borderColor: '#fca5a5', padding: '0 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        onClick={handleClearAllTickets}
+                        title="Clear all tickets and start fresh"
+                      >
+                        <Trash2 size={14} />
+                        <span>Clear All Inquiries</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {tickets.length === 0 ? (
+                    <div className="support-empty-state-box">
+                      <div className="support-empty-icon-bubble">
+                        <Headphones size={38} color="#00A3E0" />
+                      </div>
+                      <h3 className="support-empty-headline">Customer Support Inbox is Clear</h3>
+                      <p className="support-empty-description">
+                        No customer inquiries or return tickets registered in the database yet. When a customer submits an inquiry from the customer storefront, it will immediately populate here in real time.
+                      </p>
+                      <div className="support-empty-status-pills">
+                        <span className="status-pill-clean">
+                          <span className="dot-green"></span> MySQL Database Connected
+                        </span>
+                        <span className="status-pill-clean">
+                          <span className="dot-green"></span> Real-Time Order Sync Active
+                        </span>
+                      </div>
+                      <div style={{ marginTop: '22px' }}>
+                        <button
+                          className="primary-action-btn"
+                          onClick={() => setIsNewTicketModalOpen(true)}
+                        >
+                          <Plus size={15} />
+                          <span>Log Manual Support Ticket</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : filteredTickets.length === 0 ? (
+                    <div className="table-empty-row" style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '48px' }}>
+                      <Headphones size={44} strokeWidth={1.2} color="#94a3b8" />
+                      <p style={{ marginTop: '12px', fontSize: '15px', color: '#475569', fontWeight: '600' }}>No customer tickets match your current search or filter.</p>
+                      <button
+                        className="atomy-btn-primary"
+                        style={{ marginTop: '16px' }}
+                        onClick={() => {
+                          setTicketStatusFilter('ALL');
+                          setTicketSearchQuery('');
+                        }}
+                      >
+                        Reset Filters
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="atomy-support-split">
+                      {/* Left Tickets List */}
+                      <div className="atomy-tickets-sidebar">
+                        {filteredTickets.map((t) => (
+                          <div
+                            key={t.ticketId}
+                            className={`ticket-summary-item ${selectedTicket?.ticketId === t.ticketId ? 'selected' : ''}`}
+                            onClick={() => setSelectedTicket(t)}
+                          >
+                            <div className="ticket-item-top">
+                              <span className="mono-ticket">{t.ticketId}</span>
+                              <span className={`priority-tag ${(t.priority || '').toLowerCase()}`}>{t.priority}</span>
+                            </div>
+                            <h4 className="ticket-item-subject">{t.subject}</h4>
+                            <div className="ticket-item-footer">
+                              <span>{t.customerName}</span>
+                              <span className={`status-badge ${(t.status || '').toLowerCase()}`}>{t.status}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Right Detail & Chat Thread */}
+                      <div className="atomy-ticket-thread-pane">
+                        {selectedTicket ? (
+                          <div className="thread-wrapper">
+                            <div className="thread-top-bar">
+                              <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                                <span className="mono-ticket">{selectedTicket.ticketId}</span>
+                                <h3 className="thread-main-subject" style={{ wordBreak: 'break-word' }}>{selectedTicket.subject}</h3>
+                                <div className="thread-customer-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                                  <span>Customer: <strong>{selectedTicket.customerName}</strong> ({selectedTicket.customerEmail}, {selectedTicket.customerPhone})</span>
+                                  {selectedTicket.orderId && (
+                                    <button
+                                      className="link-button"
+                                      style={{ color: '#00A3E0', fontWeight: '700', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                      onClick={() => {
+                                        setActiveTab('orders');
+                                        setOrderSearchQuery(selectedTicket.orderId);
+                                      }}
+                                    >
+                                      Linked Order: {selectedTicket.orderId} &rarr;
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="thread-status-select-wrap">
+                                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Status:</label>
+                                <select
+                                  value={selectedTicket.status}
+                                  onChange={(e) => handleUpdateTicketStatus(selectedTicket.ticketId, e.target.value)}
+                                  className="atomy-dropdown"
+                                  style={{ minWidth: '140px', fontWeight: 700 }}
+                                >
+                                  <option value="OPEN">OPEN</option>
+                                  <option value="IN_PROGRESS">IN PROGRESS</option>
+                                  <option value="RESOLVED">RESOLVED</option>
+                                  <option value="CLOSED">CLOSED</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            {/* Chat Messages */}
+                            <div className="atomy-messages-stream">
+                              {selectedTicket.messages?.map((msg, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`chat-row ${msg.sender === 'ADMIN' ? 'from-admin' : 'from-customer'}`}
+                                >
+                                  <div className="chat-bubble">
+                                    <div className="chat-bubble-author">
+                                      {msg.sender === 'ADMIN' ? 'Atomy Operations Support (You)' : selectedTicket.customerName}
+                                    </div>
+                                    <div className="chat-bubble-text">{msg.message}</div>
+                                    <div className="chat-bubble-time">
+                                      {new Date(msg.sentAt || msg.createdAt || msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Admin Reply Form */}
+                            <form onSubmit={handleSendTicketReply} className="atomy-reply-form">
+                              <input
+                                type="text"
+                                placeholder="Type a response to the customer..."
+                                value={adminReplyText}
+                                onChange={(e) => setAdminReplyText(e.target.value)}
+                                className="atomy-reply-input"
+                              />
+                              <button type="submit" disabled={!adminReplyText.trim()} className="atomy-btn-primary">
+                                <Send size={15} />
+                                <span>Send Reply</span>
+                              </button>
+                            </form>
+                          </div>
+                        ) : (
+                          <div className="no-ticket-placeholder">
+                            <Headphones size={36} color="#94a3b8" />
+                            <p>Select an inquiry from the left to view customer communication and respond.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ========================================================
               TAB 6: SETTINGS & AUDIO NOTIFICATION PREFERENCES
               ======================================================== */}
-          {/* ========================================================
+              {/* ========================================================
               TAB 6: ADS, BANNERS & PROMOTION MANAGER (LANDING, CATEGORY, FLOATING)
               ======================================================== */}
-          {activeTab === 'floating-ad' && (
-            <AdPromotionManager showToast={showToast} />
-          )}
+              {activeTab === 'floating-ad' && (
+                <AdPromotionManager showToast={showToast} />
+              )}
 
-          {activeTab === 'settings' && (
-            <div className="admin-tab-content">
-              <div className="content-heading-row">
-                <div>
-                  <h2 className="content-title">Admin Settings & Audio Notification Preferences</h2>
-                  <p className="content-subtitle">
-                    Configure store profile, synthesized real-time audio chimes, volume levels, and warehouse logistics.
-                  </p>
-                </div>
-              </div>
-
-              <div className="settings-cards-grid">
-                {/* 1. Strong Audio Alert Configuration */}
-                <div className="settings-section-card">
-                  <div className="settings-card-header">
-                    <Volume2 size={20} color="#00A3E0" />
+              {activeTab === 'settings' && (
+                <div className="admin-tab-content">
+                  <div className="content-heading-row">
                     <div>
-                      <h3>Real-Time Strong Audio Alerts</h3>
-                      <p>High-impact synthesizer chimes when orders and customer inquiries arrive</p>
+                      <h2 className="content-title">Admin Settings & Audio Notification Preferences</h2>
+                      <p className="content-subtitle">
+                        Configure store profile, synthesized real-time audio chimes, volume levels, and warehouse logistics.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="settings-body-form">
-                    <div className="setting-toggle-row">
-                      <div>
-                        <div className="setting-title">New Order Arrival Chime</div>
-                        <div className="setting-desc">Ascending 4-tone melodic fanfare (E5 &rarr; G#5 &rarr; B5 &rarr; E6) on new order placement</div>
+                  <div className="settings-cards-grid">
+                    {/* 1. Strong Audio Alert Configuration */}
+                    <div className="settings-section-card">
+                      <div className="settings-card-header">
+                        <Volume2 size={20} color="#00A3E0" />
+                        <div>
+                          <h3>Real-Time Strong Audio Alerts</h3>
+                          <p>High-impact synthesizer chimes when orders and customer inquiries arrive</p>
+                        </div>
                       </div>
-                      <label className="switch">
-                        <input
-                          type="checkbox"
-                          checked={soundSettings.orderSoundEnabled}
-                          onChange={(e) => setSoundSettings({ ...soundSettings, orderSoundEnabled: e.target.checked })}
-                        />
-                        <span className="slider round"></span>
-                      </label>
-                    </div>
 
-                    <div className="setting-toggle-row">
-                      <div>
-                        <div className="setting-title">Customer Support Ticket Chime</div>
-                        <div className="setting-desc">Urgent dual-pulse emergency alert (A5 &rarr; D6) when an inquiry is submitted</div>
+                      <div className="settings-body-form">
+                        <div className="setting-toggle-row">
+                          <div>
+                            <div className="setting-title">New Order Arrival Chime</div>
+                            <div className="setting-desc">Ascending 4-tone melodic fanfare (E5 &rarr; G#5 &rarr; B5 &rarr; E6) on new order placement</div>
+                          </div>
+                          <label className="switch">
+                            <input
+                              type="checkbox"
+                              checked={soundSettings.orderSoundEnabled}
+                              onChange={(e) => setSoundSettings({ ...soundSettings, orderSoundEnabled: e.target.checked })}
+                            />
+                            <span className="slider round"></span>
+                          </label>
+                        </div>
+
+                        <div className="setting-toggle-row">
+                          <div>
+                            <div className="setting-title">Customer Support Ticket Chime</div>
+                            <div className="setting-desc">Urgent dual-pulse emergency alert (A5 &rarr; D6) when an inquiry is submitted</div>
+                          </div>
+                          <label className="switch">
+                            <input
+                              type="checkbox"
+                              checked={soundSettings.supportSoundEnabled}
+                              onChange={(e) => setSoundSettings({ ...soundSettings, supportSoundEnabled: e.target.checked })}
+                            />
+                            <span className="slider round"></span>
+                          </label>
+                        </div>
+
+                        <div className="setting-field-group">
+                          <label>Chime Volume Level: <strong>{Math.round(soundSettings.volume * 100)}%</strong></label>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1.0"
+                            step="0.05"
+                            value={soundSettings.volume}
+                            onChange={(e) => setSoundSettings({ ...soundSettings, volume: parseFloat(e.target.value) })}
+                            className="volume-slider"
+                          />
+                        </div>
+
+                        <div className="test-buttons-row">
+                          <button type="button" className="test-action-btn" onClick={handleTestOrderSound}>
+                            <Volume2 size={15} />
+                            <span>Test Order Sound Now</span>
+                          </button>
+                          <button type="button" className="test-action-btn" onClick={handleTestSupportSound}>
+                            <Headphones size={15} />
+                            <span>Test Support Sound Now</span>
+                          </button>
+                        </div>
+
+                        <div className="setting-field-group" style={{ marginTop: '16px' }}>
+                          <label>Background Auto-Polling Interval</label>
+                          <select
+                            value={soundSettings.pollingIntervalSec}
+                            onChange={(e) => setSoundSettings({ ...soundSettings, pollingIntervalSec: parseInt(e.target.value) })}
+                            className="atomy-dropdown"
+                          >
+                            <option value="5">Every 5 Seconds (Ultra fast)</option>
+                            <option value="10">Every 10 Seconds (Recommended)</option>
+                            <option value="30">Every 30 Seconds</option>
+                            <option value="60">Every 60 Seconds</option>
+                          </select>
+                        </div>
                       </div>
-                      <label className="switch">
-                        <input
-                          type="checkbox"
-                          checked={soundSettings.supportSoundEnabled}
-                          onChange={(e) => setSoundSettings({ ...soundSettings, supportSoundEnabled: e.target.checked })}
-                        />
-                        <span className="slider round"></span>
-                      </label>
                     </div>
 
-                    <div className="setting-field-group">
-                      <label>Chime Volume Level: <strong>{Math.round(soundSettings.volume * 100)}%</strong></label>
-                      <input
-                        type="range"
-                        min="0.1"
-                        max="1.0"
-                        step="0.05"
-                        value={soundSettings.volume}
-                        onChange={(e) => setSoundSettings({ ...soundSettings, volume: parseFloat(e.target.value) })}
-                        className="volume-slider"
-                      />
+                    {/* 2. Store Profile Configuration */}
+                    <div className="settings-section-card">
+                      <div className="settings-card-header">
+                        <ShieldCheck size={20} color="#00A3E0" />
+                        <div>
+                          <h3>Official Store Profile & Contacts</h3>
+                          <p>Business information displayed on customer order sheets and invoices</p>
+                        </div>
+                      </div>
+
+                      <div className="settings-body-form">
+                        <div className="setting-field-group">
+                          <label>Store Entity Name</label>
+                          <input
+                            type="text"
+                            value={storeSettings.storeName}
+                            onChange={(e) => setStoreSettings({ ...storeSettings, storeName: e.target.value })}
+                            className="atomy-form-input"
+                          />
+                        </div>
+
+                        <div className="setting-field-group">
+                          <label>Toll Free Helpline</label>
+                          <input
+                            type="text"
+                            value={storeSettings.helpline}
+                            onChange={(e) => setStoreSettings({ ...storeSettings, helpline: e.target.value })}
+                            className="atomy-form-input"
+                          />
+                        </div>
+
+                        <div className="setting-field-group">
+                          <label>Support Email Address</label>
+                          <input
+                            type="email"
+                            value={storeSettings.supportEmail}
+                            onChange={(e) => setStoreSettings({ ...storeSettings, supportEmail: e.target.value })}
+                            className="atomy-form-input"
+                          />
+                        </div>
+
+                        <div className="setting-field-group">
+                          <label>Main Fulfillment Center Location</label>
+                          <input
+                            type="text"
+                            value={storeSettings.fulfillmentCenter}
+                            onChange={(e) => setStoreSettings({ ...storeSettings, fulfillmentCenter: e.target.value })}
+                            className="atomy-form-input"
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="test-buttons-row">
-                      <button type="button" className="test-action-btn" onClick={handleTestOrderSound}>
-                        <Volume2 size={15} />
-                        <span>Test Order Sound Now</span>
-                      </button>
-                      <button type="button" className="test-action-btn" onClick={handleTestSupportSound}>
-                        <Headphones size={15} />
-                        <span>Test Support Sound Now</span>
-                      </button>
-                    </div>
+                    {/* 3. Logistics & Fulfillment Rules */}
+                    <div className="settings-section-card">
+                      <div className="settings-card-header">
+                        <Truck size={20} color="#00A3E0" />
+                        <div>
+                          <h3>Fulfillment & Logistics Rules</h3>
+                          <p>Default couriers and inventory warning thresholds</p>
+                        </div>
+                      </div>
 
-                    <div className="setting-field-group" style={{ marginTop: '16px' }}>
-                      <label>Background Auto-Polling Interval</label>
-                      <select
-                        value={soundSettings.pollingIntervalSec}
-                        onChange={(e) => setSoundSettings({ ...soundSettings, pollingIntervalSec: parseInt(e.target.value) })}
-                        className="atomy-dropdown"
-                      >
-                        <option value="5">Every 5 Seconds (Ultra fast)</option>
-                        <option value="10">Every 10 Seconds (Recommended)</option>
-                        <option value="30">Every 30 Seconds</option>
-                        <option value="60">Every 60 Seconds</option>
-                      </select>
+                      <div className="settings-body-form">
+                        <div className="setting-field-group">
+                          <label>Default Courier Partner</label>
+                          <select
+                            value={storeSettings.defaultCourier}
+                            onChange={(e) => setStoreSettings({ ...storeSettings, defaultCourier: e.target.value })}
+                            className="atomy-dropdown"
+                          >
+                            <option value="Blue Dart Express">Blue Dart Express (Priority Partner)</option>
+                            <option value="Delhivery Logistics">Delhivery Logistics</option>
+                            <option value="DTDC Express">DTDC Express</option>
+                          </select>
+                        </div>
+
+                        <div className="setting-field-group">
+                          <label>Free Shipping Minimum Order (₹)</label>
+                          <input
+                            type="number"
+                            value={storeSettings.freeShippingThreshold}
+                            onChange={(e) => setStoreSettings({ ...storeSettings, freeShippingThreshold: parseInt(e.target.value) || 0 })}
+                            className="atomy-form-input"
+                          />
+                        </div>
+
+                        <div className="setting-field-group">
+                          <label>Default Low Stock Warning Limit (units)</label>
+                          <input
+                            type="number"
+                            value={storeSettings.defaultLowStockAlert}
+                            onChange={(e) => setStoreSettings({ ...storeSettings, defaultLowStockAlert: parseInt(e.target.value) || 10 })}
+                            className="atomy-form-input"
+                          />
+                        </div>
+
+                        <button
+                          className="atomy-btn-primary"
+                          style={{ marginTop: '20px' }}
+                          onClick={() => showToast('Preferences and store settings saved successfully!')}
+                        >
+                          Save All Settings
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* 2. Store Profile Configuration */}
-                <div className="settings-section-card">
-                  <div className="settings-card-header">
-                    <ShieldCheck size={20} color="#00A3E0" />
-                    <div>
-                      <h3>Official Store Profile & Contacts</h3>
-                      <p>Business information displayed on customer order sheets and invoices</p>
-                    </div>
-                  </div>
-
-                  <div className="settings-body-form">
-                    <div className="setting-field-group">
-                      <label>Store Entity Name</label>
-                      <input
-                        type="text"
-                        value={storeSettings.storeName}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, storeName: e.target.value })}
-                        className="atomy-form-input"
-                      />
-                    </div>
-
-                    <div className="setting-field-group">
-                      <label>Toll Free Helpline</label>
-                      <input
-                        type="text"
-                        value={storeSettings.helpline}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, helpline: e.target.value })}
-                        className="atomy-form-input"
-                      />
-                    </div>
-
-                    <div className="setting-field-group">
-                      <label>Support Email Address</label>
-                      <input
-                        type="email"
-                        value={storeSettings.supportEmail}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, supportEmail: e.target.value })}
-                        className="atomy-form-input"
-                      />
-                    </div>
-
-                    <div className="setting-field-group">
-                      <label>Main Fulfillment Center Location</label>
-                      <input
-                        type="text"
-                        value={storeSettings.fulfillmentCenter}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, fulfillmentCenter: e.target.value })}
-                        className="atomy-form-input"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Logistics & Fulfillment Rules */}
-                <div className="settings-section-card">
-                  <div className="settings-card-header">
-                    <Truck size={20} color="#00A3E0" />
-                    <div>
-                      <h3>Fulfillment & Logistics Rules</h3>
-                      <p>Default couriers and inventory warning thresholds</p>
-                    </div>
-                  </div>
-
-                  <div className="settings-body-form">
-                    <div className="setting-field-group">
-                      <label>Default Courier Partner</label>
-                      <select
-                        value={storeSettings.defaultCourier}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, defaultCourier: e.target.value })}
-                        className="atomy-dropdown"
-                      >
-                        <option value="Blue Dart Express">Blue Dart Express (Priority Partner)</option>
-                        <option value="Delhivery Logistics">Delhivery Logistics</option>
-                        <option value="DTDC Express">DTDC Express</option>
-                      </select>
-                    </div>
-
-                    <div className="setting-field-group">
-                      <label>Free Shipping Minimum Order (₹)</label>
-                      <input
-                        type="number"
-                        value={storeSettings.freeShippingThreshold}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, freeShippingThreshold: parseInt(e.target.value) || 0 })}
-                        className="atomy-form-input"
-                      />
-                    </div>
-
-                    <div className="setting-field-group">
-                      <label>Default Low Stock Warning Limit (units)</label>
-                      <input
-                        type="number"
-                        value={storeSettings.defaultLowStockAlert}
-                        onChange={(e) => setStoreSettings({ ...storeSettings, defaultLowStockAlert: parseInt(e.target.value) || 10 })}
-                        className="atomy-form-input"
-                      />
-                    </div>
-
-                    <button
-                      className="atomy-btn-primary"
-                      style={{ marginTop: '20px' }}
-                      onClick={() => showToast('Preferences and store settings saved successfully!')}
-                    >
-                      Save All Settings
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================
+              {/* ========================================================
               TAB 7: ADMIN PROFILE & REFUND/REPLACEMENT CENTER
               ======================================================== */}
-          {activeTab === 'profile' && !isEditingProductView && (
-            <div className="tab-pane-content">
-              {/* Profile Hero Card */}
-              <div className="admin-profile-hero-card">
-                <div className="profile-hero-left">
-                  <div className="profile-avatar-large">
-                    {adminProfile.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="profile-badge-row">
-                      <span className="profile-role-badge">{adminProfile.role}</span>
-                      <span className="profile-status-badge">● Active Session</span>
-                    </div>
-                    <h2 className="profile-hero-name">{adminProfile.name}</h2>
-                    <p className="profile-hero-meta">
-                      {adminProfile.employeeId} • {adminProfile.department} • {adminProfile.location}
-                    </p>
-                  </div>
-                </div>
-                <div className="profile-hero-right">
-                  <div className="profile-stat-box">
-                    <span className="stat-label">Security Protocol</span>
-                    <span className="stat-value" style={{ color: '#16a34a' }}>2FA Protected</span>
-                  </div>
-                  <div className="profile-stat-box">
-                    <span className="stat-label">Last Session Audit</span>
-                    <span className="stat-value">{adminProfile.lastLogin}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Profile Details & Security Grid */}
-              <div className="profile-grid-cards">
-                {/* Personal & Station Information */}
-                <div className="settings-section-card">
-                  <div className="settings-card-header">
-                    <User size={20} color="#00A3E0" />
-                    <div>
-                      <h3>Administrator Details</h3>
-                      <p>Personal profile & office station credentials</p>
-                    </div>
-                  </div>
-                  <div className="settings-body-form">
-                    <div className="setting-field-group">
-                      <label>Full Name</label>
-                      <input
-                        type="text"
-                        value={adminProfile.name}
-                        onChange={(e) => setAdminProfile({ ...adminProfile, name: e.target.value })}
-                        className="atomy-form-input"
-                      />
-                    </div>
-                    <div className="setting-field-group">
-                      <label>Official Email</label>
-                      <input
-                        type="email"
-                        value={adminProfile.email}
-                        onChange={(e) => setAdminProfile({ ...adminProfile, email: e.target.value })}
-                        className="atomy-form-input"
-                      />
-                    </div>
-                    <div className="setting-field-group">
-                      <label>Phone Number</label>
-                      <input
-                        type="text"
-                        value={adminProfile.phone || ''}
-                        onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
-                        className="atomy-form-input"
-                        placeholder="+91 98765 43210"
-                      />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div className="setting-field-group">
-                        <label>Employee ID</label>
-                        <input
-                          type="text"
-                          value={adminProfile.employeeId || ''}
-                          onChange={(e) => setAdminProfile({ ...adminProfile, employeeId: e.target.value })}
-                          className="atomy-form-input"
-                          placeholder="AT-IN-001"
-                        />
+              {activeTab === 'profile' && !isEditingProductView && (
+                <div className="tab-pane-content">
+                  {/* Profile Hero Card */}
+                  <div className="admin-profile-hero-card">
+                    <div className="profile-hero-left">
+                      <div className="profile-avatar-large">
+                        {adminProfile.name.charAt(0)}
                       </div>
-                      <div className="setting-field-group">
-                        <label>Department</label>
-                        <input
-                          type="text"
-                          value={adminProfile.department || ''}
-                          onChange={(e) => setAdminProfile({ ...adminProfile, department: e.target.value })}
-                          className="atomy-form-input"
-                          placeholder="Operations & Supply Chain"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      className="atomy-btn-primary"
-                      style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                      disabled={isSavingProfile}
-                      onClick={handleSaveAdminProfile}
-                    >
-                      {isSavingProfile ? (
-                        <>
-                          <RefreshCw size={16} className="spin" />
-                          <span>Saving to Database...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check size={16} />
-                          <span>Save Profile Changes</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Security & Access Level */}
-                <div className="settings-section-card">
-                  <div className="settings-card-header">
-                    <ShieldCheck size={20} color="#16a34a" />
-                    <div>
-                      <h3>Security & Authorization</h3>
-                      <p>Access privileges and audit compliance</p>
-                    </div>
-                  </div>
-                  <div className="settings-body-form">
-                    <div className="security-item-row">
                       <div>
-                        <strong>Two-Factor Authentication</strong>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>Authenticator app / SMS OTP active</div>
+                        <div className="profile-badge-row">
+                          <span className="profile-role-badge">{adminProfile.role}</span>
+                          <span className="profile-status-badge">● Active Session</span>
+                        </div>
+                        <h2 className="profile-hero-name">{adminProfile.name}</h2>
+                        <p className="profile-hero-meta">
+                          {adminProfile.employeeId} • {adminProfile.department} • {adminProfile.location}
+                        </p>
                       </div>
-                      <span className="profile-role-badge" style={{ background: '#dcfce7', color: '#15803d' }}>ENABLED</span>
+                    </div>
+                    <div className="profile-hero-right">
+                      <div className="profile-stat-box">
+                        <span className="stat-label">Security Protocol</span>
+                        <span className="stat-value" style={{ color: '#16a34a' }}>2FA Protected</span>
+                      </div>
+                      <div className="profile-stat-box">
+                        <span className="stat-label">Last Session Audit</span>
+                        <span className="stat-value">{adminProfile.lastLogin}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Profile Details & Security Grid */}
+                  <div className="profile-grid-cards">
+                    {/* Personal & Station Information */}
+                    <div className="settings-section-card">
+                      <div className="settings-card-header">
+                        <User size={20} color="#00A3E0" />
+                        <div>
+                          <h3>Administrator Details</h3>
+                          <p>Personal profile & office station credentials</p>
+                        </div>
+                      </div>
+                      <div className="settings-body-form">
+                        <div className="setting-field-group">
+                          <label>Full Name</label>
+                          <input
+                            type="text"
+                            value={adminProfile.name}
+                            onChange={(e) => setAdminProfile({ ...adminProfile, name: e.target.value })}
+                            className="atomy-form-input"
+                          />
+                        </div>
+                        <div className="setting-field-group">
+                          <label>Official Email</label>
+                          <input
+                            type="email"
+                            value={adminProfile.email}
+                            onChange={(e) => setAdminProfile({ ...adminProfile, email: e.target.value })}
+                            className="atomy-form-input"
+                          />
+                        </div>
+                        <div className="setting-field-group">
+                          <label>Phone Number</label>
+                          <input
+                            type="text"
+                            value={adminProfile.phone || ''}
+                            onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
+                            className="atomy-form-input"
+                            placeholder="+91 98765 43210"
+                          />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div className="setting-field-group">
+                            <label>Employee ID</label>
+                            <input
+                              type="text"
+                              value={adminProfile.employeeId || ''}
+                              onChange={(e) => setAdminProfile({ ...adminProfile, employeeId: e.target.value })}
+                              className="atomy-form-input"
+                              placeholder="AT-IN-001"
+                            />
+                          </div>
+                          <div className="setting-field-group">
+                            <label>Department</label>
+                            <input
+                              type="text"
+                              value={adminProfile.department || ''}
+                              onChange={(e) => setAdminProfile({ ...adminProfile, department: e.target.value })}
+                              className="atomy-form-input"
+                              placeholder="Operations & Supply Chain"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          className="atomy-btn-primary"
+                          style={{ marginTop: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                          disabled={isSavingProfile}
+                          onClick={handleSaveAdminProfile}
+                        >
+                          {isSavingProfile ? (
+                            <>
+                              <RefreshCw size={16} className="spin" />
+                              <span>Saving to Database...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Check size={16} />
+                              <span>Save Profile Changes</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="security-item-row">
+                    {/* Security & Access Level */}
+                    <div className="settings-section-card">
+                      <div className="settings-card-header">
+                        <ShieldCheck size={20} color="#16a34a" />
+                        <div>
+                          <h3>Security & Authorization</h3>
+                          <p>Access privileges and audit compliance</p>
+                        </div>
+                      </div>
+                      <div className="settings-body-form">
+                        <div className="security-item-row">
+                          <div>
+                            <strong>Two-Factor Authentication</strong>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>Authenticator app / SMS OTP active</div>
+                          </div>
+                          <span className="profile-role-badge" style={{ background: '#dcfce7', color: '#15803d' }}>ENABLED</span>
+                        </div>
+
+                        <div className="security-item-row">
+                          <div>
+                            <strong>Terminal Session IP</strong>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>{adminProfile.sessionIp}</div>
+                          </div>
+                          <span className="profile-role-badge">SECURE</span>
+                        </div>
+
+                        <div className="permission-matrix-box" style={{ marginTop: '14px' }}>
+                          <div className="matrix-title">Assigned Super Admin Permissions:</div>
+                          <div className="matrix-items">
+                            <span className="perm-pill">✓ Full Catalog & Inventory Management</span>
+                            <span className="perm-pill">✓ Customer Order Processing & Status Override</span>
+                            <span className="perm-pill">✓ Refund Approvals & Payment Gateway Reversals</span>
+                            <span className="perm-pill">✓ 1-to-1 Replacement Dispatch Authorization</span>
+                            <span className="perm-pill">✓ Live Ads, Banners & Promotion Campaigns</span>
+                            <span className="perm-pill">✓ Audio Chimes & Sound Alert Configuration</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dedicated Section: Refund & Replacement Management and Policy */}
+                  <div className="settings-section-card" style={{ marginTop: '24px' }}>
+                    <div className="settings-card-header">
+                      <RotateCcw size={20} color="#00A3E0" />
                       <div>
-                        <strong>Terminal Session IP</strong>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{adminProfile.sessionIp}</div>
+                        <h3>Atomy India Refund & Replacement Policy and Operations Center</h3>
+                        <p>Official policy standards, return rules, and administrative execution workflows</p>
                       </div>
-                      <span className="profile-role-badge">SECURE</span>
                     </div>
 
-                    <div className="permission-matrix-box" style={{ marginTop: '14px' }}>
-                      <div className="matrix-title">Assigned Super Admin Permissions:</div>
-                      <div className="matrix-items">
-                        <span className="perm-pill">✓ Full Catalog & Inventory Management</span>
-                        <span className="perm-pill">✓ Customer Order Processing & Status Override</span>
-                        <span className="perm-pill">✓ Refund Approvals & Payment Gateway Reversals</span>
-                        <span className="perm-pill">✓ 1-to-1 Replacement Dispatch Authorization</span>
-                        <span className="perm-pill">✓ Live Ads, Banners & Promotion Campaigns</span>
-                        <span className="perm-pill">✓ Audio Chimes & Sound Alert Configuration</span>
+                    <div className="settings-body-form">
+                      {/* Policy Pillars Grid */}
+                      <div className="policy-pillars-grid">
+                        <div className="pillar-card">
+                          <div className="pillar-num">POLICY 01</div>
+                          <h4>30-Day Money-Back Guarantee</h4>
+                          <p>
+                            Atomy India provides a 100% satisfaction guarantee. Customers can return unopened or gently tested products within 30 days of delivery if they are dissatisfied with the quality or results.
+                          </p>
+                        </div>
+
+                        <div className="pillar-card">
+                          <div className="pillar-num">POLICY 02</div>
+                          <h4>Zero-Cost Replacement for Damaged Goods</h4>
+                          <p>
+                            Items received broken, leaked in transit, or defective qualify for an immediate 1-to-1 replacement. Reverse logistics pickup is dispatched through Blue Dart or Delhivery at zero expense to the consumer.
+                          </p>
+                        </div>
+
+                        <div className="pillar-card">
+                          <div className="pillar-num">POLICY 03</div>
+                          <h4>Direct Payment Reversal (UPI / Cards / NetBanking)</h4>
+                          <p>
+                            Approved refunds are credited back to the customer's original payment method within 5 to 7 business days. Point Value (PV) earned on returned items is automatically adjusted from the member ledger.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Operational Step-by-Step Box */}
+                      <div className="refund-workflow-box" style={{ marginTop: '20px' }}>
+                        <h4 style={{ margin: '0 0 12px', color: '#0369a1', fontSize: '14px', fontWeight: '800' }}>
+                          How Admins Process Refunds & Replacements in this Console:
+                        </h4>
+                        <div className="workflow-steps">
+                          <div className="wf-step">
+                            <span className="step-badge">Step 1</span>
+                            <div>
+                              <strong>Customer Request Received:</strong> Customer submits a ticket via Support Desk (Category: <code>REFUND_REQUEST</code> or <code>DAMAGED_PRODUCT</code>) or requests cancellation on Order details.
+                            </div>
+                          </div>
+                          <div className="wf-step">
+                            <span className="step-badge">Step 2</span>
+                            <div>
+                              <strong>Verification & Inspection:</strong> Admin reviews courier tracking status, product invoice, and any unboxing video/photo proof attached to the support ticket.
+                            </div>
+                          </div>
+                          <div className="wf-step">
+                            <span className="step-badge">Step 3</span>
+                            <div>
+                              <strong>One-Click Execution:</strong> For refunds, click <em>"Process Refund"</em> in the Order Inspector to transition status to <code>REFUNDED</code> / <code>CANCELLED</code>. For replacements, dispatch a fresh shipment note to Blue Dart.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quick Action Button to jump to orders or support */}
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '18px' }}>
+                        <button
+                          className="atomy-btn-primary"
+                          onClick={() => {
+                            setActiveTab('orders');
+                            setOrderStatusFilter('ALL');
+                          }}
+                        >
+                          Go to Customer Orders (Process Refunds)
+                        </button>
+                        <button
+                          className="atomy-btn-secondary"
+                          onClick={() => {
+                            setActiveTab('support');
+                            setTicketStatusFilter('ALL');
+                          }}
+                        >
+                          Open Support Desk (Review Tickets)
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Dedicated Section: Refund & Replacement Management and Policy */}
-              <div className="settings-section-card" style={{ marginTop: '24px' }}>
-                <div className="settings-card-header">
-                  <RotateCcw size={20} color="#00A3E0" />
-                  <div>
-                    <h3>Atomy India Refund & Replacement Policy and Operations Center</h3>
-                    <p>Official policy standards, return rules, and administrative execution workflows</p>
-                  </div>
-                </div>
-
-                <div className="settings-body-form">
-                  {/* Policy Pillars Grid */}
-                  <div className="policy-pillars-grid">
-                    <div className="pillar-card">
-                      <div className="pillar-num">POLICY 01</div>
-                      <h4>30-Day Money-Back Guarantee</h4>
-                      <p>
-                        Atomy India provides a 100% satisfaction guarantee. Customers can return unopened or gently tested products within 30 days of delivery if they are dissatisfied with the quality or results.
-                      </p>
-                    </div>
-
-                    <div className="pillar-card">
-                      <div className="pillar-num">POLICY 02</div>
-                      <h4>Zero-Cost Replacement for Damaged Goods</h4>
-                      <p>
-                        Items received broken, leaked in transit, or defective qualify for an immediate 1-to-1 replacement. Reverse logistics pickup is dispatched through Blue Dart or Delhivery at zero expense to the consumer.
-                      </p>
-                    </div>
-
-                    <div className="pillar-card">
-                      <div className="pillar-num">POLICY 03</div>
-                      <h4>Direct Payment Reversal (UPI / Cards / NetBanking)</h4>
-                      <p>
-                        Approved refunds are credited back to the customer's original payment method within 5 to 7 business days. Point Value (PV) earned on returned items is automatically adjusted from the member ledger.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Operational Step-by-Step Box */}
-                  <div className="refund-workflow-box" style={{ marginTop: '20px' }}>
-                    <h4 style={{ margin: '0 0 12px', color: '#0369a1', fontSize: '14px', fontWeight: '800' }}>
-                      How Admins Process Refunds & Replacements in this Console:
-                    </h4>
-                    <div className="workflow-steps">
-                      <div className="wf-step">
-                        <span className="step-badge">Step 1</span>
-                        <div>
-                          <strong>Customer Request Received:</strong> Customer submits a ticket via Support Desk (Category: <code>REFUND_REQUEST</code> or <code>DAMAGED_PRODUCT</code>) or requests cancellation on Order details.
-                        </div>
-                      </div>
-                      <div className="wf-step">
-                        <span className="step-badge">Step 2</span>
-                        <div>
-                          <strong>Verification & Inspection:</strong> Admin reviews courier tracking status, product invoice, and any unboxing video/photo proof attached to the support ticket.
-                        </div>
-                      </div>
-                      <div className="wf-step">
-                        <span className="step-badge">Step 3</span>
-                        <div>
-                          <strong>One-Click Execution:</strong> For refunds, click <em>"Process Refund"</em> in the Order Inspector to transition status to <code>REFUNDED</code> / <code>CANCELLED</code>. For replacements, dispatch a fresh shipment note to Blue Dart.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quick Action Button to jump to orders or support */}
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '18px' }}>
-                    <button
-                      className="atomy-btn-primary"
-                      onClick={() => {
-                        setActiveTab('orders');
-                        setOrderStatusFilter('ALL');
-                      }}
-                    >
-                      Go to Customer Orders (Process Refunds)
-                    </button>
-                    <button
-                      className="atomy-btn-secondary"
-                      onClick={() => {
-                        setActiveTab('support');
-                        setTicketStatusFilter('ALL');
-                      }}
-                    >
-                      Open Support Desk (Review Tickets)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+              )}
             </>
           )}
         </main>
@@ -3298,9 +3305,9 @@ export default function AdminDashboard({ onBackToStore }) {
           {/* Top Fullscreen Header Bar */}
           <div className="inspection-fullscreen-topbar">
             <div className="inspection-topbar-left">
-              <button 
+              <button
                 type="button"
-                className="inspection-back-nav-btn" 
+                className="inspection-back-nav-btn"
                 onClick={() => setSelectedOrderDetail(null)}
               >
                 <ArrowLeft size={18} />
@@ -3337,9 +3344,9 @@ export default function AdminDashboard({ onBackToStore }) {
                 <RotateCcw size={15} />
                 <span>Process Refund</span>
               </button>
-              <button 
+              <button
                 type="button"
-                className="inspection-topbar-close-btn" 
+                className="inspection-topbar-close-btn"
                 onClick={() => setSelectedOrderDetail(null)}
                 title="Close and return to orders"
               >
@@ -3464,9 +3471,9 @@ export default function AdminDashboard({ onBackToStore }) {
                   <Truck size={15} />
                   <span>Update Logistics Tracking</span>
                 </button>
-                <button 
-                  type="button" 
-                  className="order-footer-btn done-btn" 
+                <button
+                  type="button"
+                  className="order-footer-btn done-btn"
                   onClick={() => setSelectedOrderDetail(null)}
                 >
                   <span>Close Inspection</span>

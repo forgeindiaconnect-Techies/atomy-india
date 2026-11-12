@@ -1007,12 +1007,23 @@ export default function OrderSheetPage({
       const customerEmail = currentUser?.email || storedUser?.email || currentSelectedAddress?.email || '';
       const fullRecipientName = currentSelectedAddress?.recipientName || customerName;
       const fullRecipientPhone = currentSelectedAddress?.recipientPhone || customerPhone;
-      const fullShippingAddress = currentSelectedAddress 
-        ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
-        : 'Doorstep Courier Delivery';
-      const city = currentSelectedAddress?.city || 'New Delhi';
-      const state = currentSelectedAddress?.state || 'Delhi';
-      const pincode = currentSelectedAddress?.pincode || '110001';
+      const isCod = paymentMethod === 'COD';
+      const isPickupOrder = fulfillmentType === 'STORE_PICKUP';
+      const effectivePin = isPickupOrder
+        ? (hubDetails?.pincode || deliveryPincode || currentSelectedAddress?.pincode || (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '635002')
+        : (currentSelectedAddress?.pincode || deliveryPincode || (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '635002');
+      const pincode = String(effectivePin).trim();
+      const city = isPickupOrder
+        ? (hubDetails?.city || currentSelectedAddress?.city || 'Krishnagiri')
+        : (currentSelectedAddress?.city || 'Krishnagiri');
+      const state = isPickupOrder
+        ? (hubDetails?.state || currentSelectedAddress?.state || 'Tamil Nadu')
+        : (currentSelectedAddress?.state || 'Tamil Nadu');
+      const fullShippingAddress = isPickupOrder
+        ? (hubDetails?.hubAddress || 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002')
+        : (currentSelectedAddress 
+          ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
+          : 'Doorstep Courier Delivery');
 
       let springPaymentMethod = 'ONLINE_UPI';
       if (paymentMethod === 'CARD') springPaymentMethod = 'CREDIT_DEBIT_CARD';
@@ -1023,9 +1034,11 @@ export default function OrderSheetPage({
         customerName: customerName,
         customerEmail: customerEmail,
         customerPhone: customerPhone,
-        shippingAddress: currentSelectedAddress && fullRecipientName !== customerName
-          ? `[Recipient: ${fullRecipientName}, Ph: ${fullRecipientPhone}] ${fullShippingAddress}`
-          : fullShippingAddress,
+        shippingAddress: isPickupOrder
+          ? (hubDetails?.hubAddress || 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002')
+          : (currentSelectedAddress && fullRecipientName !== customerName
+            ? `[Recipient: ${fullRecipientName}, Ph: ${fullRecipientPhone}] ${fullShippingAddress}`
+            : fullShippingAddress),
         city,
         state,
         pincode,
@@ -1035,7 +1048,7 @@ export default function OrderSheetPage({
         hubName: hubDetails?.hubName || null,
         hubContact: hubDetails?.contactPerson || null,
         hubPhone: hubDetails?.phone || null,
-        pickupStatus: fulfillmentType === 'STORE_PICKUP' ? 'PENDING_PACKING' : null,
+        pickupStatus: isPickupOrder ? 'PENDING_PACKING' : null,
         paymentMethod: springPaymentMethod,
         shippingFee: Number(String(effectiveShippingFee || 0).replace(/[^0-9.-]/g, '')) || 0,
         totalAmount: Number(String((useWalletBalance ? finalPayableTotal : grandTotal) || 0).replace(/[^0-9.-]/g, '')) || 0,
@@ -1051,8 +1064,6 @@ export default function OrderSheetPage({
         }))
       };
 
-      const isCod = paymentMethod === 'COD';
-      const isPickupOrder = fulfillmentType === 'STORE_PICKUP';
       const istDateFormatted = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()); // YYYY-MM-DD
       const istYMD = istDateFormatted.replace(/-/g, '');
       const generatedOrderId = `ORD-${istYMD}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -1062,7 +1073,10 @@ export default function OrderSheetPage({
       try {
         backendOrder = await createCustomerOrder(orderPayload);
       } catch (err) {
-        console.warn('Backend order placement fallback to local generation:', err);
+        console.error('Backend order creation error:', err);
+        setIsProcessing(false);
+        alert(err.message || 'Unable to place order in database. Please check connection and try again.');
+        return;
       }
 
       const assignedOrderId = backendOrder?.orderId || generatedOrderId;
@@ -3084,10 +3098,11 @@ export default function OrderSheetPage({
                   type="button"
                   className="completion-btn primary"
                   onClick={() => {
-                    if (placedOrderDetails) {
-                      window.dispatchEvent(new CustomEvent('atomy:track-order', {
-                        detail: { orderId: placedOrderDetails.orderId }
-                      }));
+                    const targetId = placedOrderDetails?.orderId;
+                    if (onNavigateOrders) {
+                      onNavigateOrders(targetId);
+                    } else if (typeof window !== 'undefined') {
+                      window.location.href = targetId ? `/orders?orderId=${encodeURIComponent(targetId)}` : '/orders';
                     }
                   }}
                 >

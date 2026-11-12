@@ -45,6 +45,7 @@ import {
 } from '../../services/customerNotificationService';
 import { updateCustomerProfile } from '../../services/api';
 import { setCustomerDeliveryPincode } from '../../services/catalogSyncService';
+import OrderHistoryPage from '../Orders/OrderHistoryPage';
 import './CustomerProfilePage.css';
 
 export default function CustomerProfilePage({
@@ -54,6 +55,7 @@ export default function CustomerProfilePage({
   onLogout,
   onNavigateHome,
   onNavigateBack,
+  onNavigateOrders,
   placedOrders = [],
   favorites = [],
   onAddToCart,
@@ -806,7 +808,14 @@ export default function CustomerProfilePage({
             <button
               type="button"
               className={`profile-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
-              onClick={() => { setActiveTab('orders'); setIsMobileMenuOpen(false); }}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (onNavigateOrders) {
+                  onNavigateOrders();
+                } else {
+                  setActiveTab('orders');
+                }
+              }}
             >
               <Package size={18} />
               <span>Your Orders</span>
@@ -1078,79 +1087,16 @@ export default function CustomerProfilePage({
             </div>
           )}
 
-          {/* TAB 2: YOUR ORDERS */}
+          {/* TAB 2: YOUR ORDERS - CONNECTED DIRECTLY TO OFFICIAL ORDER HISTORY */}
           {activeTab === 'orders' && (
-            <div className="profile-tab-section animate-fade-in">
-              <div className="profile-section-header">
-                <div>
-                  <h2 className="profile-section-title">Your Orders & Deliveries</h2>
-                  <p className="profile-section-sub">Track real-time shipment status, view invoice summary, and reorder.</p>
-                </div>
-              </div>
-
-              {placedOrders.length === 0 ? (
-                <div className="profile-empty-state">
-                  <Package size={48} strokeWidth={1.5} className="empty-state-icon" />
-                  <h3>No Orders Yet</h3>
-                  <p>You haven't placed any orders yet. Start shopping authentic Atomy products now!</p>
-                  <button
-                    type="button"
-                    className="profile-action-primary-btn"
-                    onClick={onNavigateHome}
-                  >
-                    Start Shopping
-                  </button>
-                </div>
-              ) : (
-                <div className="orders-list-wrapper">
-                  {placedOrders.map((order, idx) => (
-                    <div key={order.orderId || idx} className="order-history-card">
-                      <div className="order-card-top">
-                        <div className="order-meta-group">
-                          <span className="order-number">Order #{order.orderId || `ATO-${1000 + idx}`}</span>
-                          <span className="order-date">{order.date || '06 Oct 2026'}</span>
-                        </div>
-                        <div className="order-status-badge delivered">
-                          <Check size={13} />
-                          <span>Delivered / Confirmed</span>
-                        </div>
-                      </div>
-
-                      <div className="order-items-preview">
-                        {(order.items || []).map((item, i) => (
-                          <div key={i} className="order-preview-item">
-                            <img src={item.image} alt={item.name} className="order-item-thumb" />
-                            <div className="order-item-desc">
-                              <span className="order-item-name">{item.name}</span>
-                              <span className="order-item-qty">Qty: {item.qty} × ₹ {(item.price || 0).toLocaleString('en-IN')}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="order-card-bottom">
-                        <div className="order-total-group">
-                          <span className="total-label">Order Total:</span>
-                          <span className="total-val">₹ {(order.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                          <span className="total-pv">PV: {(order.totalPv || 0).toLocaleString('en-IN')}</span>
-                        </div>
-                        <div className="order-actions-group">
-                          <button
-                            type="button"
-                            className="reorder-btn"
-                            onClick={() => {
-                              (order.items || []).forEach(it => onAddToCart && onAddToCart(it, it.qty));
-                              onNavigateCart && onNavigateCart();
-                            }}
-                          >
-                            Buy it again
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="profile-tab-section animate-fade-in profile-orders-integrated-section">
+              <OrderHistoryPage
+                onNavigateHome={onNavigateHome}
+                onNavigateBack={onNavigateBack}
+                onAddToCart={onAddToCart}
+                onProductClick={onProductClick}
+                placedOrders={placedOrders}
+              />
             </div>
           )}
 

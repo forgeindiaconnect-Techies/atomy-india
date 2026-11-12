@@ -165,11 +165,31 @@ export async function deleteAdminProduct(productId) {
   return true;
 }
 
+export const isDemoTicket = (t) => {
+  if (!t) return false;
+  const id = String(t.ticketId || t.id || '').trim();
+  const subj = String(t.subject || '').trim().toLowerCase();
+  const isDemoId = id.startsWith('TCK-20261010-7490') ||
+         id.startsWith('TCK-20261009-550') ||
+         id.startsWith('TICK-20261009-550') ||
+         id.startsWith('TCK-514999') ||
+         id.startsWith('TICK-514999') ||
+         id.startsWith('TCK-20261030-3778') ||
+         id.startsWith('TCK-20261007-8894') ||
+         id.startsWith('TCK-20261006-4412') ||
+         id.startsWith('TCK-20261005-1109') ||
+         id.startsWith('TCK-20261004-9821') ||
+         id.toUpperCase().includes('DEMO');
+  const isDemoSubj = subj.includes('demo ticket') || subj.includes('sample inquiry') || subj.includes('test demo');
+  return Boolean(isDemoId || isDemoSubj);
+};
+
 export async function fetchAdminTickets(statusFilter) {
   const url = statusFilter ? `${API_BASE}/admin/support/tickets?status=${statusFilter}` : `${API_BASE}/admin/support/tickets`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch support tickets');
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data.filter(t => !isDemoTicket(t)) : [];
 }
 
 export async function replyAdminTicket(ticketId, message) {

@@ -149,56 +149,9 @@ export async function createCustomerOrder(orderData) {
 }
 
 export async function syncUnsyncedOrdersToBackend() {
-  if (typeof window === 'undefined') return;
-  try {
-    const raw = localStorage.getItem('atomy_placed_orders');
-    if (!raw) return;
-    const orders = JSON.parse(raw);
-    if (!Array.isArray(orders) || orders.length === 0) return;
-
-    let updated = false;
-    for (const order of orders) {
-      if (!order.syncedToBackend && order.orderId) {
-        try {
-          const isCod = (order.paymentMethod || '').toLowerCase().includes('cash') || (order.paymentMethod || '').toLowerCase().includes('cod');
-          const payload = {
-            orderId: order.orderId,
-            customerName: order.customerName || order.recipient || 'Customer',
-            customerEmail: order.customerEmail || 'customer@atomy.com',
-            customerPhone: order.phone || order.customerPhone || '9876543210',
-            shippingAddress: typeof order.shippingAddress === 'string' ? order.shippingAddress : (order.address?.fullAddress || 'Doorstep Delivery'),
-            city: order.city || 'New Delhi',
-            state: order.state || 'Delhi',
-            pincode: order.pincode || '110001',
-            orderSource: 'WEB_BROWSER',
-            paymentMethod: isCod ? 'CASH_ON_DELIVERY' : 'ONLINE_UPI',
-            shippingFee: order.shippingFee !== undefined ? Number(order.shippingFee) : 0,
-            totalAmount: order.grandTotal !== undefined ? Number(order.grandTotal) : Number(order.totalAmount || 0),
-            items: (order.items || []).map(it => ({
-              productId: it.id || it.productId || '',
-              name: it.name || it.productName || '',
-              productName: it.name || it.productName || '',
-              price: Number(it.price) || 0,
-              image: it.image || it.productImage || '',
-              quantity: it.qty || it.quantity || 1
-            }))
-          };
-          const res = await createCustomerOrder(payload);
-          if (res && res.orderId) {
-            order.syncedToBackend = true;
-            updated = true;
-          }
-        } catch (syncErr) {
-          console.warn('Sync pending order failed for', order.orderId, syncErr.message);
-        }
-      }
-    }
-    if (updated) {
-      localStorage.setItem('atomy_placed_orders', JSON.stringify(orders));
-    }
-  } catch (e) {
-    console.warn('syncUnsyncedOrdersToBackend error:', e);
-  }
+  // Orders must only be created when a customer places an order at checkout.
+  // Never auto-resurrect stale demo orders from localStorage into the backend database.
+  return;
 }
 
 export async function getCustomerOrderTracking(orderId) {

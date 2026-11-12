@@ -144,7 +144,7 @@ const getViewTitle = (view, catId, prod) => {
     case 'signin': return 'Member Sign In';
     case 'favorites': return 'Wishlist & Favorites';
     case 'orders': return 'Order History';
-    case 'contact': return 'Customer Care & Centres';
+    case 'contact': return 'Customer Support';
     case 'about-us':
     case 'about': return 'About Us - Customer Happiness Center';
     case 'notice': return 'Notices & Announcements';
@@ -602,15 +602,26 @@ export default function App() {
 
   const [placedOrders, setPlacedOrders] = useState(() => {
     try {
+      if (typeof window !== 'undefined' && localStorage.getItem('atomy_orders_purged_v5') !== 'true') {
+        localStorage.setItem('atomy_orders_purged_v5', 'true');
+        localStorage.removeItem('atomy_placed_orders');
+        localStorage.removeItem('atomy_admin_orders');
+        localStorage.removeItem('@atomy_mobile_placed_orders');
+        return [];
+      }
       const saved = localStorage.getItem('atomy_placed_orders');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           return parsed.filter(o =>
+            !o.orderId?.includes('4854') &&
             !o.orderId?.startsWith('ORD-20261005') &&
             !o.orderId?.startsWith('ORD-20261008-3800') &&
             !o.orderId?.startsWith('ORD-20261008-1863') &&
+            !o.orderId?.startsWith('ORD-20261105') &&
             !o.orderId?.includes('3207') &&
+            !o.customerName?.toLowerCase().includes('gopal') &&
+            !o.customerEmail?.toLowerCase().includes('mn7878') &&
             !o.orderId?.toUpperCase().includes('DEMO') &&
             !o.orderId?.toUpperCase().includes('TEST') &&
             !o.customerName?.toLowerCase().includes('test') &&
@@ -760,18 +771,11 @@ export default function App() {
               };
             });
 
-          setPlacedOrders(prevPlaced => {
-            const backendIds = new Set(mapped.map(m => (m.orderId || '').trim().toUpperCase()));
-            const pendingLocalOrders = (Array.isArray(prevPlaced) ? prevPlaced : []).filter(p => {
-              const pId = (p.orderId || '').trim().toUpperCase();
-              return pId && !backendIds.has(pId);
-            });
-            const merged = [...pendingLocalOrders, ...mapped];
-            try {
-              localStorage.setItem('atomy_placed_orders', JSON.stringify(merged));
-            } catch { }
-            return merged;
-          });
+          // Directly reflect live database orders from backend
+          setPlacedOrders(mapped);
+          try {
+            localStorage.setItem('atomy_placed_orders', JSON.stringify(mapped));
+          } catch { }
         }
       } catch (err) { }
     };
@@ -793,7 +797,7 @@ export default function App() {
 
     return placedOrders.filter(o => {
       const oId = String(o.orderId || '').toUpperCase();
-      if (oId.includes('DEMO') || oId.startsWith('ORD-20261005') || oId.startsWith('ORD-20261008-3800') || oId.startsWith('ORD-20261008-1863') || oId.includes('3207') || oId.includes('TEST')) {
+      if (oId.includes('4854') || oId.includes('DEMO') || oId.startsWith('ORD-20261005') || oId.startsWith('ORD-20261008-3800') || oId.startsWith('ORD-20261008-1863') || oId.includes('3207') || oId.includes('TEST')) {
         return false;
       }
 
@@ -1176,8 +1180,11 @@ export default function App() {
     navigateTo('favorites');
   };
 
-  const handleNavigateOrders = () => {
+  const handleNavigateOrders = (targetOrderId) => {
     if (!currentUser) return requireAuth('sign in to view your order history');
+    if (targetOrderId && typeof targetOrderId === 'string') {
+      setTrackingOrderId(targetOrderId);
+    }
     navigateTo('orders');
   };
 
@@ -1747,6 +1754,7 @@ export default function App() {
               onAddToCart={handleAddToCart}
               onProductClick={handleSelectProduct}
               placedOrders={userPlacedOrders}
+              initialOrderId={trackingOrderId}
             />
 
             {/* Notice Strip */}
@@ -1767,6 +1775,7 @@ export default function App() {
               onLogout={handleRequestLogout}
               onNavigateHome={handleNavigateHome}
               onNavigateBack={handleGoBack}
+              onNavigateOrders={handleNavigateOrders}
               placedOrders={userPlacedOrders}
               favorites={favorites}
               onAddToCart={handleAddToCart}

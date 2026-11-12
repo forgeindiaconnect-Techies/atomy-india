@@ -227,7 +227,8 @@ export default function App() {
   const [authInitialMode, setAuthInitialMode] = useState('signin');
   const [placedOrders, setPlacedOrders] = useState([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState(null);
+  const [toast, setToast] = useState(null);
+  const toastTimeoutRef = useRef(null);
   const [pendingOrderAction, setPendingOrderAction] = useState(null);
   const [catalogVersion, setCatalogVersion] = useState(0);
 
@@ -479,8 +480,12 @@ export default function App() {
       (notification) => {
         const title = notification?.request?.content?.title || 'Atomy India';
         const body = notification?.request?.content?.body || '';
-        setToastMessage(`${title}: ${body}`);
-        setTimeout(() => setToastMessage(null), 4500);
+        showToast({
+          title,
+          message: body,
+          type: 'info',
+          duration: 4500,
+        });
       },
       (response) => {
         console.log('[App] Notification clicked by user:', response);
@@ -692,12 +697,81 @@ export default function App() {
     return () => clearInterval(intervalTimer);
   }, [currentUser?.email]);
 
-  // Quick Toast Helper
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2500);
+  // Modern Interactive Toast Notification System (Matching Web View)
+  const showToast = (toastInput) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    if (!toastInput) {
+      setToast(null);
+      return;
+    }
+
+    let toastObj;
+    if (typeof toastInput === 'string') {
+      const lower = toastInput.toLowerCase();
+      if (lower.includes('cart')) {
+        const cleanName = toastInput
+          .replace(/^Added\s*["“']?|["”']?\s*to Cart!?$/gi, '')
+          .replace(/^Removed item from Cart$/gi, 'Item removed')
+          .trim();
+        toastObj = {
+          title: lower.includes('removed') ? 'Cart Updated' : 'Item added to cart',
+          message: cleanName || toastInput,
+          type: 'cart',
+          actionLabel: 'Visit Cart',
+          onAction: () => navigateTo('cart'),
+          duration: 3200,
+        };
+      } else if (lower.includes('sign in') || lower.includes('sign up') || lower.includes('auth')) {
+        toastObj = {
+          title: 'Sign In Required',
+          message: toastInput,
+          type: 'auth',
+          actionLabel: 'Sign In',
+          onAction: () => {
+            setAuthNotice(toastInput);
+            setAuthInitialMode('signin');
+            navigateTo('profile');
+          },
+          duration: 3200,
+        };
+      } else if (lower.includes('favorite') || lower.includes('wishlist')) {
+        const cleanName = toastInput
+          .replace(/^Added\s*["“']?|["”']?\s*to Favorites!?$/gi, '')
+          .replace(/^Removed from Favorites$/gi, 'Item removed')
+          .trim();
+        toastObj = {
+          title: 'Wishlist Updated',
+          message: cleanName || toastInput,
+          type: 'favorite',
+          actionLabel: 'View',
+          onAction: () => navigateTo('favorites'),
+          duration: 3000,
+        };
+      } else if (lower.includes('order')) {
+        toastObj = {
+          title: 'Order Status',
+          message: toastInput,
+          type: 'order',
+          actionLabel: 'Orders',
+          onAction: () => navigateTo('order_delivery'),
+          duration: 3500,
+        };
+      } else {
+        toastObj = {
+          title: 'Notification',
+          message: toastInput,
+          type: 'info',
+          duration: 2600,
+        };
+      }
+    } else {
+      toastObj = toastInput;
+    }
+
+    setToast(toastObj);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, toastObj.duration || 3000);
   };
 
   const [navHistory, setNavHistory] = useState([]);
@@ -961,6 +1035,10 @@ export default function App() {
 
   // Add to cart handler
   const handleAddToCart = (product) => {
+    if (product?.inStock === false || (product?.stockQuantity !== undefined && Number(product.stockQuantity) < 2)) {
+      showToast(`Out of stock at ${product?.regionalHubName || 'your regional hub'}`);
+      return;
+    }
     const official = product?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
     const rawPrice = Number(product.price) || (official ? official.dpPrice : 1000);
     let dpPrice = Number(product.dpPrice || (official ? official.dpPrice : 0));
@@ -1203,6 +1281,10 @@ export default function App() {
             }}
             onNavigateBack={handleNavigateBack}
             onNavigateHome={handleNavigateHome}
+            onNavigateAllProducts={() => {
+              setSelectedCategory('all_products');
+              navigateTo('home', { category: 'all_products' });
+            }}
             onUpdateQty={(productId, newQty) => {
               handleUpdateQty(productId, newQty);
               setCheckoutItems((prev) =>
@@ -1806,24 +1888,36 @@ export default function App() {
           </>
         ) : selectedCategory ? (
           /* DEDICATED CATEGORY PAGE (Personal Care, Beauty, Food, Health, etc.) */
-          <CategoryPage
-            categoryId={selectedCategory}
-            isMember={isMember}
-            favorites={favorites}
-            onToggleFavorite={handleToggleFavorite}
-            onAddToCart={handleAddToCart}
-            onProductClick={handleOpenProductDetail}
-            onSelectCategory={(catId) => {
-              setSelectedCategory(catId);
-              showToast(`Browsing ${catId.replace('_', ' ').toUpperCase()}`);
-            }}
-            onNavigateHome={() => setSelectedCategory(null)}
-            onNavigateBack={() => setSelectedCategory(null)}
-            onCartPress={() => navigateTo('cart')}
-            cartCount={totalCartCount}
-            onJoinMemberPress={() => navigateTo('membership')}
-            onSearchPress={() => navigateTo('search')}
-          />
+          <>
+            <CategoryPage
+              categoryId={selectedCategory}
+              isMember={isMember}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+              onAddToCart={handleAddToCart}
+              onProductClick={handleOpenProductDetail}
+              onSelectCategory={(catId) => {
+                setSelectedCategory(catId);
+                showToast(`Browsing ${catId.replace('_', ' ').toUpperCase()}`);
+              }}
+              onNavigateHome={() => setSelectedCategory(null)}
+              onNavigateBack={() => setSelectedCategory(null)}
+              onCartPress={() => navigateTo('cart')}
+              cartCount={totalCartCount}
+              onJoinMemberPress={() => navigateTo('membership')}
+              onSearchPress={() => navigateTo('search')}
+            />
+            <BottomNavBar
+              activeTab={activeBottomTab === 'home' ? null : activeBottomTab}
+              onTabPress={handleTabPress}
+              favoritesCount={favorites.length}
+              recentlyViewedCount={recentlyViewed.length}
+              isMember={isMember}
+              membershipExpiryState={membershipExpiryInfo?.status}
+              isHomePage={false}
+            />
+            <SafeAreaView edges={['bottom']} style={styles.bottomSafeArea} />
+          </>
         ) : (
           <>
             {/* 1. Header with Left Logos & Names, Right Search & Cart, and Down Sub-Nav links */}
@@ -2043,21 +2137,12 @@ export default function App() {
                 recentlyViewedCount={recentlyViewed.length}
                 isMember={isMember}
                 membershipExpiryState={membershipExpiryInfo?.status}
+                isHomePage={true}
               />
               <SafeAreaView edges={['bottom']} style={styles.bottomSafeArea} />
             </Animated.View>
           </>
         )}
-
-      {/* Toast Notification Banner */}
-      {toastMessage && (
-        <View style={styles.toastCard}>
-          <View style={styles.toastDot} />
-          <Text style={styles.toastText} numberOfLines={2}>
-            {toastMessage}
-          </Text>
-        </View>
-      )}
 
       {/* 4. Category / Menu Drawer Modal */}
       <CategoryDrawerModal
@@ -2177,12 +2262,78 @@ export default function App() {
         onClearAll={handleClearRecentlyViewed}
         isMember={isMember}
       />
-      {toastMessage && (
-        <View style={styles.toastCard}>
-          <View style={styles.toastDot} />
-          <Text style={styles.toastText} numberOfLines={2}>
-            {toastMessage}
-          </Text>
+      {/* Modern Interactive Toast Notification (Matching Web View) */}
+      {toast && (
+        <View style={styles.webStyleToastCard}>
+          <View style={styles.toastLeftGroup}>
+            <View
+              style={[
+                styles.toastIconBadge,
+                toast.type === 'cart'
+                  ? styles.toastBadgeCart
+                  : toast.type === 'favorite'
+                  ? styles.toastBadgeFavorite
+                  : toast.type === 'auth'
+                  ? styles.toastBadgeAuth
+                  : toast.type === 'order' || toast.type === 'success'
+                  ? styles.toastBadgeSuccess
+                  : styles.toastBadgeInfo,
+              ]}
+            >
+              <Ionicons
+                name={
+                  toast.type === 'cart'
+                    ? 'cart'
+                    : toast.type === 'favorite'
+                    ? 'heart'
+                    : toast.type === 'auth'
+                    ? 'person'
+                    : toast.type === 'order' || toast.type === 'success'
+                    ? 'checkmark'
+                    : 'information-circle'
+                }
+                size={18}
+                color="#FFFFFF"
+              />
+            </View>
+
+            <View style={styles.toastTextGroup}>
+              <Text style={styles.toastTitleText} numberOfLines={1}>
+                {toast.title || 'Notification'}
+              </Text>
+              {toast.message ? (
+                <Text style={styles.toastMessageText} numberOfLines={1}>
+                  {toast.message}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+
+          <View style={styles.toastRightGroup}>
+            {toast.actionLabel && toast.onAction && (
+              <TouchableOpacity
+                style={styles.toastActionBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  const action = toast.onAction;
+                  setToast(null);
+                  action();
+                }}
+              >
+                <Text style={styles.toastActionText}>{toast.actionLabel}</Text>
+                <Ionicons name="arrow-forward" size={13} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.toastCloseBtn}
+              activeOpacity={0.7}
+              onPress={() => setToast(null)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={15} color="#94A3B8" />
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -2275,34 +2426,108 @@ const styles = StyleSheet.create({
   gridItemWrapper: {
     width: '48.5%',
   },
-  toastCard: {
+  // Modern Interactive Web-Style Toast Notification Styles
+  webStyleToastCard: {
     position: 'absolute',
-    bottom: 75,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.94)',
-    paddingHorizontal: 16,
+    bottom: 76,
+    left: 14,
+    right: 14,
+    backgroundColor: 'rgba(18, 24, 38, 0.96)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
     paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.38,
+    shadowRadius: 12,
+    elevation: 12,
+    zIndex: 999999,
+  },
+  toastLeftGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
+  },
+  toastIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  toastBadgeCart: {
+    backgroundColor: '#10B981', // Emerald green (matches web toast-badge-cart)
+  },
+  toastBadgeFavorite: {
+    backgroundColor: '#F43F5E', // Rose pink (matches web toast-badge-favorite)
+  },
+  toastBadgeAuth: {
+    backgroundColor: '#0284C7', // Ocean cyan/blue (matches web toast-badge-auth)
+  },
+  toastBadgeSuccess: {
+    backgroundColor: '#10B981',
+  },
+  toastBadgeInfo: {
+    backgroundColor: '#0284C7',
+  },
+  toastTextGroup: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
+  toastTitleText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+    lineHeight: 17,
+  },
+  toastMessageText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 1,
+    lineHeight: 15,
+  },
+  toastRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 10,
-    maxWidth: '90%',
-    zIndex: 999,
+    flexShrink: 0,
   },
-  toastDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primary,
+  toastActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#0284C7',
+    paddingVertical: 6,
+    paddingHorizontal: 11,
+    borderRadius: 16,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  toastText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
+  toastActionText: {
+    fontSize: 12,
     fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  toastCloseBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

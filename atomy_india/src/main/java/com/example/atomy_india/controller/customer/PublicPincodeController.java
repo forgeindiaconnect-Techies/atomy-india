@@ -124,9 +124,9 @@ public class PublicPincodeController {
 
         if (!pin.isEmpty()) {
             // 1. Try finding primary manager for this pincode
-            Optional<DistributorUser> byPrimaryRole = distributorRepository.findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER");
-            if (byPrimaryRole.isPresent()) {
-                primaryDist = byPrimaryRole.get();
+            List<DistributorUser> byPrimaryRoleList = distributorRepository.findByPrimaryPincodeAndDistributorRole(pin, "PRIMARY_MANAGER");
+            if (!byPrimaryRoleList.isEmpty()) {
+                primaryDist = byPrimaryRoleList.get(0);
             } else {
                 List<DistributorUser> byPinList = distributorRepository.findByPrimaryPincode(pin);
                 if (!byPinList.isEmpty()) {
@@ -139,9 +139,12 @@ public class PublicPincodeController {
 
             // 2. Try assigned pincodes
             if (primaryDist == null) {
-                Optional<DistributorUser> byAssigned = distributorRepository.findByAssignedPincodesContaining(pin);
-                if (byAssigned.isPresent()) {
-                    primaryDist = byAssigned.get();
+                List<DistributorUser> byAssignedList = distributorRepository.findByAssignedPincodesContaining(pin);
+                if (!byAssignedList.isEmpty()) {
+                    primaryDist = byAssignedList.stream()
+                            .filter(d -> !"SUB_DISTRIBUTOR".equalsIgnoreCase(d.getDistributorRole()))
+                            .findFirst()
+                            .orElse(byAssignedList.get(0));
                 }
             }
 
@@ -217,6 +220,70 @@ public class PublicPincodeController {
                 res.put("email", primaryDist.getEmail() != null ? primaryDist.getEmail() : "support.logistics@atomy.com");
                 res.put("distributorRole", "PRIMARY_MANAGER");
             }
+        } else if ("600001".equals(pin)) {
+            res.put("found", true);
+            res.put("distributorId", "DIST-600001");
+            res.put("hubName", "Chennai Central Fulfillment");
+            res.put("contactPerson", "Regional Logistics Manager");
+            res.put("phone", "+91 44 2256 1234");
+            res.put("email", "chennai.hub@atomy.in");
+            res.put("pincode", "600001");
+            res.put("city", "Chennai");
+            res.put("state", "Tamil Nadu");
+            res.put("hubAddress", "Grand Southern Trunk Rd, Meenambakkam, Chennai - 600001");
+            res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM");
+            res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the counter to collect your order.");
+            res.put("isDeliverable", true);
+            res.put("isSubstituteActive", false);
+            res.put("onLeave", false);
+        } else if ("560001".equals(pin)) {
+            res.put("found", true);
+            res.put("distributorId", "DIST-560001");
+            res.put("hubName", "Karnataka Regional Center");
+            res.put("contactPerson", "Regional Logistics Manager");
+            res.put("phone", "+91 80 2558 4321");
+            res.put("email", "bengaluru.hub@atomy.in");
+            res.put("pincode", "560001");
+            res.put("city", "Bengaluru");
+            res.put("state", "Karnataka");
+            res.put("hubAddress", "MG Road, Bengaluru - 560001");
+            res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM");
+            res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the counter to collect your order.");
+            res.put("isDeliverable", true);
+            res.put("isSubstituteActive", false);
+            res.put("onLeave", false);
+        } else if ("110001".equals(pin)) {
+            res.put("found", true);
+            res.put("distributorId", "DIST-110001");
+            res.put("hubName", "Delhi NCR Hub");
+            res.put("contactPerson", "Northern Logistics Desk");
+            res.put("phone", "+91 11 2334 5678");
+            res.put("email", "delhi.hub@atomy.in");
+            res.put("pincode", "110001");
+            res.put("city", "New Delhi");
+            res.put("state", "Delhi");
+            res.put("hubAddress", "Connaught Place, New Delhi - 110001");
+            res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM");
+            res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the counter to collect your order.");
+            res.put("isDeliverable", true);
+            res.put("isSubstituteActive", false);
+            res.put("onLeave", false);
+        } else if ("635109".equals(pin)) {
+            res.put("found", true);
+            res.put("distributorId", "DIST-635109");
+            res.put("hubName", "Hosur Logistics Point");
+            res.put("contactPerson", "Selva Logistics Point");
+            res.put("phone", "+91 95388 53454");
+            res.put("email", "hosur.hub@atomy.in");
+            res.put("pincode", "635109");
+            res.put("city", "Hosur");
+            res.put("state", "Tamil Nadu");
+            res.put("hubAddress", "Sipcot Industrial Complex, Hosur - 635109");
+            res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM");
+            res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the counter to collect your order.");
+            res.put("isDeliverable", true);
+            res.put("isSubstituteActive", false);
+            res.put("onLeave", false);
         } else {
             res.put("found", false);
             res.put("distributorId", null);

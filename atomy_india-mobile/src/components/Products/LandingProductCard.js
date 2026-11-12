@@ -199,19 +199,12 @@ function LandingProductCard({
           {pv.toLocaleString('en-IN')} PV
         </Text>
 
-        {/* Regional Hub Inventory Status */}
+        {/* Regional Hub Inventory Status: Only show for Out of Stock items */}
         {isOutOfStock ? (
           <View style={styles.oosNoticeRow}>
             <Ionicons name="alert-circle" size={11} color="#DC2626" />
             <Text style={styles.oosNoticeText}>
               Out of stock at {product.regionalHubName || 'this hub'}
-            </Text>
-          </View>
-        ) : product.regionalHubName ? (
-          <View style={styles.inStockNoticeRow}>
-            <View style={styles.inStockDot} />
-            <Text style={styles.inStockNoticeText} numberOfLines={1}>
-              In stock at {product.regionalHubName}
             </Text>
           </View>
         ) : null}
@@ -543,25 +536,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#DC2626',
-    flex: 1,
-  },
-  inStockNoticeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  inStockDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#16A34A',
-  },
-  inStockNoticeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#16A34A',
     flex: 1,
   },
 });

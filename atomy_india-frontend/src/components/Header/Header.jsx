@@ -1411,10 +1411,10 @@ export default function Header({
                   >
                     <img
                       src="/images/floating/find_centre.svg"
-                      alt="Find Centre"
+                      alt="Customer Support"
                       className="quick-menu-corner-icon"
                     />
-                    <span>Contact Us / Find Centre</span>
+                    <span>Customer Support</span>
                   </button>
 
                   <button

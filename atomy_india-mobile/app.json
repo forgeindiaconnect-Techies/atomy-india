@@ -26,6 +26,12 @@
     "plugins": [
       "expo-font",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Forge India Connect to access your location to find the nearest Atomy regional logistics hub."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
 import { fetchDistributorInventory } from '../../services/distributorService';
+import { fetchAdminTickets, isDemoTicket } from '../../services/api';
 import { formatTimeIST } from '../../utils/dateUtils';
 import '../Admin/AdminDashboard.css';
 
@@ -121,19 +122,54 @@ export default function DistributorOverviewTab({
     }
     loadStock();
 
-    // Check open tickets count from storage
-    try {
-      const saved = localStorage.getItem('atomy_admin_tickets');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const count = parsed.filter(t => t.status === 'OPEN' || !t.status).length;
-          if (isMounted) setOpenTicketsCount(count);
+    // Load open tickets count live from backend API and clean stale demo tickets
+    async function loadTicketsCount() {
+      try {
+        const liveTickets = await fetchAdminTickets();
+        if (isMounted && Array.isArray(liveTickets)) {
+          const valid = liveTickets.filter(t => !isDemoTicket(t));
+          const openCount = valid.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS' || !t.status).length;
+          setOpenTicketsCount(openCount);
+          try {
+            localStorage.setItem('atomy_admin_tickets', JSON.stringify(valid));
+          } catch {}
+          return;
         }
+      } catch (e) {
+        console.debug('Distributor tickets live count note:', e?.message);
       }
-    } catch (e) {}
 
-    return () => { isMounted = false; };
+      // Fallback to localStorage after strictly sanitizing demo tickets
+      try {
+        const saved = localStorage.getItem('atomy_admin_tickets');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const valid = parsed.filter(t => !isDemoTicket(t));
+            const openCount = valid.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS' || !t.status).length;
+            if (isMounted) setOpenTicketsCount(openCount);
+            localStorage.setItem('atomy_admin_tickets', JSON.stringify(valid));
+            return;
+          }
+        }
+        if (isMounted) setOpenTicketsCount(0);
+      } catch (e) {
+        if (isMounted) setOpenTicketsCount(0);
+      }
+    }
+    loadTicketsCount();
+
+    const handleTicketsUpdated = () => {
+      loadTicketsCount();
+    };
+    window.addEventListener('storage', handleTicketsUpdated);
+    window.addEventListener('atomy:ticket-updated', handleTicketsUpdated);
+
+    return () => { 
+      isMounted = false; 
+      window.removeEventListener('storage', handleTicketsUpdated);
+      window.removeEventListener('atomy:ticket-updated', handleTicketsUpdated);
+    };
   }, [distributor?.distributorId, distributor?.id]);
 
   const stockStats = useMemo(() => {

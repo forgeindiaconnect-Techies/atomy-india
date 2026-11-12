@@ -60,6 +60,16 @@ export async function initStorage() {
       AsyncStorage.getItem(KEYS.DELIVERY_STATE),
     ]);
 
+    const PURGE_KEY = '@atomy_mobile_orders_purged_v2';
+    try {
+      const hasPurged = await AsyncStorage.getItem(PURGE_KEY);
+      if (!hasPurged) {
+        await AsyncStorage.setItem(PURGE_KEY, 'true');
+        await AsyncStorage.removeItem(KEYS.PLACED_ORDERS);
+        savedOrders = null;
+      }
+    } catch (e) {}
+
     if (savedPin && /^\d{6}$/.test(savedPin.trim())) {
       memoryCache.deliveryPincode = savedPin.trim();
     }

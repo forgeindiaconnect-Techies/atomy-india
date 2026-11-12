@@ -62,6 +62,7 @@ import {
   updateAdminProduct,
   deleteAdminProduct,
   fetchAdminTickets,
+  isDemoTicket,
   replyAdminTicket,
   updateAdminTicketStatus,
   clearAllAdminTickets,
@@ -301,10 +302,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       if (adminOrders) {
         const parsed = JSON.parse(adminOrders);
         if (Array.isArray(parsed)) {
-          return parsed.filter(o => 
-            !o.orderId?.startsWith('ORD-20261005') && 
-            !o.orderId?.startsWith('ORD-20261008-3800') && 
-            !o.orderId?.startsWith('ORD-20261008-1863') && 
+          return parsed.filter(o =>
+            !o.orderId?.startsWith('ORD-20261005') &&
+            !o.orderId?.startsWith('ORD-20261008-3800') &&
+            !o.orderId?.startsWith('ORD-20261008-1863') &&
             !o.orderId?.includes('3207') &&
             !o.orderId?.toUpperCase().includes('DEMO') &&
             !o.customerName?.toLowerCase().includes('test') &&
@@ -354,8 +355,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       const saved = localStorage.getItem('atomy_admin_tickets');
       if (saved) {
         const parsed = JSON.parse(saved);
-        const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-        return Array.isArray(parsed) ? parsed.filter(t => !demoIds.includes(t.ticketId)) : [];
+        return Array.isArray(parsed) ? parsed.filter(t => !isDemoTicket(t)) : [];
       }
       return [];
     } catch {
@@ -393,7 +393,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       .then(data => {
         if (Array.isArray(data) && data.length > 0) setDistributorList(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const totalHubsCount = useMemo(() => {
@@ -467,7 +467,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       }
       try {
         localStorage.setItem('atomy_admin_dismissed_stock_alerts', JSON.stringify(Array.from(next)));
-      } catch {}
+      } catch { }
       return next;
     });
   };
@@ -541,7 +541,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         setAdminProfile(prev => ({ ...prev, ...saved }));
         try {
           localStorage.setItem('atomy_admin_profile', JSON.stringify({ ...adminProfile, ...saved }));
-        } catch {}
+        } catch { }
       } else {
         localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
       }
@@ -550,7 +550,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       console.warn('Backend sync failed, saved locally:', err);
       try {
         localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
-      } catch {}
+      } catch { }
       showToast('Saved locally. Backend database connecting...', 'warning');
     } finally {
       setIsSavingProfile(false);
@@ -679,7 +679,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   // Guaranteed static deadline: based strictly on fixed order date, never shifts on login
   const getOrderDeliverySLA = (order) => {
     if (!order) return { isDelayed: false, targetDate: null, targetDateStr: '', delayDays: 0, daysLeft: 0, statusText: 'On Schedule' };
-    
+
     const isDelivered = order.orderStatus === 'DELIVERED';
     const isCancelled = order.orderStatus === 'CANCELLED';
 
@@ -708,15 +708,15 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       targetDateStr: targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
       delayDays: Math.max(1, delayDays),
       daysLeft: Math.max(0, daysLeft),
-      statusText: isDelivered 
-        ? 'Delivered' 
-        : isCancelled 
-        ? 'Cancelled' 
-        : isDelayed 
-        ? `Delayed by ${Math.max(1, delayDays)} day${delayDays > 1 ? 's' : ''}` 
-        : daysLeft === 0 
-        ? 'Due Today' 
-        : `${daysLeft} day${daysLeft > 1 ? 's' : ''} left`
+      statusText: isDelivered
+        ? 'Delivered'
+        : isCancelled
+          ? 'Cancelled'
+          : isDelayed
+            ? `Delayed by ${Math.max(1, delayDays)} day${delayDays > 1 ? 's' : ''}`
+            : daysLeft === 0
+              ? 'Due Today'
+              : `${daysLeft} day${daysLeft > 1 ? 's' : ''} left`
     };
   };
 
@@ -732,7 +732,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       const rawName = String(it.productName || it.name || it.title || '').trim();
       const rawPrice = Number(it.unitPrice ?? it.price ?? 0);
 
-      const matched = 
+      const matched =
         (rawCode ? allKnownCatalogProducts.find(p => p && String(p.id).toLowerCase() === rawCode.toLowerCase()) : null) ||
         (rawName ? allKnownCatalogProducts.find(p => p && p.name && p.name.toLowerCase() === rawName.toLowerCase()) : null) ||
         (rawPrice > 0 ? allKnownCatalogProducts.find(p => Number(p.price) === rawPrice) : null);
@@ -825,8 +825,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       const saved = localStorage.getItem('atomy_admin_tickets');
       if (saved) {
         const parsed = JSON.parse(saved);
-        const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-        const clean = Array.isArray(parsed) ? parsed.filter(t => !demoIds.includes(t.ticketId)) : [];
+        const clean = Array.isArray(parsed) ? parsed.filter(t => !isDemoTicket(t)) : [];
         if (clean.length !== parsed.length) {
           localStorage.setItem('atomy_admin_tickets', JSON.stringify(clean));
           setTickets(clean);
@@ -865,7 +864,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         }));
         try {
           localStorage.setItem('atomy_admin_profile', JSON.stringify(bp));
-        } catch {}
+        } catch { }
       }
 
       if (custsRes.status === 'fulfilled' && Array.isArray(custsRes.value)) {
@@ -912,10 +911,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             quantity: it.quantity || it.qty || 1
           })) : [],
           tracking: bo.tracking || null
-        })).filter(o => 
-          !o.orderId?.startsWith('ORD-20261005') && 
-          !o.orderId?.startsWith('ORD-20261008-3800') && 
-          !o.orderId?.startsWith('ORD-20261008-1863') && 
+        })).filter(o =>
+          !o.orderId?.startsWith('ORD-20261005') &&
+          !o.orderId?.startsWith('ORD-20261008-3800') &&
+          !o.orderId?.startsWith('ORD-20261008-1863') &&
           !o.orderId?.includes('3207') &&
           !o.orderId?.toUpperCase().includes('DEMO') &&
           !o.customerName?.toLowerCase().includes('test') &&
@@ -938,8 +937,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         } catch { }
       }
       if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
-        const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-        const cleanTickets = ticketsRes.value.filter(t => !demoIds.includes(t.ticketId)).map(t => ({
+        const cleanTickets = ticketsRes.value.filter(t => !isDemoTicket(t)).map(t => ({
           ...t,
           messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
             ...m,
@@ -955,7 +953,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         });
         try {
           localStorage.setItem('atomy_admin_tickets', JSON.stringify(cleanTickets));
-        } catch {}
+        } catch { }
         setSelectedTicket(curr => {
           if (!curr) return cleanTickets[0] || null;
           const match = cleanTickets.find(t => t.ticketId === curr.ticketId);
@@ -1064,7 +1062,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       if (hasChanges) {
         try {
           localStorage.setItem('atomy_admin_products', JSON.stringify(updated));
-        } catch {}
+        } catch { }
         return updated;
       }
       return prevProducts;
@@ -1080,9 +1078,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           setProducts(cleanProds);
           try {
             localStorage.setItem('atomy_admin_products', JSON.stringify(cleanProds));
-          } catch {}
+          } catch { }
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [activeTab]);
 
@@ -1121,9 +1119,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             setProducts(cleanProds);
             try {
               localStorage.setItem('atomy_admin_products', JSON.stringify(cleanProds));
-            } catch {}
+            } catch { }
           }
-        }).catch(() => {});
+        }).catch(() => { });
       };
 
       const handleIncomingTicket = (newTicketObj) => {
@@ -1153,7 +1151,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               return match || curr;
             });
           }
-        }).catch(() => {});
+        }).catch(() => { });
       };
 
       syncChannel = new BroadcastChannel('atomy_sync_channel');
@@ -1241,7 +1239,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           if (Array.isArray(freshProds) && freshProds.length > 0) {
             setProducts(sanitizeAdminProducts(freshProds));
           }
-        } catch (err) {}
+        } catch (err) { }
       }
       if (e.key === 'atomy_admin_tickets' && e.newValue) {
         try {
@@ -1255,7 +1253,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               });
             });
           }
-        } catch (err) {}
+        } catch (err) { }
       }
     };
     window.addEventListener('storage', handleStorageUpdate);
@@ -1321,7 +1319,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             if (mappedOrders.length === 0) {
               localStorage.removeItem('atomy_placed_orders');
             }
-          } catch {}
+          } catch { }
         }
       } catch (e) { }
 
@@ -1350,8 +1348,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
       try {
         const backendTickets = await fetchAdminTickets();
         if (Array.isArray(backendTickets)) {
-          const demoIds = ['TCK-20261007-8894', 'TCK-20261006-4412', 'TCK-20261005-1109', 'TCK-20261004-9821'];
-          const cleanTickets = backendTickets.filter(t => !demoIds.includes(t.ticketId)).map(t => ({
+          const cleanTickets = backendTickets.filter(t => !isDemoTicket(t)).map(t => ({
             ...t,
             messages: Array.isArray(t.messages) && t.messages.length > 0 ? t.messages.map(m => ({
               ...m,
@@ -1768,18 +1765,18 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           const next = [payload, ...prev];
           try {
             localStorage.setItem('atomy_admin_products', JSON.stringify(next));
-          } catch {}
+          } catch { }
           return next;
         });
         showToast(`Product "${payload.name}" published to live store!`);
       } else {
         await updateAdminProduct(payload.id, payload);
-        await updateAdminStock(payload.id, safeStock, safeThreshold).catch(() => {});
+        await updateAdminStock(payload.id, safeStock, safeThreshold).catch(() => { });
         setProducts(prev => {
           const next = prev.map(p => p.id === payload.id ? payload : p);
           try {
             localStorage.setItem('atomy_admin_products', JSON.stringify(next));
-          } catch {}
+          } catch { }
           return next;
         });
         showToast(`Product "${payload.name}" updated and synced with customer website!`);
@@ -1791,7 +1788,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         const next = exists ? prev.map(p => p.id === payload.id ? payload : p) : [payload, ...prev];
         try {
           localStorage.setItem('atomy_admin_products', JSON.stringify(next));
-        } catch {}
+        } catch { }
         return next;
       });
       showToast(`Product "${payload.name}" saved!`);
@@ -2205,13 +2202,13 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const handleClearAllTickets = async () => {
     if (!window.confirm("Are you sure you want to clear all support tickets and start completely fresh? This will remove all inquiries and messages.")) return;
     try {
-      await clearAllAdminTickets().catch(() => {});
+      await clearAllAdminTickets().catch(() => { });
       setTickets([]);
       setSelectedTicket(null);
       try {
         localStorage.removeItem('atomy_admin_tickets');
         localStorage.removeItem('atomy_customer_tickets');
-      } catch {}
+      } catch { }
       showToast('All support inquiries cleared! Starting fresh.');
     } catch (err) {
       showToast('Error clearing tickets: ' + err.message);
@@ -2663,8 +2660,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   {/* Top 6 Network Sales, Territory & Customer KPI Cards (3 Cards in a Row) */}
                   <div className="kpi-curve-grid three-cols">
                     {/* Row 1 - Card 1: Today's Orders (Clickable to Orders) */}
-                    <div 
-                      className="kpi-curve-card interactive-kpi-card" 
+                    <div
+                      className="kpi-curve-card interactive-kpi-card"
                       style={{ '--accent-color': '#15803d', cursor: 'pointer' }}
                       onClick={() => { setActiveTab('orders'); setOrderStatusFilter('ALL'); }}
                       title="Inspect Today's Customer Orders & Processing"
@@ -2690,8 +2687,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
 
                     {/* Row 1 - Card 2: Today's Sale From Overall Hubs (Clickable to Finance) */}
-                    <div 
-                      className="kpi-curve-card interactive-kpi-card" 
+                    <div
+                      className="kpi-curve-card interactive-kpi-card"
                       style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
                       onClick={() => setActiveTab('finance')}
                       title="View Today's Financial Settlement & Hub Billings"
@@ -2717,8 +2714,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
 
                     {/* Row 1 - Card 3: Overall Sales (Clickable to Finance) */}
-                    <div 
-                      className="kpi-curve-card interactive-kpi-card" 
+                    <div
+                      className="kpi-curve-card interactive-kpi-card"
                       style={{ '--accent-color': '#334155', cursor: 'pointer' }}
                       onClick={() => setActiveTab('finance')}
                       title="Open Financial Ledger, Refunds & Settlements"
@@ -2744,8 +2741,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
 
                     {/* Row 2 - Card 4: Total Hubs (Clickable to Distributors & Territories) */}
-                    <div 
-                      className="kpi-curve-card interactive-kpi-card" 
+                    <div
+                      className="kpi-curve-card interactive-kpi-card"
                       style={{ '--accent-color': '#4f46e5', cursor: 'pointer' }}
                       onClick={() => setActiveTab('territories')}
                       title="Inspect Regional Logistics Hubs & Pincode Routing"
@@ -2771,8 +2768,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
 
                     {/* Row 2 - Card 5: Total Distributors (Clickable to Distributors & Territories) */}
-                    <div 
-                      className="kpi-curve-card interactive-kpi-card" 
+                    <div
+                      className="kpi-curve-card interactive-kpi-card"
                       style={{ '--accent-color': '#ea580c', cursor: 'pointer' }}
                       onClick={() => setActiveTab('territories')}
                       title="Inspect Registered Distributor Partners & Performance"
@@ -2798,8 +2795,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     </div>
 
                     {/* Row 2 - Card 6: Total Customers (Clickable to Customers Directory) */}
-                    <div 
-                      className="kpi-curve-card interactive-kpi-card" 
+                    <div
+                      className="kpi-curve-card interactive-kpi-card"
                       style={{ '--accent-color': '#7c3aed', cursor: 'pointer' }}
                       onClick={() => setActiveTab('customers')}
                       title="Inspect Registered Customer Accounts & Order Histories"
@@ -2905,7 +2902,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       </div>
 
                       {/* Interactive Smooth SVG Chart */}
-                      <div 
+                      <div
                         className="sales-chart-canvas-wrap"
                         onMouseLeave={() => setHoveredChartPoint(null)}
                       >
@@ -2924,8 +2921,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           </div>
                         )}
 
-                        <svg 
-                          viewBox={`0 0 ${salesAnalyticsData.svgW} ${salesAnalyticsData.svgH}`} 
+                        <svg
+                          viewBox={`0 0 ${salesAnalyticsData.svgW} ${salesAnalyticsData.svgH}`}
                           className="sales-chart-svg"
                           preserveAspectRatio="none"
                         >
@@ -2941,11 +2938,11 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           {[0, 0.33, 0.66, 1].map((pct, idx) => {
                             const y = salesAnalyticsData.padTop + (1 - pct) * salesAnalyticsData.chartH;
                             const val = Math.round(salesAnalyticsData.maxRevenue * pct);
-                            const valLabel = val >= 100000 
+                            const valLabel = val >= 100000
                               ? `₹ ${(val / 100000).toFixed(1)}L`
-                              : val >= 1000 
-                              ? `₹ ${(val / 1000).toFixed(0)}k` 
-                              : `₹ ${val}`;
+                              : val >= 1000
+                                ? `₹ ${(val / 1000).toFixed(0)}k`
+                                : `₹ ${val}`;
                             return (
                               <g key={idx}>
                                 <line
@@ -2973,9 +2970,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
                           {/* Area & Smooth Line Path */}
                           {salesAnalyticsData.areaPath && (
-                            <path 
-                              d={salesAnalyticsData.areaPath} 
-                              fill="url(#salesOverviewAreaGradient)" 
+                            <path
+                              d={salesAnalyticsData.areaPath}
+                              fill="url(#salesOverviewAreaGradient)"
                             />
                           )}
                           {salesAnalyticsData.linePath && (
@@ -3107,7 +3104,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                         <div className="inv-summary-tile tile-slate" onClick={() => setActiveTab('inventory')}>
                           <span className="tile-label">Readiness</span>
                           <span className="tile-val" style={{ color: '#0284c7' }}>
-                            {products.length > 0 
+                            {products.length > 0
                               ? Math.round(((products.length - overviewStats.outOfStockCount) / products.length) * 100)
                               : 100}%
                           </span>
@@ -3137,18 +3134,18 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                         <div className="inv-multi-progress-bar">
                           {products.length > 0 && (
                             <>
-                              <div 
-                                className="progress-seg healthy" 
+                              <div
+                                className="progress-seg healthy"
                                 style={{ width: `${(products.filter(p => (p.stockQuantity || 0) > (p.lowStockThreshold || 10)).length / products.length) * 100}%` }}
                                 title={`Healthy: ${products.filter(p => (p.stockQuantity || 0) > (p.lowStockThreshold || 10)).length}`}
                               />
-                              <div 
-                                className="progress-seg low" 
+                              <div
+                                className="progress-seg low"
                                 style={{ width: `${(overviewStats.lowStockCount / products.length) * 100}%` }}
                                 title={`Low Stock: ${overviewStats.lowStockCount}`}
                               />
-                              <div 
-                                className="progress-seg oos" 
+                              <div
+                                className="progress-seg oos"
                                 style={{ width: `${(overviewStats.outOfStockCount / products.length) * 100}%` }}
                                 title={`Out of Stock: ${overviewStats.outOfStockCount}`}
                               />
@@ -3208,10 +3205,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                       <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                           {prod.imageUrl ? (
-                                            <img 
-                                              src={prod.imageUrl} 
-                                              alt={prod.name} 
-                                              style={{ width: '30px', height: '30px', objectFit: 'contain', borderRadius: '5px', border: '1px solid #e2e8f0', background: '#fff' }} 
+                                            <img
+                                              src={prod.imageUrl}
+                                              alt={prod.name}
+                                              style={{ width: '30px', height: '30px', objectFit: 'contain', borderRadius: '5px', border: '1px solid #e2e8f0', background: '#fff' }}
                                             />
                                           ) : (
                                             <div style={{ width: '30px', height: '30px', borderRadius: '5px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -3240,8 +3237,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                       </td>
                                       <td style={{ textAlign: 'right' }}>
                                         <div style={{ display: 'inline-flex', gap: '4px' }}>
-                                          <button 
-                                            type="button" 
+                                          <button
+                                            type="button"
                                             className="quick-restock-btn"
                                             style={{ padding: '3px 8px', fontSize: '11px' }}
                                             onClick={() => handleQuickStockChange(prod, 50)}
@@ -3249,8 +3246,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                           >
                                             +50
                                           </button>
-                                          <button 
-                                            type="button" 
+                                          <button
+                                            type="button"
                                             className="quick-edit-btn"
                                             style={{ padding: '3px 6px', fontSize: '11px' }}
                                             onClick={() => handleOpenEditProduct(prod)}
@@ -3812,10 +3809,10 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               TAB: REGIONAL DISTRIBUTORS & INDIA PINCODE TERRITORIES
               ======================================================== */}
               {activeTab === 'territories' && !isEditingProductView && (
-                <TerritoryManagementPage 
-                  showToast={showToast} 
-                  orders={orders} 
-                  customers={customersList} 
+                <TerritoryManagementPage
+                  showToast={showToast}
+                  orders={orders}
+                  customers={customersList}
                 />
               )}
 
@@ -4010,12 +4007,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                     const custOrders = (Array.isArray(c.orders) && c.orders.length > 0)
                                       ? c.orders
                                       : orders.filter(o => {
-                                          const cEmail = (c.email || '').toLowerCase().trim();
-                                          const oEmail = (o.customerEmail || '').toLowerCase().trim();
-                                          const cPhone = (c.phone || '').replace(/\D/g, '');
-                                          const oPhone = (o.customerPhone || '').replace(/\D/g, '');
-                                          return (cEmail && oEmail && cEmail === oEmail) || (cPhone && oPhone && cPhone === oPhone);
-                                        });
+                                        const cEmail = (c.email || '').toLowerCase().trim();
+                                        const oEmail = (o.customerEmail || '').toLowerCase().trim();
+                                        const cPhone = (c.phone || '').replace(/\D/g, '');
+                                        const oPhone = (o.customerPhone || '').replace(/\D/g, '');
+                                        return (cEmail && oEmail && cEmail === oEmail) || (cPhone && oPhone && cPhone === oPhone);
+                                      });
                                     setSelectedCustomerDetail({
                                       ...c,
                                       name: c.name || c.fullName || 'Customer',
@@ -4794,7 +4791,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                               onClick={() => {
                                 try {
                                   localStorage.setItem('atomy_admin_sound_settings', JSON.stringify(soundSettings));
-                                } catch {}
+                                } catch { }
                                 showToast('Audio alert preferences saved successfully!', 'success');
                               }}
                             >
@@ -4908,7 +4905,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 onClick={() => {
                                   try {
                                     localStorage.setItem('atomy_admin_store_settings', JSON.stringify(storeSettings));
-                                  } catch {}
+                                  } catch { }
                                   showToast('Store settings and logistics rules saved successfully!', 'success');
                                 }}
                               >
@@ -5031,9 +5028,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '12px' }}>Super Administrator Session</p>
                 </div>
               </div>
-              <button 
+              <button
                 type="button"
-                className="atomy-modal-close" 
+                className="atomy-modal-close"
                 onClick={() => setShowLogoutConfirm(false)}
                 aria-label="Close"
               >
@@ -5049,17 +5046,17 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 <div style={{ marginTop: '4px' }}>Session IP: <code>{adminProfile.sessionIp}</code></div>
               </div>
               <div className="modal-actions-right" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button 
+                <button
                   type="button"
-                  className="atomy-btn-secondary" 
+                  className="atomy-btn-secondary"
                   onClick={() => setShowLogoutConfirm(false)}
                   style={{ padding: '9px 18px', fontSize: '13px', fontWeight: 600, borderRadius: '8px' }}
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="button"
-                  className="atomy-btn-danger" 
+                  className="atomy-btn-danger"
                   onClick={() => {
                     setShowLogoutConfirm(false);
                     if (onLogout) onLogout();
@@ -5115,9 +5112,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           {/* Top Fullscreen Header Bar */}
           <div className="inspection-fullscreen-topbar">
             <div className="inspection-topbar-left">
-              <button 
+              <button
                 type="button"
-                className="inspection-back-nav-btn" 
+                className="inspection-back-nav-btn"
                 onClick={() => setSelectedOrderDetail(null)}
               >
                 <ArrowLeft size={18} />
@@ -5154,9 +5151,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 <RotateCcw size={15} />
                 <span>Process Refund</span>
               </button>
-              <button 
+              <button
                 type="button"
-                className="inspection-topbar-close-btn" 
+                className="inspection-topbar-close-btn"
                 onClick={() => setSelectedOrderDetail(null)}
                 title="Close and return to orders"
               >
@@ -5334,9 +5331,9 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   <Truck size={15} />
                   <span>Update Logistics Tracking</span>
                 </button>
-                <button 
-                  type="button" 
-                  className="order-footer-btn done-btn" 
+                <button
+                  type="button"
+                  className="order-footer-btn done-btn"
                   onClick={() => setSelectedOrderDetail(null)}
                 >
                   <span>Close Inspection</span>
@@ -5469,12 +5466,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         const custOrders = Array.isArray(selectedCustomerDetail.orders) && selectedCustomerDetail.orders.length > 0
           ? selectedCustomerDetail.orders
           : orders.filter(o => {
-              const cEmail = (selectedCustomerDetail.email || '').toLowerCase().trim();
-              const oEmail = (o.customerEmail || '').toLowerCase().trim();
-              const cPhone = (selectedCustomerDetail.phone || '').replace(/\D/g, '');
-              const oPhone = (o.customerPhone || '').replace(/\D/g, '');
-              return (cEmail && oEmail && cEmail === oEmail) || (cPhone && oPhone && cPhone === oPhone);
-            });
+            const cEmail = (selectedCustomerDetail.email || '').toLowerCase().trim();
+            const oEmail = (o.customerEmail || '').toLowerCase().trim();
+            const cPhone = (selectedCustomerDetail.phone || '').replace(/\D/g, '');
+            const oPhone = (o.customerPhone || '').replace(/\D/g, '');
+            return (cEmail && oEmail && cEmail === oEmail) || (cPhone && oPhone && cPhone === oPhone);
+          });
         const custName = selectedCustomerDetail.name || selectedCustomerDetail.fullName || 'Customer';
         const custTier = selectedCustomerDetail.tier || 'Standard Customer';
         const custTotalSpent = Number(selectedCustomerDetail.totalSpent) || custOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);

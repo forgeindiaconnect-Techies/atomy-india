@@ -68,7 +68,10 @@ export const formatRelativeTime = (isoString) => {
 };
 
 const getCandidateBases = () => {
-  const isLocalWeb = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const isLocalWeb =
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    Boolean(window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1');
   return isLocalWeb ? [LOCAL_API_BASE] : [LOCAL_API_BASE, CLOUD_API_BASE];
 };
 

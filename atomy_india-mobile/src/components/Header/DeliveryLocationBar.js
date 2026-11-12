@@ -22,15 +22,6 @@ import locationService, {
 import storageService from '../../services/storageService';
 import { fetchHubDetails } from '../../services/api';
 
-const QUICK_AREAS = [
-  { pincode: '635002', area: 'Krishnagiri', hub: 'Selva Regional Hub (2-Day SLA)' },
-  { pincode: '635202', area: 'Dharmapuri', hub: 'Krishnapuram Hub (2-Day SLA)' },
-  { pincode: '635109', area: 'Hosur', hub: 'Hosur Logistics Point' },
-  { pincode: '560001', area: 'Bengaluru', hub: 'Karnataka Regional Center' },
-  { pincode: '600001', area: 'Chennai', hub: 'Chennai Central Fulfillment' },
-  { pincode: '110001', area: 'New Delhi', hub: 'Delhi NCR Hub' },
-];
-
 export default function DeliveryLocationBar({ onLocationChange }) {
   const [pincode, setPincode] = useState(() => storageService.getDeliveryPincode() || '635002');
   const [city, setCity] = useState(() => storageService.getDeliveryCity() || 'Krishnagiri');
@@ -43,8 +34,16 @@ export default function DeliveryLocationBar({ onLocationChange }) {
 
   // Sync state on mount and listen to broadcasted location changes
   useEffect(() => {
-    const initialPin = storageService.getDeliveryPincode() || '635002';
-    const initialCity = storageService.getDeliveryCity() || 'Krishnagiri';
+    let initialPin = storageService.getDeliveryPincode() || '635002';
+    let initialCity = storageService.getDeliveryCity() || 'Krishnagiri';
+
+    // Clear misleading Chennai cellular telecom gateway IP if cached
+    if (initialPin === '600001') {
+      initialPin = '635002';
+      initialCity = 'Krishnagiri';
+      storageService.saveDeliveryLocation('635002', 'Krishnagiri', 'Tamil Nadu');
+    }
+
     setPincode(initialPin);
     setCity(initialCity);
 
@@ -53,9 +52,9 @@ export default function DeliveryLocationBar({ onLocationChange }) {
       if (hub) setHubDetails(hub);
     });
 
-    // Auto-detect live location on initial mount in background
+    // Auto-detect live GPS location on initial mount in background
     detectCustomerLiveLocation({ force: false }).then((loc) => {
-      if (loc && loc.pincode) {
+      if (loc && loc.pincode && loc.pincode !== '600001') {
         setPincode(loc.pincode);
         setCity(loc.city || 'Krishnagiri');
       }
@@ -262,32 +261,7 @@ export default function DeliveryLocationBar({ onLocationChange }) {
                 </View>
               </View>
 
-              {/* 3. Quick Select Hub Areas */}
-              <View style={styles.quickSection}>
-                <Text style={styles.quickTitle}>Popular Hub Areas</Text>
-                <View style={styles.chipsRow}>
-                  {QUICK_AREAS.map((item) => {
-                    const isSelected = pincode === item.pincode;
-                    return (
-                      <TouchableOpacity
-                        key={item.pincode}
-                        style={[styles.areaChip, isSelected && styles.areaChipSelected]}
-                        activeOpacity={0.7}
-                        onPress={() => handleApplyPincode(item.pincode)}
-                      >
-                        <Text style={[styles.areaChipText, isSelected && styles.areaChipTextSelected]}>
-                          {item.area} ({item.pincode})
-                        </Text>
-                        {isSelected && (
-                          <Ionicons name="checkmark-circle" size={13} color="#00a3e0" style={{ marginLeft: 4 }} />
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* 4. Active Regional Hub Card */}
+              {/* 3. Active Regional Hub Card */}
               <View style={styles.hubInfoCard}>
                 <View style={styles.hubHeaderRow}>
                   <View style={styles.hubStatusDot} />
@@ -509,44 +483,6 @@ const styles = StyleSheet.create({
   },
   applyBtnTextActive: {
     color: '#00a3e0',
-  },
-  quickSection: {
-    marginBottom: 16,
-  },
-  quickTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#334155',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-  },
-  areaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 7,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  areaChipSelected: {
-    backgroundColor: '#E0F2FE',
-    borderColor: '#38BDF8',
-  },
-  areaChipText: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  areaChipTextSelected: {
-    color: '#0369A1',
   },
   hubInfoCard: {
     backgroundColor: '#F8FAFC',

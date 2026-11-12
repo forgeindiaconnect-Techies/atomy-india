@@ -868,34 +868,36 @@ export default function ProductDetailPage({
         <div className="pdp-tabs-sticky-bar-wrapper">
           <div className="container">
             <div className="pdp-tab-headers-bar">
-              <button
-                type="button"
-                className={`pdp-tab-nav-btn ${activeTab === 'details' ? 'active' : ''}`}
-                onClick={() => handleTabClick('details')}
-              >
-                Details
-              </button>
-              <button
-                type="button"
-                className={`pdp-tab-nav-btn ${activeTab === 'review' ? 'active' : ''}`}
-                onClick={() => handleTabClick('review')}
-              >
-                Review({reviewsCount})
-              </button>
-              <button
-                type="button"
-                className={`pdp-tab-nav-btn ${activeTab === 'payment' ? 'active' : ''}`}
-                onClick={() => handleTabClick('payment')}
-              >
-                Payment/Delivery
-              </button>
-              <button
-                type="button"
-                className={`pdp-tab-nav-btn ${activeTab === 'return' ? 'active' : ''}`}
-                onClick={() => handleTabClick('return')}
-              >
-                Return/Exchange
-              </button>
+              <div className="pdp-tabs-nav-group">
+                <button
+                  type="button"
+                  className={`pdp-tab-nav-btn ${activeTab === 'details' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('details')}
+                >
+                  Details
+                </button>
+                <button
+                  type="button"
+                  className={`pdp-tab-nav-btn ${activeTab === 'review' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('review')}
+                >
+                  Review({reviewsCount})
+                </button>
+                <button
+                  type="button"
+                  className={`pdp-tab-nav-btn ${activeTab === 'payment' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('payment')}
+                >
+                  Payment/Delivery
+                </button>
+                <button
+                  type="button"
+                  className={`pdp-tab-nav-btn ${activeTab === 'return' ? 'active' : ''}`}
+                  onClick={() => handleTabClick('return')}
+                >
+                  Return/Exchange
+                </button>
+              </div>
 
               {/* Quick Menu Toggle on Corner of Details Bar (matches Header Corner) */}
               <div className="pdp-tabs-quick-corner" ref={pdpQuickMenuRef}>

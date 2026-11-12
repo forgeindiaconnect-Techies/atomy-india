@@ -21,6 +21,7 @@ import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrice
 import OrderSuccessCelebration from '../Orders/OrderSuccessCelebration';
 import { createOrderApi, checkPincodeInventory, fetchHubDetails } from '../../services/api';
 import { applyCouponBackend, fetchCouponsFromBackend, DEFAULT_STORE_COUPONS } from '../../services/couponService';
+import storageService from '../../services/storageService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -88,17 +89,21 @@ function getSavedAddressesList(currentUser) {
   }
 
   if (currentUser && currentUser.name && currentUser.name !== 'Guest User') {
+    const activePin = storageService.getDeliveryPincode() || '635002';
+    const activeCity = storageService.getDeliveryCity() || (activePin === '635002' ? 'Krishnagiri' : 'Krishnagiri');
+    const activeState = storageService.getDeliveryState() || 'Tamil Nadu';
+    const userPin = currentUser.pincode && currentUser.pincode !== '635202' ? currentUser.pincode : activePin;
     return [
       {
         id: 'addr-default-profile',
         tag: 'Home',
         recipientName: currentUser.name || 'Naveen',
-        recipientPhone: currentUser.phone || '9876543210',
-        pincode: currentUser.pincode || '635202',
-        city: currentUser.city || 'Dharmapuri',
-        state: currentUser.state || 'Tamil Nadu',
+        recipientPhone: currentUser.phone || '9363063276',
+        pincode: userPin,
+        city: userPin === '635002' ? 'Krishnagiri' : (currentUser.city || activeCity),
+        state: currentUser.state || activeState,
         addressLine1: currentUser.address || 'dNo 45, Rk building, bayanapalli',
-        addressLine2: 'Krishnapuram, Krishnagiri',
+        addressLine2: 'Krishnagiri Indl. Estate',
         landmark: 'Near Bus Stand',
         deliveryMessage: '',
         isDefault: true,
@@ -109,6 +114,10 @@ function getSavedAddressesList(currentUser) {
 }
 
 function getInitialAddress(currentUser) {
+  const activePin = storageService.getDeliveryPincode() || '635002';
+  const activeCity = storageService.getDeliveryCity() || (activePin === '635002' ? 'Krishnagiri' : 'Krishnagiri');
+  const activeState = storageService.getDeliveryState() || 'Tamil Nadu';
+
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const storedSelected =
@@ -117,16 +126,18 @@ function getInitialAddress(currentUser) {
       if (storedSelected) {
         const parsed = JSON.parse(storedSelected);
         if (parsed && (parsed.addressLine1 || parsed.street) && parsed.pincode) {
+          const pin = parsed.pincode === '635202' && activePin === '635002' ? '635002' : (parsed.pincode || activePin);
+          const city = pin === '635002' ? 'Krishnagiri' : (parsed.city || activeCity);
           return {
             id: parsed.id || `addr-${Date.now()}`,
             tag: parsed.tag || parsed.type || 'Home',
             recipientName: parsed.recipientName || parsed.name || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : 'Naveen'),
-            recipientPhone: parsed.recipientPhone || parsed.phone || currentUser?.phone || '9876543210',
-            pincode: parsed.pincode || '635202',
-            city: parsed.city || 'Dharmapuri',
-            state: parsed.state || 'Tamil Nadu',
+            recipientPhone: parsed.recipientPhone || parsed.phone || currentUser?.phone || '9363063276',
+            pincode: pin,
+            city: city,
+            state: parsed.state || activeState,
             addressLine1: parsed.addressLine1 || parsed.street || 'dNo 45, Rk building, bayanapalli',
-            addressLine2: parsed.addressLine2 || 'Krishnapuram, Krishnagiri',
+            addressLine2: parsed.addressLine2 || 'Krishnagiri Indl. Estate',
             landmark: parsed.landmark || '',
             deliveryMessage: parsed.deliveryMessage || '',
             isDefault: true,
@@ -137,16 +148,18 @@ function getInitialAddress(currentUser) {
       if (Array.isArray(list) && list.length > 0) {
         const def = list.find((a) => a.isDefault) || list[0];
         if (def && (def.street || def.addressLine1) && def.pincode) {
+          const pin = def.pincode === '635202' && activePin === '635002' ? '635002' : (def.pincode || activePin);
+          const city = pin === '635002' ? 'Krishnagiri' : (def.city || activeCity);
           return {
             id: def.id || `addr-${Date.now()}`,
             tag: def.type || def.tag || 'Home',
             recipientName: def.name || def.recipientName || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : 'Naveen'),
-            recipientPhone: def.phone || def.recipientPhone || currentUser?.phone || '9876543210',
-            pincode: def.pincode || '635202',
-            city: def.city || 'Dharmapuri',
-            state: def.state || 'Tamil Nadu',
+            recipientPhone: def.phone || def.recipientPhone || currentUser?.phone || '9363063276',
+            pincode: pin,
+            city: city,
+            state: def.state || activeState,
             addressLine1: def.street || def.addressLine1 || 'dNo 45, Rk building, bayanapalli',
-            addressLine2: def.addressLine2 || 'Krishnapuram, Krishnagiri',
+            addressLine2: def.addressLine2 || 'Krishnagiri Indl. Estate',
             landmark: def.landmark || '',
             deliveryMessage: def.deliveryMessage || '',
             isDefault: true,
@@ -157,16 +170,17 @@ function getInitialAddress(currentUser) {
   } catch (e) { }
 
   if (currentUser && currentUser.name && currentUser.name !== 'Guest User') {
+    const userPin = currentUser.pincode && currentUser.pincode !== '635202' ? currentUser.pincode : activePin;
     return {
       id: 'addr-default-profile',
       tag: 'Home',
       recipientName: currentUser.name || 'Naveen',
-      recipientPhone: currentUser.phone || '9876543210',
-      pincode: currentUser.pincode || '635202',
-      city: currentUser.city || 'Dharmapuri',
-      state: currentUser.state || 'Tamil Nadu',
+      recipientPhone: currentUser.phone || '9363063276',
+      pincode: userPin,
+      city: userPin === '635002' ? 'Krishnagiri' : (currentUser.city || activeCity),
+      state: currentUser.state || activeState,
       addressLine1: currentUser.address || 'dNo 45, Rk building, bayanapalli',
-      addressLine2: 'Krishnapuram, Krishnagiri',
+      addressLine2: 'Krishnagiri Indl. Estate',
       landmark: 'Near Bus Stand',
       deliveryMessage: '',
       isDefault: true,
@@ -261,6 +275,7 @@ export default function PaymentSummaryPage({
   onRequestSignIn,
   onNavigateBack,
   onNavigateHome,
+  onNavigateAllProducts,
   onUpdateQty,
   onRemoveItem,
   onOrderSuccess,
@@ -404,7 +419,42 @@ export default function PaymentSummaryPage({
   // Delivery destination PIN & regional stock check (Option B)
   const [deliveryPinStock, setDeliveryPinStock] = useState({});
   const [isCheckingDeliveryStock, setIsCheckingDeliveryStock] = useState(false);
-  const deliveryPincode = selectedAddress?.pincode ? String(selectedAddress.pincode).trim() : '';
+  const activeDetectedPin = storageService.getDeliveryPincode() || '635002';
+  const deliveryPincode = selectedAddress?.pincode ? String(selectedAddress.pincode).trim() : activeDetectedPin;
+
+  // Auto-heal any stale 635202 in selectedAddress if active shopping area is 635002
+  useEffect(() => {
+    if (selectedAddress?.pincode === '635202' && activeDetectedPin === '635002') {
+      setSelectedAddress((prev) => ({
+        ...prev,
+        pincode: '635002',
+        city: 'Krishnagiri',
+      }));
+      setAddressForm((prev) => ({
+        ...prev,
+        pincode: '635002',
+        city: 'Krishnagiri',
+      }));
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const stored = window.localStorage.getItem('atomy_mobile_selected_address');
+          if (stored) {
+            const p = JSON.parse(stored);
+            p.pincode = '635002';
+            p.city = 'Krishnagiri';
+            window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(p));
+          }
+          const shippingStored = window.localStorage.getItem('atomy_shipping_address');
+          if (shippingStored) {
+            const sp = JSON.parse(shippingStored);
+            sp.pincode = '635002';
+            sp.city = 'Krishnagiri';
+            window.localStorage.setItem('atomy_shipping_address', JSON.stringify(sp));
+          }
+        }
+      } catch (e) {}
+    }
+  }, [activeDetectedPin, selectedAddress?.pincode]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -427,20 +477,6 @@ export default function PaymentSummaryPage({
     return () => {
       isCurrent = false;
     };
-  }, [deliveryPincode]);
-
-  // Fetch real-time Regional Logistics Hub & Co-Manager details
-  useEffect(() => {
-    const pin = deliveryPincode || '635002';
-    setIsLoadingHub(true);
-    fetchHubDetails(pin)
-      .then((info) => {
-        setHubDetails(info);
-        setIsLoadingHub(false);
-      })
-      .catch(() => {
-        setIsLoadingHub(false);
-      });
   }, [deliveryPincode]);
 
   // Items out of delivery stock in destination PIN hub (< 2 units or inStock === false)
@@ -545,6 +581,21 @@ export default function PaymentSummaryPage({
   // Fulfillment method: Courier Doorstep Delivery vs Direct Regional Hub Pickup
   const [fulfillmentType, setFulfillmentType] = useState('COURIER_DELIVERY'); // 'COURIER_DELIVERY' | 'STORE_PICKUP'
   const isStorePickup = fulfillmentType === 'STORE_PICKUP';
+
+  // Fetch real-time Regional Logistics Hub & Co-Manager details
+  useEffect(() => {
+    // When Regional Hub Pickup is selected, always show the hub for the active shopping area
+    const targetPin = isStorePickup ? (activeDetectedPin || '635002') : (deliveryPincode || activeDetectedPin || '635002');
+    setIsLoadingHub(true);
+    fetchHubDetails(targetPin)
+      .then((info) => {
+        setHubDetails(info);
+        setIsLoadingHub(false);
+      })
+      .catch(() => {
+        setIsLoadingHub(false);
+      });
+  }, [deliveryPincode, isStorePickup, activeDetectedPin]);
 
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState('UPI'); // 'UPI' | 'CARD' | 'COD' | 'NETBANKING'
@@ -1121,6 +1172,26 @@ export default function PaymentSummaryPage({
     setTimeout(() => {
       const assignedOrderId = `ORD-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`;
       const now = new Date();
+      const effectiveHubName = hubDetails?.hubName || 'Selva atomy hub';
+      const effectiveHubAddr = hubDetails?.hubAddress || 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002';
+      const effectivePin = isStorePickup
+        ? (hubDetails?.pincode || deliveryPincode || selectedAddress?.pincode || '635002')
+        : (selectedAddress?.pincode || deliveryPincode || '635002');
+      const effectiveCity = isStorePickup
+        ? (hubDetails?.city || selectedAddress?.city || 'Krishnagiri')
+        : (selectedAddress?.city || 'Krishnagiri');
+      const effectiveState = isStorePickup
+        ? (hubDetails?.state || selectedAddress?.state || 'Tamil Nadu')
+        : (selectedAddress?.state || 'Tamil Nadu');
+
+      const backendPaymentMethod = paymentMethod === 'COD'
+        ? 'CASH_ON_DELIVERY'
+        : paymentMethod === 'CARD'
+          ? 'CREDIT_DEBIT_CARD'
+          : paymentMethod === 'NETBANKING'
+            ? 'NET_BANKING'
+            : 'ONLINE_UPI';
+
       const orderDetails = {
         orderId: assignedOrderId,
         orderDate: now.toLocaleString('en-IN', {
@@ -1142,9 +1213,11 @@ export default function PaymentSummaryPage({
         totalPV,
         recipient: selectedAddress?.recipientName || currentUser?.name || 'Customer',
         phone: selectedAddress?.recipientPhone || currentUser?.phone || '',
-        address: selectedAddress
-          ? `${selectedAddress.addressLine1}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`
-          : 'Pending Address',
+        address: isStorePickup
+          ? effectiveHubAddr
+          : (selectedAddress
+            ? `${selectedAddress.addressLine1}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.pincode}`
+            : 'Pending Address'),
         trackingNumber: `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
         estimatedDelivery: isStorePickup ? 'Ready for Pickup within 24h' : estimatedDelivery.timeFrame,
         estimatedDeliveryDate: isStorePickup ? 'Available at Hub Counter' : estimatedDelivery.range,
@@ -1152,37 +1225,37 @@ export default function PaymentSummaryPage({
         shippingMethod: isStorePickup ? 'STORE_PICKUP' : 'COURIER_DELIVERY',
         isPickup: isStorePickup,
         pickupStatus: isStorePickup ? 'PENDING_PACKING' : null,
-        hubName: isStorePickup ? 'Selva Regional Logistics Hub' : null,
-        hubAddress: isStorePickup ? 'Krishnagiri Regional Logistics Centre, Tamil Nadu - 635002' : null,
+        hubName: isStorePickup ? effectiveHubName : null,
+        hubAddress: isStorePickup ? effectiveHubAddr : null,
         items: checkoutItems,
       };
 
       // Also dispatch to Spring Boot backend database for admin & live tracking sync
       const backendPayload = {
         orderId: assignedOrderId,
-        customerName: selectedAddress.recipientName || currentUser?.name || 'Customer',
+        customerName: selectedAddress?.recipientName || currentUser?.name || 'Customer',
         customerEmail: currentUser?.email || 'customer@atomy.com',
-        customerPhone: selectedAddress.recipientPhone || currentUser?.phone || '+91 98000 00000',
-        shippingAddress: isStorePickup ? 'Direct Store Pickup at Regional Logistics Hub' : selectedAddress.addressLine1,
-        city: selectedAddress.city,
-        state: selectedAddress.state,
-        pincode: selectedAddress.pincode,
+        customerPhone: selectedAddress?.recipientPhone || currentUser?.phone || '+91 98000 00000',
+        shippingAddress: isStorePickup ? effectiveHubAddr : (selectedAddress?.addressLine1 || 'Doorstep Delivery Address'),
+        city: effectiveCity,
+        state: effectiveState,
+        pincode: effectivePin,
         orderSource: 'MOBILE_APP',
         totalAmount: grandTotal,
         shippingFee: shippingFee,
-        paymentMethod: paymentMethod === 'COD' ? 'COD' : 'ONLINE_UPI',
+        paymentMethod: backendPaymentMethod,
         orderStatus: 'PLACED',
         fulfillmentType: isStorePickup ? 'STORE_PICKUP' : 'COURIER_DELIVERY',
         shippingMethod: isStorePickup ? 'STORE_PICKUP' : 'COURIER_DELIVERY',
         isPickup: isStorePickup,
         pickupStatus: isStorePickup ? 'PENDING_PACKING' : null,
-        hubName: isStorePickup ? 'Selva Regional Logistics Hub' : null,
-        hubAddress: isStorePickup ? 'Krishnagiri Regional Logistics Centre, Tamil Nadu - 635002' : null,
+        hubName: isStorePickup ? effectiveHubName : null,
+        hubAddress: isStorePickup ? effectiveHubAddr : null,
         estimatedDeliveryDate: isStorePickup ? 'Available at Hub Counter' : estimatedDelivery.range,
         estimatedDelivery: isStorePickup ? 'Ready for Pickup within 24h' : estimatedDelivery.timeFrame,
         items: checkoutItems.map((it) => ({
-          productId: it.id,
-          productName: it.name,
+          productId: it.id || it.productId,
+          productName: it.name || it.productName,
           productImage: it.image || it.img || '',
           price: Number(it.price) || 0,
           quantity: it.qty || 1,
@@ -2152,6 +2225,20 @@ export default function PaymentSummaryPage({
                   </View>
                 );
               })}
+
+              {/* Add More Items button inside items card */}
+              <TouchableOpacity
+                style={styles.addMoreItemsCardBtn}
+                onPress={() => {
+                  if (onNavigateAllProducts) onNavigateAllProducts();
+                  else if (onNavigateBack) onNavigateBack();
+                  else if (onNavigateHome) onNavigateHome();
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add-circle-outline" size={18} color="#00A3E0" />
+                <Text style={styles.addMoreItemsCardBtnText}>+ Add More Products to Order</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -2177,26 +2264,46 @@ export default function PaymentSummaryPage({
               onPress={() => setFulfillmentType('COURIER_DELIVERY')}
               activeOpacity={0.8}
             >
-              <View style={styles.fulfillmentCardTop}>
+              <View style={styles.fulfillmentRadioWrap}>
+                <Ionicons
+                  name={!isStorePickup ? 'radio-button-on' : 'radio-button-off'}
+                  size={19}
+                  color={!isStorePickup ? '#00A3E0' : '#94A3B8'}
+                />
+              </View>
+              <View style={styles.fulfillmentIconWrap}>
                 <Ionicons
                   name="bicycle-outline"
                   size={20}
                   color={!isStorePickup ? '#00A3E0' : '#64748B'}
                 />
-                <Ionicons
-                  name={!isStorePickup ? 'radio-button-on' : 'radio-button-off'}
-                  size={18}
-                  color={!isStorePickup ? '#00A3E0' : '#CBD5E1'}
-                />
               </View>
-              <Text style={[styles.fulfillmentOptionTitle, !isStorePickup && styles.fulfillmentOptionTitleActive]}>
-                Doorstep Delivery
-              </Text>
-              <Text style={styles.fulfillmentOptionSubtitle}>
-                Blue Dart Express Line-haul
-              </Text>
-              <View style={[styles.fulfillmentFeeTag, isFreeDelivery ? styles.feeTagFree : styles.feeTagPaid]}>
-                <Text style={[styles.fulfillmentFeeTagText, isFreeDelivery ? styles.feeTagFreeText : styles.feeTagPaidText]}>
+              <View style={styles.fulfillmentInfoCol}>
+                <Text
+                  style={[
+                    styles.fulfillmentOptionTitle,
+                    !isStorePickup && styles.fulfillmentOptionTitleActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  Doorstep Delivery
+                </Text>
+                <Text style={styles.fulfillmentOptionSubtitle} numberOfLines={1}>
+                  Blue Dart Express Line-haul
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.fulfillmentFeeTag,
+                  isFreeDelivery ? styles.feeTagFree : styles.feeTagPaid,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.fulfillmentFeeTagText,
+                    isFreeDelivery ? styles.feeTagFreeText : styles.feeTagPaidText,
+                  ]}
+                >
                   {isFreeDelivery ? 'FREE Delivery' : '₹ 150.00 Fee'}
                 </Text>
               </View>
@@ -2211,24 +2318,34 @@ export default function PaymentSummaryPage({
               onPress={() => setFulfillmentType('STORE_PICKUP')}
               activeOpacity={0.8}
             >
-              <View style={styles.fulfillmentCardTop}>
+              <View style={styles.fulfillmentRadioWrap}>
+                <Ionicons
+                  name={isStorePickup ? 'radio-button-on' : 'radio-button-off'}
+                  size={19}
+                  color={isStorePickup ? '#10B981' : '#94A3B8'}
+                />
+              </View>
+              <View style={styles.fulfillmentIconWrap}>
                 <Ionicons
                   name="storefront-outline"
                   size={20}
                   color={isStorePickup ? '#10B981' : '#64748B'}
                 />
-                <Ionicons
-                  name={isStorePickup ? 'radio-button-on' : 'radio-button-off'}
-                  size={18}
-                  color={isStorePickup ? '#10B981' : '#CBD5E1'}
-                />
               </View>
-              <Text style={[styles.fulfillmentOptionTitle, isStorePickup && { color: '#10B981' }]}>
-                Regional Hub Pickup
-              </Text>
-              <Text style={styles.fulfillmentOptionSubtitle}>
-                Self collection at counter
-              </Text>
+              <View style={styles.fulfillmentInfoCol}>
+                <Text
+                  style={[
+                    styles.fulfillmentOptionTitle,
+                    isStorePickup && { color: '#059669', fontWeight: '800' },
+                  ]}
+                  numberOfLines={1}
+                >
+                  Regional Hub Pickup
+                </Text>
+                <Text style={styles.fulfillmentOptionSubtitle} numberOfLines={1}>
+                  Self collection at counter
+                </Text>
+              </View>
               <View style={[styles.fulfillmentFeeTag, styles.feeTagFree]}>
                 <Text style={[styles.fulfillmentFeeTagText, styles.feeTagFreeText]}>
                   FREE ₹0 FEE
@@ -2267,13 +2384,20 @@ export default function PaymentSummaryPage({
 
                 {/* Hub Co-Manager (Model 1: Shared Hub) */}
                 <View style={styles.hubCoManagerBox}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Text style={styles.hubCoManagerTag}>Model 1: Hub Co-Manager</Text>
-                    <Text style={styles.hubCoManagerDuty}>
-                      {hubDetails?.isSubstituteActive ? '⚡ Acting Duty Standby' : 'Shared Hub Standby'}
+                  <View style={styles.hubCoManagerHeaderRow}>
+                    <Text style={styles.hubCoManagerTag} numberOfLines={1}>
+                      Hub Co-Manager (Model 1)
                     </Text>
+                    <View style={[styles.hubDutyBadge, hubDetails?.isSubstituteActive && styles.hubDutyBadgeActing]}>
+                      <Text
+                        style={[styles.hubCoManagerDuty, hubDetails?.isSubstituteActive && styles.hubCoManagerDutyActing]}
+                        numberOfLines={1}
+                      >
+                        {hubDetails?.isSubstituteActive ? '⚡ Acting Duty Standby' : 'Shared Hub Standby'}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.hubCoManagerName}>
+                  <Text style={styles.hubCoManagerName} numberOfLines={1}>
                     {hubDetails?.isSubstituteActive ? (hubDetails.actingManagerName || 'Hub Co-Manager') : (hubDetails?.coManagerName || 'Hub Co-Manager (Standby)')}
                   </Text>
                 </View>
@@ -2578,7 +2702,7 @@ export default function PaymentSummaryPage({
             SECTION 6: PAYMENT SUMMARY CARD
             ========================================================================= */}
         <View style={styles.paymentSummaryCard}>
-          <Text style={styles.paymentSummaryTitle}>Payment Summary</Text>
+          <Text style={styles.paymentSummaryTitle}>Total Payable</Text>
 
           <View style={styles.summaryBreakdown}>
             {/* Product Total Row (with Clickable Arrow for GST Breakdown) */}
@@ -2675,16 +2799,6 @@ export default function PaymentSummaryPage({
               <Text style={styles.etaDateHighlight}>{estimatedDelivery.range}</Text>
             </View>
 
-            <View style={styles.summaryDivider} />
-
-            {/* Grand Total */}
-            <View style={styles.grandTotalRow}>
-              <View>
-                <Text style={styles.grandTotalLabel}>Total Payment Amount</Text>
-                <Text style={styles.inclusiveGstText}>(Inclusive of GST)</Text>
-              </View>
-              <Text style={styles.grandTotalAmount}>₹ {formatInr(grandTotal)}</Text>
-            </View>
           </View>
 
           {/* Consent Checkbox */}
@@ -2716,19 +2830,6 @@ export default function PaymentSummaryPage({
             </View>
           ) : null}
 
-          {/* Proceed to Payment CTA */}
-          <TouchableOpacity
-            style={[
-              styles.proceedToPaymentBtn,
-              (!agreedTerms || checkoutItems.length === 0 || hasOutOfDeliveryItems) && styles.proceedBtnDisabled,
-            ]}
-            onPress={handleProceedToPayment}
-            activeOpacity={0.88}
-          >
-            <Text style={styles.proceedToPaymentBtnText}>Proceed to Payment</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-          </TouchableOpacity>
-
           {/* Trust & Guarantee Banner */}
           <View style={styles.trustBanner}>
             <Ionicons name="shield-checkmark" size={16} color="#00A3E0" />
@@ -2736,8 +2837,57 @@ export default function PaymentSummaryPage({
           </View>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 140 }} />
       </ScrollView>
+
+      {/* Sticky Bottom Pay & Add More Bar */}
+      <View style={styles.stickyPayBar}>
+        {/* Row 1: Heading & Amount */}
+        <View style={styles.stickyPayTopRow}>
+          <View style={styles.stickyPayHeadingCol}>
+            <Text style={styles.stickyPayTotalLabel}>Total Payable</Text>
+            <View style={styles.stickyPayPvBadge}>
+              <Text style={styles.stickyPayPvValue}>
+                {`+${totalPV.toLocaleString('en-IN')} PV`}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.stickyPayTotalValue} numberOfLines={1}>
+            {`₹\u00A0${formatInr(grandTotal)}`}
+          </Text>
+        </View>
+
+        {/* Row 2: Add More & Proceed to Pay in same bottom row */}
+        <View style={styles.stickyPayBottomRow}>
+          <TouchableOpacity
+            style={styles.stickyAddMoreBtn}
+            onPress={() => {
+              if (onNavigateAllProducts) onNavigateAllProducts();
+              else if (onNavigateHome) onNavigateHome();
+              else if (onNavigateBack) onNavigateBack();
+            }}
+            activeOpacity={0.8}
+            accessibilityLabel="Add More Items"
+          >
+            <Ionicons name="add" size={17} color="#00A3E0" />
+            <Text style={styles.stickyAddMoreBtnText}>+ Add More</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.stickyProceedBtn,
+              (!agreedTerms || checkoutItems.length === 0 || hasOutOfDeliveryItems) && styles.stickyProceedBtnDisabled,
+            ]}
+            onPress={handleProceedToPayment}
+            disabled={!agreedTerms || checkoutItems.length === 0 || hasOutOfDeliveryItems}
+            activeOpacity={0.88}
+            accessibilityLabel="Proceed to Payment"
+          >
+            <Text style={styles.stickyProceedBtnText}>Proceed to Pay</Text>
+            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* ADDRESS EDIT / ADD MODAL */}
       <Modal visible={isAddressModalOpen} animationType="slide" transparent>
@@ -2979,6 +3129,123 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  // Sticky Bottom Pay Bar Styles
+  stickyPayBar: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 14,
+  },
+  stickyPayTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  stickyPayHeadingCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  stickyPayTotalLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  stickyPayPvBadge: {
+    backgroundColor: '#F0F9FF',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+  },
+  stickyPayPvValue: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0284C7',
+  },
+  stickyPayTotalValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+  },
+  stickyPayBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  stickyAddMoreBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  stickyAddMoreBtnText: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#00A3E0',
+  },
+  stickyProceedBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#00A3E0',
+    paddingVertical: 12,
+    borderRadius: 10,
+    shadowColor: '#00A3E0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  stickyProceedBtnDisabled: {
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  stickyProceedBtnText: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  addMoreItemsCardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderStyle: 'dashed',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  addMoreItemsCardBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#00A3E0',
   },
   topHeader: {
     backgroundColor: COLORS.primary,
@@ -3336,24 +3603,24 @@ const styles = StyleSheet.create({
   // PAYMENT SUMMARY CARD
   paymentSummaryCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   paymentSummaryTitle: {
-    fontSize: 17,
+    fontSize: 18.5,
     fontWeight: '800',
     color: '#0F172A',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   summaryBreakdown: {
-    gap: 10,
+    gap: 12,
   },
   summaryLine: {
     flexDirection: 'row',
@@ -4936,12 +5203,34 @@ const styles = StyleSheet.create({
   fulfillmentOptionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: '#F8FAFC',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  fulfillmentRadioWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  fulfillmentIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexShrink: 0,
+  },
+  fulfillmentInfoCol: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   fulfillmentOptionCardActive: {
     backgroundColor: '#F0F9FF',
@@ -4954,7 +5243,7 @@ const styles = StyleSheet.create({
   fulfillmentOptionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#334155',
+    color: '#1E293B',
   },
   fulfillmentOptionTitleActive: {
     color: '#00A3E0',
@@ -5221,11 +5510,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   fulfillmentFeeTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 6,
+    flexShrink: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   feeTagFree: {
     backgroundColor: '#DCFCE7',
@@ -5312,7 +5602,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   hubCoManagerBox: {
-    paddingTop: 2,
+    paddingTop: 3,
+  },
+  hubCoManagerHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
   },
   hubCoManagerTag: {
     fontSize: 10.5,
@@ -5320,6 +5616,20 @@ const styles = StyleSheet.create({
     color: '#059669',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    flexShrink: 1,
+  },
+  hubDutyBadge: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    flexShrink: 0,
+  },
+  hubDutyBadgeActing: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
   },
   hubCoManagerName: {
     fontSize: 12.5,
@@ -5328,9 +5638,13 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   hubCoManagerDuty: {
-    fontSize: 11,
-    color: '#0369A1',
-    fontWeight: '600',
+    fontSize: 10.5,
+    color: '#15803D',
+    fontWeight: '700',
+  },
+  hubCoManagerDutyActing: {
+    color: '#B45309',
+    fontWeight: '700',
   },
   hubPickupNote: {
     fontSize: 11,

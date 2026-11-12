@@ -23,6 +23,31 @@ function BestProductsSection({
   const [activeTab, setActiveTab] = useState('ALL');
   const [visibleLimit, setVisibleLimit] = useState(10); // 5 rows x 2 products = 10 limit
 
+  // Helper to shuffle the BEST products so the order differs from the ALL view
+  const getShuffledBest = () => {
+    const originalBest = BEST_PRODUCTS.filter(item => 
+      item.categoryTab && Array.isArray(item.categoryTab) && item.categoryTab.includes('BEST')
+    );
+    if (originalBest.length <= 1) return originalBest;
+
+    const shuffled = [...originalBest];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    if (shuffled.every((item, idx) => item.id === originalBest[idx]?.id)) {
+      [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+    }
+
+    return shuffled.map((p, idx) => ({
+      ...p,
+      rank: idx + 1
+    }));
+  };
+
+  const [shuffledBestProducts, setShuffledBestProducts] = useState(() => getShuffledBest());
+
   const filteredProducts = useMemo(() => {
     return BEST_PRODUCTS.filter((item) => {
       if (activeTab === 'ALL') return true;
@@ -31,12 +56,16 @@ function BestProductsSection({
   }, [activeTab]);
 
   const handleTabChange = (tab) => {
+    if (tab === 'BEST') {
+      setShuffledBestProducts(getShuffledBest());
+    }
     setActiveTab(tab);
     setVisibleLimit(10); // Reset to first 5 rows (10 products)
   };
 
-  const displayedProducts = filteredProducts.slice(0, visibleLimit);
-  const hasMore = filteredProducts.length > visibleLimit;
+  const targetList = activeTab === 'BEST' ? shuffledBestProducts : filteredProducts;
+  const displayedProducts = targetList.slice(0, visibleLimit);
+  const hasMore = targetList.length > visibleLimit;
   const isExpanded = visibleLimit > 10;
 
   return (

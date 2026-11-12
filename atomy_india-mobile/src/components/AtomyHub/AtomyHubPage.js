@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SvgUri } from 'react-native-svg';
+import SafeSvgUri from '../Common/SafeSvgUri';
 import { COLORS } from '../../constants/theme';
 import AtomyFooter from '../Navigation/AtomyFooter';
 
@@ -123,21 +123,19 @@ export default function AtomyHubPage({
                 {/* DT: Logo & Title */}
                 <View style={styles.hubDt}>
                   <View style={styles.logoWrap}>
-                    {!hasSvgError ? (
-                      <SvgUri
-                        width="100%"
-                        height="52"
-                        uri={portal.logoSvg}
-                        onError={() => handleSvgError(portal.id)}
-                      />
-                    ) : (
-                      <View style={[styles.fallbackLogoBox, { borderColor: portal.brandColor }]}>
-                        <Ionicons name={portal.fallbackIcon} size={28} color={portal.brandColor} />
-                        <Text style={[styles.fallbackLogoText, { color: portal.brandColor }]}>
-                          {portal.title}
-                        </Text>
-                      </View>
-                    )}
+                    <SafeSvgUri
+                      width="100%"
+                      height={52}
+                      uri={portal.logoSvg}
+                      fallback={
+                        <View style={[styles.fallbackLogoBox, { borderColor: portal.brandColor }]}>
+                          <Ionicons name={portal.fallbackIcon} size={28} color={portal.brandColor} />
+                          <Text style={[styles.fallbackLogoText, { color: portal.brandColor }]}>
+                            {portal.title}
+                          </Text>
+                        </View>
+                      }
+                    />
                   </View>
                   <Text style={styles.hubCardTitle}>{portal.title}</Text>
                 </View>

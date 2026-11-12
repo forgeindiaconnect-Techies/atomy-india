@@ -642,13 +642,13 @@ export const CATEGORY_CONFIGS = {
         "title": "Atomy Absolute Skincare",
         "subtitle": "Recapture The Skin of Your Youth",
         "image": require("../../assets/category_banners/beauty_absolute.jpg"),
-        "bgColor": "#f5edf0"
+        "bgColor": "#e8f0f8"
       },
       {
         "title": "Atomy The Fame",
         "subtitle": "Your Complete 5-Step Path to Radiance",
         "image": require("../../assets/category_banners/beauty_the_fame.jpg"),
-        "bgColor": "#f2edf5"
+        "bgColor": "#d0d4df"
       }
     ],
     "subcategories": [
@@ -2298,8 +2298,8 @@ export const CATEGORY_CONFIGS = {
       {
         "title": "Atomy Official Merchandise & Tools",
         "subtitle": "Support Your Success With Official Resources",
-        "image": require("../../assets/category_banners/beauty_absolute.jpg"),
-        "bgColor": "#f5f5f5"
+        "image": require("../../assets/category_banners/others_merchandise.jpg"),
+        "bgColor": "#f5f7fa"
       }
     ],
     "subcategories": [
@@ -2639,16 +2639,44 @@ export const CATEGORY_CONFIGS = {
     "name": "ALL PRODUCTS",
     "banners": [
       {
-        "title": "Atomy Absolute Skincare",
-        "subtitle": "Recapture The Skin of Your Youth",
-        "image": require("../../assets/category_banners/beauty_absolute.jpg"),
-        "bgColor": "#f5edf0"
+        "title": "Atomy HemoHIM",
+        "subtitle": "Immunity Up! Fatigue Down!!",
+        "desc": "Patented Herbal Extract for Immune Support",
+        "image": require("../../assets/category_banners/hemohim_banner.jpg"),
+        "bgColor": "#e7ebeb",
+        "textColor": "#0F172A"
       },
       {
         "title": "Atomy The Fame",
         "subtitle": "Your Complete 5-Step Path to Radiance",
+        "desc": "Unfading Beauty, Uncompromising Quality",
         "image": require("../../assets/category_banners/beauty_the_fame.jpg"),
-        "bgColor": "#f2edf5"
+        "bgColor": "#d0d4df",
+        "textColor": "#0F172A"
+      },
+      {
+        "title": "Atomy Toothpaste",
+        "subtitle": "Propolis Protection. Natural Freshness.",
+        "desc": "Gentle Daily Dental Care for the Entire Family",
+        "image": require("../../assets/category_banners/personal_care_toothpaste.jpg"),
+        "bgColor": "#e8f3f8",
+        "textColor": "#0F172A"
+      },
+      {
+        "title": "Atomy Absolute Skincare",
+        "subtitle": "Recapture The Skin of Your Youth",
+        "desc": "Absolute CellActive Technology",
+        "image": require("../../assets/category_banners/beauty_absolute.jpg"),
+        "bgColor": "#e8f0f8",
+        "textColor": "#0F172A"
+      },
+      {
+        "title": "Liquid Laundry Detergent",
+        "subtitle": "Making Every Fabric Feel Like New Again",
+        "desc": "Eco-Friendly Plant-Based Powerful Cleaning",
+        "image": require("../../assets/category_banners/home_laundry.jpg"),
+        "bgColor": "#ebe6df",
+        "textColor": "#0F172A"
       }
     ],
     "subcategories": [

@@ -24,12 +24,12 @@ export default function MembershipPaymentModal({
   onSuccess
 }) {
   const [paymentMethod, setPaymentMethod] = useState('UPI');
-  const [upiId, setUpiId] = useState(currentUser?.email ? `${currentUser.email.split('@')[0]}@okhdfcbank` : 'customer@upi');
-  const [cardNumber, setCardNumber] = useState('4532 8920 1142 8821');
-  const [cardExpiry, setCardExpiry] = useState('08/29');
-  const [cardCvv, setCardCvv] = useState('821');
-  const [cardName, setCardName] = useState(currentUser?.name || 'Atomy Customer');
-  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
+  const [upiId, setUpiId] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [selectedBank, setSelectedBank] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completedMember, setCompletedMember] = useState(null);
@@ -125,10 +125,6 @@ export default function MembershipPaymentModal({
         {/* Modal Top Header */}
         <div className="payment-modal-header">
           <div className="payment-header-left">
-            <div className="payment-badge-shield">
-              <Lock size={14} color="#059669" />
-              <span>256-BIT SECURE CHECKOUT</span>
-            </div>
             <h3 className="payment-modal-title">
               {isCompleted ? 'Membership Activated 🎉' : 'Distributor Membership Checkout'}
             </h3>
@@ -272,7 +268,7 @@ export default function MembershipPaymentModal({
                         type="text"
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
-                        placeholder="username@okhdfcbank"
+                        placeholder="e.g. mobile@upi / username@okhdfcbank"
                         required
                         className="payment-text-input"
                       />
@@ -290,7 +286,8 @@ export default function MembershipPaymentModal({
                         type="text"
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value)}
-                        placeholder="4532 •••• •••• 8821"
+                        placeholder="e.g. 4532 0000 0000 8821"
+                        maxLength="19"
                         required
                         className="payment-text-input"
                       />
@@ -304,6 +301,7 @@ export default function MembershipPaymentModal({
                           value={cardExpiry}
                           onChange={(e) => setCardExpiry(e.target.value)}
                           placeholder="MM/YY"
+                          maxLength="5"
                           required
                           className="payment-text-input"
                         />
@@ -316,7 +314,7 @@ export default function MembershipPaymentModal({
                           maxLength="4"
                           value={cardCvv}
                           onChange={(e) => setCardCvv(e.target.value)}
-                          placeholder="•••"
+                          placeholder="CVV"
                           required
                           className="payment-text-input"
                         />
@@ -329,7 +327,7 @@ export default function MembershipPaymentModal({
                         type="text"
                         value={cardName}
                         onChange={(e) => setCardName(e.target.value)}
-                        placeholder="Name as on Card"
+                        placeholder="Name as printed on Card"
                         required
                         className="payment-text-input"
                       />
@@ -346,7 +344,9 @@ export default function MembershipPaymentModal({
                         value={selectedBank}
                         onChange={(e) => setSelectedBank(e.target.value)}
                         className="payment-text-input"
+                        required
                       >
+                        <option value="">-- Choose your bank --</option>
                         <option value="HDFC Bank">HDFC Bank</option>
                         <option value="ICICI Bank">ICICI Bank</option>
                         <option value="State Bank of India">State Bank of India (SBI)</option>
