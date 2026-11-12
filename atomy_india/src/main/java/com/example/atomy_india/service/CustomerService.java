@@ -468,7 +468,69 @@ public class CustomerService {
             ticket.addMessage(initialMsg);
         }
 
-        return ticketRepository.save(ticket);
+        // 1. Resolve and assign ticket to the customer's particular regional distributor
+        String assignedDistId = req.getAssignedDistributorId();
+        String assignedDistName = req.getAssignedDistributorName();
+        String pincode = req.getPincode();
+
+        // Check if an orderId is referenced
+        if ((assignedDistId == null || assignedDistId.trim().isEmpty()) && req.getOrderId() != null && !req.getOrderId().trim().isEmpty()) {
+            Optional<CustomerOrder> orderOpt = orderRepository.findById(req.getOrderId().trim());
+            if (orderOpt.isPresent()) {
+                CustomerOrder ord = orderOpt.get();
+                assignedDistId = ord.getAssignedDistributorId();
+                assignedDistName = ord.getAssignedDistributorName();
+                if (pincode == null || pincode.trim().isEmpty()) {
+                    pincode = ord.getPincode();
+                }
+            }
+        }
+
+        // Check if customer email has recent orders
+        if ((assignedDistId == null || assignedDistId.trim().isEmpty()) && req.getCustomerEmail() != null && !req.getCustomerEmail().trim().isEmpty()) {
+            List<CustomerOrder> custOrders = orderRepository.findByCustomerEmailOrderByCreatedAtDesc(req.getCustomerEmail().trim());
+            if (!custOrders.isEmpty()) {
+                CustomerOrder latest = custOrders.get(0);
+                assignedDistId = latest.getAssignedDistributorId();
+                assignedDistName = latest.getAssignedDistributorName();
+                if (pincode == null || pincode.trim().isEmpty()) {
+                    pincode = latest.getPincode();
+                }
+            }
+        }
+
+        // Check if pincode matches a regional distributor
+        if ((assignedDistId == null || assignedDistId.trim().isEmpty()) && pincode != null && !pincode.trim().isEmpty()) {
+            List<DistributorUser> coveringDists = distributorRepository.findByAssignedPincodesContaining(pincode.trim());
+            if (coveringDists != null && !coveringDists.isEmpty()) {
+                DistributorUser d = coveringDists.get(0);
+                assignedDistId = d.getDistributorId();
+                assignedDistName = d.getBusinessName() != null ? d.getBusinessName() : d.getContactPerson();
+            }
+        }
+
+        ticket.setAssignedDistributorId(assignedDistId);
+        ticket.setAssignedDistributorName(assignedDistName);
+        ticket.setPincode(pincode);
+
+        SupportTicket savedTicket = ticketRepository.save(ticket);
+
+        // 2. Dispatch real-time email notification to the assigned distributor if email available
+        if (assignedDistId != null && brevoEmailService != null) {
+            try {
+                Optional<DistributorUser> distUserOpt = distributorRepository.findByDistributorId(assignedDistId);
+                if (distUserOpt.isPresent()) {
+                    DistributorUser dist = distUserOpt.get();
+                    if (dist.getEmail() != null && !dist.getEmail().trim().isEmpty()) {
+                        brevoEmailService.sendDistributorTicketAlert(savedTicket, dist.getEmail().trim(), dist.getContactPerson());
+                    }
+                }
+            } catch (Exception e) {
+                // Non-blocking email alert log
+            }
+        }
+
+        return savedTicket;
     }
 
     public Optional<SupportTicket> getTicketById(String ticketId) {

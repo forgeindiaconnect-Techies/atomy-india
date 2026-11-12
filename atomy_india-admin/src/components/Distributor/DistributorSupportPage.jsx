@@ -88,27 +88,47 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
     setTimeout(() => setToastMessage(''), 3500);
   };
 
-  // Fetch support tickets from backend API
+  // Fetch support tickets from backend API for this distributor
   const fetchTickets = async () => {
     setIsLoading(true);
+    const distId = distributor?.distributorId;
     try {
-      const res = await fetch(`${API_BASE}/admin/support/tickets`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          const clean = data.filter(t => !isDemoTicket(t));
-          setTickets(clean);
-          try {
-            localStorage.setItem('atomy_admin_tickets', JSON.stringify(clean));
-            window.dispatchEvent(new Event('atomy:ticket-updated'));
-          } catch {}
-          if (clean.length > 0 && !selectedTicket) {
-            setSelectedTicket(clean[0]);
-          } else if (clean.length === 0) {
-            setSelectedTicket(null);
-          }
-          return;
+      let data = null;
+      if (distId) {
+        const distRes = await fetch(`${API_BASE}/distributor/tickets?distributorId=${encodeURIComponent(distId)}`);
+        if (distRes.ok) {
+          data = await distRes.json();
         }
+      }
+      if (!data) {
+        const res = await fetch(`${API_BASE}/admin/support/tickets`);
+        if (res.ok) {
+          data = await res.json();
+        }
+      }
+
+      if (Array.isArray(data)) {
+        const clean = data.filter(t => !isDemoTicket(t)).filter(t => {
+          if (!distId) return true;
+          if (t.assignedDistributorId && t.assignedDistributorId.toLowerCase() === distId.toLowerCase()) return true;
+          if (t.customerEmail && territoryCustomerEmails.has(t.customerEmail.toLowerCase().trim())) return true;
+          if (t.orderId && (orders || []).some(o => o.orderId === t.orderId)) return true;
+          if (t.pincode && assignedPins.includes(t.pincode)) return true;
+          // If unassigned, allow primary distributor to view
+          if (!t.assignedDistributorId && !t.pincode) return true;
+          return false;
+        });
+        setTickets(clean);
+        try {
+          localStorage.setItem('atomy_admin_tickets', JSON.stringify(clean));
+          window.dispatchEvent(new Event('atomy:ticket-updated'));
+        } catch {}
+        if (clean.length > 0 && !selectedTicket) {
+          setSelectedTicket(clean[0]);
+        } else if (clean.length === 0) {
+          setSelectedTicket(null);
+        }
+        return;
       }
       // Fallback to local storage if API returned non-array
       const saved = localStorage.getItem('atomy_admin_tickets');
@@ -763,6 +783,28 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
                         <option value="RESOLVED">RESOLVED</option>
                         <option value="CLOSED">CLOSED</option>
                       </select>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTicket(null)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: '#fee2e2',
+                          border: '1px solid #fca5a5',
+                          borderRadius: '8px',
+                          padding: '6px 14px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          color: '#b91c1c',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Close Chat Panel"
+                      >
+                        <X size={15} />
+                        <span>Close</span>
+                      </button>
                     </div>
                   </div>
 

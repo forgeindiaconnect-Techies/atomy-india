@@ -1102,4 +1102,128 @@ export async function submitProductReviewApi(reviewData) {
   throw new Error('Unable to submit review. Server unreachable.');
 }
 
+/**
+ * ----------------------------------------------------
+ * CUSTOMER SUPPORT & 1:1 TICKETING APIS
+ * ----------------------------------------------------
+ */
+
+/**
+ * Submit a new 1:1 Customer Support Ticket
+ */
+export async function submitSupportTicketApi(ticketData) {
+  const targetUrls = getCandidateBases().map((base) => `${base}/support/tickets`);
+
+  let lastError = null;
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ticketData),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        return await res.json();
+      } else {
+        const errorText = await res.text().catch(() => '');
+        lastError = new Error(errorText || 'Failed to submit ticket');
+      }
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('Network error. Unable to connect to support server.');
+}
+
+/**
+ * Retrieve a specific support ticket by its ID
+ */
+export async function getSupportTicketApi(ticketId) {
+  if (!ticketId) return null;
+  const tid = encodeURIComponent(String(ticketId).trim());
+  const targetUrls = getCandidateBases().map((base) => `${base}/support/tickets/${tid}`);
+
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {}
+  }
+  return null;
+}
+
+/**
+ * Retrieve customer support tickets history by customer email
+ */
+export async function getCustomerTicketsByEmailApi(email) {
+  if (!email || !String(email).trim()) return [];
+  const em = encodeURIComponent(String(email).trim());
+  const targetUrls = getCandidateBases().map((base) => `${base}/support/tickets?email=${em}`);
+
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) return data;
+      }
+    } catch (err) {}
+  }
+  return [];
+}
+
+/**
+ * Post a customer message / reply to an existing ticket
+ */
+export async function addCustomerTicketReplyApi(ticketId, message) {
+  if (!ticketId || !message) throw new Error('Ticket ID and message are required');
+  const tid = encodeURIComponent(String(ticketId).trim());
+  const targetUrls = getCandidateBases().map((base) => `${base}/support/tickets/${tid}/reply`);
+
+  let lastError = null;
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: String(message).trim(), sender: 'CUSTOMER' }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        return await res.json();
+      } else {
+        const errTxt = await res.text().catch(() => '');
+        lastError = new Error(errTxt || 'Failed to post reply');
+      }
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('Network error. Unable to post reply.');
+}
+
+
 

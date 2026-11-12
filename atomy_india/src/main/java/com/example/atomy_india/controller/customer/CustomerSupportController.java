@@ -38,7 +38,7 @@ public class CustomerSupportController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping({"/tickets/{ticketId}/messages", "/tickets/{ticketId}/reply"})
+    @PostMapping({ "/tickets/{ticketId}/messages", "/tickets/{ticketId}/reply" })
     public ResponseEntity<TicketMessage> replyTicket(
             @PathVariable String ticketId,
             @RequestBody ReplyTicketRequest req) {

@@ -201,17 +201,19 @@ function computeTargetStage(order) {
   }
 
   if (isPickup) {
-    // Stage 4: Delivered / Collected
-    if (
+    // Stage 4: Delivered / Collected (ONLY when confirmed delivered/collected, never matching "Cash on Delivery")
+    const isExplicitlyDelivered =
       orderStatus === 'DELIVERED' ||
+      orderStatus === 'COLLECTED' ||
       pickupStatus === 'COLLECTED' ||
+      pickupStatus === 'DELIVERED' ||
       trackingStatus === 'DELIVERED' ||
       status === 'DELIVERED' ||
-      orderStatus.includes('DELIVER') ||
-      pickupStatus.includes('COLLECT') ||
-      status.includes('DELIVER') ||
-      status.includes('COLLECT')
-    ) {
+      status === 'COLLECTED' ||
+      status === 'HANDED_OVER' ||
+      status === 'PARCEL COLLECTED';
+
+    if (isExplicitlyDelivered) {
       return 4;
     }
     // Stage 3: Ready for Pickup
@@ -222,9 +224,9 @@ function computeTargetStage(order) {
       pickupStatus === 'READY_TO_PICKUP' ||
       trackingStatus === 'READY_FOR_PICKUP' ||
       trackingStatus === 'READY_TO_PICKUP' ||
-      orderStatus.includes('READY') ||
-      status.includes('READY') ||
-      pickupStatus.includes('READY')
+      status === 'READY FOR PICKUP' ||
+      status === 'READY TO PICK UP' ||
+      status === 'READY_FOR_PICKUP'
     ) {
       return 3;
     }
@@ -235,10 +237,11 @@ function computeTargetStage(order) {
       trackingStatus === 'PROCESSING' ||
       trackingStatus === 'PREPARING' ||
       status === 'PREPARING' ||
+      status === 'PREPARING SHIPMENT' ||
       status === 'PROCESSING' ||
       pickupStatus === 'PREPARING' ||
       pickupStatus === 'PACKING' ||
-      (status.includes('PREPAR') && !status.includes('PLACED'))
+      pickupStatus === 'PACKED'
     ) {
       return 2;
     }
@@ -247,10 +250,10 @@ function computeTargetStage(order) {
   }
 
   // Courier Doorstep Delivery:
-  if (orderStatus === 'DELIVERED' || trackingStatus === 'DELIVERED' || status.includes('DELIVER')) {
+  if (orderStatus === 'DELIVERED' || trackingStatus === 'DELIVERED' || status === 'DELIVERED') {
     return 5;
   }
-  if (orderStatus === 'OUT_FOR_DELIVERY' || trackingStatus === 'OUT_FOR_DELIVERY' || status.includes('OUT') || status.includes('LOCAL')) {
+  if (orderStatus === 'OUT_FOR_DELIVERY' || trackingStatus === 'OUT_FOR_DELIVERY' || status === 'OUT FOR DELIVERY') {
     return 4;
   }
   if (
@@ -258,9 +261,9 @@ function computeTargetStage(order) {
     orderStatus === 'IN_TRANSIT' ||
     trackingStatus === 'SHIPPED' ||
     trackingStatus === 'IN_TRANSIT' ||
-    status.includes('TRANSIT') ||
-    status.includes('SHIPPED') ||
-    status.includes('DISPATCH')
+    status === 'IN TRANSIT' ||
+    status === 'SHIPPED' ||
+    status === 'DISPATCHED'
   ) {
     return 3;
   }
@@ -269,9 +272,9 @@ function computeTargetStage(order) {
     orderStatus === 'PREPARING' ||
     trackingStatus === 'PROCESSING' ||
     trackingStatus === 'PREPARING' ||
-    status.includes('PREPAR') ||
-    status.includes('PROCESS') ||
-    (status.includes('PACK') && !status.includes('PENDING') && !status.includes('PLACED'))
+    status === 'PREPARING SHIPMENT' ||
+    status === 'PROCESSING' ||
+    status === 'PREPARING'
   ) {
     return 2;
   }
@@ -1359,7 +1362,7 @@ export default function OrderDeliveryPage({
         ) : (
           filteredOrders.map((ord) => {
             const statusLower = (ord.status || '').toLowerCase();
-            const isDelivered = statusLower.includes('deliver') || statusLower.includes('collect') || (computeTargetStage(ord) >= 4);
+            const isDelivered = statusLower === 'delivered' || statusLower === 'collected' || (computeTargetStage(ord) >= (isStorePickupOrder(ord) ? 4 : 5));
             const isCancelled = statusLower.includes('cancel');
             const isReplacement = statusLower.includes('replac');
             const canCancel = !isCancelled && !isDelivered;

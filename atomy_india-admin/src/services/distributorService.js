@@ -420,3 +420,24 @@ export async function updateHubLeaveStatus(distributorId, { onLeave, delegatedTo
   }
   return res.json();
 }
+
+export async function fetchDistributorTickets(distributorId) {
+  try {
+    const res = await fetch(`${API_BASE}/distributor/tickets?distributorId=${encodeURIComponent(distributorId)}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Direct distributor tickets fetch failed, trying fallback:', err);
+  }
+  try {
+    const fallback = await fetch(`${API_BASE}/admin/support/tickets`);
+    if (fallback.ok) {
+      const data = await fallback.json();
+      if (Array.isArray(data)) {
+        return data.filter(t => t.assignedDistributorId === distributorId || !t.assignedDistributorId);
+      }
+    }
+  } catch {}
+  return [];
+}

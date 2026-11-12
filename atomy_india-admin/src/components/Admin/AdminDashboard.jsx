@@ -4280,7 +4280,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 </div>
                               </div>
 
-                              <div className="thread-status-select-wrap">
+                              <div className="thread-status-select-wrap" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Status:</label>
                                 <select
                                   value={selectedTicket.status}
@@ -4293,6 +4293,28 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   <option value="RESOLVED">RESOLVED</option>
                                   <option value="CLOSED">CLOSED</option>
                                 </select>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedTicket(null)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    background: '#fee2e2',
+                                    border: '1px solid #fca5a5',
+                                    borderRadius: '8px',
+                                    padding: '6px 14px',
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    color: '#b91c1c',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  title="Close Chat Panel"
+                                >
+                                  <X size={15} />
+                                  <span>Close</span>
+                                </button>
                               </div>
                             </div>
 

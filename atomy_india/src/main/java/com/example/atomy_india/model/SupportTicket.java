@@ -25,6 +25,15 @@ public class SupportTicket {
     @Field("order_id")
     private String orderId;
 
+    @Field("assigned_distributor_id")
+    private String assignedDistributorId;
+
+    @Field("assigned_distributor_name")
+    private String assignedDistributorName;
+
+    @Field("pincode")
+    private String pincode;
+
     private String subject;
 
     private TicketCategory category = TicketCategory.ORDER_ISSUE;
@@ -101,6 +110,15 @@ public class SupportTicket {
 
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }
+
+    public String getAssignedDistributorId() { return assignedDistributorId; }
+    public void setAssignedDistributorId(String assignedDistributorId) { this.assignedDistributorId = assignedDistributorId; }
+
+    public String getAssignedDistributorName() { return assignedDistributorName; }
+    public void setAssignedDistributorName(String assignedDistributorName) { this.assignedDistributorName = assignedDistributorName; }
+
+    public String getPincode() { return pincode; }
+    public void setPincode(String pincode) { this.pincode = pincode; }
 
     public String getSubject() { return subject; }
     public void setSubject(String subject) { this.subject = subject; }

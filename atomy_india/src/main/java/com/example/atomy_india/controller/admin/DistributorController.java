@@ -32,6 +32,9 @@ public class DistributorController {
     @Autowired(required = false)
     private BrevoEmailService brevoEmailService;
 
+    @Autowired(required = false)
+    private SupportTicketRepository ticketRepository;
+
     public DistributorController(DistributorRepository distributorRepository,
                                  CustomerOrderRepository customerOrderRepository,
                                  OrderTrackingRepository trackingRepository,
@@ -1172,5 +1175,61 @@ public class DistributorController {
             } catch (Exception ignored) {}
         }
         return base.plusDays(2);
+    }
+
+    @GetMapping("/tickets")
+    public ResponseEntity<?> getDistributorTickets(@RequestParam String distributorId) {
+        Optional<DistributorUser> distOpt = findDistributor(distributorId);
+        if (distOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Distributor not found"));
+        }
+        DistributorUser dist = distOpt.get();
+        String primaryDistId = dist.getDistributorId();
+        List<String> assignedPins = dist.getAssignedPincodes() != null ? dist.getAssignedPincodes() : Collections.emptyList();
+        String primaryPin = dist.getPrimaryPincode();
+
+        if (isSubstituteBlocked(dist)) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
+
+        List<CustomerOrder> distOrders = customerOrderRepository.findByAssignedDistributorIdOrderByCreatedAtDesc(primaryDistId);
+        Set<String> territoryOrderIds = distOrders.stream().map(CustomerOrder::getOrderId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<String> territoryEmails = distOrders.stream().map(CustomerOrder::getCustomerEmail).filter(Objects::nonNull).map(String::toLowerCase).collect(Collectors.toSet());
+
+        List<SupportTicket> allTickets = (ticketRepository != null) ? ticketRepository.findAllByOrderByCreatedAtDesc() : Collections.emptyList();
+
+        List<SupportTicket> matched = allTickets.stream().filter(t -> {
+            if (primaryDistId.equalsIgnoreCase(t.getAssignedDistributorId())) return true;
+            if (dist.getParentHubId() != null && dist.getParentHubId().equalsIgnoreCase(t.getAssignedDistributorId())) return true;
+            if (t.getOrderId() != null && territoryOrderIds.contains(t.getOrderId())) return true;
+            if (t.getCustomerEmail() != null && territoryEmails.contains(t.getCustomerEmail().toLowerCase())) return true;
+            if (t.getPincode() != null && (assignedPins.contains(t.getPincode()) || (primaryPin != null && primaryPin.equals(t.getPincode())))) return true;
+            return false;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(matched);
+    }
+
+    @PostMapping("/tickets/{ticketId}/reply")
+    public ResponseEntity<?> replyDistributorTicket(@PathVariable String ticketId, @RequestBody Map<String, String> body) {
+        String message = body.get("message");
+        if (message == null || message.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Message cannot be empty"));
+        }
+        return ResponseEntity.ok(adminService.adminReplyToTicket(ticketId, message.trim()));
+    }
+
+    @PutMapping("/tickets/{ticketId}/status")
+    public ResponseEntity<?> updateDistributorTicketStatus(@PathVariable String ticketId, @RequestBody Map<String, String> body) {
+        String statusStr = body.get("status");
+        if (statusStr == null || statusStr.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Status cannot be empty"));
+        }
+        try {
+            SupportTicket.TicketStatus status = SupportTicket.TicketStatus.valueOf(statusStr.trim().toUpperCase());
+            return ResponseEntity.ok(adminService.updateTicketStatus(ticketId, status));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid status: " + statusStr));
+        }
     }
 }

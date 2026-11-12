@@ -293,12 +293,38 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
       ? `[Other] ${problemTitle.trim()}`
       : `[${inquiryCategory || 'Support'}] Inquiry from ${name.trim()}`;
 
+    // Resolve customer's regional distributor & pincode from active order or delivery location
+    let userPincode = '';
+    let userHubId = '';
+    let userHubName = '';
+    try {
+      const loc = JSON.parse(localStorage.getItem('atomy_delivery_location') || '{}');
+      if (loc.pincode) userPincode = loc.pincode;
+      if (loc.assignedDistributorId) userHubId = loc.assignedDistributorId;
+      if (loc.assignedDistributorName) userHubName = loc.assignedDistributorName;
+    } catch {}
+
+    if (orderNo.trim()) {
+      try {
+        const orders = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
+        const matchedOrder = orders.find(o => o.orderId === orderNo.trim() || o.id === orderNo.trim());
+        if (matchedOrder) {
+          if (matchedOrder.assignedDistributorId) userHubId = matchedOrder.assignedDistributorId;
+          if (matchedOrder.hubName || matchedOrder.assignedDistributorName) userHubName = matchedOrder.hubName || matchedOrder.assignedDistributorName;
+          if (matchedOrder.pincode) userPincode = matchedOrder.pincode;
+        }
+      } catch {}
+    }
+
     const backendPayload = {
       ticketId: uniformTicketId,
       customerName: name.trim(),
       customerEmail: email.trim(),
       customerPhone: phone.trim() || (currentUser?.phone || '+91 98000 00000'),
       orderId: orderNo.trim() || '',
+      assignedDistributorId: userHubId,
+      assignedDistributorName: userHubName,
+      pincode: userPincode,
       category: backendCategory,
       priority: 'HIGH',
       subject: finalSubject,
@@ -1219,15 +1245,44 @@ export default function ContactCentrePage({ onNavigateHome, onNavigateBack, curr
                           )}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        className="tracker-refresh-btn"
-                        onClick={() => handleSearchTicket(null, trackedTicket.ticketId)}
-                        title="Refresh Conversation"
-                      >
-                        <RefreshCw size={14} />
-                        <span>Refresh Chat</span>
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="tracker-refresh-btn"
+                          onClick={() => handleSearchTicket(null, trackedTicket.ticketId)}
+                          title="Refresh Conversation"
+                        >
+                          <RefreshCw size={14} />
+                          <span>Refresh Chat</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="tracker-close-btn"
+                          onClick={() => {
+                            setTrackedTicket(null);
+                            setTicketSearchInput('');
+                            setTicketSearchError('');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#fee2e2',
+                            border: '1px solid #fca5a5',
+                            borderRadius: '8px',
+                            padding: '6px 12px',
+                            fontSize: '12.5px',
+                            fontWeight: '700',
+                            color: '#b91c1c',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          title="Close Conversation"
+                        >
+                          <X size={15} />
+                          <span>Close Chat</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Messages Stream */}

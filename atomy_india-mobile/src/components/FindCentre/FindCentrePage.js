@@ -20,6 +20,7 @@ const phoenixLogo = require('../../../assets/fic-symbol.png');
 export default function FindCentrePage({
   onNavigateHome,
   onNavigateBack,
+  onNavigateCustomerSupport,
   onCartPress,
   cartCount = 0,
 }) {
@@ -135,6 +136,38 @@ export default function FindCentrePage({
             <Text style={styles.hqCallBtnText}>atomy_in@atomypark.com</Text>
           </TouchableOpacity>
         </View>
+
+        {onNavigateCustomerSupport && (
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#F0F9FF',
+              borderWidth: 1,
+              borderColor: '#BAE6FD',
+              borderRadius: 8,
+              paddingVertical: 8,
+              paddingHorizontal: 10,
+              marginTop: 8,
+            }}
+            onPress={onNavigateCustomerSupport}
+            activeOpacity={0.8}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="chatbubbles" size={15} color="#00A3E0" />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#0369A1' }}>
+                Need 1:1 Ticket or Order Assistance?
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#00A3E0' }}>
+                Open Support Desk
+              </Text>
+              <Ionicons name="chevron-forward" size={13} color="#00A3E0" />
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView

@@ -45,9 +45,10 @@ import {
   fetchDistributorCustomers,
   fetchDistributorProfile,
   updateDistributorStock,
-  fetchHubTeam
+  fetchHubTeam,
+  fetchDistributorTickets
 } from '../../services/distributorService';
-import { playOrderAlertSound, sendDesktopNotification } from '../../services/soundAlerts';
+import { playOrderAlertSound, playSupportAlertSound, sendDesktopNotification } from '../../services/soundAlerts';
 import '../Admin/AdminDashboard.css';
 
 export default function DistributorDashboard({ distributorUser, onLogout, onBackToStore }) {
@@ -80,6 +81,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const [activeAlert, setActiveAlert] = useState(null);
   const knownOrderIdsRef = useRef(new Set());
   const isInitialLoadRef = useRef(true);
+  const [tickets, setTickets] = useState([]);
+  const knownTicketIdsRef = useRef(new Set());
+  const isInitialTicketLoadRef = useRef(true);
 
   // Full Product Editor State
   const [isEditingProductView, setIsEditingProductView] = useState(false);
@@ -166,6 +170,38 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     sendDesktopNotification(`🚨 Atomy Hub: New Order #${orderIdStr}`, {
       body: `Customer ${order.customerName || order.recipient || 'Customer'} placed order for ₹ ${Number(order.totalAmount || order.grandTotal || 0).toLocaleString('en-IN')}. Assigned to PIN ${order.pincode || currentDist?.primaryPincode}.`
     });
+  };
+
+  const alertedTicketIdsRef = useRef(new Map());
+  const triggerDistributorTicketAlert = (ticket) => {
+    if (isSubDistributor && isSubstituteStandbyRef.current) return;
+    if (!ticket) return;
+    const ticketIdStr = String(ticket.ticketId || ticket.id || '');
+    if (!ticketIdStr) return;
+
+    // Deduplicate: ignore duplicate triggers within 20s
+    const lastAlertTime = alertedTicketIdsRef.current.get(ticketIdStr);
+    const now = Date.now();
+    if (lastAlertTime && (now - lastAlertTime < 20000)) return;
+    alertedTicketIdsRef.current.set(ticketIdStr, now);
+
+    // Play loud, crisp support chime (A5-D6 double pulse)
+    playSupportAlertSound(0.9);
+
+    // Show high-priority shaking alert banner
+    setActiveAlert({
+      type: 'support',
+      title: '🎧 NEW CUSTOMER SUPPORT INQUIRY!',
+      message: `Ticket #${ticketIdStr} from ${ticket.customerName || 'Customer'}: "${ticket.subject || ticket.message || 'Support Request'}"`,
+      time: 'Just now',
+      targetId: ticketIdStr
+    });
+
+    sendDesktopNotification(`🎧 New Customer Ticket #${ticketIdStr}`, {
+      body: `From ${ticket.customerName || 'Customer'}: "${ticket.subject || ticket.message || 'Customer inquiry'}"`
+    });
+
+    showToast(`🎧 New Support Ticket #${ticketIdStr} from ${ticket.customerName || 'Customer'}`);
   };
 
   // Handover Notification: Only trigger when a LIVE transition from Active -> Leave occurs
@@ -261,12 +297,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   const loadDashboardData = async (isBackground = false) => {
     if (!isBackground) setIsLoading(true);
     try {
-      const [profileRes, statsRes, ordersRes, custsRes, teamRes] = await Promise.allSettled([
+      const [profileRes, statsRes, ordersRes, custsRes, teamRes, ticketsRes] = await Promise.allSettled([
         fetchDistributorProfile(distId),
         fetchDistributorStats(distId),
         fetchDistributorOrders(distId, 'ALL'),
         fetchDistributorCustomers(distId),
-        fetchHubTeam(distId)
+        fetchHubTeam(distId),
+        fetchDistributorTickets(distId)
       ]);
 
       if (teamRes.status === 'fulfilled' && teamRes.value) {
@@ -317,6 +354,26 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           return pin === primPin;
         }));
       }
+      if (ticketsRes.status === 'fulfilled' && Array.isArray(ticketsRes.value)) {
+        const freshTickets = ticketsRes.value;
+        setTickets(freshTickets);
+
+        // Detect newly arrived support tickets not in initial load
+        if (!isInitialTicketLoadRef.current) {
+          freshTickets.forEach(t => {
+            const tid = String(t.ticketId || t.id || '');
+            if (tid && !knownTicketIdsRef.current.has(tid)) {
+              triggerDistributorTicketAlert(t);
+            }
+          });
+        }
+
+        freshTickets.forEach(t => {
+          const tid = String(t.ticketId || t.id || '');
+          if (tid) knownTicketIdsRef.current.add(tid);
+        });
+        isInitialTicketLoadRef.current = false;
+      }
     } catch (err) {
       console.error('Failed to load distributor data:', err);
     } finally {
@@ -330,6 +387,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     // 1. Setup real-time BroadcastChannel listeners
     let orderChannel = null;
     let syncChannel = null;
+    let ticketChannel = null;
 
     try {
       if (typeof BroadcastChannel !== 'undefined') {
@@ -344,6 +402,21 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                 return;
               }
               triggerDistributorOrderAlert(o, true);
+              loadDashboardData(true);
+            }
+          }
+        };
+
+        ticketChannel = new BroadcastChannel('atomy_ticket_channel');
+        ticketChannel.onmessage = (event) => {
+          const data = event.data;
+          if (data && (data.type === 'NEW_TICKET' || data.type === 'TICKET_CREATED') && data.ticket) {
+            const t = data.ticket;
+            const matchesTicket = (t.assignedDistributorId && t.assignedDistributorId === distId) ||
+                                  (t.pincode && matchesDistributorTerritory({ pincode: t.pincode })) ||
+                                  (!t.assignedDistributorId && !t.pincode);
+            if (matchesTicket) {
+              triggerDistributorTicketAlert(t);
               loadDashboardData(true);
             }
           }
@@ -400,6 +473,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
     return () => {
       if (orderChannel) orderChannel.close();
+      if (ticketChannel) ticketChannel.close();
       if (syncChannel) syncChannel.close();
       clearInterval(pollInterval);
     };
@@ -753,7 +827,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     delayedCount: isSubstituteStandby ? 0 : delayedOrders.length,
     delayedOrders: isSubstituteStandby ? [] : delayedOrders,
     unreadDelayedCount: isSubstituteStandby ? 0 : delayedOrders.length,
-    unreadTicketsCount: 0,
+    unreadTicketsCount: isSubstituteStandby ? 0 : (tickets || []).filter(t => t.status === 'OPEN').length,
     unreadLowStockCount: 0,
     recentNewOrders: isSubstituteStandby ? [] : recentNewOrders,
     handoverNotification: (isSubDistributor && isSubstituteInCommand) ? {
@@ -787,12 +861,14 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           setIsEditingProductView(false);
           setActiveTab('settings');
         }}
-        notificationCount={isSubstituteStandby ? 0 : (delayedOrders.length + (overviewStatsMapped.handoverNotification ? 1 : 0))}
+        notificationCount={isSubstituteStandby ? 0 : (delayedOrders.length + (tickets || []).filter(t => t.status === 'OPEN').length + (overviewStatsMapped.handoverNotification ? 1 : 0))}
         overviewStats={overviewStatsMapped}
         onSelectNotificationTab={(tab) => {
           setIsEditingProductView(false);
           if (tab === 'orders') {
             setActiveTab('orders');
+          } else if (tab === 'support') {
+            setActiveTab('support');
           }
         }}
         onMarkAllNotifsAsRead={() => {}}
@@ -815,11 +891,15 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
             <button
               className="alert-btn-action"
               onClick={() => {
-                setActiveTab('orders');
+                if (activeAlert.type === 'support') {
+                  setActiveTab('support');
+                } else {
+                  setActiveTab('orders');
+                }
                 setActiveAlert(null);
               }}
             >
-              Fulfill &amp; Dispatch Order →
+              {activeAlert.type === 'support' ? 'View Support Inquiry →' : 'Fulfill & Dispatch Order →'}
             </button>
             <button className="alert-btn-dismiss" onClick={() => setActiveAlert(null)}>
               <X size={18} />

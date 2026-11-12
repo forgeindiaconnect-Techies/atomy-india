@@ -653,6 +653,41 @@ public class BrevoEmailService {
         return sendEmailAsync(distributor.getEmail(), recipientName, subject, html);
     }
 
+    // =========================================================================
+    // 9. REGIONAL DISTRIBUTOR ALERT: NEW CUSTOMER SUPPORT TICKET
+    // =========================================================================
+    public CompletableFuture<Boolean> sendDistributorTicketAlert(com.example.atomy_india.model.SupportTicket ticket, String distributorEmail, String distributorName) {
+        if (distributorEmail == null || distributorEmail.trim().isEmpty()) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        String recipient = (distributorName != null && !distributorName.trim().isEmpty()) ? distributorName : "Regional Hub Partner";
+        String subject = "🎧 [NEW SUPPORT TICKET] #" + ticket.getTicketId() + " from " + ticket.getCustomerName();
+        String portalUrl = getEffectiveAdminUrl();
+
+        String innerContent = "<h2 style=\"color:#0f172a;font-size:18px;margin-top:0;\">&#127911; Customer Support Inquiry Received</h2>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">Hello <strong>" + escapeHtml(recipient) + "</strong>,</p>"
+                + "<p style=\"color:#475569;font-size:14px;line-height:1.6;\">A customer in your regional territory has submitted a support inquiry requiring attention.</p>"
+                + "<table role=\"presentation\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" class=\"meta-box\" style=\"background:#f8fafc;padding:14px 16px;border-radius:8px;border:1px solid #e2e8f0;margin:18px 0;font-size:13px;line-height:1.8;\">"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;width:120px;\">Ticket ID:</td><td style=\"font-weight:bold;color:#0f172a;\">#" + escapeHtml(ticket.getTicketId()) + "</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Customer Name:</td><td style=\"font-weight:bold;color:#0f172a;\">" + escapeHtml(ticket.getCustomerName()) + "</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Email / Phone:</td><td>" + escapeHtml(ticket.getCustomerEmail()) + (ticket.getCustomerPhone() != null ? " / " + escapeHtml(ticket.getCustomerPhone()) : "") + "</td></tr>"
+                + (ticket.getOrderId() != null && !ticket.getOrderId().trim().isEmpty() ? "  <tr><td style=\"color:#64748b;padding:3px 0;\">Related Order:</td><td style=\"font-weight:bold;color:#0284c7;\">#" + escapeHtml(ticket.getOrderId()) + "</td></tr>" : "")
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Category / Priority:</td><td><strong>" + escapeHtml(String.valueOf(ticket.getCategory())) + "</strong> (" + escapeHtml(String.valueOf(ticket.getPriority())) + ")</td></tr>"
+                + "  <tr><td style=\"color:#64748b;padding:3px 0;\">Subject:</td><td style=\"font-weight:600;color:#1e293b;\">" + escapeHtml(ticket.getSubject()) + "</td></tr>"
+                + "</table>"
+                + "<div style=\"background:#f0f9ff;border-left:4px solid #00A3E0;padding:14px 16px;border-radius:6px;margin:18px 0;\">"
+                + "  <div style=\"font-size:12px;font-weight:bold;color:#0369a1;text-transform:uppercase;margin-bottom:4px;\">Customer Message:</div>"
+                + "  <div style=\"font-size:13.5px;color:#0f172a;line-height:1.6;\">" + (ticket.getMessages() != null && !ticket.getMessages().isEmpty() ? escapeHtml(ticket.getMessages().get(0).getMessage()) : "Inquiry submitted") + "</div>"
+                + "</div>"
+                + "<div style=\"text-align:center;margin:24px 0;\">"
+                + "  <a href=\"" + escapeHtml(portalUrl) + "\" class=\"btn-block\" style=\"background:#00A3E0;color:#ffffff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">Open Distributor Support Desk &rarr;</a>"
+                + "</div>";
+
+        String html = wrapEmailHtml("Customer Support Alert", "Regional Logistics Notification", innerContent);
+        return sendEmailAsync(distributorEmail, recipient, subject, html);
+    }
+
     // --- Utility JSON & HTML string escapers ---
     private String escapeJson(String s) {
         if (s == null) return "";

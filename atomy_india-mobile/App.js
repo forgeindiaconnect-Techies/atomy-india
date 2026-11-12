@@ -1584,6 +1584,7 @@ export default function App() {
               onNavigateNotice={() => navigateTo('notice')}
               onCartPress={() => navigateTo('cart')}
               cartCount={totalCartCount}
+              currentUser={currentUser}
             />
             <BottomNavBar
               activeTab={activeBottomTab}
@@ -1598,6 +1599,7 @@ export default function App() {
             <FindCentrePage
               onNavigateHome={handleNavigateHome}
               onNavigateBack={handleNavigateBack}
+              onNavigateCustomerSupport={() => navigateTo('customer_support')}
               onCartPress={() => navigateTo('cart')}
               cartCount={totalCartCount}
             />

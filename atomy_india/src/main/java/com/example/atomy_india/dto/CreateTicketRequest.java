@@ -8,6 +8,9 @@ public class CreateTicketRequest {
     private String customerEmail;
     private String customerPhone;
     private String orderId;
+    private String assignedDistributorId;
+    private String assignedDistributorName;
+    private String pincode;
     private String subject;
     private SupportTicket.TicketCategory category;
     private SupportTicket.TicketPriority priority = SupportTicket.TicketPriority.MEDIUM;
@@ -27,6 +30,15 @@ public class CreateTicketRequest {
 
     public String getOrderId() { return orderId; }
     public void setOrderId(String orderId) { this.orderId = orderId; }
+
+    public String getAssignedDistributorId() { return assignedDistributorId; }
+    public void setAssignedDistributorId(String assignedDistributorId) { this.assignedDistributorId = assignedDistributorId; }
+
+    public String getAssignedDistributorName() { return assignedDistributorName; }
+    public void setAssignedDistributorName(String assignedDistributorName) { this.assignedDistributorName = assignedDistributorName; }
+
+    public String getPincode() { return pincode; }
+    public void setPincode(String pincode) { this.pincode = pincode; }
 
     public String getSubject() { return subject; }
     public void setSubject(String subject) { this.subject = subject; }

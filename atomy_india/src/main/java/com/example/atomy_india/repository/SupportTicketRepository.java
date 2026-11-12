@@ -11,5 +11,6 @@ public interface SupportTicketRepository extends MongoRepository<SupportTicket, 
     List<SupportTicket> findAllByOrderByCreatedAtDesc();
     List<SupportTicket> findByStatusOrderByCreatedAtDesc(SupportTicket.TicketStatus status);
     List<SupportTicket> findByCustomerEmailOrderByCreatedAtDesc(String customerEmail);
+    List<SupportTicket> findByAssignedDistributorIdOrderByCreatedAtDesc(String assignedDistributorId);
     long countByStatus(SupportTicket.TicketStatus status);
 }
