@@ -2023,7 +2023,7 @@ export default function App() {
                 favorites={favorites}
                 onToggleFavorite={handleToggleFavorite}
                 isMember={isMember}
-                onJoinMemberPress={() => setIsMembershipModalOpen(true)}
+                onJoinMemberPress={() => navigateTo('membership')}
               />
 
               {/* 5. Atomy India Hair & Body Essential */}
@@ -2034,7 +2034,7 @@ export default function App() {
                 favorites={favorites}
                 onToggleFavorite={handleToggleFavorite}
                 isMember={isMember}
-                onJoinMemberPress={() => setIsMembershipModalOpen(true)}
+                onJoinMemberPress={() => navigateTo('membership')}
               />
 
               {/* 6. Atomy Absolute Skincare set (Brand Showcase + Banner) */}
@@ -2050,7 +2050,7 @@ export default function App() {
                 onToggleFavorite={handleToggleFavorite}
                 onBannerPress={() => showToast('Opened Atomy Absolute Skincare Story')}
                 isMember={isMember}
-                onJoinMemberPress={() => setIsMembershipModalOpen(true)}
+                onJoinMemberPress={() => navigateTo('membership')}
               />
 
               {/* 7. Promotional Wide Banner: User Guide */}
@@ -2068,7 +2068,7 @@ export default function App() {
                 favorites={favorites}
                 onToggleFavorite={handleToggleFavorite}
                 isMember={isMember}
-                onJoinMemberPress={() => setIsMembershipModalOpen(true)}
+                onJoinMemberPress={() => navigateTo('membership')}
               />
 
               {/* 9. Promotional Wide Banner: Resource Material */}
@@ -2091,7 +2091,7 @@ export default function App() {
                 onToggleFavorite={handleToggleFavorite}
                 onBannerPress={() => showToast('Opened Health Essential Story')}
                 isMember={isMember}
-                onJoinMemberPress={() => setIsMembershipModalOpen(true)}
+                onJoinMemberPress={() => navigateTo('membership')}
               />
 
               {/* 11. Atomy India GSGS Product */}
@@ -2102,7 +2102,7 @@ export default function App() {
                 favorites={favorites}
                 onToggleFavorite={handleToggleFavorite}
                 isMember={isMember}
-                onJoinMemberPress={() => setIsMembershipModalOpen(true)}
+                onJoinMemberPress={() => navigateTo('membership')}
               />
 
               {/* 12. Notice Strip Ticker */}
@@ -2195,26 +2195,6 @@ export default function App() {
         }}
         onOpenMembership={() => {
           navigateTo('membership');
-        }}
-      />
-
-      {/* 5. Free Membership & Public/Member State Modal */}
-      <MembershipModal
-        visible={isMembershipModalOpen}
-        onClose={() => setIsMembershipModalOpen(false)}
-        isMember={isMember}
-        onNavigateMembership={() => {
-          setIsMembershipModalOpen(false);
-          navigateTo('membership');
-        }}
-        onToggleMembership={(newStatus) => {
-          setIsMember(newStatus);
-          persistMembershipStatus(newStatus);
-          showToast(
-            newStatus
-              ? 'Switched to Member View (Distributor DP Prices Active ★)'
-              : 'Switched to Public Guest View (Retail MRP Prices)'
-          );
         }}
       />
 
