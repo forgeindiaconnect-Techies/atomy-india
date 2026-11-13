@@ -52,6 +52,7 @@ import MembershipPaymentPage from './components/Membership/MembershipPaymentPage
 import MembershipExpiryBanner from './components/Membership/MembershipExpiryBanner';
 import { isUserMember, calculateProductPricing, verifyUserMembershipWithBackend, fetchFullMembershipStatusWithBackend } from './services/membershipService';
 import { recordProductAddedToCart, recordProductPurchased } from './services/productStatsService';
+import { updateCustomerProfile, getCustomerProfile } from './services/api';
 import './App.css';
 
 // Parse current browser URL into route state
@@ -642,6 +643,36 @@ export default function App() {
       localStorage.setItem('atomy_placed_orders', JSON.stringify(placedOrders));
     } catch { }
   }, [placedOrders]);
+
+  // Synchronize authenticated customer profile with backend database
+  useEffect(() => {
+    if (!currentUser?.email) return;
+    let isMounted = true;
+    getCustomerProfile(currentUser.email).then((remoteCustomer) => {
+      if (!isMounted || !remoteCustomer) return;
+      setCurrentUser((prev) => {
+        if (!prev) return prev;
+        const merged = {
+          ...prev,
+          name: remoteCustomer.fullName || remoteCustomer.name || prev.name,
+          fullName: remoteCustomer.fullName || remoteCustomer.name || prev.fullName || prev.name,
+          phone: remoteCustomer.phone || prev.phone,
+          gender: remoteCustomer.gender !== undefined ? remoteCustomer.gender : prev.gender,
+          dob: remoteCustomer.dob !== undefined ? remoteCustomer.dob : prev.dob,
+          address: remoteCustomer.address || prev.address,
+          city: remoteCustomer.city || prev.city,
+          state: remoteCustomer.state || prev.state,
+          pincode: remoteCustomer.pincode || prev.pincode,
+          isMember: Boolean(remoteCustomer.isMember ?? prev.isMember)
+        };
+        try {
+          localStorage.setItem('atomy_current_user', JSON.stringify(merged));
+        } catch {}
+        return merged;
+      });
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, [currentUser?.email]);
 
   // Synchronize orders for the logged-in customer from Spring Boot backend
   useEffect(() => {
@@ -1771,6 +1802,9 @@ export default function App() {
                 try {
                   localStorage.setItem('atomy_current_user', JSON.stringify(updated));
                 } catch { }
+                if (updated?.email) {
+                  updateCustomerProfile(updated).catch(() => {});
+                }
               }}
               onLogout={handleRequestLogout}
               onNavigateHome={handleNavigateHome}

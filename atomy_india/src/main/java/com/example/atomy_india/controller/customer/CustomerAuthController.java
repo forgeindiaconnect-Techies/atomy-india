@@ -272,9 +272,13 @@ public class CustomerAuthController {
         CustomerUser customer = userOpt.get();
 
         if (req.containsKey("fullName") && req.get("fullName") != null) {
-            customer.setFullName(req.get("fullName").toString().trim());
+            String fName = req.get("fullName").toString().trim();
+            customer.setFullName(fName);
+            customer.setName(fName);
         } else if (req.containsKey("name") && req.get("name") != null) {
-            customer.setFullName(req.get("name").toString().trim());
+            String fName = req.get("name").toString().trim();
+            customer.setFullName(fName);
+            customer.setName(fName);
         }
 
         if (req.containsKey("phone") && req.get("phone") != null) {

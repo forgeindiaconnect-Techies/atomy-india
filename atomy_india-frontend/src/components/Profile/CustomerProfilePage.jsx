@@ -43,7 +43,7 @@ import {
   markSingleNotificationRead,
   formatRelativeTime
 } from '../../services/customerNotificationService';
-import { updateCustomerProfile } from '../../services/api';
+import { updateCustomerProfile, getCustomerProfile } from '../../services/api';
 import { setCustomerDeliveryPincode } from '../../services/catalogSyncService';
 import OrderHistoryPage from '../Orders/OrderHistoryPage';
 import './CustomerProfilePage.css';
@@ -81,17 +81,70 @@ export default function CustomerProfilePage({
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [profileSuccessMessage, setProfileSuccessMessage] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   
-  // Profile edit form state
+  // Profile edit form state (initialized from currentUser)
   const [profileForm, setProfileForm] = useState(() => {
     return {
       name: currentUser?.fullName || currentUser?.name || 'Customer',
       email: currentUser?.email || 'customer@atomy.in',
       phone: currentUser?.phone || '',
-      gender: currentUser?.gender || 'Prefer not to say',
-      dob: currentUser?.dob || '1995-08-15'
+      gender: currentUser?.gender || '',
+      dob: currentUser?.dob || ''
     };
   });
+
+  // Fetch live fresh profile directly from MongoDB Atlas on mount / user change
+  useEffect(() => {
+    if (!currentUser?.email) return;
+    let isMounted = true;
+    getCustomerProfile(currentUser.email).then((remoteCustomer) => {
+      if (!isMounted || !remoteCustomer) return;
+      const remoteName = remoteCustomer.fullName || remoteCustomer.name || currentUser.name || '';
+      const remotePhone = remoteCustomer.phone || currentUser.phone || '';
+      const remoteGender = remoteCustomer.gender || '';
+      const remoteDob = remoteCustomer.dob || '';
+
+      setProfileForm({
+        name: remoteName,
+        email: remoteCustomer.email || currentUser.email || '',
+        phone: remotePhone,
+        gender: remoteGender,
+        dob: remoteDob
+      });
+
+      if (onUpdateUser) {
+        onUpdateUser({
+          ...currentUser,
+          name: remoteName,
+          fullName: remoteName,
+          phone: remotePhone,
+          gender: remoteGender,
+          dob: remoteDob,
+          address: remoteCustomer.address || currentUser.address || '',
+          city: remoteCustomer.city || currentUser.city || '',
+          state: remoteCustomer.state || currentUser.state || '',
+          pincode: remoteCustomer.pincode || currentUser.pincode || '',
+          isMember: Boolean(remoteCustomer.isMember ?? currentUser.isMember)
+        });
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, [currentUser?.email]);
+
+  // Keep profileForm in sync if currentUser updates
+  useEffect(() => {
+    if (currentUser) {
+      setProfileForm((prev) => ({
+        ...prev,
+        name: currentUser.fullName || currentUser.name || prev.name,
+        email: currentUser.email || prev.email,
+        phone: currentUser.phone || prev.phone,
+        gender: currentUser.gender !== undefined ? currentUser.gender : prev.gender,
+        dob: currentUser.dob !== undefined ? currentUser.dob : prev.dob
+      }));
+    }
+  }, [currentUser?.name, currentUser?.fullName, currentUser?.email, currentUser?.phone, currentUser?.gender, currentUser?.dob]);
 
 
 
@@ -465,22 +518,65 @@ export default function CustomerProfilePage({
   // Initial letter
   const userInitial = currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
 
-  // Handle Profile Update
-  const handleSaveProfile = (e) => {
+  // Handle Profile Update with direct MongoDB database persistence
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (onUpdateUser) {
-      onUpdateUser({
-        ...currentUser,
-        name: profileForm.name,
-        email: profileForm.email,
-        phone: profileForm.phone,
-        gender: profileForm.gender,
-        dob: profileForm.dob
+    setIsSavingProfile(true);
+
+    const updatedUser = {
+      ...currentUser,
+      name: profileForm.name.trim(),
+      fullName: profileForm.name.trim(),
+      email: (profileForm.email || currentUser?.email || '').trim(),
+      phone: profileForm.phone.trim(),
+      gender: profileForm.gender,
+      dob: profileForm.dob
+    };
+
+    try {
+      // 1. Immediately persist to MongoDB Atlas backend
+      const saveRes = await updateCustomerProfile({
+        email: updatedUser.email,
+        name: updatedUser.name,
+        fullName: updatedUser.name,
+        phone: updatedUser.phone,
+        gender: updatedUser.gender,
+        dob: updatedUser.dob,
+        address: updatedUser.address || '',
+        city: updatedUser.city || '',
+        state: updatedUser.state || '',
+        pincode: updatedUser.pincode || ''
       });
+
+      const finalUser = (saveRes && saveRes.customer) ? {
+        ...updatedUser,
+        name: saveRes.customer.fullName || saveRes.customer.name || updatedUser.name,
+        fullName: saveRes.customer.fullName || saveRes.customer.name || updatedUser.name,
+        gender: saveRes.customer.gender ?? updatedUser.gender,
+        dob: saveRes.customer.dob ?? updatedUser.dob,
+        phone: saveRes.customer.phone ?? updatedUser.phone
+      } : updatedUser;
+
+      // 2. Synchronize with parent state & localStorage
+      if (onUpdateUser) {
+        onUpdateUser(finalUser);
+      }
+      try {
+        localStorage.setItem('atomy_current_user', JSON.stringify(finalUser));
+      } catch {}
+
+      setIsEditingProfile(false);
+      setProfileSuccessMessage('Profile details updated successfully!');
+      setTimeout(() => setProfileSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      if (onUpdateUser) onUpdateUser(updatedUser);
+      setIsEditingProfile(false);
+      setProfileSuccessMessage('Profile updated successfully!');
+      setTimeout(() => setProfileSuccessMessage(''), 3000);
+    } finally {
+      setIsSavingProfile(false);
     }
-    setIsEditingProfile(false);
-    setProfileSuccessMessage('Profile details updated successfully!');
-    setTimeout(() => setProfileSuccessMessage(''), 3000);
   };
 
 
@@ -949,27 +1045,27 @@ export default function CustomerProfilePage({
                 <div className="profile-details-grid">
                   <div className="profile-detail-card">
                     <span className="detail-card-label">Full Name</span>
-                    <span className="detail-card-value">{currentUser?.name || 'Customer'}</span>
+                    <span className="detail-card-value">{currentUser?.fullName || currentUser?.name || profileForm.name || 'Customer'}</span>
                   </div>
                   <div className="profile-detail-card">
                     <span className="detail-card-label">Email Address</span>
-                    <span className="detail-card-value">{currentUser?.email || 'customer@atomy.in'}</span>
+                    <span className="detail-card-value">{currentUser?.email || profileForm.email || 'customer@atomy.in'}</span>
                   </div>
                   <div className="profile-detail-card">
                     <span className="detail-card-label">Mobile Number</span>
-                    <span className="detail-card-value">{profileForm.phone}</span>
+                    <span className="detail-card-value">{currentUser?.phone || profileForm.phone || 'Not Provided'}</span>
                   </div>
                   <div className="profile-detail-card">
                     <span className="detail-card-label">Customer ID / Username</span>
-                    <span className="detail-card-value">{currentUser?.username || 'ATOMY-IN-CUSTOMER'}</span>
+                    <span className="detail-card-value">{currentUser?.customerId || currentUser?.username || 'ATOMY-IN-CUSTOMER'}</span>
                   </div>
                   <div className="profile-detail-card">
                     <span className="detail-card-label">Gender</span>
-                    <span className="detail-card-value">{profileForm.gender}</span>
+                    <span className="detail-card-value">{currentUser?.gender || profileForm.gender || 'Not Specified'}</span>
                   </div>
                   <div className="profile-detail-card">
                     <span className="detail-card-label">Date of Birth</span>
-                    <span className="detail-card-value">{profileForm.dob}</span>
+                    <span className="detail-card-value">{currentUser?.dob || profileForm.dob || 'Not Provided'}</span>
                   </div>
                 </div>
               ) : (
@@ -1029,13 +1125,14 @@ export default function CustomerProfilePage({
                   </div>
 
                   <div className="profile-form-btn-row">
-                    <button type="submit" className="profile-save-btn">
-                      Save Changes
+                    <button type="submit" className="profile-save-btn" disabled={isSavingProfile}>
+                      {isSavingProfile ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button
                       type="button"
                       className="profile-cancel-btn"
                       onClick={() => setIsEditingProfile(false)}
+                      disabled={isSavingProfile}
                     >
                       Cancel
                     </button>

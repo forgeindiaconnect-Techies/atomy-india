@@ -180,14 +180,16 @@ export default function SignInPage({
         const userData = {
           id: regRes.customer.id,
           customerId: regRes.customer.customerId,
-          name: regRes.customer.fullName || fullName.trim(),
+          name: regRes.customer.fullName || regRes.customer.name || fullName.trim(),
           email: regRes.customer.email || email.trim(),
           username: regRes.customer.username || phoneNumber.trim(),
-          phone: fullPhone,
+          phone: regRes.customer.phone || fullPhone,
           address: regRes.customer.address || '',
           city: regRes.customer.city || '',
           state: regRes.customer.state || '',
           pincode: regRes.customer.pincode || '',
+          gender: regRes.customer.gender || '',
+          dob: regRes.customer.dob || '',
           isMember: Boolean(regRes.customer.isMember),
           role: 'customer',
           createdAt: signupTime
@@ -198,6 +200,7 @@ export default function SignInPage({
           localStorage.setItem(`atomy_user_signup_time_${userKey}`, signupTime);
         } catch {}
 
+        setSubmitted(false);
         onLoginSuccess && onLoginSuccess(userData, true);
       } else {
         const loginRes = await loginCustomer({
@@ -224,6 +227,8 @@ export default function SignInPage({
           email: loginRes.customer.email,
           username: loginRes.customer.username || username.trim(),
           phone: loginRes.customer.phone || '',
+          gender: loginRes.customer.gender || '',
+          dob: loginRes.customer.dob || '',
           address: loginRes.customer.address || '',
           city: loginRes.customer.city || '',
           state: loginRes.customer.state || '',
@@ -232,6 +237,7 @@ export default function SignInPage({
           role: 'customer'
         };
 
+        setSubmitted(false);
         onLoginSuccess && onLoginSuccess(userData, false);
       }
     } catch (err) {
@@ -267,6 +273,8 @@ export default function SignInPage({
         email: gRes.customer.email || googleUser.email,
         username: gRes.customer.username || googleUser.email.split('@')[0],
         phone: gRes.customer.phone || '',
+        gender: gRes.customer.gender || '',
+        dob: gRes.customer.dob || '',
         address: gRes.customer.address || '',
         city: gRes.customer.city || '',
         state: gRes.customer.state || '',
@@ -291,6 +299,17 @@ export default function SignInPage({
       email: customGoogleEmail.trim()
     });
   };
+
+  const isFormValid = isSignUp
+    ? Boolean(
+        fullName.trim() &&
+        email.trim() &&
+        phoneNumber.trim().length === 10 &&
+        password &&
+        confirmPassword &&
+        password === confirmPassword
+      )
+    : Boolean(username.trim() && password);
 
   return (
     <div className="atomy-signin-wrapper">
@@ -634,15 +653,15 @@ export default function SignInPage({
                 </div>
               )}
 
+              {isSignUp && confirmPassword && password && confirmPassword !== password && (
+                <div style={{ color: '#ef4444', fontSize: '12.5px', marginTop: '-6px', marginBottom: '8px', paddingLeft: '4px', fontWeight: '500' }}>
+                  Passwords do not match
+                </div>
+              )}
+
               <button
                 type="submit"
-                className={`signin-submit-btn ${
-                  isSignUp
-                    ? (fullName.trim() && email.trim() && phoneNumber.length === 10 && password)
-                    : (username.trim() && password)
-                    ? 'active'
-                    : ''
-                }`}
+                className={`signin-submit-btn ${isFormValid ? 'active' : ''}`}
                 disabled={submitted}
               >
                 {submitted

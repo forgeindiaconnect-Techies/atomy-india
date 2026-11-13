@@ -1023,6 +1023,8 @@ export default function App() {
         navigateTo('payment_summary');
         showToast('Proceeding to order checkout...');
       }
+    } else {
+      handleNavigateHome();
     }
   };
 

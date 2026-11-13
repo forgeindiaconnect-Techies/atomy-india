@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { getMembershipExpiryInfo } from '../Membership/MembershipExpiryBanner';
 import { fetchCouponsFromBackend } from '../../services/couponService';
+import { fetchCustomerProfileApi, updateCustomerProfileApi } from '../../services/api';
 import {
   fetchNotificationsApi,
   getStoredNotifications,
@@ -171,6 +172,33 @@ export default function ProfilePage({
     setUserData(updated);
     setEditForm(updated);
   }, [currentUser, isMember]);
+
+  // Live fetch fresh profile from MongoDB backend on mount / email change
+  useEffect(() => {
+    if (!currentUser?.email) return;
+    let isMounted = true;
+    fetchCustomerProfileApi(currentUser.email).then((remoteCustomer) => {
+      if (!isMounted || !remoteCustomer) return;
+      const liveData = {
+        name: remoteCustomer.fullName || remoteCustomer.name || currentUser.name || 'User',
+        email: remoteCustomer.email || currentUser.email || '',
+        phone: remoteCustomer.phone || currentUser.phone || '',
+        gender: remoteCustomer.gender || '',
+        dob: remoteCustomer.dob || '',
+        memberId: remoteCustomer.customerId || currentUser.memberId || '',
+        address: remoteCustomer.address || currentUser.address || '',
+        city: remoteCustomer.city || currentUser.city || '',
+        state: remoteCustomer.state || currentUser.state || '',
+        pincode: remoteCustomer.pincode || currentUser.pincode || '',
+      };
+      setUserData(liveData);
+      setEditForm(liveData);
+      if (onUpdateUser) {
+        onUpdateUser({ ...currentUser, ...liveData });
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, [currentUser?.email]);
 
   // Settings switches
   const [settings, setSettings] = useState({
@@ -593,17 +621,35 @@ export default function ProfilePage({
   // Active Policy / FAQ expansion
   const [activePolicyIdx, setActivePolicyIdx] = useState(0);
 
-  // Save edited personal details
-  const handleSaveProfile = () => {
+  // Save edited personal details directly to MongoDB Atlas
+  const handleSaveProfile = async () => {
     if (!editForm.name.trim()) {
       Alert.alert('Required Field', 'Please enter your full name');
       return;
     }
-    setUserData({ ...editForm });
+    const updated = {
+      ...currentUser,
+      name: editForm.name.trim(),
+      fullName: editForm.name.trim(),
+      email: (editForm.email || currentUser?.email || '').trim(),
+      phone: (editForm.phone || '').trim(),
+      gender: editForm.gender || '',
+      dob: editForm.dob || '',
+      address: editForm.address || currentUser?.address || '',
+      city: editForm.city || currentUser?.city || '',
+      state: editForm.state || currentUser?.state || '',
+      pincode: editForm.pincode || currentUser?.pincode || '',
+    };
+    setUserData(updated);
     if (onUpdateUser) {
-      onUpdateUser({ ...editForm });
+      onUpdateUser(updated);
     }
-    Alert.alert('Success', 'Your personal details have been updated successfully!');
+    try {
+      await updateCustomerProfileApi(updated);
+    } catch (e) {
+      console.warn('Error persisting profile update:', e);
+    }
+    Alert.alert('Success', 'Your personal details have been updated and saved successfully!');
     setCurrentSubView('main');
   };
 

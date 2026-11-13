@@ -445,6 +445,20 @@ export async function updateAdminProfile(profileData) {
   return res.json();
 }
 
+export async function getCustomerProfile(email) {
+  if (!email) return null;
+  try {
+    const res = await fetch(`${API_BASE}/customer/profile?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.customer || data;
+    }
+  } catch (err) {
+    console.debug('Error fetching customer profile:', err);
+  }
+  return null;
+}
+
 export async function updateCustomerProfile(profileData) {
   try {
     const res = await fetch(`${API_BASE}/customer/profile`, {
@@ -453,7 +467,7 @@ export async function updateCustomerProfile(profileData) {
       body: JSON.stringify(profileData)
     });
     if (!res.ok) throw new Error('Failed to update customer profile in database');
-    return res.json();
+    return await res.json();
   } catch (err) {
     console.debug('Error updating customer profile:', err);
     return null;

@@ -144,7 +144,7 @@ function LandingProductCard({
           </View>
         )}
 
-        {/* Floating Cart Button on Product Image (disabled when out of stock) */}
+        {/* Floating Cart Button on Product Image (disabled when out of stock) matching website */}
         <TouchableOpacity
           style={[styles.imageCartBtn, isOutOfStock && styles.imageCartBtnDisabled]}
           activeOpacity={isOutOfStock ? 1 : 0.8}
@@ -156,9 +156,9 @@ function LandingProductCard({
           accessibilityLabel={isOutOfStock ? "Out of stock" : "Add to cart"}
         >
           <Ionicons
-            name={isOutOfStock ? "ban-outline" : "cart-outline"}
+            name={isOutOfStock ? "ban-outline" : "cart"}
             size={18}
-            color={isOutOfStock ? "#64748B" : COLORS.primary}
+            color={isOutOfStock ? "#64748B" : "#FFFFFF"}
           />
         </TouchableOpacity>
       </View>
@@ -312,20 +312,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     right: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.primary,
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
     elevation: 3,
-    zIndex: 3,
+    zIndex: 10,
   },
   gstBadge: {
     position: 'absolute',

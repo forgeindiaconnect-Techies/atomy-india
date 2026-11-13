@@ -221,7 +221,7 @@
   background-color: #f1f5f9;
 }
 
-/* Sign In Button */
+/* Sign In & Sign Up Action Button */
 .signin-submit-btn {
   width: 100%;
   height: 46px;
@@ -229,20 +229,37 @@
   background-color: #d2d9de;
   color: #ffffff;
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.15s ease;
+  transition: all 0.25s ease;
+  letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.signin-submit-btn.active,
-.signin-submit-btn:hover {
+.signin-submit-btn.active {
   background-color: #00A3E0;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 163, 224, 0.45);
 }
 
-.signin-submit-btn:active {
-  transform: scale(0.99);
+.signin-submit-btn.active:hover {
+  background-color: #008cc2;
+  box-shadow: 0 6px 18px rgba(0, 163, 224, 0.6);
+  transform: translateY(-1px);
+}
+
+.signin-submit-btn.active:active {
+  transform: translateY(0);
+}
+
+.signin-submit-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
 }
 
 /* Save ID Checkbox */

@@ -37,7 +37,18 @@ function updateArrayInPlace(arr, updatedProduct) {
   if (!Array.isArray(arr) || !updatedProduct?.id) return;
   const idx = arr.findIndex((p) => p && String(p.id) === String(updatedProduct.id));
   if (idx >= 0) {
-    arr[idx] = { ...arr[idx], ...updatedProduct };
+    const existing = arr[idx];
+    arr[idx] = {
+      ...existing,
+      ...updatedProduct,
+      categoryTab: (Array.isArray(updatedProduct.categoryTab) && updatedProduct.categoryTab.length > 0 && !updatedProduct.categoryTab.every((t) => t === 'ALL'))
+        ? updatedProduct.categoryTab
+        : (existing.categoryTab || updatedProduct.categoryTab || ['ALL']),
+      isBest: updatedProduct.isBest !== undefined ? updatedProduct.isBest : existing.isBest,
+      isNew: updatedProduct.isNew !== undefined ? updatedProduct.isNew : existing.isNew,
+      isRecommended: updatedProduct.isRecommended !== undefined ? updatedProduct.isRecommended : existing.isRecommended,
+      badge: updatedProduct.badge !== undefined ? updatedProduct.badge : existing.badge,
+    };
   }
 }
 
@@ -182,11 +193,11 @@ export function mergeProductIntoCatalog(product) {
 
   const isFreeDeliv = Boolean(product.freeDelivery || product.isFreeDelivery);
 
-  const categoryTab = Array.isArray(product.categoryTab)
+  const categoryTab = Array.isArray(product.categoryTab) && product.categoryTab.length > 0
     ? product.categoryTab
     : typeof product.categoryTab === 'string' && product.categoryTab.trim()
     ? product.categoryTab.split(',').map((t) => t.trim()).filter(Boolean)
-    : ['ALL'];
+    : (official?.categoryTab || undefined);
 
   const highResImg = getHighResImageUrl(product.image || product.img || '');
 
@@ -209,7 +220,10 @@ export function mergeProductIntoCatalog(product) {
     regionalHubId: product.regionalHubId || null,
     regionalHubName: product.regionalHubName || null,
     regionalPincode: product.regionalPincode || null,
-    categoryTab,
+    ...(categoryTab ? { categoryTab } : {}),
+    ...(product.isBest !== undefined ? { isBest: Boolean(product.isBest) } : official?.isBest !== undefined ? { isBest: Boolean(official.isBest) } : {}),
+    ...(product.isNew !== undefined ? { isNew: Boolean(product.isNew) } : official?.isNew !== undefined ? { isNew: Boolean(official.isNew) } : {}),
+    ...(product.isRecommended !== undefined ? { isRecommended: Boolean(product.isRecommended) } : official?.isRecommended !== undefined ? { isRecommended: Boolean(official.isRecommended) } : {}),
     category: targetCatKey,
     categoryId: targetCatKey,
     image: highResImg,
