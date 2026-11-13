@@ -69,16 +69,14 @@ const EMPTY_ADDRESS_FORM = {
 };
 
 function getSavedAddressesList(currentUser) {
+  const userEmail = (currentUser?.email || '').trim().toLowerCase();
+
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const mobSaved = window.localStorage.getItem('atomy_mobile_saved_addresses');
-      if (mobSaved) {
-        const parsed = JSON.parse(mobSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-      const webSaved = window.localStorage.getItem('atomy_customer_addresses');
-      if (webSaved) {
-        const parsed = JSON.parse(webSaved);
+    if (typeof window !== 'undefined' && window.localStorage && userEmail) {
+      // 1. First check user-scoped storage
+      const userSaved = window.localStorage.getItem(`atomy_user_addresses_${userEmail}`);
+      if (userSaved) {
+        const parsed = JSON.parse(userSaved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     }
@@ -88,28 +86,26 @@ function getSavedAddressesList(currentUser) {
     return currentUser.addresses;
   }
 
-  if (currentUser && currentUser.name && currentUser.name !== 'Guest User') {
-    const activePin = storageService.getDeliveryPincode() || '635002';
-    const activeCity = storageService.getDeliveryCity() || (activePin === '635002' ? 'Krishnagiri' : 'Krishnagiri');
-    const activeState = storageService.getDeliveryState() || 'Tamil Nadu';
-    const userPin = currentUser.pincode && currentUser.pincode !== '635202' ? currentUser.pincode : activePin;
+  // Only return an address if the active customer actually has an address saved in their profile
+  if (currentUser?.address && currentUser.address.trim()) {
     return [
       {
         id: 'addr-default-profile',
         tag: 'Home',
-        recipientName: currentUser.name || 'Naveen',
-        recipientPhone: currentUser.phone || '9363063276',
-        pincode: userPin,
-        city: userPin === '635002' ? 'Krishnagiri' : (currentUser.city || activeCity),
-        state: currentUser.state || activeState,
-        addressLine1: currentUser.address || 'dNo 45, Rk building, bayanapalli',
-        addressLine2: 'Krishnagiri Indl. Estate',
-        landmark: 'Near Bus Stand',
+        recipientName: currentUser.fullName || currentUser.name || 'Recipient',
+        recipientPhone: currentUser.phone || '',
+        pincode: currentUser.pincode || '',
+        city: currentUser.city || '',
+        state: currentUser.state || '',
+        addressLine1: currentUser.address.trim(),
+        addressLine2: '',
+        landmark: '',
         deliveryMessage: '',
         isDefault: true,
       },
     ];
   }
+
   return [];
 }
 
@@ -120,9 +116,12 @@ function getInitialAddress(currentUser) {
 
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const storedSelected =
-        window.localStorage.getItem('atomy_mobile_selected_address') ||
-        window.localStorage.getItem('atomy_shipping_address');
+      const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
+      const userSelectedKey = userEmail ? `atomy_mobile_selected_address_${userEmail}` : null;
+      const storedSelected = userSelectedKey
+        ? window.localStorage.getItem(userSelectedKey)
+        : (!userEmail ? (window.localStorage.getItem('atomy_mobile_selected_address') || window.localStorage.getItem('atomy_shipping_address')) : null);
+
       if (storedSelected) {
         const parsed = JSON.parse(storedSelected);
         if (parsed && (parsed.addressLine1 || parsed.street) && parsed.pincode) {
@@ -131,13 +130,13 @@ function getInitialAddress(currentUser) {
           return {
             id: parsed.id || `addr-${Date.now()}`,
             tag: parsed.tag || parsed.type || 'Home',
-            recipientName: parsed.recipientName || parsed.name || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : 'Naveen'),
-            recipientPhone: parsed.recipientPhone || parsed.phone || currentUser?.phone || '9363063276',
+            recipientName: parsed.recipientName || parsed.name || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : ''),
+            recipientPhone: parsed.recipientPhone || parsed.phone || currentUser?.phone || '',
             pincode: pin,
             city: city,
             state: parsed.state || activeState,
-            addressLine1: parsed.addressLine1 || parsed.street || 'dNo 45, Rk building, bayanapalli',
-            addressLine2: parsed.addressLine2 || 'Krishnagiri Indl. Estate',
+            addressLine1: parsed.addressLine1 || parsed.street || '',
+            addressLine2: parsed.addressLine2 || '',
             landmark: parsed.landmark || '',
             deliveryMessage: parsed.deliveryMessage || '',
             isDefault: true,
@@ -153,13 +152,13 @@ function getInitialAddress(currentUser) {
           return {
             id: def.id || `addr-${Date.now()}`,
             tag: def.type || def.tag || 'Home',
-            recipientName: def.name || def.recipientName || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : 'Naveen'),
-            recipientPhone: def.phone || def.recipientPhone || currentUser?.phone || '9363063276',
+            recipientName: def.name || def.recipientName || (currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : ''),
+            recipientPhone: def.phone || def.recipientPhone || currentUser?.phone || '',
             pincode: pin,
             city: city,
             state: def.state || activeState,
-            addressLine1: def.street || def.addressLine1 || 'dNo 45, Rk building, bayanapalli',
-            addressLine2: def.addressLine2 || 'Krishnagiri Indl. Estate',
+            addressLine1: def.street || def.addressLine1 || '',
+            addressLine2: def.addressLine2 || '',
             landmark: def.landmark || '',
             deliveryMessage: def.deliveryMessage || '',
             isDefault: true,
@@ -169,19 +168,19 @@ function getInitialAddress(currentUser) {
     }
   } catch (e) { }
 
-  if (currentUser && currentUser.name && currentUser.name !== 'Guest User') {
+  if (currentUser && currentUser.address && currentUser.address.trim()) {
     const userPin = currentUser.pincode && currentUser.pincode !== '635202' ? currentUser.pincode : activePin;
     return {
       id: 'addr-default-profile',
       tag: 'Home',
-      recipientName: currentUser.name || 'Naveen',
-      recipientPhone: currentUser.phone || '9363063276',
+      recipientName: currentUser.name || '',
+      recipientPhone: currentUser.phone || '',
       pincode: userPin,
       city: userPin === '635002' ? 'Krishnagiri' : (currentUser.city || activeCity),
       state: currentUser.state || activeState,
-      addressLine1: currentUser.address || 'dNo 45, Rk building, bayanapalli',
-      addressLine2: 'Krishnagiri Indl. Estate',
-      landmark: 'Near Bus Stand',
+      addressLine1: currentUser.address,
+      addressLine2: currentUser.addressLine2 || '',
+      landmark: currentUser.landmark || '',
       deliveryMessage: '',
       isDefault: true,
     };
@@ -192,7 +191,8 @@ function getInitialAddress(currentUser) {
 function getInitialCoManager(currentUser) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const saved = window.localStorage.getItem('atomy_co_manager_profile');
+      const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
+      const saved = userEmail ? window.localStorage.getItem(`atomy_co_manager_profile_${userEmail}`) : null;
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.name) return parsed;
@@ -207,20 +207,14 @@ function getInitialCoManager(currentUser) {
   if (currentUser?.spouseName) {
     return {
       name: currentUser.spouseName,
-      phone: currentUser.spousePhone || '9840123456',
+      phone: currentUser.spousePhone || '',
       relationship: 'Spouse / Co-Applicant',
       status: 'Active',
       isAuthorized: true,
     };
   }
 
-  return {
-    name: 'Priya Naveen',
-    phone: '9840123456',
-    relationship: 'Spouse / Co-Applicant',
-    status: 'Active',
-    isAuthorized: true,
-  };
+  return null;
 }
 
 function formatInr(val) {
@@ -911,10 +905,16 @@ export default function PaymentSummaryPage({
 
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
+        const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
+        if (userEmail) {
+          window.localStorage.setItem(`atomy_mobile_selected_address_${userEmail}`, JSON.stringify(normalizedAddress));
+        }
         window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(normalizedAddress));
 
         // Also sync to saved addresses list
-        const existingSaved = window.localStorage.getItem('atomy_mobile_saved_addresses');
+        const existingSaved = userEmail
+          ? window.localStorage.getItem(`atomy_user_addresses_${userEmail}`) || window.localStorage.getItem('atomy_mobile_saved_addresses')
+          : window.localStorage.getItem('atomy_mobile_saved_addresses');
         let list = [];
         if (existingSaved) {
           try {
@@ -938,6 +938,9 @@ export default function PaymentSummaryPage({
           list[existingIdx] = profileFormat;
         } else {
           list.unshift(profileFormat);
+        }
+        if (userEmail) {
+          window.localStorage.setItem(`atomy_user_addresses_${userEmail}`, JSON.stringify(list));
         }
         window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(list));
         window.localStorage.setItem('atomy_customer_addresses', JSON.stringify(list));
@@ -964,6 +967,10 @@ export default function PaymentSummaryPage({
     setSelectedAddress(formatted);
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
+        const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
+        if (userEmail) {
+          window.localStorage.setItem(`atomy_mobile_selected_address_${userEmail}`, JSON.stringify(formatted));
+        }
         window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(formatted));
         window.localStorage.setItem('atomy_shipping_address', JSON.stringify(formatted));
       }
@@ -984,6 +991,10 @@ export default function PaymentSummaryPage({
             setSavedAddresses(nextList);
             try {
               if (typeof window !== 'undefined' && window.localStorage) {
+                const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
+                if (userEmail) {
+                  window.localStorage.setItem(`atomy_user_addresses_${userEmail}`, JSON.stringify(nextList));
+                }
                 window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(nextList));
                 window.localStorage.setItem('atomy_customer_addresses', JSON.stringify(nextList));
               }
@@ -993,6 +1004,15 @@ export default function PaymentSummaryPage({
                 handleSelectSavedAddress(nextList[0]);
               } else {
                 setSelectedAddress(null);
+                try {
+                  if (typeof window !== 'undefined' && window.localStorage) {
+                    const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
+                    if (userEmail) {
+                      window.localStorage.removeItem(`atomy_mobile_selected_address_${userEmail}`);
+                    }
+                    window.localStorage.removeItem('atomy_mobile_selected_address');
+                  }
+                } catch (e) {}
               }
             }
           },
@@ -2567,10 +2587,10 @@ export default function PaymentSummaryPage({
             </View>
             <View style={{ padding: 14 }}>
               <Text style={{ fontSize: 13, color: '#334155', marginBottom: 6 }}>
-                Recipient Name: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.name || selectedAddress?.recipientName || 'Naveen'}</Text>
+                Recipient Name: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.name || selectedAddress?.recipientName || 'Member / Recipient'}</Text>
               </Text>
               <Text style={{ fontSize: 13, color: '#334155', marginBottom: 6 }}>
-                Pickup Verification Phone: <Text style={{ fontWeight: '700', color: '#0F172A' }}>+91 {currentUser?.phone || selectedAddress?.recipientPhone || '9876543210'}</Text>
+                Pickup Verification Phone: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.phone || selectedAddress?.recipientPhone ? `+91 ${currentUser?.phone || selectedAddress?.recipientPhone}` : 'Not Provided'}</Text>
               </Text>
               <Text style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: '600' }}>
                 ✓ SMS Pickup OTP will be dispatched to this mobile number when parcel is ready at hub.
@@ -2584,21 +2604,23 @@ export default function PaymentSummaryPage({
             ========================================================================= */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionCardHeader}>
-            <View style={styles.sectionHeaderLeft}>
-              <Ionicons name="pricetag-outline" size={20} color="#00A3E0" />
-              <Text style={styles.sectionCardTitle}>Apply Coupon / Voucher</Text>
+            <View style={[styles.sectionHeaderLeft, { flex: 1, minWidth: 0, marginRight: 8 }]}>
+              <Ionicons name="pricetag-outline" size={18} color="#00A3E0" />
+              <Text style={[styles.sectionCardTitle, { fontSize: 14, flexShrink: 1 }]} numberOfLines={1}>
+                Apply Coupon / Voucher
+              </Text>
             </View>
             <TouchableOpacity
               style={styles.couponDropdownToggleBtn}
               onPress={() => setIsCouponDropdownOpen(!isCouponDropdownOpen)}
               activeOpacity={0.8}
             >
-              <Text style={styles.couponDropdownToggleText}>
+              <Text style={styles.couponDropdownToggleText} numberOfLines={1}>
                 {eligibleCoupons.length} Offers Available
               </Text>
               <Ionicons
                 name={isCouponDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                size={15}
+                size={14}
                 color="#00A3E0"
               />
             </TouchableOpacity>
@@ -3333,6 +3355,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
+    overflow: 'hidden',
   },
   sectionCardHeader: {
     flexDirection: 'row',
@@ -5756,10 +5779,11 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#BAE6FD',
+    flexShrink: 0,
   },
   couponDropdownToggleText: {
-    fontSize: 11.5,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#00A3E0',
   },
   appliedCouponBanner: {
