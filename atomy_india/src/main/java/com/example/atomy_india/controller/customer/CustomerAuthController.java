@@ -36,6 +36,10 @@ public class CustomerAuthController {
         this.brevoEmailService = brevoEmailService;
     }
 
+    public static String normalizeIndianPhone(String raw) {
+        return com.example.atomy_india.util.PhoneUtils.normalizeIndianPhone(raw);
+    }
+
     /**
      * POST /api/auth/register
      * Register a new customer and store basic details directly into MySQL database
@@ -74,7 +78,7 @@ public class CustomerAuthController {
         customer.setFullName(req.getFullName() != null && !req.getFullName().trim().isEmpty() ? req.getFullName().trim() : username);
         customer.setUsername(username);
         customer.setEmail(email);
-        customer.setPhone(req.getPhone() != null ? req.getPhone().trim() : "");
+        customer.setPhone(req.getPhone() != null ? normalizeIndianPhone(req.getPhone()) : "");
         customer.setPassword(req.getPassword() != null ? req.getPassword() : "");
         customer.setAddress(req.getAddress() != null ? req.getAddress().trim() : "");
         customer.setCity(req.getCity() != null ? req.getCity().trim() : "");
@@ -282,7 +286,7 @@ public class CustomerAuthController {
         }
 
         if (req.containsKey("phone") && req.get("phone") != null) {
-            customer.setPhone(req.get("phone").toString().trim());
+            customer.setPhone(normalizeIndianPhone(req.get("phone").toString()));
         }
         if (req.containsKey("address") && req.get("address") != null) {
             customer.setAddress(req.get("address").toString().trim());

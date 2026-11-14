@@ -34,6 +34,7 @@ import {
   clearAllDistributors,
   updateHubLeaveStatus
 } from '../../services/distributorService';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import './InviteDistributorsPage.css';
 
 export default function InviteDistributorsPage({ showToast }) {
@@ -206,6 +207,16 @@ export default function InviteDistributorsPage({ showToast }) {
       }
     }
 
+    const cleanPhone = normalizeIndianMobile(inviteForm.phone);
+    if (!isValidIndianMobile(cleanPhone)) {
+      if (cleanPhone.length > 0 && !/^[6-9]/.test(cleanPhone)) {
+        if (showToast) showToast('Contact Mobile Number must start with 6, 7, 8, or 9.', 'error');
+      } else {
+        if (showToast) showToast('Please enter a valid 10-digit Indian mobile number.', 'error');
+      }
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const bizName = inviteForm.isSubDistributor 
@@ -216,7 +227,7 @@ export default function InviteDistributorsPage({ showToast }) {
         businessName: bizName,
         contactPerson: inviteForm.contactPerson || 'Hub Co-Manager',
         email: inviteForm.email.toLowerCase().trim(),
-        phone: inviteForm.phone || '+91 98000 00000',
+        phone: cleanPhone,
         primaryPincode: inviteForm.primaryPincode,
         city: inviteForm.city || 'Hub City',
         state: inviteForm.state,
@@ -1291,12 +1302,11 @@ export default function InviteDistributorsPage({ showToast }) {
                           <input
                             type="tel"
                             required
-                            maxLength={10}
+                            maxLength={15}
                             placeholder="e.g. 9822012345"
                             value={inviteForm.phone}
                             onChange={(e) => {
-                              const d = e.target.value.replace(/\D/g, '').slice(0, 10);
-                              setInviteForm({ ...inviteForm, phone: d });
+                              setInviteForm({ ...inviteForm, phone: normalizeIndianMobile(e.target.value) });
                             }}
                           />
                         </div>
@@ -1377,12 +1387,11 @@ export default function InviteDistributorsPage({ showToast }) {
                     <input
                       type="tel"
                       required
-                      maxLength={10}
+                      maxLength={15}
                       placeholder="e.g. 9822012345"
                       value={inviteForm.phone}
                       onChange={(e) => {
-                        const d = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setInviteForm({ ...inviteForm, phone: d });
+                        setInviteForm({ ...inviteForm, phone: normalizeIndianMobile(e.target.value) });
                       }}
                     />
                   </div>

@@ -187,8 +187,10 @@ export const addNotification = async (email, notif) => {
 /**
  * Mark a single notification as read
  */
-export const markNotificationAsRead = async (email, notifId) => {
-  const current = getStoredNotifications(email);
+export const markNotificationAsRead = async (email, notifId, currentList = null) => {
+  const current = (Array.isArray(currentList) && currentList.length > 0)
+    ? currentList
+    : getStoredNotifications(email);
   const updated = current.map((n) => (n.id === notifId ? { ...n, unread: false } : n));
   saveStoredNotifications(email, updated);
 
@@ -205,8 +207,10 @@ export const markNotificationAsRead = async (email, notifId) => {
 /**
  * Mark all notifications as read
  */
-export const markAllNotificationsAsRead = async (email) => {
-  const current = getStoredNotifications(email);
+export const markAllNotificationsAsRead = async (email, currentList = null) => {
+  const current = (Array.isArray(currentList) && currentList.length > 0)
+    ? currentList
+    : getStoredNotifications(email);
   const updated = current.map((n) => ({ ...n, unread: false }));
   saveStoredNotifications(email, updated);
 

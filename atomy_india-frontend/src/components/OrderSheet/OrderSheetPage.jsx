@@ -43,6 +43,7 @@ import { fetchCouponsFromBackend, applyCouponBackend } from '../../services/coup
 import { createCustomerOrder, syncUnsyncedOrdersToBackend, fetchHubDetails, checkPincodeInventory } from '../../services/api';
 import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS, getRelatedProducts, getPopularProducts } from '../../data/mockData';
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import { calculateProductPricing } from '../../services/membershipService';
 import customPaymentQr from '../../assets/WhatsApp Image 2026-10-06 at 12.14.42 PM.jpeg';
 
@@ -844,7 +845,7 @@ export default function OrderSheetPage({
     setAddressForm({
       tag: defaultTag,
       recipientName: currentUser?.name || '',
-      recipientPhone: currentUser?.phone ? currentUser.phone.replace(/^\+91/, '').trim() : '',
+      recipientPhone: normalizeIndianMobile(currentUser?.phone || ''),
       alternatePhone: '',
       pincode: '',
       city: '',
@@ -908,6 +909,11 @@ export default function OrderSheetPage({
     e.preventDefault();
     if (!addressForm.recipientName.trim() || !addressForm.recipientPhone.trim() || !addressForm.pincode.trim() || !addressForm.addressLine1.trim()) {
       alert('Please fill in all mandatory fields marked with *');
+      return;
+    }
+
+    if (!isValidIndianMobile(addressForm.recipientPhone)) {
+      alert('Please enter a valid 10-digit Indian recipient mobile number starting with 6, 7, 8, or 9.');
       return;
     }
 
@@ -3262,7 +3268,8 @@ export default function OrderSheetPage({
                         className="quick-text-input with-prefix"
                         placeholder="10-digit mobile number"
                         value={addressForm.recipientPhone}
-                        onChange={(e) => setAddressForm(prev => ({ ...prev, recipientPhone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                        onChange={(e) => setAddressForm(prev => ({ ...prev, recipientPhone: normalizeIndianMobile(e.target.value) }))}
+                        maxLength={15}
                         required
                       />
                     </div>

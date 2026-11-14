@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Check, X, User, Mail, Eye, EyeOff, KeyRound, ArrowLeft, RefreshCw, ShieldCheck } from 'lucide-react';
 import { clearAdSuppressionForLogin } from '../../services/adPromotionService';
 import { registerCustomer, loginCustomer, googleAuthCustomer, requestForgotPasswordOtp, resetCustomerPassword } from '../../services/api';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import './SignInPage.css';
 
 export default function SignInPage({
@@ -54,14 +55,10 @@ export default function SignInPage({
   }, [isSignUp]);
 
   const handlePhoneChange = (e) => {
-    // Only allow numeric digits (0-9)
-    const digitsOnly = e.target.value.replace(/\D/g, '');
-    // Strictly restrict to exactly max 10 digits
-    if (digitsOnly.length <= 10) {
-      setPhoneNumber(digitsOnly);
-      if (errorMessage && digitsOnly.length === 10) {
-        setErrorMessage('');
-      }
+    const cleanDigits = normalizeIndianMobile(e.target.value);
+    setPhoneNumber(cleanDigits);
+    if (errorMessage && isValidIndianMobile(cleanDigits)) {
+      setErrorMessage('');
     }
   };
 
@@ -134,9 +131,12 @@ export default function SignInPage({
         setErrorMessage('Please fill in all required fields.');
         return;
       }
-      // Fixed to exactly 10 digits (don't allow above or below 10)
-      if (phoneNumber.trim().length !== 10) {
-        setErrorMessage('Please enter a valid 10-digit phone number (+91 India).');
+      if (!isValidIndianMobile(phoneNumber)) {
+        if (phoneNumber.trim().length > 0 && !/^[6-9]/.test(phoneNumber.trim())) {
+          setErrorMessage('Indian mobile number must start with 6, 7, 8, or 9.');
+        } else {
+          setErrorMessage('Please enter a valid 10-digit mobile number (+91 India).');
+        }
         return;
       }
       if (password !== confirmPassword) {
@@ -304,7 +304,7 @@ export default function SignInPage({
     ? Boolean(
         fullName.trim() &&
         email.trim() &&
-        phoneNumber.trim().length === 10 &&
+        isValidIndianMobile(phoneNumber) &&
         password &&
         confirmPassword &&
         password === confirmPassword
@@ -583,11 +583,11 @@ export default function SignInPage({
                   <input
                     type="tel"
                     inputMode="numeric"
-                    placeholder="Phone Number"
+                    placeholder="10-digit Mobile Number"
                     className="signin-input signin-phone-input"
                     value={phoneNumber}
                     onChange={handlePhoneChange}
-                    maxLength={10}
+                    maxLength={15}
                     required
                   />
                 </div>

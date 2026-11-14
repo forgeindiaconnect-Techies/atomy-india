@@ -207,6 +207,10 @@ export async function clearUserSession() {
     await AsyncStorage.removeItem(KEYS.CART);
     await AsyncStorage.removeItem(KEYS.FAVORITES);
     await AsyncStorage.removeItem(KEYS.PLACED_ORDERS);
+    await AsyncStorage.removeItem('atomy_mobile_selected_address');
+    await AsyncStorage.removeItem('atomy_shipping_address');
+    await AsyncStorage.removeItem('atomy_mobile_saved_addresses');
+    await AsyncStorage.removeItem('atomy_customer_addresses');
   } catch (err) {
     console.warn('[StorageService] Failed to clear user session:', err);
   }

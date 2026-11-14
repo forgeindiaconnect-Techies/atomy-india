@@ -77,6 +77,7 @@ import {
   clearAdSuppressionForLogin,
   DEFAULT_AD_CONFIG
 } from '../../services/adPromotionService';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import './AdminDashboard.css';
 
 // Exactly 1 Clean Data Item for Catalog / Inventory
@@ -1447,20 +1448,20 @@ export default function AdminDashboard({ onBackToStore }) {
       return;
     }
 
-    const rawDigits = (newTicketForm.customerPhone || '').replace(/\D/g, '');
+    const rawDigits = normalizeIndianMobile(newTicketForm.customerPhone || '');
     if (!rawDigits) {
       showToast('Please provide Customer Mobile Number');
       setTicketPhoneError('Mobile number is required');
       return;
     }
-    if (!['6', '7', '8', '9'].includes(rawDigits[0])) {
-      showToast('Mobile number must start only with 6, 7, 8, or 9');
-      setTicketPhoneError('Mobile number must start only with 6, 7, 8, or 9');
-      return;
-    }
-    if (rawDigits.length !== 10) {
-      showToast('Mobile number must be exactly 10 digits');
-      setTicketPhoneError('Mobile number must be exactly 10 digits');
+    if (!isValidIndianMobile(rawDigits)) {
+      if (!['6', '7', '8', '9'].includes(rawDigits[0])) {
+        showToast('Mobile number must start only with 6, 7, 8, or 9');
+        setTicketPhoneError('Mobile number must start only with 6, 7, 8, or 9');
+      } else {
+        showToast('Mobile number must be exactly 10 digits');
+        setTicketPhoneError('Mobile number must be exactly 10 digits');
+      }
       return;
     }
 
@@ -3081,9 +3082,10 @@ export default function AdminDashboard({ onBackToStore }) {
                           <input
                             type="text"
                             value={adminProfile.phone || ''}
-                            onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
+                            onChange={(e) => setAdminProfile({ ...adminProfile, phone: normalizeIndianMobile(e.target.value) })}
                             className="atomy-form-input"
-                            placeholder="+91 98765 43210"
+                            placeholder="10-digit mobile number"
+                            maxLength={15}
                           />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -3732,10 +3734,10 @@ export default function AdminDashboard({ onBackToStore }) {
                     type="tel"
                     required
                     placeholder="10-digit number (starts with 6, 7, 8, or 9)"
-                    maxLength={10}
+                    maxLength={15}
                     value={newTicketForm.customerPhone}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      const val = normalizeIndianMobile(e.target.value);
                       setNewTicketForm({ ...newTicketForm, customerPhone: val });
                       if (!val) {
                         setTicketPhoneError('');

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, CheckCircle2, ShieldCheck, Truck, CreditCard, Smartphone, Banknote, Building2 } from 'lucide-react';
 import { createCustomerOrder } from '../../services/api';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import './CheckoutModal.css';
 
 export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSuccess }) {
@@ -26,12 +27,23 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
   const totalAmount = subtotal + shippingFee;
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'customerPhone') {
+      setFormData({ ...formData, customerPhone: normalizeIndianMobile(value) });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!isValidIndianMobile(formData.customerPhone)) {
+      setError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -172,14 +184,15 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
                     />
                   </div>
                   <div className="form-group">
-                    <label>Phone Number *</label>
+                    <label>Mobile Number (10 Digits) *</label>
                     <input
                       type="tel"
                       name="customerPhone"
                       required
-                      placeholder="+91-9876543210"
+                      placeholder="10-digit mobile number"
                       value={formData.customerPhone}
                       onChange={handleChange}
+                      maxLength={15}
                     />
                   </div>
                 </div>

@@ -257,11 +257,22 @@ export default function ProfilePage({
     const cached = getStoredNotifications(email);
     setNotifications(cached);
 
-    // 2. Fetch live notifications directly from backend
+    // 2. Fetch live notifications directly from backend, preserving local read statuses
     fetchNotificationsApi(email).then((remote) => {
-      if (Array.isArray(remote)) {
-        setNotifications(remote);
-        saveStoredNotifications(email, remote);
+      if (Array.isArray(remote) && remote.length > 0) {
+        const stored = getStoredNotifications(email);
+        const readMap = new Map();
+        stored.forEach((s) => {
+          if (s && s.id && s.unread === false) {
+            readMap.set(s.id, false);
+          }
+        });
+        const merged = remote.map((r) => ({
+          ...r,
+          unread: readMap.has(r.id) ? false : r.unread,
+        }));
+        setNotifications(merged);
+        saveStoredNotifications(email, merged);
       }
     }).catch(() => {});
   }, [currentUser?.email]);
@@ -272,9 +283,20 @@ export default function ProfilePage({
       const email = currentUser?.email;
       if (email && email !== 'guest') {
         fetchNotificationsApi(email).then((remote) => {
-          if (Array.isArray(remote)) {
-            setNotifications(remote);
-            saveStoredNotifications(email, remote);
+          if (Array.isArray(remote) && remote.length > 0) {
+            const stored = getStoredNotifications(email);
+            const readMap = new Map();
+            stored.forEach((s) => {
+              if (s && s.id && s.unread === false) {
+                readMap.set(s.id, false);
+              }
+            });
+            const merged = remote.map((r) => ({
+              ...r,
+              unread: readMap.has(r.id) ? false : r.unread,
+            }));
+            setNotifications(merged);
+            saveStoredNotifications(email, merged);
           } else {
             setNotifications((prev) =>
               (prev || []).map((n) => ({
@@ -293,20 +315,25 @@ export default function ProfilePage({
 
   const handleMarkAllRead = async () => {
     const email = currentUser?.email || 'guest';
-    const updated = await markAllNotificationsAsRead(email);
+    // Immediately set all notifications to read (retaining all cards on the page, removing only the pinpoint unread dot)
+    const updated = (notifications || []).map((n) => ({ ...n, unread: false }));
     setNotifications(updated);
+    await markAllNotificationsAsRead(email, updated);
   };
 
   const handleMarkRead = async (id) => {
     const email = currentUser?.email || 'guest';
-    const updated = await markNotificationAsRead(email, id);
+    // Immediately set this notification to read (retaining the card on the page, removing only the pinpoint unread dot)
+    const updated = (notifications || []).map((n) => (n.id === id ? { ...n, unread: false } : n));
     setNotifications(updated);
+    await markNotificationAsRead(email, id, updated);
   };
 
   const handleDeleteNotif = async (id) => {
     const email = currentUser?.email || 'guest';
-    const updated = await deleteNotification(email, id);
-    setNotifications(updated);
+    const nextList = (notifications || []).filter((n) => n.id !== id);
+    setNotifications(nextList);
+    await deleteNotification(email, id);
   };
 
   const handleClearAllNotifs = async () => {
@@ -394,24 +421,53 @@ export default function ProfilePage({
     }
   };
 
-  // Saved Addresses State with local persistence
-  const [addresses, setAddresses] = useState(() => {
+  // Saved Addresses State with strict user-scoped local persistence
+  const profileUserEmail = (currentUser?.email || '').trim().toLowerCase();
+
+  const loadUserAddresses = (email) => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('atomy_mobile_saved_addresses');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) return parsed;
+      if (typeof window !== 'undefined' && window.localStorage && email && email !== 'guest') {
+        const userSaved = window.localStorage.getItem(`atomy_user_addresses_${email}`);
+        if (userSaved) {
+          const parsed = JSON.parse(userSaved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
       }
     } catch (e) {}
+
+    if (Array.isArray(currentUser?.addresses) && currentUser.addresses.length > 0) {
+      return currentUser.addresses;
+    }
+
+    if (currentUser?.address && currentUser.address.trim()) {
+      return [
+        {
+          id: 'addr-default-profile',
+          type: 'Home',
+          name: currentUser.fullName || currentUser.name || 'Recipient',
+          phone: currentUser.phone || '',
+          pincode: currentUser.pincode || '',
+          city: currentUser.city || '',
+          state: currentUser.state || '',
+          street: currentUser.address.trim(),
+          isDefault: true,
+        },
+      ];
+    }
     return [];
-  });
+  };
+
+  const [addresses, setAddresses] = useState(() => loadUserAddresses(profileUserEmail));
+
+  // Reload addresses whenever logged in user changes
+  useEffect(() => {
+    setAddresses(loadUserAddresses(profileUserEmail));
+  }, [profileUserEmail]);
 
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(addresses));
+      if (typeof window !== 'undefined' && window.localStorage && profileUserEmail && profileUserEmail !== 'guest') {
+        window.localStorage.setItem(`atomy_user_addresses_${profileUserEmail}`, JSON.stringify(addresses));
         const def = addresses.find((a) => a.isDefault) || addresses[0];
         if (def) {
           const selectedFormat = {
@@ -428,11 +484,11 @@ export default function ProfilePage({
             deliveryMessage: '',
             isDefault: true,
           };
-          window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(selectedFormat));
+          window.localStorage.setItem(`atomy_mobile_selected_address_${profileUserEmail}`, JSON.stringify(selectedFormat));
         }
       }
     } catch (e) {}
-  }, [addresses]);
+  }, [addresses, profileUserEmail]);
 
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState(null);

@@ -22,6 +22,7 @@ import OrderSuccessCelebration from '../Orders/OrderSuccessCelebration';
 import { createOrderApi, checkPincodeInventory, fetchHubDetails } from '../../services/api';
 import { applyCouponBackend, fetchCouponsFromBackend, DEFAULT_STORE_COUPONS } from '../../services/couponService';
 import storageService from '../../services/storageService';
+import { normalizeIndianMobile, isValidIndianMobile, formatIndianMobileDisplay } from '../../utils/phoneUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -72,7 +73,7 @@ function getSavedAddressesList(currentUser) {
   const userEmail = (currentUser?.email || '').trim().toLowerCase();
 
   try {
-    if (typeof window !== 'undefined' && window.localStorage && userEmail) {
+    if (typeof window !== 'undefined' && window.localStorage && userEmail && userEmail !== 'guest') {
       // 1. First check user-scoped storage
       const userSaved = window.localStorage.getItem(`atomy_user_addresses_${userEmail}`);
       if (userSaved) {
@@ -117,10 +118,8 @@ function getInitialAddress(currentUser) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
-      const userSelectedKey = userEmail ? `atomy_mobile_selected_address_${userEmail}` : null;
-      const storedSelected = userSelectedKey
-        ? window.localStorage.getItem(userSelectedKey)
-        : (!userEmail ? (window.localStorage.getItem('atomy_mobile_selected_address') || window.localStorage.getItem('atomy_shipping_address')) : null);
+      const userSelectedKey = (userEmail && userEmail !== 'guest') ? `atomy_mobile_selected_address_${userEmail}` : null;
+      const storedSelected = userSelectedKey ? window.localStorage.getItem(userSelectedKey) : null;
 
       if (storedSelected) {
         const parsed = JSON.parse(storedSelected);
@@ -361,9 +360,18 @@ export default function PaymentSummaryPage({
       Alert.alert('Required Fields', 'Please enter Co-Manager Full Name and Mobile Number.');
       return;
     }
+    const cleanCoPhone = normalizeIndianMobile(coManagerForm.phone);
+    if (!isValidIndianMobile(cleanCoPhone)) {
+      if (cleanCoPhone.length > 0 && !/^[6-9]/.test(cleanCoPhone)) {
+        Alert.alert('Invalid Mobile Number', 'Co-Manager mobile number must start with 6, 7, 8, or 9.');
+      } else {
+        Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit Indian mobile number.');
+      }
+      return;
+    }
     const updated = {
       name: coManagerForm.name.trim(),
-      phone: coManagerForm.phone.trim().replace(/\D/g, ''),
+      phone: cleanCoPhone,
       relationship: coManagerForm.relationship || 'Spouse / Co-Applicant',
       status: 'Active',
       isAuthorized: coManagerForm.isAuthorized !== false,
@@ -385,9 +393,27 @@ export default function PaymentSummaryPage({
   const [hubDetails, setHubDetails] = useState(null);
   const [isLoadingHub, setIsLoadingHub] = useState(false);
 
-  // Re-sync address when currentUser updates if no address was previously set
+  // Re-sync saved and selected addresses whenever currentUser changes
+  const activeUserKey = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
+  const prevUserKeyRef = useRef(activeUserKey);
+
   useEffect(() => {
-    if (!selectedAddress) {
+    if (prevUserKeyRef.current !== activeUserKey) {
+      prevUserKeyRef.current = activeUserKey;
+      const freshSaved = getSavedAddressesList(currentUser);
+      setSavedAddresses(freshSaved);
+      const freshInitial = getInitialAddress(currentUser);
+      setSelectedAddress(freshInitial);
+      if (freshInitial) {
+        setAddressForm(freshInitial);
+      } else {
+        setAddressForm({
+          ...EMPTY_ADDRESS_FORM,
+          recipientName: currentUser?.name && currentUser?.name !== 'Customer Account' ? currentUser.name : '',
+          recipientPhone: currentUser?.phone || '',
+        });
+      }
+    } else if (!selectedAddress) {
       const dynamicAddr = getInitialAddress(currentUser);
       if (dynamicAddr) {
         setSelectedAddress(dynamicAddr);
@@ -400,7 +426,7 @@ export default function PaymentSummaryPage({
         }));
       }
     }
-  }, [currentUser]);
+  }, [activeUserKey, currentUser]);
 
   // Single Home / Single Office limits for address modal
   const hasExistingHome = savedAddresses.some(
@@ -861,8 +887,13 @@ export default function PaymentSummaryPage({
       return;
     }
 
-    if (phone.length < 10) {
-      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit mobile number.');
+    const cleanPhone = normalizeIndianMobile(phone);
+    if (!isValidIndianMobile(cleanPhone)) {
+      if (cleanPhone.length > 0 && !/^[6-9]/.test(cleanPhone)) {
+        Alert.alert('Invalid Mobile Number', 'Recipient mobile number must start with 6, 7, 8, or 9.');
+      } else {
+        Alert.alert('Invalid Mobile Number', 'Please enter a valid 10-digit Indian recipient mobile number.');
+      }
       return;
     }
 
@@ -889,7 +920,7 @@ export default function PaymentSummaryPage({
       id: addressForm.id || `addr-${Date.now()}`,
       tag: addressForm.tag || 'Home',
       recipientName: name,
-      recipientPhone: phone,
+      recipientPhone: cleanPhone,
       pincode: pin,
       city: addressForm.city || '',
       state: addressForm.state || '',
@@ -906,15 +937,14 @@ export default function PaymentSummaryPage({
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
-        if (userEmail) {
+        if (userEmail && userEmail !== 'guest') {
           window.localStorage.setItem(`atomy_mobile_selected_address_${userEmail}`, JSON.stringify(normalizedAddress));
         }
-        window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(normalizedAddress));
 
-        // Also sync to saved addresses list
-        const existingSaved = userEmail
-          ? window.localStorage.getItem(`atomy_user_addresses_${userEmail}`) || window.localStorage.getItem('atomy_mobile_saved_addresses')
-          : window.localStorage.getItem('atomy_mobile_saved_addresses');
+        // Also sync to saved addresses list strictly scoped to active user
+        const existingSaved = userEmail && userEmail !== 'guest'
+          ? window.localStorage.getItem(`atomy_user_addresses_${userEmail}`)
+          : null;
         let list = [];
         if (existingSaved) {
           try {
@@ -939,11 +969,9 @@ export default function PaymentSummaryPage({
         } else {
           list.unshift(profileFormat);
         }
-        if (userEmail) {
+        if (userEmail && userEmail !== 'guest') {
           window.localStorage.setItem(`atomy_user_addresses_${userEmail}`, JSON.stringify(list));
         }
-        window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(list));
-        window.localStorage.setItem('atomy_customer_addresses', JSON.stringify(list));
         setSavedAddresses(list);
       }
     } catch (e) { }
@@ -968,11 +996,9 @@ export default function PaymentSummaryPage({
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
-        if (userEmail) {
+        if (userEmail && userEmail !== 'guest') {
           window.localStorage.setItem(`atomy_mobile_selected_address_${userEmail}`, JSON.stringify(formatted));
         }
-        window.localStorage.setItem('atomy_mobile_selected_address', JSON.stringify(formatted));
-        window.localStorage.setItem('atomy_shipping_address', JSON.stringify(formatted));
       }
     } catch (e) {}
   };
@@ -992,11 +1018,9 @@ export default function PaymentSummaryPage({
             try {
               if (typeof window !== 'undefined' && window.localStorage) {
                 const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
-                if (userEmail) {
+                if (userEmail && userEmail !== 'guest') {
                   window.localStorage.setItem(`atomy_user_addresses_${userEmail}`, JSON.stringify(nextList));
                 }
-                window.localStorage.setItem('atomy_mobile_saved_addresses', JSON.stringify(nextList));
-                window.localStorage.setItem('atomy_customer_addresses', JSON.stringify(nextList));
               }
             } catch (e) {}
             if (selectedAddress?.id === addrId) {
@@ -1007,10 +1031,9 @@ export default function PaymentSummaryPage({
                 try {
                   if (typeof window !== 'undefined' && window.localStorage) {
                     const userEmail = (currentUser?.email || currentUser?.username || '').toLowerCase().trim();
-                    if (userEmail) {
+                    if (userEmail && userEmail !== 'guest') {
                       window.localStorage.removeItem(`atomy_mobile_selected_address_${userEmail}`);
                     }
-                    window.localStorage.removeItem('atomy_mobile_selected_address');
                   }
                 } catch (e) {}
               }
@@ -2500,7 +2523,7 @@ export default function PaymentSummaryPage({
                         <Text style={styles.savedRecipientText}>
                           {addr.name || addr.recipientName}{' '}
                           <Text style={{ fontWeight: '400', color: '#64748B' }}>
-                            (+91 {addr.phone || addr.recipientPhone})
+                            ({formatIndianMobileDisplay(addr.phone || addr.recipientPhone)})
                           </Text>
                         </Text>
                         <Text style={styles.savedStreetText}>
@@ -2526,7 +2549,7 @@ export default function PaymentSummaryPage({
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.savedRecipientText}>
-                  {selectedAddress.recipientName} (+91 {selectedAddress.recipientPhone})
+                  {selectedAddress.recipientName} ({formatIndianMobileDisplay(selectedAddress.recipientPhone)})
                 </Text>
                 <Text style={styles.savedStreetText}>
                   {selectedAddress.addressLine1}
@@ -2590,7 +2613,7 @@ export default function PaymentSummaryPage({
                 Recipient Name: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.name || selectedAddress?.recipientName || 'Member / Recipient'}</Text>
               </Text>
               <Text style={{ fontSize: 13, color: '#334155', marginBottom: 6 }}>
-                Pickup Verification Phone: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.phone || selectedAddress?.recipientPhone ? `+91 ${currentUser?.phone || selectedAddress?.recipientPhone}` : 'Not Provided'}</Text>
+                Pickup Verification Phone: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{currentUser?.phone || selectedAddress?.recipientPhone ? formatIndianMobileDisplay(currentUser?.phone || selectedAddress?.recipientPhone) : 'Not Provided'}</Text>
               </Text>
               <Text style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: '600' }}>
                 ✓ SMS Pickup OTP will be dispatched to this mobile number when parcel is ready at hub.
@@ -2603,10 +2626,10 @@ export default function PaymentSummaryPage({
             SECTION 5: APPLY COUPON / VOUCHER (COMPACT DROPDOWN OF HEADINGS ONLY)
             ========================================================================= */}
         <View style={styles.sectionCard}>
-          <View style={styles.sectionCardHeader}>
-            <View style={[styles.sectionHeaderLeft, { flex: 1, minWidth: 0, marginRight: 8 }]}>
-              <Ionicons name="pricetag-outline" size={18} color="#00A3E0" />
-              <Text style={[styles.sectionCardTitle, { fontSize: 14, flexShrink: 1 }]} numberOfLines={1}>
+          <View style={styles.couponSectionHeader}>
+            <View style={styles.couponSectionHeaderLeft}>
+              <Ionicons name="pricetag-outline" size={17} color="#00A3E0" />
+              <Text style={styles.couponSectionTitle} numberOfLines={1}>
                 Apply Coupon / Voucher
               </Text>
             </View>
@@ -2620,7 +2643,7 @@ export default function PaymentSummaryPage({
               </Text>
               <Ionicons
                 name={isCouponDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                size={14}
+                size={13}
                 color="#00A3E0"
               />
             </TouchableOpacity>
@@ -3025,9 +3048,9 @@ export default function PaymentSummaryPage({
                 style={styles.textInput}
                 placeholder="10-digit mobile number"
                 keyboardType="phone-pad"
-                maxLength={10}
+                maxLength={15}
                 value={addressForm.recipientPhone}
-                onChangeText={(t) => setAddressForm((prev) => ({ ...prev, recipientPhone: t.replace(/\D/g, '') }))}
+                onChangeText={(t) => setAddressForm((prev) => ({ ...prev, recipientPhone: normalizeIndianMobile(t) }))}
               />
 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -5769,17 +5792,40 @@ const styles = StyleSheet.create({
     marginTop: 3,
     marginBottom: 12,
   },
+  couponSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    overflow: 'hidden',
+    gap: 8,
+    marginBottom: 10,
+  },
+  couponSectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    minWidth: 0,
+  },
+  couponSectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    flexShrink: 1,
+  },
   couponDropdownToggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: '#F0F9FF',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 3.5,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#BAE6FD',
     flexShrink: 0,
+    alignSelf: 'center',
   },
   couponDropdownToggleText: {
     fontSize: 11,

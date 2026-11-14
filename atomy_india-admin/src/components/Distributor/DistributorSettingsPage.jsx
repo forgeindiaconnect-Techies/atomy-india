@@ -18,6 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { fetchHubTeam, updateHubLeaveStatus } from '../../services/distributorService';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import '../Admin/AdminDashboard.css';
 
 export default function DistributorSettingsPage({ distributor, onSaveSettings, onLogout }) {
@@ -192,13 +193,26 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
       setErrorMsg('Passwords do not match');
       return;
     }
+
+    if (phone && phone.trim()) {
+      const cleanPhone = normalizeIndianMobile(phone);
+      if (!isValidIndianMobile(cleanPhone)) {
+        if (cleanPhone.length > 0 && !/^[6-9]/.test(cleanPhone)) {
+          setErrorMsg('Mobile number must start with 6, 7, 8, or 9.');
+        } else {
+          setErrorMsg('Please enter a valid 10-digit Indian mobile number.');
+        }
+        return;
+      }
+    }
+
     setErrorMsg('');
 
     if (onSaveSettings) {
       onSaveSettings({
         hubAddress,
         contactPerson,
-        phone,
+        phone: normalizeIndianMobile(phone),
         password: newPassword.trim() || undefined
       });
     }
@@ -334,8 +348,10 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
                 <input
                   type="text"
                   required
+                  placeholder="10-digit mobile number"
+                  maxLength={15}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(normalizeIndianMobile(e.target.value))}
                   style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
                 />
               </div>

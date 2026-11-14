@@ -180,7 +180,11 @@ public class CustomerService {
         // Derive Customer Details
         String custName = req.getCustomerName() != null ? req.getCustomerName() : "Atomy Direct Customer";
         String custEmail = req.getCustomerEmail() != null ? req.getCustomerEmail() : "guest@atomy.in";
-        String custPhone = req.getCustomerPhone() != null ? req.getCustomerPhone() : "+91 9876543210";
+        String rawPhone = req.getCustomerPhone() != null ? req.getCustomerPhone() : "";
+        String custPhone = com.example.atomy_india.util.PhoneUtils.normalizeIndianPhone(rawPhone);
+        if (custPhone.isEmpty()) {
+            custPhone = "9876543210";
+        }
         String shipAddr = req.getShippingAddress() != null ? req.getShippingAddress() : "Standard Home Delivery";
         String city = req.getCity() != null ? req.getCity() : "Gurugram";
         String state = req.getState() != null ? req.getState() : "Haryana";

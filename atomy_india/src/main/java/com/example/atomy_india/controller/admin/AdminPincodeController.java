@@ -5,6 +5,7 @@ import com.example.atomy_india.model.IndiaPincode;
 import com.example.atomy_india.repository.DistributorRepository;
 import com.example.atomy_india.service.BrevoEmailService;
 import com.example.atomy_india.repository.IndiaPincodeRepository;
+import com.example.atomy_india.util.PhoneUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -153,7 +154,7 @@ public class AdminPincodeController {
             String name = req.get("businessName") != null ? req.get("businessName").toString().trim() : "";
             String contact = req.get("contactPerson") != null ? req.get("contactPerson").toString().trim() : "";
             String email = req.get("email") != null ? req.get("email").toString().trim().toLowerCase() : "";
-            String phone = req.get("phone") != null ? req.get("phone").toString().trim() : "";
+            String phone = req.get("phone") != null ? PhoneUtils.normalizeIndianPhone(req.get("phone").toString()) : "";
             String pincode = req.get("primaryPincode") != null ? req.get("primaryPincode").toString().trim() : "";
             String city = req.get("city") != null ? req.get("city").toString().trim() : "City Hub";
             String state = req.get("state") != null ? req.get("state").toString().trim() : "State";

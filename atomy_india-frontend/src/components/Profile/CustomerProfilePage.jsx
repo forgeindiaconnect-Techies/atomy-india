@@ -45,6 +45,7 @@ import {
 } from '../../services/customerNotificationService';
 import { updateCustomerProfile, getCustomerProfile } from '../../services/api';
 import { setCustomerDeliveryPincode } from '../../services/catalogSyncService';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import OrderHistoryPage from '../Orders/OrderHistoryPage';
 import './CustomerProfilePage.css';
 
@@ -521,6 +522,14 @@ export default function CustomerProfilePage({
   // Handle Profile Update with direct MongoDB database persistence
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+
+    if (profileForm.phone && profileForm.phone.trim()) {
+      if (!isValidIndianMobile(profileForm.phone)) {
+        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+        return;
+      }
+    }
+
     setIsSavingProfile(true);
 
     const updatedUser = {
@@ -528,7 +537,7 @@ export default function CustomerProfilePage({
       name: profileForm.name.trim(),
       fullName: profileForm.name.trim(),
       email: (profileForm.email || currentUser?.email || '').trim(),
-      phone: profileForm.phone.trim(),
+      phone: normalizeIndianMobile(profileForm.phone),
       gender: profileForm.gender,
       dob: profileForm.dob
     };
@@ -593,7 +602,7 @@ export default function CustomerProfilePage({
     setNewAddressForm({
       type: defaultType,
       fullName: currentUser?.name || '',
-      phone: currentUser?.phone ? currentUser.phone.replace(/^\+91/, '').trim() : '',
+      phone: normalizeIndianMobile(currentUser?.phone || ''),
       street: '',
       city: '',
       state: '',
@@ -609,7 +618,7 @@ export default function CustomerProfilePage({
     setNewAddressForm({
       type: addr.type || addr.tag || 'Home',
       fullName: addr.fullName || addr.recipientName || '',
-      phone: (addr.phone || addr.recipientPhone || '').replace(/^\+91/, '').trim(),
+      phone: normalizeIndianMobile(addr.phone || addr.recipientPhone || ''),
       street: addr.street || addr.addressLine1 || '',
       city: addr.city || '',
       state: addr.state || '',
@@ -623,6 +632,13 @@ export default function CustomerProfilePage({
   const handleSaveAddress = (e) => {
     e.preventDefault();
     if (!newAddressForm.street || !newAddressForm.city || !newAddressForm.pincode) return;
+
+    if (newAddressForm.phone && newAddressForm.phone.trim()) {
+      if (!isValidIndianMobile(newAddressForm.phone)) {
+        alert('Please enter a valid 10-digit Indian recipient mobile number starting with 6, 7, 8, or 9.');
+        return;
+      }
+    }
 
     const normalizedTag = (newAddressForm.type || 'Home').toLowerCase().trim();
     if (normalizedTag === 'home') {
@@ -1096,8 +1112,10 @@ export default function CustomerProfilePage({
                       <input
                         type="tel"
                         className="profile-field-input"
+                        placeholder="10-digit mobile number"
                         value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                        onChange={(e) => setProfileForm({ ...profileForm, phone: normalizeIndianMobile(e.target.value) })}
+                        maxLength={15}
                       />
                     </div>
                     <div className="form-field-group">
@@ -1623,7 +1641,8 @@ export default function CustomerProfilePage({
                         placeholder="10-digit mobile number"
                         className="profile-field-input"
                         value={newAddressForm.phone}
-                        onChange={(e) => setNewAddressForm({ ...newAddressForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                        onChange={(e) => setNewAddressForm({ ...newAddressForm, phone: normalizeIndianMobile(e.target.value) })}
+                        maxLength={15}
                         required
                       />
                     </div>

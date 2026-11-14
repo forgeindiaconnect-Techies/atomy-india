@@ -24,6 +24,7 @@ import {
   verifyPasswordOtp,
   resetCustomerPassword,
 } from '../../services/api';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -198,9 +199,13 @@ export default function SignInPage({
         setErrorMsg('Please enter a valid Email Address');
         return;
       }
-      const cleanPhone = regPhone.replace(/\D/g, '');
-      if (cleanPhone.length !== 10) {
-        setErrorMsg('Phone Number must be exactly 10 digits');
+      const cleanPhone = normalizeIndianMobile(regPhone);
+      if (!isValidIndianMobile(cleanPhone)) {
+        if (cleanPhone.length > 0 && !/^[6-9]/.test(cleanPhone)) {
+          setErrorMsg('Mobile number must start with 6, 7, 8, or 9');
+        } else {
+          setErrorMsg('Please enter a valid 10-digit Indian mobile number');
+        }
         return;
       }
       if (!password.trim() || password.length < 6) {
@@ -306,7 +311,7 @@ export default function SignInPage({
       ? identifier.trim().length > 0 && password.trim().length > 0
       : fullName.trim().length > 0 &&
         regEmail.trim().length > 0 &&
-        regPhone.replace(/\D/g, '').length === 10 &&
+        isValidIndianMobile(regPhone) &&
         password.trim().length >= 6;
 
   return (
@@ -498,15 +503,15 @@ export default function SignInPage({
                 </View>
                 <TextInput
                   style={styles.phoneTextInput}
-                  placeholder="Phone Number"
+                  placeholder="10-digit Mobile Number"
                   placeholderTextColor="#94A3B8"
                   value={regPhone}
                   onChangeText={(t) => {
-                    setRegPhone(t.replace(/\D/g, '').slice(0, 10));
+                    setRegPhone(normalizeIndianMobile(t));
                     setErrorMsg(null);
                   }}
                   keyboardType="numeric"
-                  maxLength={10}
+                  maxLength={15}
                 />
               </View>
 

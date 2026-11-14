@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Headphones, Send, Search, CheckCircle2, MessageSquare, AlertCircle, Clock } from 'lucide-react';
 import { submitSupportTicket, getSupportTicket, addCustomerTicketReply } from '../../services/api';
+import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import './SupportModal.css';
 
 export default function SupportModal({ isOpen, onClose }) {
@@ -28,11 +29,24 @@ export default function SupportModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'customerPhone') {
+      setFormData({ ...formData, customerPhone: normalizeIndianMobile(value) });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleNewTicketSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.customerPhone && formData.customerPhone.trim()) {
+      if (!isValidIndianMobile(formData.customerPhone)) {
+        setError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
 
@@ -223,13 +237,14 @@ export default function SupportModal({ isOpen, onClose }) {
 
                 <div className="support-form-grid-2">
                   <div className="form-group">
-                    <label>Phone Number</label>
+                    <label>Mobile Number (10 Digits)</label>
                     <input
                       type="tel"
                       name="customerPhone"
-                      placeholder="+91-..."
+                      placeholder="10-digit mobile number"
                       value={formData.customerPhone}
                       onChange={handleInputChange}
+                      maxLength={15}
                     />
                   </div>
                   <div className="form-group">

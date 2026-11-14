@@ -938,6 +938,10 @@ export default function App() {
         window.localStorage.removeItem('atomy_user_session');
         window.localStorage.setItem('atomy_user_logged_out', 'true');
         window.localStorage.setItem('atomy_is_member', 'false');
+        window.localStorage.removeItem('atomy_mobile_selected_address');
+        window.localStorage.removeItem('atomy_shipping_address');
+        window.localStorage.removeItem('atomy_mobile_saved_addresses');
+        window.localStorage.removeItem('atomy_customer_addresses');
       }
     } catch (e) {}
     setCurrentUser(GUEST_USER);
