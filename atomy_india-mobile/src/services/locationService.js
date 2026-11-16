@@ -141,7 +141,7 @@ async function reverseGeocodeCoords(lat, lon) {
       if (locality.includes('hosur') || city.includes('hosur')) {
         return { pincode: '635109', city: 'Hosur', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps' };
       }
-      if (locality.includes('krishnagiri') || city.includes('krishnagiri') || rawPostcode === '635122') {
+      if (locality.includes('krishnagiri') || city.includes('krishnagiri')) {
         return { pincode: '635002', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps' };
       }
 
@@ -183,7 +183,7 @@ async function reverseGeocodeCoords(lat, lon) {
       if (town.includes('hosur')) {
         return { pincode: '635109', city: 'Hosur', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps' };
       }
-      if (town.includes('krishnagiri') || postcode === '635122') {
+      if (town.includes('krishnagiri')) {
         return { pincode: '635002', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps' };
       }
       if (postcode && /^\d{6}$/.test(postcode)) {
@@ -248,7 +248,7 @@ async function detectLocationViaIP() {
         if (ipCity.includes('hosur')) {
           return { pincode: '635109', city: 'Hosur', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'ip' };
         }
-        if (ipCity.includes('krishnagiri') || postal === '635122') {
+        if (ipCity.includes('krishnagiri')) {
           return { pincode: '635002', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'ip' };
         }
 
@@ -276,8 +276,7 @@ async function detectLocationViaIP() {
  */
 export async function applyDetectedLocation(loc) {
   if (!loc || !loc.pincode) return;
-  let pin = String(loc.pincode).trim();
-  if (pin === '635122') pin = '635002';
+  const pin = String(loc.pincode).trim();
   
   let city = loc.city || loc.areaName || '';
   if (!city && KNOWN_AREAS[pin]) {
@@ -349,7 +348,6 @@ export async function detectCustomerLiveLocation({ force = false } = {}) {
 
               if (rawPostal && /^\d{6}$/.test(rawPostal)) {
                 let cleanPin = rawPostal;
-                if (cleanPin === '635122') cleanPin = '635002';
                 const postalInfo = await lookupPostalPincode(cleanPin);
                 const loc = {
                   pincode: cleanPin,

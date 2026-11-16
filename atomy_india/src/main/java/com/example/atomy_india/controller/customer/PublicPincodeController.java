@@ -51,30 +51,8 @@ public class PublicPincodeController {
             // Log and continue with default hubs
         }
 
-        // 2. Ensure national hubs are present
-        addDefaultHubIfNotPresent(hubs, seenPins, "635002", "Krishnagiri Regional Hub", "Krishnagiri", "Tamil Nadu");
-        addDefaultHubIfNotPresent(hubs, seenPins, "110001", "Delhi Central Hub", "New Delhi", "Delhi");
-        addDefaultHubIfNotPresent(hubs, seenPins, "560001", "Bengaluru South Hub", "Bengaluru", "Karnataka");
-        addDefaultHubIfNotPresent(hubs, seenPins, "600001", "Chennai Super Hub", "Chennai", "Tamil Nadu");
-        addDefaultHubIfNotPresent(hubs, seenPins, "400001", "Mumbai Super Hub", "Mumbai", "Maharashtra");
-        addDefaultHubIfNotPresent(hubs, seenPins, "700001", "Kolkata Super Hub", "Kolkata", "West Bengal");
-        addDefaultHubIfNotPresent(hubs, seenPins, "500001", "Hyderabad Hub", "Hyderabad", "Telangana");
-
+        // 2. Fallback to only registered active distributor hubs (no dummy Central Hubs)
         return ResponseEntity.ok(hubs);
-    }
-
-    private void addDefaultHubIfNotPresent(List<Map<String, Object>> hubs, Set<String> seenPins,
-                                          String pin, String name, String city, String state) {
-        if (!seenPins.contains(pin)) {
-            Map<String, Object> h = new HashMap<>();
-            h.put("pin", pin);
-            h.put("name", name);
-            h.put("city", city);
-            h.put("state", state);
-            h.put("isDistributor", true);
-            hubs.add(h);
-            seenPins.add(pin);
-        }
     }
 
     @GetMapping("/lookup")
@@ -98,22 +76,23 @@ public class PublicPincodeController {
             res.put("district", p.getDistrict());
             res.put("state", p.getState());
             res.put("circle", p.getCircle());
-            res.put("isAssigned", "ASSIGNED".equalsIgnoreCase(p.getStatus()));
+            boolean isAssigned = "ASSIGNED".equalsIgnoreCase(p.getStatus()) && p.getAssignedDistributorId() != null;
+            res.put("isAssigned", isAssigned);
             res.put("distributorName", p.getAssignedDistributorName());
-            res.put("isDeliverable", true);
-            res.put("deliveryTimeFrame", "Within 2 Days via Nearby Hub");
+            res.put("isDeliverable", isAssigned);
+            res.put("deliveryTimeFrame", isAssigned ? "Within 2 Days via Regional Hub" : "No Regional Hub Serving This Location");
             return ResponseEntity.ok(res);
         }
 
-        // Generic fallback for any Indian 6-digit PIN code
+        // Generic fallback for any Indian 6-digit PIN code without an active hub
         res.put("valid", true);
         res.put("pincode", pin);
-        res.put("officeName", "Local Delivery Hub (" + pin + ")");
+        res.put("officeName", "Local Area (" + pin + ")");
         res.put("district", "General Delivery Zone");
         res.put("state", "India");
         res.put("isAssigned", false);
-        res.put("isDeliverable", true);
-        res.put("deliveryTimeFrame", "Within 2-3 Days via Central Hub");
+        res.put("isDeliverable", false);
+        res.put("deliveryTimeFrame", "No Regional Hub Serving This Location");
         return ResponseEntity.ok(res);
     }
 
@@ -220,70 +199,6 @@ public class PublicPincodeController {
                 res.put("email", primaryDist.getEmail() != null ? primaryDist.getEmail() : "support.logistics@atomy.com");
                 res.put("distributorRole", "PRIMARY_MANAGER");
             }
-        } else if ("600001".equals(pin)) {
-            res.put("found", true);
-            res.put("distributorId", "DIST-600001");
-            res.put("hubName", "Chennai Central Fulfillment");
-            res.put("contactPerson", "Regional Logistics Manager");
-            res.put("phone", "+91 44 2256 1234");
-            res.put("email", "chennai.hub@atomy.in");
-            res.put("pincode", "600001");
-            res.put("city", "Chennai");
-            res.put("state", "Tamil Nadu");
-            res.put("hubAddress", "Grand Southern Trunk Rd, Meenambakkam, Chennai - 600001");
-            res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM");
-            res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the counter to collect your order.");
-            res.put("isDeliverable", true);
-            res.put("isSubstituteActive", false);
-            res.put("onLeave", false);
-        } else if ("560001".equals(pin)) {
-            res.put("found", true);
-            res.put("distributorId", "DIST-560001");
-            res.put("hubName", "Karnataka Regional Center");
-            res.put("contactPerson", "Regional Logistics Manager");
-            res.put("phone", "+91 80 2558 4321");
-            res.put("email", "bengaluru.hub@atomy.in");
-            res.put("pincode", "560001");
-            res.put("city", "Bengaluru");
-            res.put("state", "Karnataka");
-            res.put("hubAddress", "MG Road, Bengaluru - 560001");
-            res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM");
-            res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the counter to collect your order.");
-            res.put("isDeliverable", true);
-            res.put("isSubstituteActive", false);
-            res.put("onLeave", false);
-        } else if ("110001".equals(pin)) {
-            res.put("found", true);
-            res.put("distributorId", "DIST-110001");
-            res.put("hubName", "Delhi NCR Hub");
-            res.put("contactPerson", "Northern Logistics Desk");
-            res.put("phone", "+91 11 2334 5678");
-            res.put("email", "delhi.hub@atomy.in");
-            res.put("pincode", "110001");
-            res.put("city", "New Delhi");
-            res.put("state", "Delhi");
-            res.put("hubAddress", "Connaught Place, New Delhi - 110001");
-            res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM");
-            res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the counter to collect your order.");
-            res.put("isDeliverable", true);
-            res.put("isSubstituteActive", false);
-            res.put("onLeave", false);
-        } else if ("635109".equals(pin)) {
-            res.put("found", true);
-            res.put("distributorId", "DIST-635109");
-            res.put("hubName", "Hosur Logistics Point");
-            res.put("contactPerson", "Selva Logistics Point");
-            res.put("phone", "+91 95388 53454");
-            res.put("email", "hosur.hub@atomy.in");
-            res.put("pincode", "635109");
-            res.put("city", "Hosur");
-            res.put("state", "Tamil Nadu");
-            res.put("hubAddress", "Sipcot Industrial Complex, Hosur - 635109");
-            res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM");
-            res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the counter to collect your order.");
-            res.put("isDeliverable", true);
-            res.put("isSubstituteActive", false);
-            res.put("onLeave", false);
         } else {
             res.put("found", false);
             res.put("distributorId", null);

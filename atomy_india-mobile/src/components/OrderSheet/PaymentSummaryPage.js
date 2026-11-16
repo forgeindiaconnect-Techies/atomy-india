@@ -617,6 +617,8 @@ export default function PaymentSummaryPage({
       });
   }, [deliveryPincode, isStorePickup, activeDetectedPin]);
 
+  const isNoHubAvailable = Boolean(hubDetails && (!hubDetails.found || hubDetails.isDeliverable === false || !hubDetails.distributorId));
+
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState('UPI'); // 'UPI' | 'CARD' | 'COD' | 'NETBANKING'
   const [selectedUpiApp, setSelectedUpiApp] = useState('gpay'); // 'gpay' | 'phonepe' | 'paytm' | 'bhim'
@@ -1122,6 +1124,14 @@ export default function PaymentSummaryPage({
   };
 
   const handleProceedToPayment = () => {
+    if (isNoHubAvailable) {
+      Alert.alert(
+        'Delivery Unavailable',
+        `Sorry, Atomy India currently does not have a regional logistics hub serving PIN ${deliveryPincode || selectedAddress?.pincode || activeDetectedPin || ''}. Both Doorstep Delivery and Direct Hub Pickup are unavailable. Please change your delivery address.`
+      );
+      return;
+    }
+
     if (hasOutOfDeliveryItems) {
       Alert.alert(
         'Delivery Stock Notice',
@@ -1176,6 +1186,15 @@ export default function PaymentSummaryPage({
 
   // Complete Order
   const handleCompleteOrder = () => {
+    if (isNoHubAvailable) {
+      Alert.alert(
+        'Delivery Unavailable',
+        `Sorry, Atomy India currently does not have a regional logistics hub serving PIN ${deliveryPincode || selectedAddress?.pincode || activeDetectedPin || ''}. Both Doorstep Delivery and Direct Hub Pickup are unavailable. Please change your delivery address.`
+      );
+      setStep('sheet');
+      return;
+    }
+
     if (hasOutOfDeliveryItems) {
       Alert.alert(
         'Delivery Stock Notice',
@@ -2302,52 +2321,57 @@ export default function PaymentSummaryPage({
             <TouchableOpacity
               style={[
                 styles.fulfillmentOptionCard,
-                !isStorePickup && styles.fulfillmentOptionCardActive,
+                !isStorePickup && !isNoHubAvailable && styles.fulfillmentOptionCardActive,
+                isNoHubAvailable && { opacity: 0.55, backgroundColor: '#F8FAFC' },
               ]}
-              onPress={() => setFulfillmentType('COURIER_DELIVERY')}
+              disabled={isNoHubAvailable}
+              onPress={() => {
+                if (!isNoHubAvailable) setFulfillmentType('COURIER_DELIVERY');
+              }}
               activeOpacity={0.8}
             >
               <View style={styles.fulfillmentRadioWrap}>
                 <Ionicons
-                  name={!isStorePickup ? 'radio-button-on' : 'radio-button-off'}
+                  name={(!isStorePickup && !isNoHubAvailable) ? 'radio-button-on' : 'radio-button-off'}
                   size={19}
-                  color={!isStorePickup ? '#00A3E0' : '#94A3B8'}
+                  color={(!isStorePickup && !isNoHubAvailable) ? '#00A3E0' : '#94A3B8'}
                 />
               </View>
               <View style={styles.fulfillmentIconWrap}>
                 <Ionicons
                   name="bicycle-outline"
                   size={20}
-                  color={!isStorePickup ? '#00A3E0' : '#64748B'}
+                  color={(!isStorePickup && !isNoHubAvailable) ? '#00A3E0' : '#64748B'}
                 />
               </View>
               <View style={styles.fulfillmentInfoCol}>
                 <Text
                   style={[
                     styles.fulfillmentOptionTitle,
-                    !isStorePickup && styles.fulfillmentOptionTitleActive,
+                    (!isStorePickup && !isNoHubAvailable) && styles.fulfillmentOptionTitleActive,
+                    isNoHubAvailable && { color: '#64748B' },
                   ]}
                   numberOfLines={1}
                 >
                   Doorstep Delivery
                 </Text>
                 <Text style={styles.fulfillmentOptionSubtitle} numberOfLines={1}>
-                  Blue Dart Express Line-haul
+                  {isNoHubAvailable ? 'Unavailable in this PIN' : 'Blue Dart Express Line-haul'}
                 </Text>
               </View>
               <View
                 style={[
                   styles.fulfillmentFeeTag,
-                  isFreeDelivery ? styles.feeTagFree : styles.feeTagPaid,
+                  isNoHubAvailable ? { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' } : isFreeDelivery ? styles.feeTagFree : styles.feeTagPaid,
                 ]}
               >
                 <Text
                   style={[
                     styles.fulfillmentFeeTagText,
-                    isFreeDelivery ? styles.feeTagFreeText : styles.feeTagPaidText,
+                    isNoHubAvailable ? { color: '#64748B' } : isFreeDelivery ? styles.feeTagFreeText : styles.feeTagPaidText,
                   ]}
                 >
-                  {isFreeDelivery ? 'FREE Delivery' : '₹ 150.00 Fee'}
+                  {isNoHubAvailable ? 'UNAVAILABLE' : isFreeDelivery ? 'FREE Delivery' : '₹ 150.00 Fee'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -2356,49 +2380,69 @@ export default function PaymentSummaryPage({
             <TouchableOpacity
               style={[
                 styles.fulfillmentOptionCard,
-                isStorePickup && styles.fulfillmentOptionCardActiveGreen,
+                isStorePickup && !isNoHubAvailable && styles.fulfillmentOptionCardActiveGreen,
+                isNoHubAvailable && { opacity: 0.55, backgroundColor: '#F8FAFC' },
               ]}
-              onPress={() => setFulfillmentType('STORE_PICKUP')}
+              disabled={isNoHubAvailable}
+              onPress={() => {
+                if (!isNoHubAvailable) setFulfillmentType('STORE_PICKUP');
+              }}
               activeOpacity={0.8}
             >
               <View style={styles.fulfillmentRadioWrap}>
                 <Ionicons
-                  name={isStorePickup ? 'radio-button-on' : 'radio-button-off'}
+                  name={(isStorePickup && !isNoHubAvailable) ? 'radio-button-on' : 'radio-button-off'}
                   size={19}
-                  color={isStorePickup ? '#10B981' : '#94A3B8'}
+                  color={(isStorePickup && !isNoHubAvailable) ? '#10B981' : '#94A3B8'}
                 />
               </View>
               <View style={styles.fulfillmentIconWrap}>
                 <Ionicons
                   name="storefront-outline"
                   size={20}
-                  color={isStorePickup ? '#10B981' : '#64748B'}
+                  color={(isStorePickup && !isNoHubAvailable) ? '#10B981' : '#64748B'}
                 />
               </View>
               <View style={styles.fulfillmentInfoCol}>
                 <Text
                   style={[
                     styles.fulfillmentOptionTitle,
-                    isStorePickup && { color: '#059669', fontWeight: '800' },
+                    (isStorePickup && !isNoHubAvailable) && { color: '#059669', fontWeight: '800' },
+                    isNoHubAvailable && { color: '#64748B' },
                   ]}
                   numberOfLines={1}
                 >
                   Regional Hub Pickup
                 </Text>
                 <Text style={styles.fulfillmentOptionSubtitle} numberOfLines={1}>
-                  Self collection at counter
+                  {isNoHubAvailable ? 'Unavailable in this PIN' : 'Self collection at counter'}
                 </Text>
               </View>
-              <View style={[styles.fulfillmentFeeTag, styles.feeTagFree]}>
-                <Text style={[styles.fulfillmentFeeTagText, styles.feeTagFreeText]}>
-                  FREE ₹0 FEE
+              <View style={[styles.fulfillmentFeeTag, isNoHubAvailable ? { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' } : styles.feeTagFree]}>
+                <Text style={[styles.fulfillmentFeeTagText, isNoHubAvailable ? { color: '#64748B' } : styles.feeTagFreeText]}>
+                  {isNoHubAvailable ? 'UNAVAILABLE' : 'FREE ₹0 FEE'}
                 </Text>
               </View>
             </TouchableOpacity>
           </View>
 
+          {/* Alert Banner when Location Has No Regional Hub */}
+          {isNoHubAvailable && (
+            <View style={{ backgroundColor: '#FEF2F2', borderWidth: 1.5, borderColor: '#FECACA', borderRadius: 10, padding: 14, marginTop: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <Ionicons name="alert-circle" size={18} color="#DC2626" style={{ marginRight: 6 }} />
+                <Text style={{ fontSize: 13.5, fontWeight: '800', color: '#991B1B' }}>
+                  Delivery &amp; Pickup Unavailable
+                </Text>
+              </View>
+              <Text style={{ fontSize: 12, color: '#7F1D1D', lineHeight: 17 }}>
+                Sorry, Atomy India currently does not have a regional logistics hub serving PIN {deliveryPincode || selectedAddress?.pincode || activeDetectedPin || ''}. Both Doorstep Courier Delivery and Direct Hub Pickup require an active regional hub in your area. Please change your delivery address.
+              </Text>
+            </View>
+          )}
+
           {/* Regional Logistics Hub Notice Banner & Co-Manager Delegation */}
-          {isStorePickup && (
+          {!isNoHubAvailable && isStorePickup && (
             <View style={styles.hubDetailsContainer}>
               <View style={styles.hubDetailsHeader}>
                 <Ionicons name="business" size={18} color="#059669" />
@@ -2921,14 +2965,16 @@ export default function PaymentSummaryPage({
           <TouchableOpacity
             style={[
               styles.stickyProceedBtn,
-              (!agreedTerms || checkoutItems.length === 0 || hasOutOfDeliveryItems) && styles.stickyProceedBtnDisabled,
+              (!agreedTerms || checkoutItems.length === 0 || hasOutOfDeliveryItems || isNoHubAvailable) && styles.stickyProceedBtnDisabled,
             ]}
             onPress={handleProceedToPayment}
-            disabled={!agreedTerms || checkoutItems.length === 0 || hasOutOfDeliveryItems}
+            disabled={!agreedTerms || checkoutItems.length === 0 || hasOutOfDeliveryItems || isNoHubAvailable}
             activeOpacity={0.88}
             accessibilityLabel="Proceed to Payment"
           >
-            <Text style={styles.stickyProceedBtnText}>Proceed to Pay</Text>
+            <Text style={styles.stickyProceedBtnText}>
+              {isNoHubAvailable ? 'Unavailable in PIN' : 'Proceed to Pay'}
+            </Text>
             <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
           </TouchableOpacity>
         </View>

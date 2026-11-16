@@ -10,7 +10,7 @@ import {
 } from '../data/mockData';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../data/officialDistributorPrices';
 
-const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
 const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
 
 const listeners = new Set();
@@ -325,11 +325,6 @@ export function getCustomerDeliveryPincode() {
   if (typeof window === 'undefined') return '635002';
   try {
     const saved = localStorage.getItem('atomy_customer_delivery_pincode');
-    if (saved === '635122') {
-      localStorage.setItem('atomy_customer_delivery_pincode', '635002');
-      localStorage.setItem('atomy_customer_delivery_city', 'Krishnagiri');
-      return '635002';
-    }
     if (saved && /^\d{6}$/.test(saved.trim())) return saved.trim();
     const uStr = localStorage.getItem('atomy_current_user');
     if (uStr) {
@@ -338,7 +333,7 @@ export function getCustomerDeliveryPincode() {
         return String(u.pincode).trim();
       }
     }
-  } catch {}
+  } catch { }
   return '635002';
 }
 
@@ -351,7 +346,7 @@ export function setCustomerDeliveryPincode(pincode) {
       syncCatalogFromBackend(clean);
       window.dispatchEvent(new CustomEvent('atomy_pincode_changed', { detail: { pincode: clean } }));
     }
-  } catch {}
+  } catch { }
 }
 
 /**

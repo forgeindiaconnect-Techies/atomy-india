@@ -8,7 +8,7 @@
 
 import { getCustomerDeliveryPincode, setCustomerDeliveryPincode, syncCatalogFromBackend } from './catalogSyncService';
 
-const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
 const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
 
 /**
@@ -78,6 +78,7 @@ export async function lookupPostalPincode(pin) {
   // 3. Fallback for common PINs if offline
   const fallbackAreas = {
     '635002': { areaName: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', postAreas: ['Krishnagiri Indl. Estate', 'Kattinayanapalli', 'Krishnagiri'] },
+    '635122': { areaName: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', postAreas: ['Krishnagiri Indl. Estate', 'Bayanapalli'] },
     '635001': { areaName: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', postAreas: ['Krishnagiri', 'Dowlatabad', 'Kattinayanapalli'] },
     '635201': { areaName: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', postAreas: ['Arasampatti', 'Barur', 'Bendrahalli', 'Irumathur', 'Thathampatti'] },
     '635202': { areaName: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', postAreas: ['Kambainallore', 'D Thurinjipatti', 'Ichambadi', 'Jakkupatti'] },
@@ -128,14 +129,6 @@ export function getShortLocationLabel(pin, explicitCity = '') {
     }
   } catch {}
 
-  if (p === '635001' || p === '635002' || p === '635109') return `Krishnagiri (${p})`;
-  if (p === '635202') return `Dharmapuri (${p})`;
-  if (p === '110001') return `Delhi (${p})`;
-  if (p === '560001') return `Bengaluru (${p})`;
-  if (p === '600001') return `Chennai (${p})`;
-  if (p === '400001') return `Mumbai (${p})`;
-  if (p === '700001') return `Kolkata (${p})`;
-
   return `PIN ${p}`;
 }
 
@@ -156,15 +149,7 @@ export function getHubLabel(pin, explicitCity = '') {
     return `${city.trim()} (${p})`;
   }
 
-  if (p === '635001' || p === '635002') return 'Krishnagiri (635002)';
-  if (p === '635201' || p === '635202') return `Dharmapuri (${p})`;
-  if (p === '110001') return 'New Delhi (110001)';
-  if (p === '560001') return 'Bengaluru (560001)';
-  if (p === '600001') return 'Chennai (600001)';
-  if (p === '400001') return 'Mumbai (400001)';
-  if (p === '700001') return 'Kolkata (700001)';
-
-  return `Regional Hub (${p})`;
+  return p ? `Area (${p})` : 'Select Area';
 }
 
 /**
@@ -179,16 +164,6 @@ async function reverseGeocodeCoords(lat, lon) {
       const data = await res.json();
       let rawPostcode = String(data.postcode || '').trim();
       const city = data.city || data.locality || data.principalSubdivision || '';
-
-      // Fix open-data geocoder error for Krishnagiri:
-      // BigDataCloud and OpenStreetMap map Krishnagiri town to 635122 (rural circle).
-      // The user's actual location, industrial estate, and regional hub is 635002.
-      if (rawPostcode === '635122' || (city.toLowerCase().includes('krishnagiri') && (rawPostcode === '635122' || rawPostcode === '635001'))) {
-        rawPostcode = '635002';
-      }
-      if (lat >= 12.1 && lat <= 12.85 && lon >= 77.8 && lon <= 78.65) {
-        rawPostcode = '635002';
-      }
 
       // If valid 6-digit Indian PIN code returned
       if (rawPostcode && /^\d{6}$/.test(rawPostcode)) {
@@ -230,13 +205,6 @@ async function reverseGeocodeCoords(lat, lon) {
       const data = await res.json();
       const addr = data.address || {};
       let postcode = String(addr.postcode || '').trim();
-      const nomCity = addr.town || addr.city || addr.county || addr.state_district || '';
-      if (postcode === '635122' || (nomCity.toLowerCase().includes('krishnagiri') && (postcode === '635122' || postcode === '635001'))) {
-        postcode = '635002';
-      }
-      if (lat >= 12.1 && lat <= 12.85 && lon >= 77.8 && lon <= 78.65) {
-        postcode = '635002';
-      }
       if (postcode && /^\d{6}$/.test(postcode)) {
         const postalInfo = await lookupPostalPincode(postcode);
         if (postalInfo) {
@@ -282,10 +250,6 @@ async function detectLocationViaIP() {
       const data = await res.json();
       if (data && data.success) {
         let postal = String(data.postal || '').trim();
-        const ipCity = data.city || data.region || '';
-        if (postal === '635122' || (ipCity.toLowerCase().includes('krishnagiri') && (postal === '635122' || postal === '635001'))) {
-          postal = '635002';
-        }
         if (postal && /^\d{6}$/.test(postal)) {
           const postalInfo = await lookupPostalPincode(postal);
           if (postalInfo) {
@@ -310,10 +274,6 @@ async function detectLocationViaIP() {
     if (res.ok) {
       const data = await res.json();
       let postal = String(data.postal || '').trim();
-      const ipCity = data.city || data.region || '';
-      if (postal === '635122' || (ipCity.toLowerCase().includes('krishnagiri') && (postal === '635122' || postal === '635001'))) {
-        postal = '635002';
-      }
       if (postal && /^\d{6}$/.test(postal)) {
         const postalInfo = await lookupPostalPincode(postal);
         if (postalInfo) {
@@ -396,8 +356,7 @@ export async function detectCustomerLiveLocation({ force = false } = {}) {
  */
 export function applyDetectedLocation(loc) {
   if (!loc || !loc.pincode) return;
-  let pin = String(loc.pincode).trim();
-  if (pin === '635122') pin = '635002';
+  const pin = String(loc.pincode).trim();
   let city = loc.city || loc.areaName || 'Regional Hub';
   if (pin === '635002') city = 'Krishnagiri';
   const state = loc.state || 'India';

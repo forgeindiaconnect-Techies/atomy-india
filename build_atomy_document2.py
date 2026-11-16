@@ -354,7 +354,7 @@ def create_document():
     add_bullet("Step 6 (Order Tracking): Customers navigate to their Profile (/profile) to inspect live delivery milestones (Placed -> Verified -> Dispatched -> Out for Delivery -> Delivered) and download historical invoices.", "Self-Service Tracking: ")
 
     add_section_heading("3.2 Admin Operations & Fulfillment Runbook")
-    add_body("Administrative staff manage operations through the Admin Dashboard (http://localhost:5174) connected to the backend server (Local: http://localhost:8085 or Cloud Server: https://atomy-india-lqsy.onrender.com):")
+    add_body("Administrative staff manage operations through the Admin Dashboard (http://localhost:5174) connected to the backend server (Local: http://localhost:8085 or Cloud Server: https://atomy-india-1ezb.onrender.com):")
     add_bullet("Inbound Order Processing: Navigating to the 'Orders' section displays incoming transactions. Operators verify customer shipping addresses and inspect itemized line totals.", "Order Review: ")
     add_bullet("Dispatch & Airway Bill (AWB) Logging: When shipments leave the warehouse, staff transition order status from 'Pending' to 'Shipped' and record the courier Airway Bill tracking number (e.g., Blue Dart tracking AWB).", "Fulfillment Pipeline: ")
     add_bullet("Catalog CRUD & Stock Adjustments: The 'Product Catalog' view enables staff to create new SKUs, update prices, adjust inventory stock levels, upload multi-angle photos, and embed YouTube demonstration links.", "Inventory Control: ")
@@ -415,7 +415,7 @@ def create_document():
 
     domain_headers = ["Service Component", "Live Cloud / Local URI", "Port Topology", "Protocol & Security"]
     domain_data = [
-        ["Spring Boot REST API (Cloud)", "https://atomy-india-lqsy.onrender.com", "Port 443 (HTTPS)", "TLS 1.3 / Render Cloud PaaS"],
+        ["Spring Boot REST API (Cloud)", "https://atomy-india-1ezb.onrender.com", "Port 443 (HTTPS)", "TLS 1.3 / Render Cloud PaaS"],
         ["Spring Boot REST API (Local)", "http://localhost:8085 (or http://192.168.1.27:8085)", "Port 8085 (HTTP)", "Java 17 LTS / Embedded Tomcat 10"],
         ["Admin Dashboard Portal", "http://localhost:5174", "Port 5174 (Dev/Vite)", "React 19 / Vite SPA Runtime"],
         ["Storefront Web Application", "http://localhost:5173", "Port 5173 (Dev/Vite)", "React 19 / Vite SPA Runtime"],
@@ -424,7 +424,7 @@ def create_document():
     create_styled_table(domain_headers, domain_data, col_widths=[1.8, 2.1, 1.2, 1.7])
     add_figure_caption("Table 2: Service Endpoints, Port Topologies & Network Protocols")
 
-    add_body("Domain Status & SSL/TLS Encryption: The live backend REST API runs on Render Cloud PaaS under an automated managed SSL/TLS wildcard certificate (https://atomy-india-lqsy.onrender.com). The MongoDB Atlas cluster is secured via TLS 1.3 encryption in transit. Custom commercial domain registration and DNS mapping (A / CNAME records) are planned for the upcoming production domain rollout phase.")
+    add_body("Domain Status & SSL/TLS Encryption: The live backend REST API runs on Render Cloud PaaS under an automated managed SSL/TLS wildcard certificate (https://atomy-india-1ezb.onrender.com). The MongoDB Atlas cluster is secured via TLS 1.3 encryption in transit. Custom commercial domain registration and DNS mapping (A / CNAME records) are planned for the upcoming production domain rollout phase.")
 
     # =========================================================================
     # 7. KNOWN ISSUES, TECHNICAL CONSTRAINTS & FUTURE ROADMAP

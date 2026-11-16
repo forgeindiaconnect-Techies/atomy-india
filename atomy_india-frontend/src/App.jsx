@@ -182,7 +182,16 @@ const getInitialNavHistory = () => {
 };
 
 export default function App() {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_customer_cart');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch { }
+    return [];
+  });
   // Isolated instant Buy Now item that does not pollute or persist into the shopping cart
   const [buyNowItem, setBuyNowItem] = useState(() => {
     try {
@@ -192,6 +201,17 @@ export default function App() {
       return null;
     }
   });
+
+  // Keep localStorage in sync for shopping cart items across refreshes and page reloads
+  useEffect(() => {
+    try {
+      if (Array.isArray(cart) && cart.length > 0) {
+        localStorage.setItem('atomy_customer_cart', JSON.stringify(cart));
+      } else {
+        localStorage.removeItem('atomy_customer_cart');
+      }
+    } catch { }
+  }, [cart]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
@@ -680,7 +700,7 @@ export default function App() {
     const fetchUserOrders = async () => {
       try {
         const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-        const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
+        const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-1ezb.onrender.com/api';
         const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBase).trim().replace(/\/+$/, '');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
         const queryParam = currentUser.email
@@ -899,7 +919,7 @@ export default function App() {
       if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-        const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
+        const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-1ezb.onrender.com/api';
         const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBase).trim().replace(/\/+$/, '');
         const apiBase = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
         const res = await fetch(`${apiBase}/admin/orders`);

@@ -352,20 +352,24 @@ export default function OrderSheetPage({
 
   // Fetch real-time Hub & Sub-Admin / Distributor Contact Details
   useEffect(() => {
-    const pin = currentSelectedAddress?.pincode || localStorage.getItem('atomy_customer_delivery_pincode') || '635001';
+    const pin = currentSelectedAddress?.pincode || localStorage.getItem('atomy_customer_delivery_pincode') || '';
+    if (!pin) {
+      setHubDetails(null);
+      setIsLoadingHub(false);
+      return;
+    }
     setIsLoadingHub(true);
     fetchHubDetails(pin)
       .then(info => {
         setHubDetails(info);
-        if (info && !info.found) {
-          setFulfillmentType('COURIER_DELIVERY');
-        }
         setIsLoadingHub(false);
       })
       .catch(() => {
         setIsLoadingHub(false);
       });
   }, [currentSelectedAddress?.pincode]);
+
+  const isNoHubAvailable = Boolean(hubDetails && (!hubDetails.found || hubDetails.isDeliverable === false || !hubDetails.distributorId));
 
   // Free delivery rule: Delivery is FREE for orders above ₹ 4,500.00 OR if at least one product mentions Free Delivery.
   // When Direct Hub Pickup is chosen, delivery fee is ALWAYS ₹0.00 (Free).
@@ -964,12 +968,16 @@ export default function OrderSheetPage({
 
   // Step 1 -> Step 2: Proceed to Payment page
   const handleProceedToPayment = () => {
+    if (isNoHubAvailable) {
+      alert(`Sorry, Atomy India currently does not have a regional logistics hub serving PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}. Both Doorstep Courier Delivery and Direct Hub Pickup are unavailable. Please change your delivery address.`);
+      return;
+    }
     if (hasOutOfDeliveryItems) {
       alert(`This item is not in stock for delivery to PIN ${deliveryPincode || 'your selected area'}. Please select another address or remove the item.`);
       return;
     }
     if (fulfillmentType === 'STORE_PICKUP' && hubDetails && !hubDetails.found) {
-      alert(`Direct Hub Pickup is not available in PIN ${deliveryPincode || currentSelectedAddress?.pincode}. Each distributor serves strictly their assigned PIN code. Please select Doorstep Courier Service.`);
+      alert(`Direct Hub Pickup is not available in PIN ${deliveryPincode || currentSelectedAddress?.pincode}. Please select a serviceable location.`);
       return;
     }
     if (!currentSelectedAddress) {
@@ -1016,17 +1024,17 @@ export default function OrderSheetPage({
       const isCod = paymentMethod === 'COD';
       const isPickupOrder = fulfillmentType === 'STORE_PICKUP';
       const effectivePin = isPickupOrder
-        ? (hubDetails?.pincode || deliveryPincode || currentSelectedAddress?.pincode || (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '635002')
-        : (currentSelectedAddress?.pincode || deliveryPincode || (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '635002');
+        ? (hubDetails?.pincode || deliveryPincode || currentSelectedAddress?.pincode || (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '')
+        : (currentSelectedAddress?.pincode || deliveryPincode || (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '');
       const pincode = String(effectivePin).trim();
       const city = isPickupOrder
-        ? (hubDetails?.city || currentSelectedAddress?.city || 'Krishnagiri')
-        : (currentSelectedAddress?.city || 'Krishnagiri');
+        ? (hubDetails?.city || currentSelectedAddress?.city || '')
+        : (currentSelectedAddress?.city || '');
       const state = isPickupOrder
-        ? (hubDetails?.state || currentSelectedAddress?.state || 'Tamil Nadu')
-        : (currentSelectedAddress?.state || 'Tamil Nadu');
+        ? (hubDetails?.state || currentSelectedAddress?.state || 'India')
+        : (currentSelectedAddress?.state || 'India');
       const fullShippingAddress = isPickupOrder
-        ? (hubDetails?.hubAddress || 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002')
+        ? (hubDetails?.hubAddress || 'Regional Logistics Hub Counter')
         : (currentSelectedAddress 
           ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
           : 'Doorstep Courier Delivery');
@@ -1041,7 +1049,7 @@ export default function OrderSheetPage({
         customerEmail: customerEmail,
         customerPhone: customerPhone,
         shippingAddress: isPickupOrder
-          ? (hubDetails?.hubAddress || 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002')
+          ? (hubDetails?.hubAddress || 'Regional Logistics Hub Counter')
           : (currentSelectedAddress && fullRecipientName !== customerName
             ? `[Recipient: ${fullRecipientName}, Ph: ${fullRecipientPhone}] ${fullShippingAddress}`
             : fullShippingAddress),
@@ -1498,15 +1506,18 @@ export default function OrderSheetPage({
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                       {/* Option 1: Doorstep Courier Delivery */}
                       <div
-                        onClick={() => setFulfillmentType('COURIER_DELIVERY')}
+                        onClick={() => {
+                          if (!isNoHubAvailable) setFulfillmentType('COURIER_DELIVERY');
+                        }}
                         style={{
                           display: 'flex',
                           flexDirection: 'column',
                           padding: '14px 16px',
                           borderRadius: '10px',
-                          border: fulfillmentType === 'COURIER_DELIVERY' ? '2px solid #00a3e0' : '1.5px solid #e2e8f0',
-                          background: fulfillmentType === 'COURIER_DELIVERY' ? '#f0f9ff' : '#ffffff',
-                          cursor: 'pointer',
+                          border: (!isNoHubAvailable && fulfillmentType === 'COURIER_DELIVERY') ? '2px solid #00a3e0' : '1.5px solid #e2e8f0',
+                          background: isNoHubAvailable ? '#f8fafc' : fulfillmentType === 'COURIER_DELIVERY' ? '#f0f9ff' : '#ffffff',
+                          cursor: isNoHubAvailable ? 'not-allowed' : 'pointer',
+                          opacity: isNoHubAvailable ? 0.65 : 1,
                           transition: 'all 0.15s ease'
                         }}
                       >
@@ -1515,38 +1526,45 @@ export default function OrderSheetPage({
                             <input
                               type="radio"
                               name="fulfillmentMethod"
-                              checked={fulfillmentType === 'COURIER_DELIVERY'}
-                              onChange={() => setFulfillmentType('COURIER_DELIVERY')}
-                              style={{ cursor: 'pointer', accentColor: '#00a3e0' }}
+                              disabled={isNoHubAvailable}
+                              checked={!isNoHubAvailable && fulfillmentType === 'COURIER_DELIVERY'}
+                              onChange={() => {
+                                if (!isNoHubAvailable) setFulfillmentType('COURIER_DELIVERY');
+                              }}
+                              style={{ cursor: isNoHubAvailable ? 'not-allowed' : 'pointer', accentColor: '#00a3e0' }}
                             />
-                            <Truck size={18} color="#00a3e0" />
-                            <strong style={{ fontSize: '14px', color: '#0f172a' }}>Doorstep Courier Service</strong>
+                            <Truck size={18} color={isNoHubAvailable ? '#94a3b8' : '#00a3e0'} />
+                            <strong style={{ fontSize: '14px', color: isNoHubAvailable ? '#64748b' : '#0f172a' }}>Doorstep Courier Service</strong>
                           </div>
                           <span style={{
                             fontSize: '11px',
                             fontWeight: 700,
                             padding: '3px 8px',
                             borderRadius: '12px',
-                            background: isFreeDeliveryEligible ? '#ecfdf5' : '#fffbeb',
-                            color: isFreeDeliveryEligible ? '#059669' : '#d97706',
-                            border: isFreeDeliveryEligible ? '1px solid #a7f3d0' : '1px solid #fde68a'
+                            background: isNoHubAvailable ? '#f1f5f9' : isFreeDeliveryEligible ? '#ecfdf5' : '#fffbeb',
+                            color: isNoHubAvailable ? '#64748b' : isFreeDeliveryEligible ? '#059669' : '#d97706',
+                            border: `1px solid ${isNoHubAvailable ? '#cbd5e1' : isFreeDeliveryEligible ? '#a7f3d0' : '#fde68a'}`
                           }}>
-                            {isFreeDeliveryEligible ? 'FREE Delivery' : '₹ 150.00 Delivery Fee'}
+                            {isNoHubAvailable ? 'UNAVAILABLE IN PIN' : isFreeDeliveryEligible ? 'FREE Delivery' : '₹ 150.00 Delivery Fee'}
                           </span>
                         </div>
                         <p style={{ margin: '0 0 6px 26px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
-                          Direct parcel dispatch to your shipping address via Blue Dart Express.
+                          {isNoHubAvailable 
+                            ? `Doorstep delivery is unavailable because no regional logistics hub serves PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}.`
+                            : 'Direct parcel dispatch to your shipping address via Blue Dart Express.'}
                         </p>
-                        <div style={{ marginLeft: '26px', fontSize: '11.5px', color: '#0284c7', fontWeight: 600 }}>
-                          {subtotal >= 4500 
-                            ? '✓ Free Delivery eligible (Order above ₹ 4,500.00)' 
-                            : `• Orders below ₹4,500 incur standard ₹150 delivery fee (Add ₹ ${(4500 - subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })} for FREE)`}
+                        <div style={{ marginLeft: '26px', fontSize: '11.5px', color: isNoHubAvailable ? '#dc2626' : '#0284c7', fontWeight: 600 }}>
+                          {isNoHubAvailable
+                            ? '✗ Delivery unavailable for this PIN'
+                            : subtotal >= 4500 
+                              ? '✓ Free Delivery eligible (Order above ₹ 4,500.00)' 
+                              : `• Orders below ₹4,500 incur standard ₹150 delivery fee (Add ₹ ${(4500 - subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })} for FREE)`}
                         </div>
                       </div>
 
                       {/* Option 2: Direct Hub Store Pickup (Self-Pickup) */}
                       {(() => {
-                        const isPickupDisabled = Boolean(hubDetails && !hubDetails.found);
+                        const isPickupDisabled = Boolean(isNoHubAvailable || (hubDetails && !hubDetails.found));
                         return (
                           <div
                             onClick={() => {
@@ -1597,7 +1615,7 @@ export default function OrderSheetPage({
                             </div>
                             <p style={{ margin: '0 0 6px 26px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
                               {isPickupDisabled
-                                ? `No physical hub counter in PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}. Please use Doorstep Courier.`
+                                ? `No physical hub counter in PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}. Hub pickup is unavailable.`
                                 : 'Collect directly from your regional logistics hub. Hub distributor packs items & holds for pickup.'}
                             </p>
                             <div style={{ marginLeft: '26px', fontSize: '11.5px', color: isPickupDisabled ? '#dc2626' : '#15803d', fontWeight: 600 }}>
@@ -1610,8 +1628,29 @@ export default function OrderSheetPage({
                       })()}
                     </div>
 
+                    {/* Prominent Alert Banner when Location Has No Hub (Both Delivery & Pickup Blocked) */}
+                    {isNoHubAvailable && (
+                      <div style={{
+                        marginTop: '16px',
+                        padding: '16px 18px',
+                        background: '#fef2f2',
+                        border: '1.5px solid #fecaca',
+                        borderRadius: '10px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <AlertCircle size={20} color="#dc2626" />
+                          <strong style={{ fontSize: '14px', color: '#991b1b' }}>
+                            Delivery &amp; Pickup Unavailable for PIN {currentSelectedAddress?.pincode || deliveryPincode || ''}
+                          </strong>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#7f1d1d', lineHeight: 1.55 }}>
+                          Sorry, Atomy India currently does not have a regional logistics hub serving PIN <strong>{currentSelectedAddress?.pincode || deliveryPincode || ''}</strong>. Both <strong>Doorstep Courier Delivery</strong> and <strong>Direct Hub Pickup</strong> are fulfilled through designated regional logistics hubs. Please change your delivery address or choose a serviceable location to place your order.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Store Pickup Hub Info Notice Banner with Full Distributor / Sub-Admin Details */}
-                    {fulfillmentType === 'STORE_PICKUP' && (
+                    {!isNoHubAvailable && fulfillmentType === 'STORE_PICKUP' && (
                       hubDetails && !hubDetails.found ? (
                         <div style={{
                           marginTop: '16px',
@@ -1627,7 +1666,7 @@ export default function OrderSheetPage({
                             </strong>
                           </div>
                           <p style={{ margin: 0, fontSize: '12.5px', color: '#78350f', lineHeight: 1.5 }}>
-                            Each distributor hub exclusively serves strictly one assigned PIN code. There is no physical hub counter in PIN <strong>{currentSelectedAddress?.pincode || deliveryPincode || localStorage.getItem('atomy_customer_delivery_pincode')}</strong>. Please choose <strong>Doorstep Courier Service</strong> above to have your order dispatched directly to your address.
+                            Each distributor hub exclusively serves strictly one assigned PIN code. There is no physical hub counter in PIN <strong>{currentSelectedAddress?.pincode || deliveryPincode || localStorage.getItem('atomy_customer_delivery_pincode')}</strong>. Please choose a serviceable location.
                           </p>
                         </div>
                       ) : (
@@ -2177,10 +2216,16 @@ export default function OrderSheetPage({
                     type="button"
                     className="place-order-submit-btn"
                     onClick={handleProceedToPayment}
-                    disabled={!currentSelectedAddress || !agreedTerms || cartItems.length === 0 || hasOutOfDeliveryItems}
-                    style={hasOutOfDeliveryItems ? { background: '#94a3b8', cursor: 'not-allowed' } : {}}
+                    disabled={!currentSelectedAddress || !agreedTerms || cartItems.length === 0 || hasOutOfDeliveryItems || isNoHubAvailable}
+                    style={(hasOutOfDeliveryItems || isNoHubAvailable) ? { background: '#94a3b8', cursor: 'not-allowed' } : {}}
                   >
-                    <span>{hasOutOfDeliveryItems ? 'Adjust Out of Stock Items' : 'Proceed to Payment'}</span>
+                    <span>
+                      {isNoHubAvailable
+                        ? 'Delivery Unavailable - Change Delivery Address'
+                        : hasOutOfDeliveryItems
+                          ? 'Adjust Out of Stock Items'
+                          : 'Proceed to Payment'}
+                    </span>
                     <ChevronRight size={18} />
                   </button>
                 </div>

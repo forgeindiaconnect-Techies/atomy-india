@@ -569,7 +569,7 @@ def create_document():
     add_section_heading("10.1 Environment Prerequisites & Port Topology")
     port_headers = ["Service Component", "Local / Live URI", "Port Topology", "Runtime Environment"]
     port_data = [
-        ["Spring Boot REST Backend (Cloud)", "https://atomy-india-lqsy.onrender.com", "Port 443 (HTTPS)", "Java 17 LTS / Render Cloud"],
+        ["Spring Boot REST Backend (Cloud)", "https://atomy-india-1ezb.onrender.com", "Port 443 (HTTPS)", "Java 17 LTS / Render Cloud"],
         ["Spring Boot REST Backend (Local)", "http://localhost:8085 (or http://192.168.1.27:8085)", "Port 8085 (HTTP)", "Java 17 LTS / Embedded Tomcat 10"],
         ["Storefront Web Application", "http://localhost:5173", "Port 5173 (Dev/Vite)", "Node 20+ / Vite React 19 Frontend"],
         ["Admin Dashboard Application", "http://localhost:5174", "Port 5174 (Dev/Vite)", "Node 20+ / Vite React 19 Admin"],
@@ -578,7 +578,7 @@ def create_document():
     create_styled_table(port_headers, port_data, col_widths=[1.8, 2.1, 1.2, 1.7])
     add_figure_caption("Table 7: Service Port Allocation & Deployment Topology")
 
-    add_body("Domain Status & Cloud Endpoints: The system currently runs without a custom commercial domain (e.g., .in or .com). Backend REST services are deployed on Render Cloud PaaS (https://atomy-india-lqsy.onrender.com) with automated cloud SSL/TLS encryption, and database services are hosted on MongoDB Atlas Cloud. Acquisition and DNS binding of an official brand domain are slated for the subsequent production launch phase.")
+    add_body("Domain Status & Cloud Endpoints: The system currently runs without a custom commercial domain (e.g., .in or .com). Backend REST services are deployed on Render Cloud PaaS (https://atomy-india-1ezb.onrender.com) with automated cloud SSL/TLS encryption, and database services are hosted on MongoDB Atlas Cloud. Acquisition and DNS binding of an official brand domain are slated for the subsequent production launch phase.")
 
     add_section_heading("10.2 Service Build & Runbook")
     add_bullet("Backend Build: Run './mvnw.cmd clean package -DskipTests' to generate the target/atomy_india-0.0.1-SNAPSHOT.jar package.", "Backend Package: ")

@@ -2,7 +2,7 @@ import { Platform, NativeModules } from 'react-native';
 import Constants from 'expo-constants';
 
 // Live Production / Cloud Server API Base
-export const CLOUD_API_BASE = 'https://atomy-india-lqsy.onrender.com/api';
+export const CLOUD_API_BASE = 'https://atomy-india-1ezb.onrender.com/api';
 
 // Dynamic Localhost / LAN Machine API Base (for local testing)
 const getLocalApiBase = () => {
@@ -118,12 +118,12 @@ export function resolveProductRegionalInventory(product, pincode) {
     };
   }
 
-  // 4. Central Fulfillment Center / Other Pincodes
+  // 4. Other Pincodes without active regional logistics hub
   return {
-    stockQuantity: 50,
-    inStock: true,
-    regionalHubId: 'CENTRAL_HUB',
-    regionalHubName: 'Central National Fulfillment Center',
+    stockQuantity: 0,
+    inStock: false,
+    regionalHubId: null,
+    regionalHubName: 'No Regional Hub Available',
     regionalPincode: pin,
   };
 }

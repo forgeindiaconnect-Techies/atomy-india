@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, User, ShoppingCart, ChevronDown, ChevronUp, ChevronRight, Menu, Globe, X, Bell, Sparkles, Clock, Heart, Ticket, Compass, Settings, Check, Star, MapPin, Navigation } from 'lucide-react';
+import { Search, User, ShoppingCart, ChevronDown, ChevronUp, ChevronRight, Menu, Globe, X, Bell, Sparkles, Clock, Heart, Ticket, Compass, Settings, Check, Star, MapPin, Navigation, AlertTriangle } from 'lucide-react';
+import { fetchHubDetails } from '../../services/api';
 import { SUPPORTED_LANGUAGES, getSavedLanguage, changeLanguage } from '../../services/languageService';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import { getCustomerDeliveryPincode, setCustomerDeliveryPincode, syncCatalogFromBackend } from '../../services/catalogSyncService';
@@ -132,6 +133,25 @@ export default function Header({
   const [availablePostAreas, setAvailablePostAreas] = useState([]);
   const [currentDistrict, setCurrentDistrict] = useState('');
   const [selectedSubArea, setSelectedSubArea] = useState('');
+  const [isHubAvailable, setIsHubAvailable] = useState(true);
+  const [hubDetailsData, setHubDetailsData] = useState(null);
+
+  // Check active regional logistics hub availability whenever delivery pincode changes
+  useEffect(() => {
+    if (!deliveryPincode) return;
+    let isMounted = true;
+    fetchHubDetails(deliveryPincode)
+      .then((info) => {
+        if (!isMounted) return;
+        setHubDetailsData(info);
+        const available = Boolean(info && info.found && info.isDeliverable !== false);
+        setIsHubAvailable(available);
+      })
+      .catch(() => {
+        if (isMounted) setIsHubAvailable(true);
+      });
+    return () => { isMounted = false; };
+  }, [deliveryPincode]);
 
   // Dynamically resolve district & available post areas when user types a 6-digit PIN
   useEffect(() => {
@@ -167,13 +187,6 @@ export default function Header({
   // Auto-detect location on first customer visit or launch
   useEffect(() => {
     try {
-      const cachedPin = localStorage.getItem('atomy_customer_delivery_pincode');
-      if (cachedPin === '635122') {
-        localStorage.setItem('atomy_customer_delivery_pincode', '635002');
-        localStorage.setItem('atomy_customer_delivery_city', 'Krishnagiri');
-        setDeliveryPincode('635002');
-        setDeliveryCity('Krishnagiri');
-      }
       const alreadyDetected = localStorage.getItem('atomy_location_autodetected_v2');
       if (!alreadyDetected) {
         detectCustomerLiveLocation().then((loc) => {
@@ -215,12 +228,23 @@ export default function Header({
       setDeliveryPincode(clean);
       setDeliveryCity(resolvedArea);
       setSelectedSubArea(chosenSubLocality || '');
-      setLocationStatusMsg(`✓ Connected to ${resolvedArea} (${clean}). Showing live stock!`);
+
+      // Check hub availability for newly selected pin
+      const hubInfo = await fetchHubDetails(clean).catch(() => null);
+      const hasHub = Boolean(hubInfo && hubInfo.found && hubInfo.isDeliverable !== false);
+      setHubDetailsData(hubInfo);
+      setIsHubAvailable(hasHub);
+
+      if (hasHub) {
+        setLocationStatusMsg(`✓ Connected to ${resolvedArea} (${clean}). Showing live stock!`);
+      } else {
+        setLocationStatusMsg(`⚠️ Notice: No Atomy regional hub serves PIN ${clean}. Deliveries and pickups unavailable.`);
+      }
 
       setTimeout(() => {
         setIsLocationModalOpen(false);
         setLocationStatusMsg('');
-      }, 1200);
+      }, 1500);
     } catch (err) {
       setIsLocating(false);
       const fallbackCity = chosenSubLocality || `Area (${clean})`;
@@ -813,11 +837,12 @@ export default function Header({
                         e.stopPropagation();
                         setIsLocationModalOpen(true);
                       }}
-                      title="Change delivery location & live regional stock"
+                      title={isHubAvailable ? "Change delivery location & live regional stock" : `No regional logistics hub serves PIN ${deliveryPincode}`}
+                      style={!isHubAvailable ? { background: '#fef2f2', borderColor: '#fca5a5', color: '#dc2626' } : {}}
                     >
-                      <MapPin size={13} className="search-location-icon" />
+                      <MapPin size={13} className="search-location-icon" color={!isHubAvailable ? '#dc2626' : undefined} />
                       <span className="search-location-text">
-                        {getShortLocationLabel(deliveryPincode, deliveryCity)}
+                        {getShortLocationLabel(deliveryPincode, deliveryCity)}{!isHubAvailable ? ' (No Hub)' : ''}
                       </span>
                       <ChevronDown size={11} className="search-location-arrow" />
                     </button>
@@ -1481,6 +1506,48 @@ export default function Header({
         </nav>
       )}
 
+      {/* Prominent Warning Banner when Selected Delivery Location has NO Regional Hub */}
+      {currentView !== 'admin' && !isHubAvailable && deliveryPincode && (
+        <div style={{
+          background: 'linear-gradient(90deg, #fff1f2 0%, #fee2e2 100%)',
+          borderBottom: '1.5px solid #fecaca',
+          padding: '10px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          flexWrap: 'wrap',
+          fontSize: '13px',
+          color: '#991b1b',
+          fontWeight: 600,
+          boxShadow: '0 2px 6px rgba(239,68,68,0.08)',
+          zIndex: 45
+        }}>
+          <AlertTriangle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
+          <span>
+            <strong>No Regional Hub in This Area:</strong> Atomy India currently has no regional logistics hub serving <strong>{deliveryCity ? `${deliveryCity} (${deliveryPincode})` : `PIN ${deliveryPincode}`}</strong>. Deliveries and product pickups are unavailable.
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsLocationModalOpen(true)}
+            style={{
+              background: '#dc2626',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '4px 12px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 4px rgba(220,38,38,0.25)'
+            }}
+          >
+            Change Location
+          </button>
+        </div>
+      )}
+
       {/* Mobile Delivery Location Strip - Visible only on mobile screens <= 768px */}
       {currentView !== 'admin' && (
         <div 
@@ -1595,14 +1662,22 @@ export default function Header({
             </p>
 
             {/* Current Active Hub & Delivery Area Badge */}
-            <div style={{ padding: '12px 16px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#0284c7', flexShrink: 0 }}></div>
+            <div style={{
+              padding: '12px 16px',
+              background: isHubAvailable ? '#f0f9ff' : '#fef2f2',
+              border: isHubAvailable ? '1px solid #bae6fd' : '1.5px solid #fecaca',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: isHubAvailable ? '#0284c7' : '#ef4444', flexShrink: 0 }}></div>
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0369a1' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: isHubAvailable ? '#0369a1' : '#991b1b' }}>
                   Current Area: {getHubLabel(deliveryPincode, deliveryCity)}
                 </div>
-                <div style={{ fontSize: '11.5px', color: '#0284c7', marginTop: '2px' }}>
-                  PIN Code: <strong>{deliveryPincode}</strong> (Live Regional Stock &amp; Direct Dispatch)
+                <div style={{ fontSize: '11.5px', color: isHubAvailable ? '#0284c7' : '#b91c1c', marginTop: '2px' }}>
+                  PIN Code: <strong>{deliveryPincode}</strong> {isHubAvailable ? '(Live Regional Stock & Direct Dispatch)' : '⚠️ (No Regional Hub — Delivery & Pickup Unavailable)'}
                 </div>
               </div>
             </div>

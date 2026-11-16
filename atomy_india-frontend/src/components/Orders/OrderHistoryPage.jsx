@@ -336,7 +336,7 @@ export default function OrderHistoryPage({
   // Live sync with reviews from backend and BroadcastChannel (from mobile app or another tab)
   useEffect(() => {
     let isMounted = true;
-    const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+    const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
     const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
 
     // 1. Sync from storage
@@ -860,7 +860,7 @@ export default function OrderHistoryPage({
     setIsSubmittingReview(true);
     const prodId = reviewProduct.productId || reviewProduct.id || reviewProduct._id;
     const prodName = reviewProduct.name || reviewProduct.productName || 'Atomy Product';
-    const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+    const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
     const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
 
     let customerName = 'Verified Buyer';

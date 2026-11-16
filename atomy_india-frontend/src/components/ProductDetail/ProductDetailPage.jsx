@@ -38,6 +38,7 @@ import { getProductYoutubeVideo } from '../../data/productYoutubeVideos';
 import { calculateProductPricing } from '../../services/membershipService';
 import { getProductStats, recordProductAddedToCart } from '../../services/productStatsService';
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
+import { fetchHubDetails } from '../../services/api';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import './ProductDetailPage.css';
 
@@ -65,7 +66,7 @@ export default function ProductDetailPage({
     let isMounted = true;
     const fetchReviews = async () => {
       try {
-        const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-lqsy.onrender.com/api').trim().replace(/\/+$/, '');
+        const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
         const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
         const res = await fetch(`${API_BASE}/customer/reviews?productId=${encodeURIComponent(product.id)}`);
         if (res.ok) {
@@ -117,6 +118,51 @@ export default function ProductDetailPage({
   const [isPdpQuickMenuOpen, setIsPdpQuickMenuOpen] = useState(false);
   const [isEducationCentreOpen, setIsEducationCentreOpen] = useState(false);
   const [isSelfPickUpOpen, setIsSelfPickUpOpen] = useState(false);
+
+  const [activePin, setActivePin] = useState(() => {
+    return (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '635002';
+  });
+  const [hubDetails, setHubDetails] = useState(null);
+  const [liveStockInfo, setLiveStockInfo] = useState(null);
+
+  useEffect(() => {
+    const handlePinChange = (e) => {
+      if (e?.detail?.pincode) {
+        setActivePin(String(e.detail.pincode).trim());
+      }
+    };
+    window.addEventListener('atomy_pincode_changed', handlePinChange);
+    return () => window.removeEventListener('atomy_pincode_changed', handlePinChange);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const pin = (activePin || (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '').trim();
+    if (!pin) return;
+
+    fetchHubDetails(pin)
+      .then(info => {
+        if (isMounted) setHubDetails(info);
+      })
+      .catch(() => {
+        if (isMounted) setHubDetails({ found: false, hubName: 'No Regional Hub Available', isDeliverable: false });
+      });
+
+    if (product?.id) {
+      const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
+      const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
+      fetch(`${API_BASE}/products/${encodeURIComponent(product.id)}?pincode=${encodeURIComponent(pin)}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (isMounted && data) {
+            setLiveStockInfo(data);
+          }
+        })
+        .catch(() => {});
+    }
+
+    return () => { isMounted = false; };
+  }, [activePin, product?.id]);
 
   const relatedSliderRef = useRef(null);
   const tabsSectionRef = useRef(null);
@@ -268,11 +314,33 @@ export default function ProductDetailPage({
 
   const pricing = calculateProductPricing(product, isMember);
   const unitPrice = pricing.activePrice;
-  const availableStock = product?.stockQuantity !== undefined ? Number(product.stockQuantity) : 50;
+  const currentPin = (activePin || (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '').trim();
+
+  // Determine current hub information and deliverability
+  const currentHubName = (hubDetails && hubDetails.found ? hubDetails.hubName : null) ||
+    liveStockInfo?.regionalHubName ||
+    (product?.regionalPincode === currentPin ? product?.regionalHubName : null) ||
+    'No Regional Hub Available';
+
+  const hasActiveHub = Boolean(hubDetails && hubDetails.found && hubDetails.isDeliverable !== false) ||
+    Boolean(liveStockInfo?.regionalHubId && liveStockInfo.regionalHubId !== 'CENTRAL_HUB' && liveStockInfo.regionalHubName !== 'No Regional Hub Available');
+
+  const availableStock = liveStockInfo?.stockQuantity !== undefined
+    ? Number(liveStockInfo.stockQuantity)
+    : (product?.stockQuantity !== undefined ? Number(product.stockQuantity) : 0);
+
   // Always keep at least 1 unit in reserve. If stock is 50, maximum orderable is 49.
   // When stock is <= 1 (e.g. 49 sold), maxOrderable is 0 -> Out of Stock!
   const maxOrderable = Math.max(0, availableStock - 1);
-  const isOutOfDelivery = product?.inStock === false || availableStock < 2 || maxOrderable < 1;
+
+  const isCentralHub = (liveStockInfo?.regionalHubId === 'CENTRAL_HUB') ||
+    (currentHubName && currentHubName.toLowerCase().includes('central'));
+
+  const isOutOfDelivery = !hasActiveHub ||
+    isCentralHub ||
+    currentHubName === 'No Regional Hub Available' ||
+    (liveStockInfo ? (liveStockInfo.inStock === false || availableStock < 2) : (product?.inStock === false || availableStock < 2));
+
   const maxStock = isOutOfDelivery ? 0 : maxOrderable;
   const effectiveQty = isOutOfDelivery ? 0 : Math.min(qty, Math.max(1, maxStock));
   const totalPrice = unitPrice * effectiveQty;
@@ -820,9 +888,9 @@ export default function ProductDetailPage({
               }}>
                 <MapPin size={15} color={isOutOfDelivery ? '#ef4444' : '#16a34a'} />
                 {isOutOfDelivery ? (
-                  <span>Out of stock in your area (PIN {product.regionalPincode || '110001'} • {product.regionalHubName || 'Regional Hub'}).</span>
+                  <span>Unavailable in your area (PIN {currentPin} • {currentHubName}). Sorry, we do not have a hub in this location.</span>
                 ) : (
-                  <span>In Stock at {product.regionalHubName || 'Delhi Central Hub'} (PIN {product.regionalPincode || '110001'}) • Fast Regional Dispatch</span>
+                  <span>In Stock at {currentHubName} (PIN {currentPin}) • Fast Regional Dispatch</span>
                 )}
               </div>
 
@@ -840,7 +908,7 @@ export default function ProductDetailPage({
                   }}
                 >
                   <ShoppingCart size={18} />
-                  <span>{isOutOfDelivery ? 'Out of Stock' : 'Add to Cart'}</span>
+                  <span>{isOutOfDelivery ? 'Unavailable in this Location' : 'Add to Cart'}</span>
                 </button>
 
                 <button
@@ -853,7 +921,7 @@ export default function ProductDetailPage({
                     onBuyNow && onBuyNow(product, effectiveQty);
                   }}
                 >
-                  {isOutOfDelivery ? 'Out of Stock' : 'Buy Now'}
+                  {isOutOfDelivery ? 'Unavailable' : 'Buy Now'}
                 </button>
               </div>
             </div>
@@ -1607,7 +1675,7 @@ export default function ProductDetailPage({
                     }}
                   >
                     <ShoppingCart size={18} />
-                    <span>{isOutOfDelivery ? 'Out of Stock' : 'Add to Cart'}</span>
+                    <span>{isOutOfDelivery ? 'Unavailable' : 'Add to Cart'}</span>
                   </button>
 
                   <button
@@ -1620,7 +1688,7 @@ export default function ProductDetailPage({
                       onBuyNow && onBuyNow(product, effectiveQty);
                     }}
                   >
-                    {isOutOfDelivery ? 'Out of Stock' : 'Buy Now'}
+                    {isOutOfDelivery ? 'Unavailable' : 'Buy Now'}
                   </button>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import { ALL_CATALOG_PRODUCTS } from '../data/mockData';
 
 const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-const defaultBaseUrl = isLocalhost ? 'http://localhost:8085/api' : 'https://atomy-india-lqsy.onrender.com/api';
+const defaultBaseUrl = isLocalhost ? 'http://localhost:8085/api' : 'https://atomy-india-1ezb.onrender.com/api';
 const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).trim().replace(/\/+$/, '');
 const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
@@ -94,9 +94,9 @@ export async function checkPincodeInventory(pincode) {
   }
 
   // Fallback if backend is offline / remote error:
-  // Only known assigned distributor PINs (like 635002, 11*, 56*) have inventory.
-  // Other PINs (like 635202 without an assigned hub) have 0 stock.
-  const hasKnownHub = pin === '635002' || pin.startsWith('11') || pin.startsWith('56');
+  // Only known assigned distributor PINs (strictly 635002 for Selva) have inventory.
+  // Other PINs without an assigned hub have 0 stock.
+  const hasKnownHub = pin === '635002';
   const prodMap = {};
   if (Array.isArray(ALL_CATALOG_PRODUCTS)) {
     ALL_CATALOG_PRODUCTS.forEach(p => {
