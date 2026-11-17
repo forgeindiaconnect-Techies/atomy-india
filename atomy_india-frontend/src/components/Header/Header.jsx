@@ -133,22 +133,29 @@ export default function Header({
   const [availablePostAreas, setAvailablePostAreas] = useState([]);
   const [currentDistrict, setCurrentDistrict] = useState('');
   const [selectedSubArea, setSelectedSubArea] = useState('');
-  const [isHubAvailable, setIsHubAvailable] = useState(true);
+  const [isHubAvailable, setIsHubAvailable] = useState(false);
   const [hubDetailsData, setHubDetailsData] = useState(null);
 
   // Check active regional logistics hub availability whenever delivery pincode changes
   useEffect(() => {
-    if (!deliveryPincode) return;
+    if (!deliveryPincode) {
+      setIsHubAvailable(false);
+      return;
+    }
     let isMounted = true;
     fetchHubDetails(deliveryPincode)
       .then((info) => {
         if (!isMounted) return;
         setHubDetailsData(info);
-        const available = Boolean(info && info.found && info.isDeliverable !== false);
+        const available = Boolean(info && info.found && info.isDeliverable !== false && info.distributorId);
         setIsHubAvailable(available);
       })
       .catch(() => {
-        if (isMounted) setIsHubAvailable(true);
+        if (isMounted) {
+          const clean = String(deliveryPincode).trim();
+          const isKnownHub = clean === '635002' || clean === '635202';
+          setIsHubAvailable(isKnownHub);
+        }
       });
     return () => { isMounted = false; };
   }, [deliveryPincode]);
@@ -187,6 +194,19 @@ export default function Header({
   // Auto-detect location on first customer visit or launch
   useEffect(() => {
     try {
+      // If customer is logged in and has profile pincode, prioritize their registered address
+      if (currentUser?.pincode && /^\d{6}$/.test(String(currentUser.pincode).trim())) {
+        const uPin = String(currentUser.pincode).trim();
+        const currentSaved = localStorage.getItem('atomy_customer_delivery_pincode');
+        if (!currentSaved || currentSaved === '600001' || currentSaved === '600009') {
+          const uCity = currentUser.city || currentUser.district || 'Krishnagiri';
+          applyDetectedLocation({ pincode: uPin, city: uCity });
+          setDeliveryPincode(uPin);
+          setDeliveryCity(uCity);
+          return;
+        }
+      }
+
       const alreadyDetected = localStorage.getItem('atomy_location_autodetected_v2');
       if (!alreadyDetected) {
         detectCustomerLiveLocation().then((loc) => {
@@ -197,7 +217,7 @@ export default function Header({
         });
       }
     } catch {}
-  }, []);
+  }, [currentUser]);
 
   const handleSelectPincode = async (pin, chosenSubLocality = null) => {
     const clean = String(pin || '').trim();
@@ -274,6 +294,8 @@ export default function Header({
           setIsLocationModalOpen(false);
           setLocationStatusMsg('');
         }, 1300);
+      } else {
+        setLocationStatusMsg('Could not retrieve live GPS coordinates. Please enter your 6-digit PIN code.');
       }
     } catch (err) {
       setIsLocating(false);
@@ -1789,6 +1811,64 @@ export default function Header({
               )}
             </div>
 
+            {/* Quick 1-Click Regional Hub Select */}
+            <div>
+              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Quick Select Regional Hub:
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSelectPincode('635002')}
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: (deliveryPincode === '635002') ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                    background: (deliveryPincode === '635002') ? '#f0f9ff' : '#ffffff',
+                    color: '#0f172a',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span style={{ fontSize: '15px' }}>🏢</span>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#0369a1' }}>Krishnagiri Hub</div>
+                    <div style={{ fontSize: '10.5px', color: '#64748b' }}>Selva • PIN 635002</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSelectPincode('635202')}
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: (deliveryPincode === '635202') ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
+                    background: (deliveryPincode === '635202') ? '#f0f9ff' : '#ffffff',
+                    color: '#0f172a',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span style={{ fontSize: '15px' }}>🏢</span>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#0369a1' }}>Dharmapuri Hub</div>
+                    <div style={{ fontSize: '10.5px', color: '#64748b' }}>Munusamy • PIN 635202</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Detect Live Location Button */}
             <button
               type="button"
@@ -1813,6 +1893,11 @@ export default function Header({
               <Navigation size={15} color="#00a3e0" className={isLocating ? 'animate-spin' : ''} />
               <span>{isLocating ? 'Detecting Live GPS Location...' : 'Use Current Live Location'}</span>
             </button>
+
+            {/* Helper note explaining GPS accuracy difference between Mobile and Desktop Wi-Fi */}
+            <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.4, textAlign: 'center', padding: '0 4px' }}>
+              📍 <em>Note: Real-time satellite GPS operates accurately on mobile phones. On desktop/Wi-Fi, broadband ISPs route traffic via Chennai gateways. If inaccurate on PC, click your hub above or enter your PIN code.</em>
+            </div>
 
             {locationStatusMsg && (
               <div style={{ padding: '8px 12px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', fontSize: '12px', color: '#065f46', fontWeight: 600 }}>

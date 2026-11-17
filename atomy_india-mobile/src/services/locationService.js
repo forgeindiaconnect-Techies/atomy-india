@@ -10,7 +10,7 @@ import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 import storageService from './storageService';
 import { setCustomerDeliveryPincode, syncCatalogFromBackend } from './catalogSyncService';
-import { fetchHubDetails } from './api';
+import { fetchHubDetails, API_BASE } from './api';
 
 const listeners = new Set();
 
@@ -120,7 +120,68 @@ export function getShortLocationLabel(pin, explicitCity = '') {
  * Reverse geocode coordinates to Indian postal PIN and verify
  */
 async function reverseGeocodeCoords(lat, lon) {
-  // 1. BigDataCloud reverse geocode client
+  // 1. Primary: Server-side reverse geocoding via Atomy API (uses OpenStreetMap with server User-Agent)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6500);
+    const res = await fetch(`${API_BASE}/pincodes/reverse-geocode?lat=${lat}&lon=${lon}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.valid && data.pincode && /^\d{6}$/.test(data.pincode)) {
+        return {
+          pincode: data.pincode,
+          city: data.city,
+          district: data.district,
+          state: data.state,
+          method: 'gps',
+        };
+      }
+    }
+  } catch (err) {
+    console.debug('Mobile backend reverse geocode note, trying direct Nominatim:', err?.message || err);
+  }
+
+  // 2. Secondary: OpenStreetMap Nominatim with street/suburb precision & addressdetails
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16&addressdetails=1`;
+    const res = await fetch(nomUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'AtomyIndiaMobile/2.0 (contact@atomy.in)'
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      let postcode = String(addr.postcode || '').replace(/\D/g, '').trim();
+
+      if (/^\d{6}$/.test(postcode)) {
+        const localArea = addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city || addr.county || 'Your Area';
+        const district = addr.state_district || addr.county || localArea;
+        const state = addr.state || 'India';
+        const postalInfo = await lookupPostalPincode(postcode);
+
+        return {
+          pincode: postcode,
+          city: postalInfo?.areaName || localArea,
+          district: postalInfo?.district || district,
+          state: postalInfo?.state || state,
+          method: 'gps',
+        };
+      }
+    }
+  } catch (err) {
+    console.debug('Mobile Nominatim reverse geocode error:', err);
+  }
+
+  // 2. Secondary: BigDataCloud reverse geocode client
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -130,97 +191,23 @@ async function reverseGeocodeCoords(lat, lon) {
 
     if (res.ok) {
       const data = await res.json();
-      let rawPostcode = String(data.postcode || '').trim();
-      const city = String(data.city || '').toLowerCase();
-      const locality = String(data.locality || '').toLowerCase();
-      const subDiv = String(data.principalSubdivision || '').toLowerCase();
+      let rawPostcode = String(data.postcode || '').replace(/\D/g, '').trim();
+      const localArea = data.locality || data.city || data.principalSubdivision || 'Your Area';
+      const state = data.principalSubdivision || 'India';
 
-      if (locality.includes('dharmapuri') || city.includes('dharmapuri')) {
-        return { pincode: '635202', city: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', method: 'gps' };
-      }
-      if (locality.includes('hosur') || city.includes('hosur')) {
-        return { pincode: '635109', city: 'Hosur', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps' };
-      }
-      if (locality.includes('krishnagiri') || city.includes('krishnagiri')) {
-        return { pincode: '635002', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps' };
-      }
-
-      if (rawPostcode && /^\d{6}$/.test(rawPostcode)) {
+      if (/^\d{6}$/.test(rawPostcode)) {
         const postalInfo = await lookupPostalPincode(rawPostcode);
-        if (postalInfo) {
-          return {
-            pincode: rawPostcode,
-            city: postalInfo.areaName,
-            district: postalInfo.district,
-            state: postalInfo.state,
-            method: 'gps',
-          };
-        }
+        return {
+          pincode: rawPostcode,
+          city: postalInfo?.areaName || localArea,
+          district: postalInfo?.district || data.city || localArea,
+          state: postalInfo?.state || state,
+          method: 'gps',
+        };
       }
     }
-  } catch (err) {}
-
-  // 2. OpenStreetMap Nominatim reverse geocode fallback
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4500);
-    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-    const res = await fetch(nomUrl, {
-      headers: { 'Accept': 'application/json' },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      const addr = data.address || {};
-      let postcode = String(addr.postcode || '').trim();
-      const town = String(addr.town || addr.city || addr.county || addr.state_district || '').toLowerCase();
-
-      if (town.includes('dharmapuri')) {
-        return { pincode: '635202', city: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', method: 'gps' };
-      }
-      if (town.includes('hosur')) {
-        return { pincode: '635109', city: 'Hosur', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps' };
-      }
-      if (town.includes('krishnagiri')) {
-        return { pincode: '635002', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps' };
-      }
-      if (postcode && /^\d{6}$/.test(postcode)) {
-        const postalInfo = await lookupPostalPincode(postcode);
-        if (postalInfo) {
-          return {
-            pincode: postcode,
-            city: postalInfo.areaName,
-            district: postalInfo.district,
-            state: postalInfo.state,
-            method: 'gps',
-          };
-        }
-      }
-    }
-  } catch (err) {}
-
-  // 3. High-Precision Coordinate Bounding Boxes
-  // Dharmapuri bounding box: lat 11.90 - 12.25, lon 78.00 - 78.35
-  if (lat >= 11.90 && lat <= 12.25 && lon >= 78.00 && lon <= 78.35) {
-    return { pincode: '635202', city: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', method: 'gps_box' };
-  }
-  // Krishnagiri bounding box: lat 12.30 - 12.75, lon 78.05 - 78.50
-  if (lat >= 12.30 && lat <= 12.75 && lon >= 78.05 && lon <= 78.50) {
-    return { pincode: '635002', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps_box' };
-  }
-  // Hosur bounding box: lat 12.65 - 12.85, lon 77.75 - 77.95
-  if (lat >= 12.65 && lat <= 12.85 && lon >= 77.75 && lon <= 77.95) {
-    return { pincode: '635109', city: 'Hosur', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps_box' };
-  }
-  // Bengaluru
-  if (lat >= 12.8 && lat <= 13.2 && lon >= 77.4 && lon <= 77.8) {
-    return { pincode: '560001', city: 'Bengaluru', district: 'Bengaluru', state: 'Karnataka', method: 'gps_box' };
-  }
-  // Chennai
-  if (lat >= 12.9 && lat <= 13.3 && lon >= 80.1 && lon <= 80.4) {
-    return { pincode: '600001', city: 'Chennai', district: 'Chennai', state: 'Tamil Nadu', method: 'gps_box' };
+  } catch (err) {
+    console.debug('Mobile BigDataCloud reverse geocode error:', err);
   }
 
   return null;
@@ -401,12 +388,10 @@ export async function detectCustomerLiveLocation({ force = false } = {}) {
     } catch (e) {}
   }
 
-  // 3. User Saved / Selected Location:
-  // If the customer already has a valid delivery pin saved (e.g. Krishnagiri 635002 or Dharmapuri 635202),
-  // NEVER overwrite it with an inaccurate cellular ISP tower (which resolves to Chennai 600001).
+  // 3. User Saved / Selected Location
   const savedPin = storageService.getDeliveryPincode();
   const savedCity = storageService.getDeliveryCity();
-  if (savedPin && savedPin !== '600001' && /^\d{6}$/.test(savedPin)) {
+  if (savedPin && savedPin !== '600001' && savedPin !== '600009' && /^\d{6}$/.test(savedPin)) {
     const loc = {
       pincode: savedPin,
       city: savedCity || (KNOWN_AREAS[savedPin] ? KNOWN_AREAS[savedPin].areaName : 'Krishnagiri'),
@@ -418,14 +403,7 @@ export async function detectCustomerLiveLocation({ force = false } = {}) {
     return loc;
   }
 
-  // 4. IP-based location fallback (filtering out misleading Chennai 600001 mobile cell towers)
-  const ipLoc = await detectLocationViaIP();
-  if (ipLoc && ipLoc.pincode && ipLoc.pincode !== '600001') {
-    await applyDetectedLocation(ipLoc);
-    return ipLoc;
-  }
-
-  // 5. Default to Primary Operational Hub: Krishnagiri (635002) - Selva Atomy Regional Hub
+  // 4. Default fallback: Krishnagiri (635002) - Selva Atomy Regional Hub
   await applyDetectedLocation(fallbackLoc);
   return fallbackLoc;
 }

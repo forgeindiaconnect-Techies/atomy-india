@@ -219,5 +219,121 @@ public class PublicPincodeController {
         }
         return ResponseEntity.ok(res);
     }
+
+    private String extractJsonField(String json, String field) {
+        if (json == null || json.isEmpty()) return "";
+        try {
+            java.util.regex.Pattern p = java.util.regex.Pattern.compile("\"" + field + "\"\\s*:\\s*\"([^\"]+)\"");
+            java.util.regex.Matcher m = p.matcher(json);
+            if (m.find()) {
+                return m.group(1).trim();
+            }
+        } catch (Exception ignored) {}
+        return "";
+    }
+
+    @GetMapping("/reverse-geocode")
+    public ResponseEntity<?> reverseGeocode(@RequestParam double lat, @RequestParam double lon) {
+        Map<String, Object> resp = new HashMap<>();
+
+        // 1. Primary: Server-side OpenStreetMap Nominatim with valid User-Agent
+        try {
+            String nomUrl = "https://nominatim.openstreetmap.org/reverse?lat=" + lat + "&lon=" + lon + "&format=json&zoom=16&addressdetails=1";
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(nomUrl))
+                    .header("User-Agent", "AtomyIndiaServer/2.0 (contact@atomy.in)")
+                    .header("Accept", "application/json")
+                    .timeout(java.time.Duration.ofSeconds(6))
+                    .build();
+            java.net.http.HttpResponse<String> httpRes = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (httpRes.statusCode() == 200) {
+                String body = httpRes.body();
+                String postcode = extractJsonField(body, "postcode").replaceAll("\\D", "").trim();
+                if (postcode.length() == 6) {
+                    String suburb = extractJsonField(body, "suburb");
+                    if (suburb.isEmpty()) suburb = extractJsonField(body, "neighbourhood");
+                    if (suburb.isEmpty()) suburb = extractJsonField(body, "village");
+                    if (suburb.isEmpty()) suburb = extractJsonField(body, "town");
+                    if (suburb.isEmpty()) suburb = extractJsonField(body, "city");
+                    if (suburb.isEmpty()) suburb = extractJsonField(body, "county");
+                    if (suburb.isEmpty()) suburb = "Local Area";
+
+                    String district = extractJsonField(body, "state_district");
+                    if (district.isEmpty()) district = extractJsonField(body, "county");
+                    if (district.isEmpty()) district = suburb;
+
+                    String state = extractJsonField(body, "state");
+                    if (state.isEmpty()) state = "India";
+
+                    Optional<IndiaPincode> ipOpt = indiaPincodeRepository.findByPincode(postcode);
+                    if (ipOpt.isPresent()) {
+                        IndiaPincode ip = ipOpt.get();
+                        if (ip.getDistrict() != null && !ip.getDistrict().isEmpty()) district = ip.getDistrict();
+                        if (ip.getState() != null && !ip.getState().isEmpty()) state = ip.getState();
+                        if (ip.getOfficeName() != null && !ip.getOfficeName().isEmpty()) suburb = ip.getOfficeName();
+                    }
+
+                    resp.put("valid", true);
+                    resp.put("pincode", postcode);
+                    resp.put("city", suburb);
+                    resp.put("district", district);
+                    resp.put("state", state);
+                    resp.put("method", "gps");
+                    return ResponseEntity.ok(resp);
+                }
+            }
+        } catch (Exception e) {
+            // Log and fallback to secondary
+        }
+
+        // 2. Secondary: BigDataCloud reverse geocode client
+        try {
+            String bdcUrl = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + lat + "&longitude=" + lon + "&localityLanguage=en";
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest req = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(bdcUrl))
+                    .timeout(java.time.Duration.ofSeconds(5))
+                    .build();
+            java.net.http.HttpResponse<String> httpRes = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (httpRes.statusCode() == 200) {
+                String body = httpRes.body();
+                String postcode = extractJsonField(body, "postcode").replaceAll("\\D", "").trim();
+                if (postcode.length() == 6) {
+                    String locality = extractJsonField(body, "locality");
+                    if (locality.isEmpty()) locality = extractJsonField(body, "city");
+                    if (locality.isEmpty()) locality = "Local Area";
+
+                    String state = extractJsonField(body, "principalSubdivision");
+                    if (state.isEmpty()) state = "India";
+
+                    String district = extractJsonField(body, "city");
+                    if (district.isEmpty()) district = locality;
+
+                    Optional<IndiaPincode> ipOpt = indiaPincodeRepository.findByPincode(postcode);
+                    if (ipOpt.isPresent()) {
+                        IndiaPincode ip = ipOpt.get();
+                        if (ip.getDistrict() != null && !ip.getDistrict().isEmpty()) district = ip.getDistrict();
+                        if (ip.getState() != null && !ip.getState().isEmpty()) state = ip.getState();
+                        if (ip.getOfficeName() != null && !ip.getOfficeName().isEmpty()) locality = ip.getOfficeName();
+                    }
+
+                    resp.put("valid", true);
+                    resp.put("pincode", postcode);
+                    resp.put("city", locality);
+                    resp.put("district", district);
+                    resp.put("state", state);
+                    resp.put("method", "gps");
+                    return ResponseEntity.ok(resp);
+                }
+            }
+        } catch (Exception e) {
+            // Log and finish
+        }
+
+        resp.put("valid", false);
+        resp.put("message", "Could not resolve postal PIN code from coordinates");
+        return ResponseEntity.ok(resp);
+    }
 }
 

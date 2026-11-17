@@ -153,40 +153,84 @@ export function getHubLabel(pin, explicitCity = '') {
 }
 
 /**
- * Reverse geocode coordinates to Indian postal PIN and verify with India Post
+ * Reverse geocode GPS coordinates to Indian postal PIN and verify with India Post
+ * Uses official OpenStreetMap Nominatim and BigDataCloud without any hardcoded bounding boxes.
  */
 async function reverseGeocodeCoords(lat, lon) {
-  // 1. BigDataCloud reverse geocode client
+  // 1. Primary: Secure backend reverse geocoding (queries OpenStreetMap with valid server User-Agent, bypassing browser CORS/403 blocks)
   try {
-    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(4500) });
+    const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
+    const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
+    const res = await fetch(`${API_BASE}/pincodes/reverse-geocode?lat=${lat}&lon=${lon}`, {
+      signal: AbortSignal.timeout(6500)
+    });
     if (res.ok) {
       const data = await res.json();
-      let rawPostcode = String(data.postcode || '').trim();
-      const city = data.city || data.locality || data.principalSubdivision || '';
-
-      // If valid 6-digit Indian PIN code returned
-      if (rawPostcode && /^\d{6}$/.test(rawPostcode)) {
-        const postalInfo = await lookupPostalPincode(rawPostcode);
-        if (postalInfo) {
-          return {
-            pincode: rawPostcode,
-            city: postalInfo.areaName,
-            district: postalInfo.district,
-            state: postalInfo.state,
-            method: 'gps'
-          };
-        }
-      }
-
-      // If coordinates land in Krishnagiri District
-      if (lat >= 12.1 && lat <= 12.85 && lon >= 77.8 && lon <= 78.65) {
+      if (data && data.valid && data.pincode && /^\d{6}$/.test(data.pincode)) {
         return {
-          pincode: '635002',
-          city: 'Krishnagiri',
-          district: 'Krishnagiri',
-          state: 'Tamil Nadu',
-          method: 'gps_box'
+          pincode: data.pincode,
+          city: data.city,
+          district: data.district,
+          state: data.state,
+          method: 'gps'
+        };
+      }
+    }
+  } catch (err) {
+    console.debug('Backend reverse geocode error, trying client fallbacks:', err);
+  }
+
+  // 2. Secondary: Direct OpenStreetMap Nominatim
+  try {
+    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16&addressdetails=1`;
+    const res = await fetch(nomUrl, {
+      headers: {
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      let postcode = String(addr.postcode || '').replace(/\D/g, '').trim();
+
+      if (/^\d{6}$/.test(postcode)) {
+        const localArea = addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city || addr.county || 'Your Area';
+        const district = addr.state_district || addr.county || localArea;
+        const state = addr.state || 'India';
+        const postalInfo = await lookupPostalPincode(postcode);
+
+        return {
+          pincode: postcode,
+          city: postalInfo?.areaName || localArea,
+          district: postalInfo?.district || district,
+          state: postalInfo?.state || state,
+          method: 'gps'
+        };
+      }
+    }
+  } catch (err) {
+    console.debug('Nominatim reverse geocode error:', err);
+  }
+
+  // 2. Secondary: BigDataCloud reverse geocode client
+  try {
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const data = await res.json();
+      let rawPostcode = String(data.postcode || '').replace(/\D/g, '').trim();
+      const localArea = data.locality || data.city || data.principalSubdivision || 'Your Area';
+      const state = data.principalSubdivision || 'India';
+
+      if (/^\d{6}$/.test(rawPostcode)) {
+        const postalInfo = await lookupPostalPincode(rawPostcode);
+        return {
+          pincode: rawPostcode,
+          city: postalInfo?.areaName || localArea,
+          district: postalInfo?.district || data.city || localArea,
+          state: postalInfo?.state || state,
+          method: 'gps'
         };
       }
     }
@@ -194,135 +238,64 @@ async function reverseGeocodeCoords(lat, lon) {
     console.debug('BigDataCloud reverse geocode error:', err);
   }
 
-  // 2. OpenStreetMap Nominatim reverse geocode fallback
+  // 3. Tertiary: OpenStreetMap Nominatim broader postal zone search (zoom 14)
   try {
-    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=14&addressdetails=1`;
     const res = await fetch(nomUrl, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(4500)
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'AtomyIndiaCommerce/2.0 (contact@atomy.in)'
+      },
+      signal: AbortSignal.timeout(5000)
     });
     if (res.ok) {
       const data = await res.json();
       const addr = data.address || {};
-      let postcode = String(addr.postcode || '').trim();
-      if (postcode && /^\d{6}$/.test(postcode)) {
+      let postcode = String(addr.postcode || '').replace(/\D/g, '').trim();
+
+      if (/^\d{6}$/.test(postcode)) {
+        const localArea = addr.town || addr.village || addr.city || addr.county || 'Your Area';
+        const district = addr.state_district || addr.county || localArea;
+        const state = addr.state || 'India';
         const postalInfo = await lookupPostalPincode(postcode);
-        if (postalInfo) {
-          return {
-            pincode: postcode,
-            city: postalInfo.areaName,
-            district: postalInfo.district,
-            state: postalInfo.state,
-            method: 'gps'
-          };
-        }
+
+        return {
+          pincode: postcode,
+          city: postalInfo?.areaName || localArea,
+          district: postalInfo?.district || district,
+          state: postalInfo?.state || state,
+          method: 'gps'
+        };
       }
     }
   } catch (err) {
-    console.debug('Nominatim reverse geocode error:', err);
-  }
-
-  // 3. Known coordinate bounding box fallback
-  if (lat >= 12.1 && lat <= 12.85 && lon >= 77.8 && lon <= 78.65) {
-    return { pincode: '635002', city: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', method: 'gps_box' };
-  }
-  if (lat >= 12.8 && lat <= 13.2 && lon >= 77.4 && lon <= 77.8) {
-    return { pincode: '560001', city: 'Bengaluru', district: 'Bengaluru', state: 'Karnataka', method: 'gps_box' };
-  }
-  if (lat >= 12.9 && lat <= 13.3 && lon >= 80.1 && lon <= 80.4) {
-    return { pincode: '600001', city: 'Chennai', district: 'Chennai', state: 'Tamil Nadu', method: 'gps_box' };
-  }
-  if (lat >= 28.4 && lat <= 28.9 && lon >= 77.0 && lon <= 77.4) {
-    return { pincode: '110001', city: 'New Delhi', district: 'New Delhi', state: 'Delhi', method: 'gps_box' };
+    console.debug('Nominatim broader search error:', err);
   }
 
   return null;
 }
 
 /**
- * IP-based location fallback
- */
-async function detectLocationViaIP() {
-  // 1. Primary: ipwho.is (fast, unthrottled, reliable Indian ISP detection)
-  try {
-    const res = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(4000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.success) {
-        let postal = String(data.postal || '').trim();
-        if (postal && /^\d{6}$/.test(postal)) {
-          const postalInfo = await lookupPostalPincode(postal);
-          if (postalInfo) {
-            return {
-              pincode: postal,
-              city: postalInfo.areaName,
-              district: postalInfo.district,
-              state: postalInfo.state,
-              method: 'ip'
-            };
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.debug('ipwho.is note:', err?.message);
-  }
-
-  // 2. Secondary: ipapi.co fallback
-  try {
-    const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3500) });
-    if (res.ok) {
-      const data = await res.json();
-      let postal = String(data.postal || '').trim();
-      if (postal && /^\d{6}$/.test(postal)) {
-        const postalInfo = await lookupPostalPincode(postal);
-        if (postalInfo) {
-          return {
-            pincode: postal,
-            city: postalInfo.areaName,
-            district: postalInfo.district,
-            state: postalInfo.state,
-            method: 'ip'
-          };
-        }
-      }
-    }
-  } catch (err) {
-    console.debug('IP location fallback note:', err?.message);
-  }
-  return null;
-}
-
-/**
- * High-precision GPS Detective for customer live location
+ * Real device GPS location detection (Hardware GPS & Wi-Fi triangulation)
+ * Strictly uses device GPS and NEVER uses inaccurate ISP IP geolocation.
  */
 export async function detectCustomerLiveLocation({ force = false } = {}) {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined') {
-      return resolve({ pincode: '635002', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' });
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      return resolve(null);
     }
 
-    if (!navigator.geolocation) {
-      detectLocationViaIP().then((ipLoc) => {
-        const finalLoc = ipLoc || { pincode: '635002', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
-        applyDetectedLocation(finalLoc);
-        resolve(finalLoc);
-      });
-      return;
-    }
-
-    // Helper to run geolocation attempt
     const runGeoQuery = (options) => {
       return new Promise((resGeo, rejGeo) => {
         navigator.geolocation.getCurrentPosition(resGeo, rejGeo, options);
       });
     };
 
-    // First attempt: High Accuracy (GPS hardware)
-    runGeoQuery({ enableHighAccuracy: true, timeout: 8000, maximumAge: force ? 0 : 60000 })
+    // 1. High Accuracy Hardware GPS with 15s timeout
+    runGeoQuery({ enableHighAccuracy: true, timeout: 15000, maximumAge: force ? 0 : 30000 })
       .catch(() => {
-        // Second attempt: Standard Accuracy (WiFi / cell triangulated)
-        return runGeoQuery({ enableHighAccuracy: false, timeout: 5000, maximumAge: force ? 0 : 120000 });
+        // 2. Standard Accuracy fallback (WiFi / cell triangulated)
+        return runGeoQuery({ enableHighAccuracy: false, timeout: 8000, maximumAge: force ? 0 : 60000 });
       })
       .then(async (position) => {
         try {
@@ -335,18 +308,11 @@ export async function detectCustomerLiveLocation({ force = false } = {}) {
         } catch (e) {
           console.debug('Reverse geocode error:', e);
         }
-
-        const ipLoc = await detectLocationViaIP();
-        const finalLoc = ipLoc || { pincode: '635002', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
-        applyDetectedLocation(finalLoc);
-        resolve(finalLoc);
+        resolve(null);
       })
-      .catch(async () => {
-        // GPS failed or denied, use IP
-        const ipLoc = await detectLocationViaIP();
-        const finalLoc = ipLoc || { pincode: '635002', city: 'Krishnagiri', state: 'Tamil Nadu', method: 'fallback' };
-        applyDetectedLocation(finalLoc);
-        resolve(finalLoc);
+      .catch((geoErr) => {
+        console.debug('GPS hardware query error/denied:', geoErr?.message || geoErr);
+        resolve(null);
       });
   });
 }
@@ -357,8 +323,7 @@ export async function detectCustomerLiveLocation({ force = false } = {}) {
 export function applyDetectedLocation(loc) {
   if (!loc || !loc.pincode) return;
   const pin = String(loc.pincode).trim();
-  let city = loc.city || loc.areaName || 'Regional Hub';
-  if (pin === '635002') city = 'Krishnagiri';
+  const city = loc.city || loc.areaName || 'Local Zone';
   const state = loc.state || 'India';
 
   try {
