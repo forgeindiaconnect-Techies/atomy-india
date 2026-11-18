@@ -610,32 +610,32 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
       </div>
 
       {/* 2. KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', margin: '20px 0' }}>
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Total Inquiries</div>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>{tickets.length}</div>
-          <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>Lifetime customer tickets</div>
+      <div className="dist-support-kpi-grid">
+        <div className="dist-support-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
+          <div className="dist-support-kpi-title" style={{ color: '#64748b' }}>Total Inquiries</div>
+          <div className="dist-support-kpi-val" style={{ color: '#0f172a' }}>{tickets.length}</div>
+          <div className="dist-support-kpi-sub" style={{ color: '#94a3b8' }}>Lifetime customer tickets</div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#c2410c', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="dist-support-kpi-card" style={{ background: '#ffffff', border: '1px solid #fed7aa' }}>
+          <div className="dist-support-kpi-title" style={{ color: '#c2410c', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ea580c' }}></span>
             <span>Awaiting Action</span>
           </div>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#ea580c' }}>{openCount}</div>
-          <div style={{ fontSize: '12px', color: '#9a3412', marginTop: '4px' }}>Open tickets requiring response</div>
+          <div className="dist-support-kpi-val" style={{ color: '#ea580c' }}>{openCount}</div>
+          <div className="dist-support-kpi-sub" style={{ color: '#9a3412' }}>Open tickets requiring response</div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>In Progress</div>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#0284c7' }}>{inProgressCount}</div>
-          <div style={{ fontSize: '12px', color: '#0284c7', marginTop: '4px' }}>Discussions actively underway</div>
+        <div className="dist-support-kpi-card" style={{ background: '#ffffff', border: '1px solid #bae6fd' }}>
+          <div className="dist-support-kpi-title" style={{ color: '#0369a1' }}>In Progress</div>
+          <div className="dist-support-kpi-val" style={{ color: '#0284c7' }}>{inProgressCount}</div>
+          <div className="dist-support-kpi-sub" style={{ color: '#0284c7' }}>Discussions actively underway</div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '18px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Resolved / Closed</div>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#16a34a' }}>{resolvedCount}</div>
-          <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>Successfully resolved inquiries</div>
+        <div className="dist-support-kpi-card" style={{ background: '#ffffff', border: '1px solid #bbf7d0' }}>
+          <div className="dist-support-kpi-title" style={{ color: '#15803d' }}>Resolved / Closed</div>
+          <div className="dist-support-kpi-val" style={{ color: '#16a34a' }}>{resolvedCount}</div>
+          <div className="dist-support-kpi-sub" style={{ color: '#16a34a' }}>Successfully resolved inquiries</div>
         </div>
       </div>
 

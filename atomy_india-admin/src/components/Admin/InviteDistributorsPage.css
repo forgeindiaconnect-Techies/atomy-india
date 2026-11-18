@@ -966,18 +966,73 @@
     font-size: 13px !important;
   }
 
-  /* 3. Metrics Row */
+  /* 3. Metrics Row - 2-Column Mobile Overview Layout */
   .invite-metrics-grid {
-    grid-template-columns: 1fr !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
-    margin-bottom: 18px !important;
+    margin-bottom: 16px !important;
     width: 100% !important;
   }
 
   .invite-metric-card {
-    padding: 14px 16px !important;
-    gap: 12px !important;
-    border-radius: 12px !important;
+    padding: 12px 10px 10px !important;
+    min-height: 105px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  .invite-metric-card .metric-icon-box {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .invite-metric-card .metric-icon-box svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .invite-metric-card .metric-details {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 2px !important;
+  }
+
+  .invite-metric-card .metric-label {
+    font-size: 10px !important;
+    font-weight: 750 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.02em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
+
+  .invite-metric-card .metric-value {
+    font-size: 18px !important;
+    font-weight: 850 !important;
+    color: #0f172a !important;
+    line-height: 1.2 !important;
+  }
+
+  .invite-metric-card .metric-sub {
+    font-size: 9.5px !important;
+    color: #64748b !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
   }
 
   /* 4. PIN Code Availability Checker Card */
@@ -1088,7 +1143,7 @@
     -webkit-overflow-scrolling: touch !important;
     width: 100% !important;
     scrollbar-width: thin !important;
-    scrollbar-color: #00A3E0 #e2e8f0 !important;
+    scrollbar-color: #cbd5e1 #f8fafc !important;
   }
 
   .invite-distributors-table {
@@ -1097,17 +1152,17 @@
   }
 
   .invite-table-container::-webkit-scrollbar {
-    height: 6px !important;
+    height: 4px !important;
     display: block !important;
   }
 
   .invite-table-container::-webkit-scrollbar-thumb {
-    background: #00A3E0 !important;
-    border-radius: 3px !important;
+    background: #cbd5e1 !important;
+    border-radius: 4px !important;
   }
 
   .invite-table-container::-webkit-scrollbar-track {
-    background: #e2e8f0 !important;
+    background: #f8fafc !important;
   }
 
   .modal-form-grid {

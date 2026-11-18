@@ -4531,12 +4531,12 @@ input:checked+.slider:before {
    -------------------------------------------------------------------------- */
 @media (max-width: 1024px) {
 
-  .atomy-sales-kpi-grid,
-  .kpi-curve-grid,
-  .kpi-gradient-grid {
+  .atomy-sales-kpi-grid {
     grid-template-columns: 1fr;
   }
 
+  .kpi-curve-grid,
+  .kpi-gradient-grid,
   .kpi-curve-grid.four-cols,
   .kpi-step-grid,
   .kpi-gradient-grid.four-cols {
@@ -4558,10 +4558,12 @@ input:checked+.slider:before {
 
 @media (max-width: 640px) {
 
+  .kpi-curve-grid,
   .kpi-curve-grid.four-cols,
   .kpi-step-grid,
+  .kpi-gradient-grid,
   .kpi-gradient-grid.four-cols {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
@@ -5850,6 +5852,7 @@ input:checked+.slider:before {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
     margin-bottom: 18px !important;
+    width: 100% !important;
   }
 
   .kpi-step-grid .kpi-step-card:last-child:nth-child(odd),
@@ -5858,24 +5861,278 @@ input:checked+.slider:before {
   }
 
   .kpi-step-card {
-    padding: 10px !important;
-    min-height: 85px !important;
-  }
-
-  .kpi-step-val {
-    font-size: 20px !important;
-  }
-
-  .kpi-step-title {
-    font-size: 10.5px !important;
-  }
-
-  .kpi-step-sub {
-    font-size: 10px !important;
+    border-radius: 14px !important;
+    min-height: 100px !important;
+    padding: 0 0 8px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
   }
 
   .kpi-step-top-header {
-    padding: 8px 10px !important;
+    height: 44px !important;
+    padding: 6px 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-direction: row !important;
+    position: relative !important;
+  }
+
+  .kpi-step-icon-badge {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px !important;
+    margin-bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .kpi-step-icon-badge svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .kpi-step-number {
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    opacity: 0.6 !important;
+  }
+
+  .kpi-step-wave-svg {
+    height: 12px !important;
+    bottom: 0 !important;
+  }
+
+  .kpi-step-body {
+    padding: 6px 10px 4px !important;
+    text-align: left !important;
+  }
+
+  .kpi-step-title {
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    color: #64748b !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  .kpi-step-val {
+    font-size: 18px !important;
+    font-weight: 850 !important;
+    color: #0f172a !important;
+    line-height: 1.2 !important;
+    margin: 2px 0 !important;
+  }
+
+  .kpi-step-sub {
+    font-size: 9px !important;
+    color: #94a3b8 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Gradient Wave KPI Grid (Customers, Inventory, Memberships) - 2 Columns on Mobile */
+  .kpi-gradient-grid,
+  .kpi-gradient-grid.four-cols {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+  }
+
+  .kpi-gradient-grid .kpi-gradient-wave-card:last-child:nth-child(odd),
+  .kpi-gradient-grid.four-cols .kpi-gradient-wave-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    position: relative !important;
+    padding: 14px 16px !important;
+  }
+
+  .kpi-gradient-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-top,
+  .kpi-gradient-grid.four-cols .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-top {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin-bottom: 2px !important;
+  }
+
+  .kpi-gradient-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-title,
+  .kpi-gradient-grid.four-cols .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-title {
+    text-align: center !important;
+    width: auto !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+  }
+
+  .kpi-gradient-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-icon-wrap,
+  .kpi-gradient-grid.four-cols .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-icon-wrap {
+    position: absolute !important;
+    right: 4px !important;
+    top: -2px !important;
+  }
+
+  .kpi-gradient-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-val,
+  .kpi-gradient-grid.four-cols .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-val {
+    text-align: center !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: baseline !important;
+    font-size: 20px !important;
+    font-weight: 850 !important;
+    margin: 3px 0 !important;
+  }
+
+  .kpi-gradient-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-bottom,
+  .kpi-gradient-grid.four-cols .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-bottom {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .kpi-gradient-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-trend,
+  .kpi-gradient-grid.four-cols .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-trend {
+    text-align: center !important;
+    width: 100% !important;
+    font-size: 9.5px !important;
+  }
+
+  .kpi-gradient-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-wave-svg,
+  .kpi-gradient-grid.four-cols .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-wave-svg {
+    position: absolute !important;
+    right: 0 !important;
+    bottom: -2px !important;
+    opacity: 0.55 !important;
+  }
+
+  .kpi-gradient-wave-card {
+    padding: 12px 10px 10px !important;
+    min-height: 105px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .kpi-grad-top {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 4px !important;
+  }
+
+  .kpi-grad-title {
+    font-size: 10px !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .kpi-grad-icon-wrap {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+  }
+
+  .kpi-grad-icon-wrap svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .kpi-grad-val {
+    font-size: 18px !important;
+    font-weight: 850 !important;
+    margin-bottom: 4px !important;
+    line-height: 1.15 !important;
+  }
+
+  .kpi-grad-unit {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+  }
+
+  .kpi-grad-bottom {
+    height: 22px !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+  }
+
+  .kpi-grad-trend {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+
+  .kpi-grad-wave-svg {
+    width: 48px !important;
+    height: 18px !important;
+    opacity: 0.8 !important;
+  }
+
+  /* Support KPI Grid - 2 Columns on Mobile matching Overview layout */
+  .dist-support-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin: 14px 0 !important;
+    width: 100% !important;
+  }
+
+  .dist-support-kpi-card {
+    padding: 12px 10px 10px !important;
+    min-height: 95px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .dist-support-kpi-title {
+    font-size: 10px !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.02em !important;
+    margin-bottom: 2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .dist-support-kpi-val {
+    font-size: 18px !important;
+    font-weight: 850 !important;
+    line-height: 1.2 !important;
+    margin: 2px 0 !important;
+  }
+
+  .dist-support-kpi-sub {
+    font-size: 9px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin-top: 2px !important;
   }
 
   /* Split Overview: 1 Column on Mobile */
@@ -5940,36 +6197,42 @@ input:checked+.slider:before {
     max-width: 100% !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    margin: 0 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    background: #ffffff !important;
+    margin: 0 0 16px !important;
     padding: 0 !important;
     box-sizing: border-box !important;
     scrollbar-width: thin !important;
-    scrollbar-color: #00A3E0 #e2e8f0 !important;
+    scrollbar-color: #cbd5e1 #f8fafc !important;
   }
 
   .catalog-scrollable-table::-webkit-scrollbar,
   .atomy-table-responsive::-webkit-scrollbar,
   .orders-table-wrapper::-webkit-scrollbar {
-    height: 7px !important;
+    height: 4px !important;
     display: block !important;
   }
 
   .catalog-scrollable-table::-webkit-scrollbar-track,
   .atomy-table-responsive::-webkit-scrollbar-track,
   .orders-table-wrapper::-webkit-scrollbar-track {
-    background: #e2e8f0 !important;
+    background: #f8fafc !important;
     border-radius: 4px !important;
   }
 
   .catalog-scrollable-table::-webkit-scrollbar-thumb,
   .atomy-table-responsive::-webkit-scrollbar-thumb,
   .orders-table-wrapper::-webkit-scrollbar-thumb {
-    background: #00A3E0 !important;
+    background: #cbd5e1 !important;
     border-radius: 4px !important;
+  }
+
+  .catalog-scrollable-table::-webkit-scrollbar-thumb:hover,
+  .atomy-table-responsive::-webkit-scrollbar-thumb:hover,
+  .orders-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
   }
 
   .table-scroll-indicator-mobile {
@@ -6334,8 +6597,8 @@ input:checked+.slider:before {
   }
 
   .finance-kpi-grid {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
   }
 
   .finance-header-row {
@@ -6351,13 +6614,18 @@ input:checked+.slider:before {
     padding: 14px 10px 40px !important;
   }
 
-  .territory-stats-grid,
   .invite-form-grid,
-  .membership-kpi-grid,
   .ad-banners-grid,
   .coupons-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
+  }
+
+  .territory-stats-grid,
+  .membership-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
   }
 
   /* Policy Pillars Stacked One By One */
@@ -6833,7 +7101,7 @@ input:checked+.slider:before {
 
 @media (max-width: 480px) {
   .kpi-step-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 
   .quick-btn-grid {

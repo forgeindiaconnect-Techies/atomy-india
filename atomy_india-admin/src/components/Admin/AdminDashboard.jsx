@@ -438,6 +438,188 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const [salesChartRange, setSalesChartRange] = useState('1W');
   const [hoveredChartPoint, setHoveredChartPoint] = useState(null);
 
+  // =========================================================================
+  // CENTRALIZED BROWSER & MOBILE BACK BUTTON NAVIGATION MANAGER
+  // =========================================================================
+  const isPopNavigatingRef = useRef(false);
+  const prevTabRef = useRef('overview');
+
+  // Synchronize top-level activeTab with browser history
+  useEffect(() => {
+    if (isPopNavigatingRef.current) {
+      isPopNavigatingRef.current = false;
+      prevTabRef.current = activeTab;
+      return;
+    }
+
+    try {
+      if (activeTab === 'overview') {
+        if (prevTabRef.current !== 'overview') {
+          window.history.replaceState({ tab: 'overview', subView: null }, '', window.location.href);
+        }
+      } else {
+        if (prevTabRef.current === 'overview') {
+          window.history.pushState({ tab: activeTab, subView: null }, '', window.location.href);
+        } else {
+          window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
+        }
+      }
+    } catch { }
+
+    prevTabRef.current = activeTab;
+  }, [activeTab]);
+
+  // Synchronize inner sub-views with browser history
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (isEditingProductView) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'product-editor' }, '', window.location.href);
+      } catch { }
+    }
+  }, [isEditingProductView, activeTab]);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (selectedOrderDetail) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'order-detail' }, '', window.location.href);
+      } catch { }
+    }
+  }, [Boolean(selectedOrderDetail), activeTab]);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (selectedCustomerDetail) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'customer-detail' }, '', window.location.href);
+      } catch { }
+    }
+  }, [Boolean(selectedCustomerDetail), activeTab]);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (editingTrackingOrder) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'tracking-modal' }, '', window.location.href);
+      } catch { }
+    }
+  }, [Boolean(editingTrackingOrder), activeTab]);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (isMobileNavOpen) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'mobile-nav' }, '', window.location.href);
+      } catch { }
+    }
+  }, [isMobileNavOpen, activeTab]);
+
+  // Popstate Listener: Intercepts mobile/browser back to return to parent page or overview
+  useEffect(() => {
+    try {
+      window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
+    } catch { }
+
+    const handlePopState = () => {
+      // 1. Mobile Drawer -> close drawer first
+      if (isMobileNavOpen) {
+        isPopNavigatingRef.current = true;
+        setIsMobileNavOpen(false);
+        return;
+      }
+
+      // 2. Modals & Inner Pages -> return to parent page
+      if (editingTrackingOrder) {
+        isPopNavigatingRef.current = true;
+        setEditingTrackingOrder(null);
+        return;
+      }
+
+      if (selectedOrderDetail) {
+        isPopNavigatingRef.current = true;
+        setSelectedOrderDetail(null);
+        return;
+      }
+
+      if (selectedCustomerDetail) {
+        isPopNavigatingRef.current = true;
+        setSelectedCustomerDetail(null);
+        return;
+      }
+
+      if (isEditingProductView) {
+        isPopNavigatingRef.current = true;
+        setIsEditingProductView(false);
+        setCurrentEditingProduct(null);
+        return;
+      }
+
+      if (selectedTicket && typeof window !== 'undefined' && window.innerWidth <= 768) {
+        isPopNavigatingRef.current = true;
+        setSelectedTicket(null);
+        return;
+      }
+
+      // 3. Top-level tab -> return to overview page
+      if (activeTab !== 'overview') {
+        isPopNavigatingRef.current = true;
+        setActiveTab('overview');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // 4. Already at overview root with no modals -> let browser perform natural back navigation
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [
+    activeTab,
+    isMobileNavOpen,
+    isEditingProductView,
+    selectedOrderDetail,
+    selectedCustomerDetail,
+    selectedTicket,
+    editingTrackingOrder
+  ]);
+
+  // Synchronized view closers that cleanly pop history
+  const handleCloseOrderDetail = () => {
+    if (window.history.state?.subView === 'order-detail') {
+      window.history.back();
+    } else {
+      setSelectedOrderDetail(null);
+    }
+  };
+
+  const handleCloseCustomerDetail = () => {
+    if (window.history.state?.subView === 'customer-detail') {
+      window.history.back();
+    } else {
+      setSelectedCustomerDetail(null);
+    }
+  };
+
+  const handleCloseProductEditor = () => {
+    if (window.history.state?.subView === 'product-editor') {
+      window.history.back();
+    } else {
+      setIsEditingProductView(false);
+      setCurrentEditingProduct(null);
+    }
+  };
+
+  const handleCloseMobileNav = () => {
+    if (window.history.state?.subView === 'mobile-nav') {
+      window.history.back();
+    } else {
+      setIsMobileNavOpen(false);
+    }
+  };
+
   // Sign Out Confirmation Modal State
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const handleRequestLogout = () => setShowLogoutConfirm(true);
@@ -2354,6 +2536,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Catalog', icon: Boxes },
     { id: 'territories', label: 'Distributors & Territories', icon: MapPin },
     { id: 'invite-distributors', label: 'Invite Distributors', icon: UserPlus },
+    { id: 'finance', label: 'Finance & Hub Sales', icon: IndianRupee },
     { id: 'membership', label: 'Membership & Privileges', icon: Crown },
     { id: 'floating-ad', label: 'Ads & Banner Promotions', icon: Sparkles },
     { id: 'coupons', label: 'Coupons & Offers', icon: Ticket },
@@ -2612,6 +2795,15 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <span>Invite Distributors</span>
             </button>
 
+            {/* 5. Finance & Hub Sales */}
+            <button
+              className={`sidebar-nav-button ${activeTab === 'finance' && !isEditingProductView ? 'active' : ''}`}
+              onClick={() => { setActiveTab('finance'); setIsEditingProductView(false); }}
+            >
+              <IndianRupee size={20} />
+              <span>Finance & Hub Sales</span>
+            </button>
+
             {/* 5. Membership & Privileges */}
             <button
               className={`sidebar-nav-button ${activeTab === 'membership' && !isEditingProductView ? 'active' : ''}`}
@@ -2678,10 +2870,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             <ProductEditorPage
               initialData={currentEditingProduct}
               onSave={handleSaveProductFromEditor}
-              onCancel={() => {
-                setIsEditingProductView(false);
-                setCurrentEditingProduct(null);
-              }}
+              onCancel={handleCloseProductEditor}
             />
           ) : (
             <>
@@ -2842,12 +3031,12 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                       </div>
                     </div>
 
-                    {/* Row 2 - Card 6: Total Customers (Clickable to Customers Directory) */}
+                    {/* Row 2 - Card 6: Total Customers (Clickable to Distributors & Territories) */}
                     <div
                       className="kpi-curve-card interactive-kpi-card"
                       style={{ '--accent-color': '#7c3aed', cursor: 'pointer' }}
-                      onClick={() => setActiveTab('customers')}
-                      title="Inspect Registered Customer Accounts & Order Histories"
+                      onClick={() => setActiveTab('territories')}
+                      title="Inspect Regional Distributors & India Pincode Territories"
                     >
                       <div className="kpi-curve-corner-accent"></div>
                       <div className="kpi-curve-content">
@@ -2856,7 +3045,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           {customersList.length} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>Customers</span>
                         </div>
                         <div className="kpi-curve-sub">
-                          Registered consumer buyer accounts • <span style={{ color: '#7c3aed', fontWeight: 600 }}>View Customers →</span>
+                          Registered consumer buyer accounts • <span style={{ color: '#7c3aed', fontWeight: 600 }}>View Territories →</span>
                         </div>
                       </div>
                       <div className="kpi-curve-right-wing">
@@ -3888,6 +4077,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                   orders={orders}
                   tickets={tickets}
                   products={products}
+                  distributors={distributorList}
                   onProcessRefund={handleProcessRefund}
                   onInspectOrder={(order) => {
                     setSelectedOrderDetail(order);
@@ -5282,7 +5472,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <button
                 type="button"
                 className="inspection-back-nav-btn"
-                onClick={() => setSelectedOrderDetail(null)}
+                onClick={handleCloseOrderDetail}
               >
                 <ArrowLeft size={18} />
                 <span>Back to All Orders</span>
@@ -5321,7 +5511,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <button
                 type="button"
                 className="inspection-topbar-close-btn"
-                onClick={() => setSelectedOrderDetail(null)}
+                onClick={handleCloseOrderDetail}
                 title="Close and return to orders"
               >
                 <X size={20} />
@@ -5564,7 +5754,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 <button
                   type="button"
                   className="order-footer-btn done-btn"
-                  onClick={() => setSelectedOrderDetail(null)}
+                  onClick={handleCloseOrderDetail}
                 >
                   <span>Close Inspection</span>
                 </button>
@@ -5714,14 +5904,14 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         const custTotalSpent = Number(selectedCustomerDetail.totalSpent) || custOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
 
         return (
-          <div className="modal-backdrop-overlay" onClick={() => setSelectedCustomerDetail(null)}>
+          <div className="modal-backdrop-overlay" onClick={handleCloseCustomerDetail}>
             <div className="atomy-modal-box wide" onClick={(e) => e.stopPropagation()}>
               <div className="atomy-modal-header">
                 <div className="modal-title-cluster">
                   <Users size={20} color="#00A3E0" />
                   <h3>Customer Profile: {custName}</h3>
                 </div>
-                <button className="atomy-modal-close" onClick={() => setSelectedCustomerDetail(null)}>
+                <button className="atomy-modal-close" onClick={handleCloseCustomerDetail}>
                   &times;
                 </button>
               </div>
@@ -5814,7 +6004,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 </div>
 
                 <div className="modal-actions-right" style={{ marginTop: '20px' }}>
-                  <button className="atomy-btn-primary" onClick={() => setSelectedCustomerDetail(null)}>
+                  <button className="atomy-btn-primary" onClick={handleCloseCustomerDetail}>
                     Close
                   </button>
                 </div>

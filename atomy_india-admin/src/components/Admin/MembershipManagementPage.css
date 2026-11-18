@@ -889,7 +889,11 @@
 
 /* Responsive */
 @media (max-width: 900px) {
-  .membership-kpi-grid,
+  .membership-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
   .pricing-rules-summary-box {
     grid-template-columns: 1fr;
   }
@@ -923,6 +927,142 @@
   .membership-header-actions button {
     width: 100% !important;
     justify-content: center !important;
+  }
+
+  /* KPI Cards - 2-Column Mobile Overview Layout */
+  .membership-kpi-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+  }
+
+  .kpi-gradient-wave-card {
+    padding: 12px 10px 10px !important;
+    min-height: 108px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  .kpi-grad-top {
+    margin-bottom: 4px !important;
+  }
+
+  .kpi-grad-title {
+    font-size: 10px !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1.2 !important;
+  }
+
+  .kpi-grad-icon-wrap {
+    width: 28px !important;
+    height: 28px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .kpi-grad-icon-wrap svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .kpi-grad-val {
+    font-size: 18px !important;
+    font-weight: 850 !important;
+    margin-bottom: 4px !important;
+    line-height: 1.15 !important;
+  }
+
+  .kpi-grad-unit {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+  }
+
+  .kpi-grad-bottom {
+    height: 22px !important;
+  }
+
+  .kpi-grad-trend {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+
+  .kpi-grad-spark-svg {
+    width: 48px !important;
+    height: 18px !important;
+    opacity: 0.8 !important;
+  }
+
+  /* Full-width odd card centered contents */
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    position: relative !important;
+    padding: 14px 16px !important;
+  }
+
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-top {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin-bottom: 2px !important;
+  }
+
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-title {
+    text-align: center !important;
+    width: auto !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+  }
+
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-icon-wrap {
+    position: absolute !important;
+    right: 4px !important;
+    top: -2px !important;
+  }
+
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-val {
+    text-align: center !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: baseline !important;
+    font-size: 20px !important;
+    font-weight: 850 !important;
+    margin: 3px 0 !important;
+  }
+
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-bottom {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-trend {
+    text-align: center !important;
+    width: 100% !important;
+    font-size: 9.5px !important;
+  }
+
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-spark-svg,
+  .membership-kpi-grid .kpi-gradient-wave-card:last-child:nth-child(odd) .kpi-grad-wave-svg {
+    position: absolute !important;
+    right: 0 !important;
+    bottom: -2px !important;
+    opacity: 0.55 !important;
   }
 
   .members-table-wrap {

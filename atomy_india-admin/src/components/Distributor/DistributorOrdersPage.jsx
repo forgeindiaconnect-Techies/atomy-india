@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Package, 
   Truck, 
@@ -106,6 +106,43 @@ export default function DistributorOrdersPage({
       }
     }
   }, [orders]);
+
+  // Mobile / Browser back button navigation for Order Inspection
+  const isPopNavigatingRef = useRef(false);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) {
+      isPopNavigatingRef.current = false;
+      return;
+    }
+    if (selectedOrderDetail) {
+      try {
+        window.history.pushState({ subView: 'distributor-order-inspect' }, '', window.location.href);
+      } catch { }
+    }
+  }, [Boolean(selectedOrderDetail)]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (selectedOrderDetail) {
+        isPopNavigatingRef.current = true;
+        setSelectedOrderDetail(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [selectedOrderDetail]);
+
+  const handleCloseInspection = () => {
+    if (window.history.state?.subView === 'distributor-order-inspect') {
+      window.history.back();
+    } else {
+      setSelectedOrderDetail(null);
+    }
+  };
 
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
 
@@ -1011,7 +1048,7 @@ export default function DistributorOrdersPage({
               <button 
                 type="button"
                 className="inspection-back-nav-btn" 
-                onClick={() => setSelectedOrderDetail(null)}
+                onClick={handleCloseInspection}
               >
                 <ArrowLeft size={18} />
                 <span>Back to All Orders</span>
@@ -1077,7 +1114,7 @@ export default function DistributorOrdersPage({
               <button 
                 type="button" 
                 className="inspection-topbar-close-btn" 
-                onClick={() => setSelectedOrderDetail(null)}
+                onClick={handleCloseInspection}
                 title="Close and return to orders"
               >
                 <X size={20} />
@@ -1424,7 +1461,7 @@ export default function DistributorOrdersPage({
                 <button 
                   type="button" 
                   className="order-footer-btn done-btn" 
-                  onClick={() => setSelectedOrderDetail(null)}
+                  onClick={handleCloseInspection}
                 >
                   <span>Close Inspection</span>
                 </button>

@@ -139,6 +139,137 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     setTimeout(() => setToastMessage(''), 3500);
   };
 
+  // =========================================================================
+  // CENTRALIZED BROWSER & MOBILE BACK BUTTON NAVIGATION MANAGER
+  // =========================================================================
+  const isPopNavigatingRef = useRef(false);
+  const prevTabRef = useRef('overview');
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) {
+      isPopNavigatingRef.current = false;
+      prevTabRef.current = activeTab;
+      return;
+    }
+
+    try {
+      if (activeTab === 'overview') {
+        if (prevTabRef.current !== 'overview') {
+          window.history.replaceState({ tab: 'overview', subView: null }, '', window.location.href);
+        }
+      } else {
+        if (prevTabRef.current === 'overview') {
+          window.history.pushState({ tab: activeTab, subView: null }, '', window.location.href);
+        } else {
+          window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
+        }
+      }
+    } catch { }
+
+    prevTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (isEditingProductView) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'product-editor' }, '', window.location.href);
+      } catch { }
+    }
+  }, [isEditingProductView, activeTab]);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (inspectingOrderId) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'order-detail' }, '', window.location.href);
+      } catch { }
+    }
+  }, [Boolean(inspectingOrderId), activeTab]);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (selectedOrderForTracking) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'tracking-modal' }, '', window.location.href);
+      } catch { }
+    }
+  }, [Boolean(selectedOrderForTracking), activeTab]);
+
+  useEffect(() => {
+    if (isPopNavigatingRef.current) return;
+    if (isMobileNavOpen) {
+      try {
+        window.history.pushState({ tab: activeTab, subView: 'mobile-nav' }, '', window.location.href);
+      } catch { }
+    }
+  }, [isMobileNavOpen, activeTab]);
+
+  useEffect(() => {
+    try {
+      window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
+    } catch { }
+
+    const handlePopState = () => {
+      // 1. Mobile Drawer
+      if (isMobileNavOpen) {
+        isPopNavigatingRef.current = true;
+        setIsMobileNavOpen(false);
+        return;
+      }
+
+      // 2. Modals & Inner views -> return to parent page
+      if (selectedOrderForTracking) {
+        isPopNavigatingRef.current = true;
+        setSelectedOrderForTracking(null);
+        return;
+      }
+
+      if (inspectingOrderId) {
+        isPopNavigatingRef.current = true;
+        setInspectingOrderId(null);
+        return;
+      }
+
+      if (isEditingProductView) {
+        isPopNavigatingRef.current = true;
+        setIsEditingProductView(false);
+        setCurrentEditingProduct(null);
+        return;
+      }
+
+      // 3. Any other tab -> return to overview page
+      if (activeTab !== 'overview') {
+        isPopNavigatingRef.current = true;
+        setActiveTab('overview');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // 4. Already on overview with no modals -> let browser perform natural back navigation
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [
+    activeTab,
+    isMobileNavOpen,
+    isEditingProductView,
+    inspectingOrderId,
+    selectedOrderForTracking
+  ]);
+
+  const handleCloseProductEditor = () => {
+    if (window.history.state?.subView === 'product-editor') {
+      window.history.back();
+    } else {
+      setIsEditingProductView(false);
+      setCurrentEditingProduct(null);
+    }
+  };
+
   const alertedOrderIdsRef = useRef(new Map());
 
   const triggerDistributorOrderAlert = (order, isLiveRealtime = false) => {
@@ -1495,10 +1626,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
               key={currentEditingProduct?.id || 'product-editor'}
               initialData={currentEditingProduct}
               onSave={handleSaveProductFromEditor}
-              onCancel={() => {
-                setIsEditingProductView(false);
-                setCurrentEditingProduct(null);
-              }}
+              onCancel={handleCloseProductEditor}
             />
           ) : isSubDistributor && hubTeamInfo === null && isLoading ? (
             <div className="admin-tab-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '440px', gap: '14px' }}>
@@ -1775,7 +1903,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         <DistributorTrackingModal
           order={selectedOrderForTracking}
           distributor={distributorUser}
-          onClose={() => setSelectedOrderForTracking(null)}
+          onClose={() => {
+            if (window.history.state?.subView === 'tracking-modal') {
+              window.history.back();
+            } else {
+              setSelectedOrderForTracking(null);
+            }
+          }}
           onUpdateSuccess={async (orderId, payload) => {
             await handleUpdateTracking(orderId, payload);
           }}

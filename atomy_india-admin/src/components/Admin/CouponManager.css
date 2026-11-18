@@ -703,8 +703,74 @@
 }
 
 @media (max-width: 768px) {
+  /* KPI Cards - 2-Column Mobile Overview Layout */
   .coupon-kpi-grid {
-    grid-template-columns: 1fr;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+  }
+
+  .coupon-kpi-card {
+    padding: 12px 10px 10px !important;
+    min-height: 105px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  .coupon-kpi-card .kpi-icon-wrap {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+    margin-bottom: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .coupon-kpi-card .kpi-icon-wrap svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .coupon-kpi-card .kpi-info {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 2px !important;
+  }
+
+  .coupon-kpi-card .kpi-label {
+    font-size: 10px !important;
+    font-weight: 750 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.02em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
+
+  .coupon-kpi-card .kpi-value {
+    font-size: 18px !important;
+    font-weight: 850 !important;
+    color: #0f172a !important;
+    line-height: 1.2 !important;
+  }
+
+  .coupon-kpi-card .kpi-subtext {
+    font-size: 9.5px !important;
+    color: #64748b !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
   }
 
   .rules-matrix-grid {

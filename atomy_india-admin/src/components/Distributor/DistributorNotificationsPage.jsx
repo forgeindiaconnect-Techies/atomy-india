@@ -387,7 +387,7 @@ export default function DistributorNotificationsPage({
                       }}
                       title={isUnread ? 'Mark as read and remove from active list' : 'Restore to unread list'}
                     >
-                      <Check size={14} />
+                      {isUnread ? <Check size={14} /> : <RefreshCw size={14} />}
                       <span>{isUnread ? 'Mark Read' : 'Restore'}</span>
                     </button>
 
