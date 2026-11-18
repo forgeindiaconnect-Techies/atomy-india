@@ -5,7 +5,9 @@ import com.example.atomy_india.dto.DashboardStatsResponse;
 import com.example.atomy_india.dto.DispatchOrderRequest;
 import com.example.atomy_india.dto.StockAdjustmentRequest;
 import com.example.atomy_india.model.*;
+import com.example.atomy_india.model.CustomerNotification;
 import com.example.atomy_india.repository.*;
+import com.example.atomy_india.repository.CustomerNotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +39,7 @@ public class AdminService {
     private SupportTicketRepository ticketRepository;
 
     @Autowired
-    private com.example.atomy_india.repository.CustomerNotificationRepository notificationRepository;
+    private CustomerNotificationRepository notificationRepository;
 
     @Autowired
     private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
@@ -155,6 +157,11 @@ public class AdminService {
 
     @Transactional
     public CustomerOrder updateOrderStatus(String orderId, CustomerOrder.OrderStatus newStatus) {
+        return updateOrderStatus(orderId, newStatus, null, null);
+    }
+
+    @Transactional
+    public CustomerOrder updateOrderStatus(String orderId, CustomerOrder.OrderStatus newStatus, String cancelReason, String cancelNotes) {
         CustomerOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
 
@@ -172,6 +179,20 @@ public class AdminService {
         if (newStatus == CustomerOrder.OrderStatus.DELIVERED
                 && order.getPaymentStatus() == CustomerOrder.PaymentStatus.PENDING) {
             order.setPaymentStatus(CustomerOrder.PaymentStatus.PAID);
+        }
+
+        // Record customer cancellation details & refund status
+        if (newStatus == CustomerOrder.OrderStatus.CANCELLED) {
+            if (cancelReason != null && !cancelReason.trim().isEmpty()) {
+                order.setCancelReason(cancelReason.trim());
+            } else if (order.getCancelReason() == null || order.getCancelReason().trim().isEmpty()) {
+                order.setCancelReason("Ordered by mistake / Change of mind");
+            }
+            if (cancelNotes != null && !cancelNotes.trim().isEmpty()) {
+                order.setCancelNotes(cancelNotes.trim());
+            }
+            order.setCancelledAt(LocalDateTime.now());
+            order.setPaymentStatus(CustomerOrder.PaymentStatus.REFUNDED);
         }
 
         // If order was cancelled and wasn't cancelled before, restore distributor stock
@@ -220,7 +241,8 @@ public class AdminService {
 
         // Live notification for the customer on order status update
         try {
-            if (savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().trim().isEmpty()) {
+            String custEmail = savedOrder.getCustomerEmail();
+            if (custEmail != null && !custEmail.trim().isEmpty()) {
                 String type = "general";
                 String title = "Order #" + orderId + " Status Updated";
                 String message = "Your order status is now " + newStatus.name() + ".";
@@ -230,19 +252,16 @@ public class AdminService {
                     message = "Your package is on its way. Expected delivery within 24-48 hours.";
                 } else if (newStatus == CustomerOrder.OrderStatus.DELIVERED) {
                     type = "order_delivered";
-                    title = "Order #" + orderId + " Delivered! 🎉";
+                    title = "Order #" + orderId + " Delivered!";
                     message = "Your order has been delivered successfully to your shipping address.";
                 } else if (newStatus == CustomerOrder.OrderStatus.CANCELLED) {
                     type = "order_cancelled";
                     title = "Order #" + orderId + " Cancelled";
-                    message = "Order #" + orderId + " was cancelled.";
+                    String reasonText = savedOrder.getCancelReason() != null ? savedOrder.getCancelReason() : "Customer Request";
+                    message = "Order #" + orderId + " was cancelled. Reason: " + reasonText + ". 100% full refund approved.";
                 }
-                notificationRepository.save(new com.example.atomy_india.model.CustomerNotification(
-                        savedOrder.getCustomerEmail().trim().toLowerCase(),
-                        title,
-                        message,
-                        type,
-                        orderId));
+                CustomerNotification notif = new CustomerNotification(custEmail.trim().toLowerCase(), title, message, type, orderId);
+                notificationRepository.save(notif);
             }
         } catch (Exception ignored) {
         }
@@ -301,12 +320,13 @@ public class AdminService {
                 String courier = req.getCourierPartner() != null ? req.getCourierPartner() : "Blue Dart Express";
                 String awb = req.getTrackingNumber() != null ? req.getTrackingNumber() : "";
                 String courierText = !awb.isEmpty() ? " via " + courier + " (AWB: " + awb + ")" : " via " + courier;
-                notificationRepository.save(new com.example.atomy_india.model.CustomerNotification(
+                CustomerNotification dispatchNotif = new CustomerNotification(
                         order.getCustomerEmail().trim().toLowerCase(),
                         "Order #" + orderId + " Out for Delivery",
                         "Your package is on its way" + courierText + ". Expected delivery within 24-48 hours.",
                         "order_transit",
-                        orderId));
+                        orderId);
+                notificationRepository.save(dispatchNotif);
             }
         } catch (Exception ignored) {
         }

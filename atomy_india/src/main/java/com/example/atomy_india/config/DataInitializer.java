@@ -133,6 +133,33 @@ public class DataInitializer implements CommandLineRunner {
         if (naveen.getPhone() == null || naveen.getPhone().isEmpty()) {
             naveen.setPhone("+91 9876543210");
         }
+
+        // Ensure Naveen's membership status is in sync with membership records
+        boolean naveenHasActiveMem = membershipRepository
+                .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc("naveen.mj2.45@gmail.com", "ACTIVE")
+                .isPresent();
+        if (naveenHasActiveMem) {
+            naveen.setIsMember(true);
+        } else if (membershipRepository.count() == 0) {
+            // Seed a persistent default membership record with static joined & expiry dates
+            Membership defaultMem = new Membership();
+            defaultMem.setId("ATM-MEM-412");
+            defaultMem.setCustomerName("Naveen");
+            defaultMem.setCustomerEmail("naveen.mj2.45@gmail.com");
+            defaultMem.setCustomerPhone("+91 9876543210");
+            defaultMem.setPlan("ANNUAL");
+            defaultMem.setAmountPaid(java.math.BigDecimal.valueOf(2499));
+            defaultMem.setPaymentMethod("RAZORPAY_UPI");
+            defaultMem.setPaymentId("pay_atomy_mem_1001");
+            defaultMem.setPaymentStatus("PAID");
+            defaultMem.setStatus("ACTIVE");
+            defaultMem.setStartDate(LocalDateTime.of(2026, 10, 24, 10, 30, 0));
+            defaultMem.setExpiryDate(LocalDateTime.of(2027, 10, 24, 10, 30, 0));
+            defaultMem.setCreatedAt(LocalDateTime.of(2026, 10, 24, 10, 30, 0));
+            defaultMem.setUpdatedAt(LocalDateTime.of(2026, 10, 24, 10, 30, 0));
+            membershipRepository.save(defaultMem);
+            naveen.setIsMember(true);
+        }
         customerUserRepository.save(naveen);
 
         // 4. Ensure default membership promotion setting is seeded

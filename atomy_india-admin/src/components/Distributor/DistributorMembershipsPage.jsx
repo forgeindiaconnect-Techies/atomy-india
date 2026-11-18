@@ -73,6 +73,40 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
 
   const annualCount = members.filter(m => String(m.plan || '').toUpperCase().includes('ANNUAL')).length;
 
+  const formatMembershipDate = (dateVal) => {
+    if (!dateVal) return '—';
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal).split('T')[0];
+      return d.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      return String(dateVal).split('T')[0];
+    }
+  };
+
+  const getCalculatedExpiry = (member) => {
+    if (member?.expiryDate) return member.expiryDate;
+    const start = member?.startDate || member?.joinedAt || member?.enrolledAt || member?.createdAt;
+    if (start) {
+      try {
+        const d = new Date(start);
+        if (!isNaN(d.getTime())) {
+          if (String(member?.plan || '').toUpperCase() === 'MONTHLY') {
+            d.setMonth(d.getMonth() + 1);
+          } else {
+            d.setFullYear(d.getFullYear() + 1);
+          }
+          return d.toISOString().split('T')[0];
+        }
+      } catch {}
+    }
+    return '';
+  };
+
   return (
     <div className="admin-tab-content">
       {/* 1. Content Heading Row */}
@@ -209,103 +243,117 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
               <th style={{ textAlign: 'center' }}>Membership Tier</th>
               <th style={{ textAlign: 'center' }}>Status</th>
               <th>Enrolled Date</th>
+              <th>Expiry Date</th>
               <th>Privilege Rights</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="table-empty-row">
+                <td colSpan={9} className="table-empty-row">
                   <p>Loading territory members...</p>
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="table-empty-row">
+                <td colSpan={9} className="table-empty-row">
                   <Crown size={36} color="#94a3b8" />
                   <p>No members registered in this territory matching search query.</p>
                 </td>
               </tr>
             ) : (
-              filtered.map((m, idx) => (
-                <tr key={m.memberId || idx}>
-                  <td>
-                    <div className="customer-avatar-row">
-                      <div className="customer-avatar-circle" style={{ background: '#fef08a', color: '#854d0e', border: '1px solid #fde047' }}>
-                        {(m.name || 'M').slice(0, 1).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="cell-primary-text">{m.name}</div>
-                        <div className="cell-secondary-text" style={{ fontSize: '11px', color: '#ca8a04', fontWeight: 700 }}>
-                          Verified Atomy Gold
+              filtered.map((m, idx) => {
+                const enrolledDateVal = m.startDate || m.joinedAt || m.enrolledAt || m.createdAt;
+                const expiryDateVal = getCalculatedExpiry(m);
+                const isMonthly = String(m.plan || '').toUpperCase() === 'MONTHLY';
+                const isActive = String(m.status || 'ACTIVE').toUpperCase() === 'ACTIVE';
+
+                return (
+                  <tr key={m.id || m.memberId || idx}>
+                    <td>
+                      <div className="customer-avatar-row">
+                        <div className="customer-avatar-circle" style={{ background: '#fef08a', color: '#854d0e', border: '1px solid #fde047' }}>
+                          {(m.name || m.customerName || 'M').slice(0, 1).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="cell-primary-text">{m.name || m.customerName}</div>
+                          <div className="cell-secondary-text" style={{ fontSize: '11px', color: '#ca8a04', fontWeight: 700 }}>
+                            Verified Atomy Gold
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td>
-                    <span className="order-id-badge" style={{ background: '#f8fafc', color: '#0369a1', borderColor: '#bae6fd' }}>
-                      {m.memberId || `ATOMY-${idx + 1001}`}
-                    </span>
-                  </td>
+                    <td>
+                      <span className="order-id-badge" style={{ background: '#f8fafc', color: '#0369a1', borderColor: '#bae6fd' }}>
+                        {m.id || m.memberId || `ATOMY-${idx + 1001}`}
+                      </span>
+                    </td>
 
-                  <td>
-                    <div className="cell-secondary-text" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Mail size={12} color="#94a3b8" />
-                      <span>{m.email}</span>
-                    </div>
-                    <div className="cell-secondary-text" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                      <Phone size={12} color="#94a3b8" />
-                      <span>{m.phone || 'N/A'}</span>
-                    </div>
-                  </td>
+                    <td>
+                      <div className="cell-secondary-text" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Mail size={12} color="#94a3b8" />
+                        <span>{m.email || m.customerEmail}</span>
+                      </div>
+                      <div className="cell-secondary-text" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <Phone size={12} color="#94a3b8" />
+                        <span>{m.phone || m.customerPhone || 'N/A'}</span>
+                      </div>
+                    </td>
 
-                  <td>
-                    <div className="address-line-sub">
-                      {m.city || distributor?.city}, {m.state || distributor?.state} <span className="pincode-pill">{m.pincode || distributor?.primaryPincode}</span>
-                    </div>
-                  </td>
+                    <td>
+                      <div className="address-line-sub">
+                        {m.city || distributor?.city}, {m.state || distributor?.state} <span className="pincode-pill">{m.pincode || distributor?.primaryPincode}</span>
+                      </div>
+                    </td>
 
-                  <td style={{ textAlign: 'center' }}>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '3px 10px',
-                      borderRadius: '12px',
-                      fontSize: '11.5px',
-                      fontWeight: 700,
-                      backgroundColor: '#fef9c3',
-                      color: '#a16207',
-                      border: '1px solid #fef08a'
-                    }}>
-                      <Crown size={12} /> Annual VIP
-                    </span>
-                  </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '3px 10px',
+                        borderRadius: '12px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        backgroundColor: isMonthly ? '#e0f2fe' : '#fef9c3',
+                        color: isMonthly ? '#0369a1' : '#a16207',
+                        border: isMonthly ? '1px solid #bae6fd' : '1px solid #fef08a'
+                      }}>
+                        <Crown size={12} /> {isMonthly ? 'Monthly VIP' : 'Annual VIP'}
+                      </span>
+                    </td>
 
-                  <td style={{ textAlign: 'center' }}>
-                    <span className="sla-badge delivered" style={{ display: 'inline-flex', padding: '3px 9px' }}>
-                      <CheckCircle2 size={11} color="#15803d" /> Active
-                    </span>
-                  </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span className={`sla-badge ${isActive ? 'delivered' : 'cancelled'}`} style={{ display: 'inline-flex', padding: '3px 9px' }}>
+                        {isActive ? (
+                          <><CheckCircle2 size={11} color="#15803d" /> Active</>
+                        ) : (
+                          <><X size={11} color="#b91c1c" /> {m.status || 'Inactive'}</>
+                        )}
+                      </span>
+                    </td>
 
-                  <td>
-                    <div className="order-date-text">
-                      {new Date(m.joinedAt || Date.now()).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </div>
-                  </td>
+                    <td>
+                      <div className="order-date-text">
+                        {formatMembershipDate(enrolledDateVal)}
+                      </div>
+                    </td>
 
-                  <td>
-                    <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Truck size={13} color="#00A3E0" /> Free Blue Dart Delivery
-                    </div>
-                  </td>
-                </tr>
-              ))
+                    <td>
+                      <div className="order-date-text" style={{ color: '#475569', fontWeight: 600 }}>
+                        {formatMembershipDate(expiryDateVal)}
+                      </div>
+                    </td>
+
+                    <td>
+                      <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Truck size={13} color="#00A3E0" /> Free Blue Dart Delivery
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

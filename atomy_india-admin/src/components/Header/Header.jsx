@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, User, ShoppingCart, ChevronDown, ChevronUp, Menu, Globe, X, Bell, Sparkles, Clock, Heart } from 'lucide-react';
+import { Search, User, ShoppingCart, ChevronDown, ChevronUp, Menu, Globe, X, Bell, Sparkles, Clock, Heart, ArrowRight } from 'lucide-react';
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
 import PhoenixFlight from './PhoenixFlight';
@@ -836,6 +836,20 @@ export default function Header({
                             </div>
                           )}
                         </div>
+
+                        <div className="notif-dropdown-footer">
+                          <button
+                            type="button"
+                            className="notif-view-all-page-btn"
+                            onClick={() => {
+                              onSelectNotificationTab && onSelectNotificationTab('notifications');
+                              setIsAdminNotifOpen(false);
+                            }}
+                          >
+                            <span>Open Notification Activity Center</span>
+                            <ArrowRight size={14} />
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -857,15 +871,22 @@ export default function Header({
                       </span>
                       {adminProfile?.assignedAreaText ? (
                         <span className={`admin-master-assigned-pin ${adminProfile.assignedAreaText.toLowerCase().includes('substitute') ? 'is-substitute' : 'is-primary'}`}>
-                          {adminProfile.assignedAreaText}
+                          <span className="desktop-pin-text">{adminProfile.assignedAreaText}</span>
+                          <span className="mobile-pin-text">
+                            {adminProfile.assignedAreaText.toLowerCase().includes('substitute')
+                              ? `Sub • PIN ${adminProfile.pincode || adminProfile.assignedAreaText.match(/\d+/)?.[0] || '635002'}`
+                              : `PIN ${adminProfile.pincode || adminProfile.assignedAreaText.match(/\d+/)?.[0] || '635002'}`}
+                          </span>
                         </span>
                       ) : adminProfile?.pincode ? (
                         <span className="admin-master-assigned-pin is-primary">
-                          Assigned Area: PIN {adminProfile.pincode}
+                          <span className="desktop-pin-text">Assigned Area: PIN {adminProfile.pincode}</span>
+                          <span className="mobile-pin-text">PIN {adminProfile.pincode}</span>
                         </span>
                       ) : adminProfile?.role && adminProfile.role.includes('PIN:') ? (
                         <span className="admin-master-assigned-pin is-primary">
-                          Assigned Area: PIN {adminProfile.role.match(/PIN:\s*(\d+)/)?.[1] || ''}
+                          <span className="desktop-pin-text">Assigned Area: PIN {adminProfile.role.match(/PIN:\s*(\d+)/)?.[1] || ''}</span>
+                          <span className="mobile-pin-text">PIN {adminProfile.role.match(/PIN:\s*(\d+)/)?.[1] || ''}</span>
                         </span>
                       ) : (
                         <span className="admin-master-role">

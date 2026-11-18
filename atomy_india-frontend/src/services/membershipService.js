@@ -2,7 +2,9 @@
 // Manages single-class Atomy Distributor Membership, Monthly & Annual plans, DP / PV pricing logic
 // Synced with Spring Boot MySQL backend on port 8085
 
-const rawBackendUrl = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-1ezb.onrender.com/api';
+const rawBackendUrl = (import.meta.env.VITE_API_BASE_URL || defaultBase).trim().replace(/\/+$/, '');
 const BACKEND_URL = rawBackendUrl.endsWith('/api') ? rawBackendUrl : `${rawBackendUrl}/api`;
 const API_BASE = `${BACKEND_URL}/membership`;
 const ADMIN_API_BASE = `${BACKEND_URL}/admin/membership`;
@@ -103,7 +105,38 @@ export async function fetchMembersRegistryFromBackend() {
           !m.paymentId?.includes('test') &&
           !m.email?.includes('example.com') &&
           !m.customerEmail?.includes('example.com')
-        );
+        ).map(m => {
+          const startDateStr = m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : (m.createdAt ? String(m.createdAt).split('T')[0] : '');
+          let expiryDateStr = m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : '';
+          if (!expiryDateStr && startDateStr) {
+            try {
+              const s = new Date(startDateStr);
+              if (!isNaN(s.getTime())) {
+                if (String(m.plan).toUpperCase() === 'MONTHLY') s.setMonth(s.getMonth() + 1);
+                else s.setFullYear(s.getFullYear() + 1);
+                expiryDateStr = s.toISOString().split('T')[0];
+              }
+            } catch {}
+          }
+          return {
+            ...m,
+            id: m.id || m.memberId,
+            memberId: m.id || m.memberId,
+            name: m.customerName || m.name,
+            customerName: m.customerName || m.name,
+            email: m.customerEmail || m.email,
+            customerEmail: m.customerEmail || m.email,
+            phone: m.customerPhone || m.phone,
+            customerPhone: m.customerPhone || m.phone,
+            plan: m.plan || 'ANNUAL',
+            status: m.status || 'ACTIVE',
+            startDate: startDateStr,
+            joinedAt: startDateStr,
+            enrolledAt: startDateStr,
+            expiryDate: expiryDateStr,
+            createdAt: m.createdAt || startDateStr
+          };
+        });
         localStorage.setItem(MEMBERS_KEY, JSON.stringify(clean));
         window.dispatchEvent(new CustomEvent('atomy:members-registry-updated', { detail: clean }));
         return clean;
@@ -206,6 +239,30 @@ export async function fetchFullMembershipStatusWithBackend(email) {
     const res = await fetch(`${API_BASE}/status?email=${encodeURIComponent(email)}`);
     if (res.ok) {
       const data = await res.json();
+      if (data && data.membership) {
+        const m = data.membership;
+        const startDateStr = m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : (m.createdAt ? String(m.createdAt).split('T')[0] : '');
+        let expiryDateStr = m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : '';
+        if (!expiryDateStr && startDateStr) {
+          try {
+            const s = new Date(startDateStr);
+            if (!isNaN(s.getTime())) {
+              if (String(m.plan).toUpperCase() === 'MONTHLY') s.setMonth(s.getMonth() + 1);
+              else s.setFullYear(s.getFullYear() + 1);
+              expiryDateStr = s.toISOString().split('T')[0];
+            }
+          } catch {}
+        }
+        data.membership = {
+          ...m,
+          id: m.id || m.memberId,
+          memberId: m.id || m.memberId,
+          startDate: startDateStr,
+          joinedAt: startDateStr,
+          enrolledAt: startDateStr,
+          expiryDate: expiryDateStr
+        };
+      }
       return data;
     }
   } catch (e) {
@@ -357,8 +414,11 @@ export async function enrollMembership(user, plan = 'ANNUAL', paymentDetails = {
         active: true,
         status: 'ACTIVE',
         plan,
+        startDate: memberRecord.startDate || memberRecord.joinedAt || now.toISOString().split('T')[0],
+        joinedAt: memberRecord.startDate || memberRecord.joinedAt || now.toISOString().split('T')[0],
         expiryDate: memberRecord.expiryDate,
-        id: memberRecord.id
+        id: memberRecord.id,
+        memberId: memberRecord.id
       };
       localStorage.setItem('atomy_current_user', JSON.stringify(sessionUser));
     }

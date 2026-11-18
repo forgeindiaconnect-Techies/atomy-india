@@ -1182,7 +1182,7 @@
   .head-top-row {
     display: none;
   }
-  .team-phoenix-col, .brand-col-divider {
+  .brand-col-divider {
     display: none;
   }
   .search-box {
@@ -1554,6 +1554,14 @@
   box-shadow: 0 4px 12px rgba(0, 163, 224, 0.25);
 }
 
+.desktop-pin-text {
+  display: inline;
+}
+
+.mobile-pin-text {
+  display: none;
+}
+
 .admin-master-avatar {
   width: 32px;
   height: 32px;
@@ -1778,6 +1786,33 @@
   background: #fee2e2;
 }
 
+.notif-dropdown-footer {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.notif-view-all-page-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.notif-view-all-page-btn:hover {
+  background: #0369a1;
+}
+
 /* ==========================================================================
    ADMIN MOBILE NAVBAR ENHANCEMENTS (<= 768px and <= 480px)
    Strictly scoped to mobile viewports. Desktop (> 768px) remains untouched.
@@ -1835,6 +1870,72 @@
     max-height: 38px !important;
   }
 
+  .brand-section {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .team-phoenix-col.fic-brand-col,
+  .fic-brand-col {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 1px !important;
+    margin-left: 2px !important;
+    user-select: none !important;
+    flex-shrink: 0 !important;
+  }
+
+  .fic-brand-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    font-size: 13.5px !important;
+    font-weight: 900 !important;
+    line-height: 1.1 !important;
+    letter-spacing: -0.2px !important;
+    white-space: nowrap !important;
+  }
+
+  .fic-forge-text {
+    font-size: 13.5px !important;
+    font-weight: 900 !important;
+    color: #ffffff !important;
+    letter-spacing: 0.4px !important;
+  }
+
+  .fic-india-text {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 1px !important;
+    font-size: 13.5px !important;
+    font-weight: 900 !important;
+    color: #FFB800 !important;
+    letter-spacing: 0.4px !important;
+  }
+
+  .fic-india-map-svg {
+    height: 14px !important;
+    width: auto !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+  }
+
+  .fic-brand-sub {
+    display: flex !important;
+    align-items: center !important;
+    font-size: 7.5px !important;
+    font-weight: 800 !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    letter-spacing: 0.28em !important;
+    line-height: 1 !important;
+    margin-top: 1px !important;
+    white-space: nowrap !important;
+    text-transform: uppercase !important;
+  }
+
   .admin-portal-header-brand {
     display: flex !important;
     flex-direction: column !important;
@@ -1858,54 +1959,66 @@
   }
 
   .admin-master-actions-group {
+    display: flex !important;
     gap: 8px !important;
     align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .admin-master-notif-wrap {
+    flex-shrink: 0 !important;
   }
 
   .admin-master-bell-btn {
-    width: 36px !important;
-    height: 36px !important;
+    width: 34px !important;
+    height: 34px !important;
+    flex-shrink: 0 !important;
   }
 
   .admin-master-profile-pill {
-    padding: 4px 10px 4px 6px !important;
-    gap: 6px !important;
-    background: rgba(255, 255, 255, 0.16) !important;
-    border: 1px solid rgba(255, 255, 255, 0.28) !important;
-    border-radius: 20px !important;
+    padding: 3px 10px 3px 5px !important;
+    gap: 7px !important;
+    background: #ffffff !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
     cursor: pointer !important;
     display: flex !important;
     align-items: center !important;
+    flex-shrink: 0 !important;
   }
 
   .admin-master-avatar {
-    width: 30px !important;
-    height: 30px !important;
+    width: 28px !important;
+    height: 28px !important;
     font-size: 13px !important;
+    font-weight: 800 !important;
     flex-shrink: 0 !important;
+    background: linear-gradient(135deg, #00A3E0, #0284c7) !important;
+    color: #ffffff !important;
   }
 
   .admin-master-info {
     display: flex !important;
     flex-direction: column !important;
     align-items: flex-start !important;
-    line-height: 1.2 !important;
+    line-height: 1.15 !important;
   }
 
   .admin-master-name {
-    font-size: 12.5px !important;
-    max-width: 95px !important;
+    font-size: 12px !important;
+    max-width: 90px !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    font-weight: 700 !important;
-    color: #ffffff !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
   }
 
   .admin-master-assigned-pin {
-    font-size: 10px !important;
+    font-size: 9.5px !important;
     font-weight: 700 !important;
-    color: #0369a1 !important;
+    color: #0284c7 !important;
     white-space: nowrap !important;
     display: block !important;
   }
@@ -1915,7 +2028,15 @@
   }
 
   .admin-master-assigned-pin.is-primary {
-    color: #0369a1 !important;
+    color: #0284c7 !important;
+  }
+
+  .desktop-pin-text {
+    display: none !important;
+  }
+
+  .mobile-pin-text {
+    display: inline !important;
   }
 
   .admin-master-role {
@@ -1924,9 +2045,25 @@
   }
 
   .admin-master-notif-dropdown {
-    width: calc(100vw - 24px) !important;
-    max-width: 330px !important;
-    right: -55px !important;
+    position: fixed !important;
+    top: 66px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(85vh - 70px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28) !important;
+    z-index: 9999999 !important;
+    border-radius: 12px !important;
+  }
+
+  .notif-dropdown-body {
+    max-height: none !important;
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 }
 
@@ -1939,6 +2076,25 @@
   .brand-logo-img {
     height: 32px !important;
     max-height: 34px !important;
+  }
+
+  .fic-brand-title {
+    font-size: 11.5px !important;
+    gap: 2px !important;
+  }
+
+  .fic-forge-text,
+  .fic-india-text {
+    font-size: 11.5px !important;
+  }
+
+  .fic-india-map-svg {
+    height: 12px !important;
+  }
+
+  .fic-brand-sub {
+    font-size: 6.5px !important;
+    letter-spacing: 0.22em !important;
   }
 
   .admin-portal-brand-main {

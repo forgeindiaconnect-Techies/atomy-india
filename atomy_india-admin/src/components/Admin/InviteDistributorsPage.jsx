@@ -54,15 +54,31 @@ export default function InviteDistributorsPage({ showToast }) {
   const [isHubDropdownOpen, setIsHubDropdownOpen] = useState(false);
   const hubDropdownRef = useRef(null);
 
-  // Close hub dropdown on outside click
+  // Custom Filter Dropdowns State
+  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
+  const stateDropdownRef = useRef(null);
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef(null);
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (hubDropdownRef.current && !hubDropdownRef.current.contains(event.target)) {
         setIsHubDropdownOpen(false);
       }
+      if (stateDropdownRef.current && !stateDropdownRef.current.contains(event.target)) {
+        setIsStateDropdownOpen(false);
+      }
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+        setIsStatusDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   // Invite Form State (1 Sub-Admin = strictly 1 PIN code)
@@ -561,29 +577,6 @@ export default function InviteDistributorsPage({ showToast }) {
         </div>
 
         <div className="invite-header-actions">
-          {distributors.length > 0 && (
-            <button
-              type="button"
-              className="btn-clear-all-distributors"
-              title="Delete all distributors and clear duplicate records"
-              onClick={handleClearAllDistributors}
-            >
-              <Trash2 size={14} />
-              <span>Clear All Distributors</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="btn-open-invite-modal"
-            style={{ background: '#059669', borderColor: '#059669', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            title="Onboard a Temporary Substitute / Standby Backup Distributor for an existing hub"
-            onClick={() => handleInviteSubDistributor(null)}
-          >
-            <UserPlus size={15} />
-            <span>+ Onboard Temporary Substitute (Backup)</span>
-          </button>
-
           <button
             type="button"
             className="btn-open-invite-modal"
@@ -613,6 +606,29 @@ export default function InviteDistributorsPage({ showToast }) {
             <UserPlus size={15} />
             <span>+ Invite New Distributor</span>
           </button>
+
+          <button
+            type="button"
+            className="btn-open-invite-modal"
+            style={{ background: '#059669', borderColor: '#059669', color: '#ffffff', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            title="Onboard a Temporary Substitute / Standby Backup Distributor for an existing hub"
+            onClick={() => handleInviteSubDistributor(null)}
+          >
+            <UserPlus size={15} />
+            <span>+ Onboard Temporary Substitute (Backup)</span>
+          </button>
+
+          {distributors.length > 0 && (
+            <button
+              type="button"
+              className="btn-clear-all-distributors"
+              title="Delete all distributors and clear duplicate records"
+              onClick={handleClearAllDistributors}
+            >
+              <Trash2 size={14} />
+              <span>Clear All Distributors</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -737,42 +753,111 @@ export default function InviteDistributorsPage({ showToast }) {
       {/* Search & Filters Toolbar */}
       <div className="invite-toolbar">
         <div className="invite-search-box">
-          <Search size={18} className="search-icon" />
+          <Search size={18} strokeWidth={2.4} className="search-icon" />
           <input
             type="text"
-            placeholder="Search by distributor name, contact, PIN code, or city..."
+            placeholder="Search distributor name, contact, PIN, or city..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="invite-filter-input"
           />
+          {search && (
+            <button
+              type="button"
+              className="clear-search-btn"
+              onClick={() => setSearch('')}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         <div className="invite-filter-group">
-          <div className="select-wrap">
-            <span className="filter-prefix">State:</span>
-            <select
-              value={stateFilter}
-              onChange={(e) => setStateFilter(e.target.value)}
-              className="invite-select-filter"
+          {/* State Custom Dropdown */}
+          <div className="select-wrap custom-select-container" ref={stateDropdownRef}>
+            <button
+              type="button"
+              className={`invite-select-trigger ${isStateDropdownOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsStateDropdownOpen(!isStateDropdownOpen);
+                setIsStatusDropdownOpen(false);
+              }}
+              aria-expanded={isStateDropdownOpen}
+              title="Filter by state"
             >
-              {uniqueStates.map(st => (
-                <option key={st} value={st}>{st === 'ALL' ? 'All States' : st}</option>
-              ))}
-            </select>
+              <span className="filter-prefix">State:</span>
+              <strong className="filter-selected-val">
+                {stateFilter === 'ALL' ? 'All States' : stateFilter}
+              </strong>
+              <ChevronDown size={14} className={`dropdown-chevron ${isStateDropdownOpen ? 'rotate' : ''}`} />
+            </button>
+
+            {isStateDropdownOpen && (
+              <div className="custom-dropdown-menu scrollable-menu">
+                {uniqueStates.map(st => (
+                  <button
+                    key={st}
+                    type="button"
+                    className={`custom-dropdown-item ${stateFilter === st ? 'selected' : ''}`}
+                    onClick={() => {
+                      setStateFilter(st);
+                      setIsStateDropdownOpen(false);
+                    }}
+                  >
+                    <span>{st === 'ALL' ? 'All States' : st}</span>
+                    {stateFilter === st && <Check size={14} color="#0284c7" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="select-wrap">
-            <span className="filter-prefix">Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="invite-select-filter"
+          {/* Status Custom Dropdown */}
+          <div className="select-wrap custom-select-container" ref={statusDropdownRef}>
+            <button
+              type="button"
+              className={`invite-select-trigger ${isStatusDropdownOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsStatusDropdownOpen(!isStatusDropdownOpen);
+                setIsStateDropdownOpen(false);
+              }}
+              aria-expanded={isStatusDropdownOpen}
+              title="Filter by status"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="ACTIVE">Active Hubs</option>
-              <option value="INVITED">Pending Invitations</option>
-              <option value="PAUSED">Paused</option>
-            </select>
+              <span className="filter-prefix">Status:</span>
+              <strong className="filter-selected-val">
+                {statusFilter === 'ALL' && 'All Statuses'}
+                {statusFilter === 'ACTIVE' && 'Active Hubs'}
+                {statusFilter === 'INVITED' && 'Pending Invitations'}
+                {statusFilter === 'PAUSED' && 'Paused'}
+              </strong>
+              <ChevronDown size={14} className={`dropdown-chevron ${isStatusDropdownOpen ? 'rotate' : ''}`} />
+            </button>
+
+            {isStatusDropdownOpen && (
+              <div className="custom-dropdown-menu">
+                {[
+                  { id: 'ALL', label: 'All Statuses' },
+                  { id: 'ACTIVE', label: 'Active Hubs' },
+                  { id: 'INVITED', label: 'Pending Invitations' },
+                  { id: 'PAUSED', label: 'Paused' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`custom-dropdown-item ${statusFilter === opt.id ? 'selected' : ''}`}
+                    onClick={() => {
+                      setStatusFilter(opt.id);
+                      setIsStatusDropdownOpen(false);
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {statusFilter === opt.id && <Check size={14} color="#0284c7" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

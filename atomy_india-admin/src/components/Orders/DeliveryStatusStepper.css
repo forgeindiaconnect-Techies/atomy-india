@@ -465,7 +465,219 @@
 .narrative-tag.purple { background: #7c3aed; }
 .narrative-tag.green { background: #059669; }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
+  .delivery-stepper-wrapper {
+    padding: 12px 14px 16px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .shipping-status-live-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .status-header-left {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-size: 11.5px !important;
+  }
+
+  .status-header-right {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  .tracking-awb-badge {
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+  }
+
+  .verified-transit-badge {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+  }
+
+  /* Vertical Delivery Stepper Flow on Mobile */
+  .delivery-stepper-flow {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 8px 4px !important;
+    gap: 0 !important;
+    overflow-x: visible !important;
+  }
+
+  .stepper-stage-node {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    gap: 12px !important;
+    z-index: 5 !important;
+    cursor: default !important;
+    transform: none !important;
+  }
+
+  .stepper-stage-node:hover {
+    transform: none !important;
+  }
+
+  .stage-circle {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    margin-bottom: 0 !important;
+    font-size: 12.5px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .stage-text-block {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    flex: 1 !important;
+    width: auto !important;
+  }
+
+  .stage-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    text-align: left !important;
+    margin-bottom: 1px !important;
+    line-height: 1.25 !important;
+  }
+
+  .stage-subtitle {
+    font-size: 11px !important;
+    max-width: 100% !important;
+    text-align: left !important;
+    color: #64748b !important;
+    line-height: 1.2 !important;
+  }
+
+  .stage-live-badge {
+    margin-top: 3px !important;
+    font-size: 8.5px !important;
+    padding: 2px 5px !important;
+  }
+
+  .stepper-connector-track {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 40px !important;
+    margin: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    position: relative !important;
+    flex: none !important;
+  }
+
+  .connector-bg-dots {
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 18px !important;
+    right: auto !important;
+    width: 0 !important;
+    height: 100% !important;
+    border-top: none !important;
+    border-left: 3px dotted #cbd5e1 !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .connector-fill-dots-wrap {
+    top: 0 !important;
+    bottom: auto !important;
+    left: 18px !important;
+    right: auto !important;
+    width: 6px !important;
+    height: 100% !important;
+    border-top: none !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .stepper-connector-track.is-pending .connector-fill-dots-wrap {
+    display: none !important;
+  }
+
+  .connector-fill-dots {
+    width: 0 !important;
+    height: 100% !important;
+    border-top: none !important;
+    border-left: 3px dotted #00A3E0 !important;
+  }
+
+  .stepper-connector-track.is-completed .connector-fill-dots {
+    border-left-color: #10b981 !important;
+  }
+
+  /* Vertical Live Transit Mover on Mobile (Riding Downward along Dotted Track) */
+  .mover-wrapper {
+    position: absolute !important;
+    left: 18px !important;
+    top: 0 !important;
+    width: 36px !important;
+    height: 32px !important;
+    z-index: 10 !important;
+    pointer-events: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  .mover-wrapper.is-hidden,
+  .mover-wrapper.is-done {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  .mover-wrapper.is-active {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    left: 18px !important;
+    animation: liveMoverVerticalDrive 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+  }
+
+  @keyframes liveMoverVerticalDrive {
+    0% {
+      top: 4%;
+      opacity: 0.15;
+      transform: translate(-50%, -50%) scale(0.82);
+    }
+    14% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(0.92);
+    }
+    86% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(0.92);
+    }
+    100% {
+      top: 96%;
+      opacity: 0.15;
+      transform: translate(-50%, -50%) scale(0.82);
+    }
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
   .delivery-stepper-flow {
     overflow-x: auto;
     padding-bottom: 20px;

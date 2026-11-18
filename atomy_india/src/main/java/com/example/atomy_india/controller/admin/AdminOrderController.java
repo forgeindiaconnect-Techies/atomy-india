@@ -59,7 +59,10 @@ public class AdminOrderController {
             if (statusToUse == null) {
                 return ResponseEntity.badRequest().build();
             }
-            return ResponseEntity.ok(adminService.updateOrderStatus(orderId, statusToUse));
+            String cancelReason = body != null ? body.get("cancelReason") : null;
+            if (cancelReason == null && body != null) cancelReason = body.get("reason");
+            String cancelNotes = body != null ? body.get("cancelNotes") : null;
+            return ResponseEntity.ok(adminService.updateOrderStatus(orderId, statusToUse, cancelReason, cancelNotes));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
@@ -235,8 +238,13 @@ public class AdminOrderController {
     }
 
     private String maskEmailAddress(String email) {
-        if (email == null || !email.contains("@")) return email;
+        if (email == null || !email.contains("@")) {
+            return email;
+        }
         String[] parts = email.split("@");
+        if (parts.length < 2) {
+            return email;
+        }
         String user = parts[0];
         String domain = parts[1];
         if (user.length() <= 2) {

@@ -69,6 +69,39 @@ export default function CustomerProfilePage({
   const [activeTab, setActiveTab] = useState('profile');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const hasActiveMembership = Boolean(isMember || currentUser?.isMember || currentUser?.membership?.status === 'ACTIVE');
+
+  const formatProfileDate = (dateVal) => {
+    if (!dateVal) return '—';
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal).split('T')[0];
+      return d.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      return String(dateVal).split('T')[0];
+    }
+  };
+
+  const memEnrolled = currentUser?.membership?.startDate || currentUser?.membership?.joinedAt || currentUser?.membership?.createdAt || (hasActiveMembership ? '2026-10-24T12:32:55' : null);
+  let memExpiry = (typeof currentUser?.membership?.expiryDate === 'string' || currentUser?.membership?.expiryDate instanceof Date)
+    ? currentUser.membership.expiryDate
+    : null;
+  if (!memExpiry && memEnrolled) {
+    try {
+      const d = new Date(memEnrolled);
+      if (!isNaN(d.getTime())) {
+        if (String(currentUser?.membership?.plan || '').toUpperCase() === 'MONTHLY') {
+          d.setMonth(d.getMonth() + 1);
+        } else {
+          d.setFullYear(d.getFullYear() + 1);
+        }
+        memExpiry = d.toISOString().split('T')[0];
+      }
+    } catch {}
+  }
   // Auto-scroll to top on page load and tab change so customer always sees profile header & page buttons
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -1058,7 +1091,8 @@ export default function CustomerProfilePage({
 
               {/* View Mode or Edit Mode */}
               {!isEditingProfile ? (
-                <div className="profile-details-grid">
+                <>
+                  <div className="profile-details-grid">
                   <div className="profile-detail-card">
                     <span className="detail-card-label">Full Name</span>
                     <span className="detail-card-value">{currentUser?.fullName || currentUser?.name || profileForm.name || 'Customer'}</span>
@@ -1084,6 +1118,75 @@ export default function CustomerProfilePage({
                     <span className="detail-card-value">{currentUser?.dob || profileForm.dob || 'Not Provided'}</span>
                   </div>
                 </div>
+
+                {hasActiveMembership && (
+                  <div style={{
+                    marginTop: '20px',
+                    padding: '16px 20px',
+                    background: 'linear-gradient(135deg, #fefce8 0%, #fef9c3 100%)',
+                    border: '1px solid #fef08a',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '10px',
+                        backgroundColor: '#fef08a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #fde047'
+                      }}>
+                        <Crown size={22} color="#ca8a04" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#854d0e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>Atomy Distributor Membership</span>
+                          <span style={{
+                            fontSize: '11px',
+                            background: '#854d0e',
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontWeight: 600
+                          }}>
+                            {String(currentUser?.membership?.plan || '').toUpperCase() === 'MONTHLY' ? 'Monthly VIP' : 'Annual VIP'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#a16207', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                          {memEnrolled && <span>Joined: <strong>{formatProfileDate(memEnrolled)}</strong></span>}
+                          {memExpiry && <span>Expires: <strong>{formatProfileDate(memExpiry)}</strong></span>}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onNavigateMembership}
+                      style={{
+                        padding: '7px 14px',
+                        background: '#854d0e',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Sparkles size={13} /> View Privileges
+                    </button>
+                  </div>
+                )}
+              </>
               ) : (
                 <form onSubmit={handleSaveProfile} className="profile-edit-form">
                   <div className="form-grid-2">

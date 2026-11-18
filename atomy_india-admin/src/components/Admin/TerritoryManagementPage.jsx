@@ -343,7 +343,7 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
           flexWrap: 'wrap',
           gap: '14px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div className="territory-detail-header-left" style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => setSelectedDistributor(null)}
@@ -367,9 +367,9 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
               <ArrowLeft size={16} />
               <span>Back to Distributors &amp; Territories</span>
             </button>
-            <div style={{ height: '28px', width: '1px', background: '#cbd5e1' }} />
+            <div className="territory-header-divider" style={{ height: '28px', width: '1px', background: '#cbd5e1' }} />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <Building2 size={20} color="#0284c7" />
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
                   {dist.businessName || dist.distributorName} — Overall Overview
@@ -535,9 +535,9 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
 
         {/* 5A. SUB-VIEW: Customers Table */}
         {overviewTab === 'customers' && (
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div className="territory-table-box" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                     <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Customer Name</th>
@@ -795,7 +795,7 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
                 </div>
 
                 {/* 4 Summary Cards */}
-                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px' }}>
+                <div className="inspected-customer-kpi-grid" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                   <div style={{ background: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Contact</div>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', marginTop: '3px' }}>{inspectedCustomer.phone || 'N/A'}</div>
@@ -1126,8 +1126,8 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
       </div>
 
       {/* 3. Search Bar */}
-      <div className="orders-filter-row" style={{ marginBottom: '18px' }}>
-        <div className="search-input-wrapper orders-search-box" style={{ maxWidth: '640px' }}>
+      <div className="orders-filter-row territory-orders-filter-row" style={{ marginBottom: '18px' }}>
+        <div className="search-input-wrapper orders-search-box territory-main-search-box">
           <Search size={16} />
           <input
             type="text"

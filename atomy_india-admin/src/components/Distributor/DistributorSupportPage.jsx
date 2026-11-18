@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Headphones,
   Search,
@@ -17,6 +17,8 @@ import {
   User,
   ShieldCheck,
   ChevronRight,
+  ChevronDown,
+  Check,
   ExternalLink,
   MapPin,
   Sparkles,
@@ -30,6 +32,7 @@ import {
   processDistributorReplacement
 } from '../../services/distributorService';
 import { isDemoTicket } from '../../services/api';
+import CustomDropdown from '../common/CustomDropdown';
 import '../Admin/AdminDashboard.css';
 
 const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
@@ -74,6 +77,34 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
   });
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [ticketPhoneError, setTicketPhoneError] = useState('');
+
+  // Custom Controlled Dropdowns
+  const [isTicketStatusOpen, setIsTicketStatusOpen] = useState(false);
+  const ticketStatusRef = useRef(null);
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const statusFilterRef = useRef(null);
+  const [isCategoryFilterOpen, setIsCategoryFilterOpen] = useState(false);
+  const categoryFilterRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (ticketStatusRef.current && !ticketStatusRef.current.contains(e.target)) {
+        setIsTicketStatusOpen(false);
+      }
+      if (statusFilterRef.current && !statusFilterRef.current.contains(e.target)) {
+        setIsStatusFilterOpen(false);
+      }
+      if (categoryFilterRef.current && !categoryFilterRef.current.contains(e.target)) {
+        setIsCategoryFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
 
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
   const territoryCustomerEmails = useMemo(() => {
@@ -609,15 +640,15 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
       </div>
 
       {/* 3. Toolbar: Search & Filters */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', minWidth: '260px' }}>
-          <Search size={16} color="#64748b" />
+      <div className="support-toolbar-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+        <div className="support-search-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1', minWidth: '240px', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: '8px', padding: '7px 12px' }}>
+          <Search size={16} color="#64748b" style={{ flexShrink: 0 }} />
           <input
             type="text"
             placeholder="Search by ticket ID, customer name, email, phone, or order ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontSize: '13.5px' }}
+            style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontSize: '13.5px', color: '#0f172a' }}
           />
           {searchQuery && (
             <button type="button" onClick={() => setSearchQuery('')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
@@ -626,32 +657,108 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff', color: '#1e293b', fontWeight: 600 }}
-          >
-            <option value="ALL">All Statuses ({tickets.length})</option>
-            <option value="OPEN">Open Only ({openCount})</option>
-            <option value="IN_PROGRESS">In Progress ({inProgressCount})</option>
-            <option value="RESOLVED">Resolved ({resolvedCount})</option>
-            <option value="CLOSED">Closed</option>
-          </select>
+        <div className="support-filters-bar" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Status Filter Dropdown */}
+          <div className="custom-select-container" ref={statusFilterRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className={`support-filter-trigger ${isStatusFilterOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsStatusFilterOpen(!isStatusFilterOpen);
+                setIsCategoryFilterOpen(false);
+              }}
+              aria-expanded={isStatusFilterOpen}
+              title="Filter by status"
+            >
+              <span className="filter-prefix" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Status:</span>
+              <strong className="filter-selected-val" style={{ fontSize: '13px', color: '#0f172a', fontWeight: 700 }}>
+                {statusFilter === 'ALL' && `All Statuses (${tickets.length})`}
+                {statusFilter === 'OPEN' && `Open Only (${openCount})`}
+                {statusFilter === 'IN_PROGRESS' && `In Progress (${inProgressCount})`}
+                {statusFilter === 'RESOLVED' && `Resolved (${resolvedCount})`}
+                {statusFilter === 'CLOSED' && 'Closed'}
+              </strong>
+              <ChevronDown size={14} className={`dropdown-chevron ${isStatusFilterOpen ? 'rotate' : ''}`} />
+            </button>
 
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#ffffff', color: '#1e293b', fontWeight: 600 }}
-          >
-            <option value="ALL">All Categories</option>
-            <option value="ORDER_ISSUE">Order Inquiries</option>
-            <option value="DELIVERY_DELAY">Delivery &amp; Delay</option>
-            <option value="DAMAGED_PRODUCT">Damaged / Missing Items</option>
-            <option value="REFUND_REQUEST">Refunds &amp; Returns</option>
-            <option value="PRODUCT_INQUIRY">Product Questions</option>
-            <option value="GENERAL_SUPPORT">General Support</option>
-          </select>
+            {isStatusFilterOpen && (
+              <div className="custom-dropdown-menu" style={{ minWidth: '180px' }}>
+                {[
+                  { id: 'ALL', label: `All Statuses (${tickets.length})` },
+                  { id: 'OPEN', label: `Open Only (${openCount})` },
+                  { id: 'IN_PROGRESS', label: `In Progress (${inProgressCount})` },
+                  { id: 'RESOLVED', label: `Resolved (${resolvedCount})` },
+                  { id: 'CLOSED', label: 'Closed' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`custom-dropdown-item ${statusFilter === opt.id ? 'selected' : ''}`}
+                    onClick={() => {
+                      setStatusFilter(opt.id);
+                      setIsStatusFilterOpen(false);
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {statusFilter === opt.id && <Check size={14} color="#00A3E0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Category Filter Dropdown */}
+          <div className="custom-select-container" ref={categoryFilterRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className={`support-filter-trigger ${isCategoryFilterOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsCategoryFilterOpen(!isCategoryFilterOpen);
+                setIsStatusFilterOpen(false);
+              }}
+              aria-expanded={isCategoryFilterOpen}
+              title="Filter by category"
+            >
+              <span className="filter-prefix" style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Category:</span>
+              <strong className="filter-selected-val" style={{ fontSize: '13px', color: '#0f172a', fontWeight: 700 }}>
+                {categoryFilter === 'ALL' && 'All Categories'}
+                {categoryFilter === 'ORDER_ISSUE' && 'Order Inquiries'}
+                {categoryFilter === 'DELIVERY_DELAY' && 'Delivery & Delay'}
+                {categoryFilter === 'DAMAGED_PRODUCT' && 'Damaged / Missing'}
+                {categoryFilter === 'REFUND_REQUEST' && 'Refunds & Returns'}
+                {categoryFilter === 'PRODUCT_INQUIRY' && 'Product Questions'}
+                {categoryFilter === 'GENERAL_SUPPORT' && 'General Support'}
+              </strong>
+              <ChevronDown size={14} className={`dropdown-chevron ${isCategoryFilterOpen ? 'rotate' : ''}`} />
+            </button>
+
+            {isCategoryFilterOpen && (
+              <div className="custom-dropdown-menu" style={{ minWidth: '200px' }}>
+                {[
+                  { id: 'ALL', label: 'All Categories' },
+                  { id: 'ORDER_ISSUE', label: 'Order Inquiries' },
+                  { id: 'DELIVERY_DELAY', label: 'Delivery & Delay' },
+                  { id: 'DAMAGED_PRODUCT', label: 'Damaged / Missing Items' },
+                  { id: 'REFUND_REQUEST', label: 'Refunds & Returns' },
+                  { id: 'PRODUCT_INQUIRY', label: 'Product Questions' },
+                  { id: 'GENERAL_SUPPORT', label: 'General Support' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`custom-dropdown-item ${categoryFilter === opt.id ? 'selected' : ''}`}
+                    onClick={() => {
+                      setCategoryFilter(opt.id);
+                      setIsCategoryFilterOpen(false);
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {categoryFilter === opt.id && <Check size={14} color="#00A3E0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -752,7 +859,7 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
                 {/* Thread Header */}
                 <div style={{ padding: '18px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <div className="thread-top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', padding: 0 }}>
-                    <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                    <div className="thread-title-info" style={{ flex: '1 1 auto', minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                         <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 800, color: '#0284c7', background: '#e0f2fe', padding: '3px 8px', borderRadius: '6px' }}>
                           #{selectedTicket.ticketId || selectedTicket.id}
@@ -771,35 +878,62 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
                       </h3>
                     </div>
 
-                    <div className="thread-status-select-wrap" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Status:</span>
-                      <select
-                        value={selectedTicket.status}
-                        onChange={(e) => handleUpdateStatus(selectedTicket.ticketId || selectedTicket.id, e.target.value)}
-                        style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 700, background: '#ffffff', color: '#0f172a', minWidth: '140px' }}
-                      >
-                        <option value="OPEN">OPEN</option>
-                        <option value="IN_PROGRESS">IN PROGRESS</option>
-                        <option value="RESOLVED">RESOLVED</option>
-                        <option value="CLOSED">CLOSED</option>
-                      </select>
+                    <div className="thread-status-select-wrap">
+                      <span className="thread-status-label">Status:</span>
+                      <div className="custom-select-container" ref={ticketStatusRef} style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          className={`support-status-trigger ${isTicketStatusOpen ? 'active' : ''}`}
+                          onClick={() => setIsTicketStatusOpen(!isTicketStatusOpen)}
+                          aria-expanded={isTicketStatusOpen}
+                          title="Update ticket status"
+                        >
+                          <span className={`status-badge-chip status-${(selectedTicket.status || 'OPEN').toLowerCase()}`}>
+                            {selectedTicket.status ? selectedTicket.status.replace('_', ' ') : 'OPEN'}
+                          </span>
+                          <ChevronDown size={14} className={`dropdown-chevron ${isTicketStatusOpen ? 'rotate' : ''}`} />
+                        </button>
+
+                        {isTicketStatusOpen && (
+                          <div className="custom-dropdown-menu thread-status-menu">
+                            {[
+                              { id: 'OPEN', label: 'OPEN', color: '#0284c7', bg: '#e0f2fe' },
+                              { id: 'IN_PROGRESS', label: 'IN PROGRESS', color: '#d97706', bg: '#fef3c7' },
+                              { id: 'RESOLVED', label: 'RESOLVED', color: '#16a34a', bg: '#dcfce7' },
+                              { id: 'CLOSED', label: 'CLOSED', color: '#64748b', bg: '#f1f5f9' }
+                            ].map(opt => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                className={`custom-dropdown-item ${selectedTicket.status === opt.id ? 'selected' : ''}`}
+                                onClick={() => {
+                                  handleUpdateStatus(selectedTicket.ticketId || selectedTicket.id, opt.id);
+                                  setIsTicketStatusOpen(false);
+                                }}
+                              >
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '2px 8px',
+                                  borderRadius: '5px',
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  background: opt.bg,
+                                  color: opt.color,
+                                  textTransform: 'uppercase'
+                                }}>
+                                  {opt.label}
+                                </span>
+                                {selectedTicket.status === opt.id && <Check size={14} color="#00A3E0" strokeWidth={2.5} />}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => setSelectedTicket(null)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          background: '#fee2e2',
-                          border: '1px solid #fca5a5',
-                          borderRadius: '8px',
-                          padding: '6px 14px',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          color: '#b91c1c',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
+                        className="thread-close-btn"
                         title="Close Chat Panel"
                       >
                         <X size={15} />
@@ -901,30 +1035,26 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                       {(!matchedOrder || (orders || []).length > 1) && (
-                        <select
+                        <CustomDropdown
                           value={matchedOrder ? (matchedOrder.orderId || matchedOrder.id) : ''}
-                          onChange={(e) => {
-                            const found = orders.find(o => (o.orderId || o.id) === e.target.value);
+                          onChange={(val) => {
+                            const found = orders.find(o => (o.orderId || o.id) === val);
                             if (found && selectedTicket) {
                               setSelectedTicket(prev => ({ ...prev, orderId: found.orderId || found.id }));
                             }
                           }}
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid #cbd5e1',
-                            fontSize: '12px',
-                            background: '#ffffff',
-                            color: '#334155'
-                          }}
-                        >
-                          <option value="">{matchedOrder ? 'Switch Order...' : 'Select Territory Order...'}</option>
-                          {(orders || []).map(o => (
-                            <option key={o.orderId || o.id} value={o.orderId || o.id}>
-                              #{o.orderId || o.id} - ₹{Number(o.totalAmount || 0).toFixed(0)} ({o.customerName || 'Customer'})
-                            </option>
-                          ))}
-                        </select>
+                          placeholder={matchedOrder ? 'Switch Order...' : 'Select Territory Order...'}
+                          options={[
+                            { value: '', label: matchedOrder ? 'Switch Order...' : 'Select Territory Order...' },
+                            ...(orders || []).map(o => ({
+                              value: o.orderId || o.id,
+                              label: `#${o.orderId || o.id} - ₹${Number(o.totalAmount || 0).toFixed(0)}`,
+                              sublabel: o.customerName || 'Customer'
+                            }))
+                          ]}
+                          style={{ minWidth: '180px' }}
+                          triggerStyle={{ padding: '6px 10px', fontSize: '12px' }}
+                        />
                       )}
 
                       {matchedOrder && (
@@ -1197,32 +1327,32 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Category</label>
-                  <select
+                  <CustomDropdown
                     value={newTicketForm.category}
-                    onChange={(e) => setNewTicketForm({ ...newTicketForm, category: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
-                  >
-                    <option value="ORDER_ISSUE">Order Issue / Status</option>
-                    <option value="DELIVERY_DELAY">Delivery Delay</option>
-                    <option value="DAMAGED_PRODUCT">Damaged / Missing Item</option>
-                    <option value="REFUND_REQUEST">Refund / Return Request</option>
-                    <option value="PRODUCT_INQUIRY">Product Inquiry</option>
-                    <option value="GENERAL_SUPPORT">General Support</option>
-                  </select>
+                    onChange={(val) => setNewTicketForm({ ...newTicketForm, category: val })}
+                    options={[
+                      { value: 'ORDER_ISSUE', label: 'Order Issue / Status' },
+                      { value: 'DELIVERY_DELAY', label: 'Delivery Delay' },
+                      { value: 'DAMAGED_PRODUCT', label: 'Damaged / Missing Item' },
+                      { value: 'REFUND_REQUEST', label: 'Refund / Return Request' },
+                      { value: 'PRODUCT_INQUIRY', label: 'Product Inquiry' },
+                      { value: 'GENERAL_SUPPORT', label: 'General Support' }
+                    ]}
+                  />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>Priority</label>
-                  <select
+                  <CustomDropdown
                     value={newTicketForm.priority}
-                    onChange={(e) => setNewTicketForm({ ...newTicketForm, priority: e.target.value })}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
-                  >
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                    <option value="URGENT">Urgent</option>
-                  </select>
+                    onChange={(val) => setNewTicketForm({ ...newTicketForm, priority: val })}
+                    options={[
+                      { value: 'LOW', label: 'Low' },
+                      { value: 'MEDIUM', label: 'Medium' },
+                      { value: 'HIGH', label: 'High' },
+                      { value: 'URGENT', label: 'Urgent' }
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -1319,18 +1449,18 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
 
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Return &amp; Refund Reason</label>
-              <select
+              <CustomDropdown
                 value={refundReason}
-                onChange={(e) => setRefundReason(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
-              >
-                <option value="Customer requested refund via support ticket">Customer requested refund via support ticket</option>
-                <option value="Customer returned product to regional hub">Customer returned product to regional hub</option>
-                <option value="Customer rejected delivery at doorstep">Customer rejected delivery at doorstep</option>
-                <option value="Defective / damaged item returned">Defective / damaged item returned</option>
-                <option value="Order cancelled by customer before delivery">Order cancelled by customer before delivery</option>
-                <option value="Incorrect address / uncontactable customer">Incorrect address / uncontactable customer</option>
-              </select>
+                onChange={(val) => setRefundReason(val)}
+                options={[
+                  'Customer requested refund via support ticket',
+                  'Customer returned product to regional hub',
+                  'Customer rejected delivery at doorstep',
+                  'Defective / damaged item returned',
+                  'Order cancelled by customer before delivery',
+                  'Incorrect address / uncontactable customer'
+                ]}
+              />
             </div>
 
             <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', background: '#ecfdf5', padding: '10px 14px', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
@@ -1405,32 +1535,32 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
 
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Select Product to Replace</label>
-              <select
+              <CustomDropdown
                 value={replacementProductId}
-                onChange={(e) => setReplacementProductId(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
-              >
-                <option value="">All Items in Order (Full Replacement)</option>
-                {(replacementModalOrder.items || []).map((it, idx) => (
-                  <option key={it.productId || idx} value={it.productId}>
-                    {it.productName || it.name || `Item ${idx + 1}`} (Qty: {it.quantity || 1})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setReplacementProductId(val)}
+                options={[
+                  { value: '', label: 'All Items in Order (Full Replacement)' },
+                  ...(replacementModalOrder.items || []).map((it, idx) => ({
+                    value: it.productId,
+                    label: it.productName || it.name || `Item ${idx + 1}`,
+                    sublabel: `Qty: ${it.quantity || 1}`
+                  }))
+                ]}
+              />
             </div>
 
             <div style={{ marginBottom: '14px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>Replacement Reason</label>
-              <select
+              <CustomDropdown
                 value={replacementReason}
-                onChange={(e) => setReplacementReason(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
-              >
-                <option value="Damaged during delivery / package crushed">Damaged during delivery / package crushed</option>
-                <option value="Bottle seal leakage / defective container">Bottle seal leakage / defective container</option>
-                <option value="Wrong product SKU dispatched by mistake">Wrong product SKU dispatched by mistake</option>
-                <option value="Customer complaint verified & approved">Customer complaint verified & approved</option>
-              </select>
+                onChange={(val) => setReplacementReason(val)}
+                options={[
+                  'Damaged during delivery / package crushed',
+                  'Bottle seal leakage / defective container',
+                  'Wrong product SKU dispatched by mistake',
+                  'Customer complaint verified & approved'
+                ]}
+              />
             </div>
 
             <div style={{ marginBottom: '18px' }}>

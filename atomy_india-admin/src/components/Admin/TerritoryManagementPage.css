@@ -114,3 +114,112 @@
   gap: 4px;
 }
 
+/* Inspected Customer Modal Grid */
+.inspected-customer-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.territory-main-search-box {
+  max-width: 640px;
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .territory-page-wrap {
+    padding: 16px 16px 60px !important;
+  }
+
+  .territory-table-box {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .territory-header-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .territory-search-group {
+    max-width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  .territory-search-input {
+    width: 100% !important;
+  }
+
+  .territory-btn-add {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .territory-detail-header-left {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .territory-header-divider {
+    display: none !important;
+  }
+
+  .inspected-customer-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Responsive Search Row & Pill for Territory Page */
+  .orders-filter-row,
+  .territory-orders-filter-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .territory-main-search-box,
+  .orders-search-box,
+  .search-input-wrapper.orders-search-box,
+  .search-input-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .orders-search-box .atomy-search-input,
+  .search-input-wrapper .atomy-search-input,
+  .territory-main-search-box .atomy-search-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    height: 42px !important;
+    padding: 10px 34px 10px 36px !important;
+    font-size: 13.5px !important;
+  }
+
+  .orders-summary-pill {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    justify-content: center !important;
+    display: flex !important;
+    font-size: 12.5px !important;
+    padding: 9px 12px !important;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .inspected-customer-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+

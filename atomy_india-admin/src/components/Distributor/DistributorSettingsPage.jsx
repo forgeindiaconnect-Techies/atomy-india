@@ -15,20 +15,99 @@ import {
   Users,
   Calendar,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  EyeOff
 } from 'lucide-react';
-import { fetchHubTeam, updateHubLeaveStatus } from '../../services/distributorService';
+import { 
+  fetchHubTeam, 
+  updateHubLeaveStatus,
+  requestAdminForgotPasswordOtp,
+  resetAdminPassword
+} from '../../services/distributorService';
 import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
+import CustomDropdown from '../common/CustomDropdown';
 import '../Admin/AdminDashboard.css';
 
 export default function DistributorSettingsPage({ distributor, onSaveSettings, onLogout }) {
   const [hubAddress, setHubAddress] = useState(distributor?.hubAddress || '');
   const [contactPerson, setContactPerson] = useState(distributor?.contactPerson || '');
   const [phone, setPhone] = useState(distributor?.phone || '');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSaved, setIsSaved] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Secure Email Password Reset Flow (Brevo 2FA)
+  const [showPasswordResetFlow, setShowPasswordResetFlow] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // 1: Send OTP, 2: Enter OTP & New Password, 3: Success
+  const [resetOtp, setResetOtp] = useState('');
+  const [resetNewPass, setResetNewPass] = useState('');
+  const [resetConfirmPass, setResetConfirmPass] = useState('');
+  const [showResetPass, setShowResetPass] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => setResendCooldown(prev => (prev <= 1 ? 0 : prev - 1)), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleStartPasswordReset = async () => {
+    setShowPasswordResetFlow(true);
+    setResetStep(1);
+    setResetError('');
+    setResetSuccess('');
+    setResetOtp('');
+    setResetNewPass('');
+    setResetConfirmPass('');
+    const target = distributor?.email || distributor?.distributorId;
+    if (!target) {
+      setResetError('No registered email address found for this account.');
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const res = await requestAdminForgotPasswordOtp(target);
+      setResetSuccess(res.message || `Verification code sent to ${distributor?.email || 'your email'}.`);
+      setResetStep(2);
+      setResendCooldown(60);
+    } catch (err) {
+      setResetError(err.message || 'Failed to dispatch verification code. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleConfirmPasswordReset = async (e) => {
+    if (e) e.preventDefault();
+    if (!resetOtp.trim() || resetOtp.trim().length !== 6) {
+      setResetError('Please enter the 6-digit verification code.');
+      return;
+    }
+    if (!resetNewPass || resetNewPass.length < 6) {
+      setResetError('New password must be at least 6 characters long.');
+      return;
+    }
+    if (resetNewPass !== resetConfirmPass) {
+      setResetError('Passwords do not match.');
+      return;
+    }
+    setResetLoading(true);
+    setResetError('');
+    try {
+      const target = distributor?.email || distributor?.distributorId;
+      await resetAdminPassword(target, resetOtp.trim(), resetNewPass.trim());
+      setResetStep(3);
+    } catch (err) {
+      setResetError(err.message || 'Failed to update password. Please check the verification code.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   // Sign out confirmation modal state
   const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -189,10 +268,6 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
 
   const handleSubmitProfile = (e) => {
     e.preventDefault();
-    if (newPassword && newPassword !== confirmPassword) {
-      setErrorMsg('Passwords do not match');
-      return;
-    }
 
     if (phone && phone.trim()) {
       const cleanPhone = normalizeIndianMobile(phone);
@@ -212,8 +287,7 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
       onSaveSettings({
         hubAddress,
         contactPerson,
-        phone: normalizeIndianMobile(phone),
-        password: newPassword.trim() || undefined
+        phone: normalizeIndianMobile(phone)
       });
     }
 
@@ -373,38 +447,168 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
               </div>
             )}
 
-            {/* Password Update Subsection */}
+            {/* Security & Password Reset via Email Procedure */}
             <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '18px', marginTop: '6px' }}>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <KeyRound size={16} color="#64748b" />
-                <span>Security &amp; Console Password</span>
-              </div>
-              <div className="settings-fields-row">
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="Leave blank to keep current"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <KeyRound size={16} color="#00A3E0" />
+                  <span>Security &amp; Console Password</span>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                  />
-                </div>
+                <span style={{ fontSize: '11.5px', padding: '2px 8px', borderRadius: '12px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', fontWeight: 600 }}>
+                  Brevo 2FA Protected
+                </span>
               </div>
+
+              {!showPasswordResetFlow ? (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '220px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '2px' }}>
+                      Console Password Recovery Procedure
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      To update your password, request a 6-digit verification code to registered email <strong>{distributor?.email || 'your official email'}</strong>.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleStartPasswordReset}
+                    disabled={resetLoading}
+                    style={{
+                      background: '#ffffff',
+                      color: '#00A3E0',
+                      border: '1px solid #00A3E0',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Mail size={14} />
+                    <span>{resetLoading ? 'Sending OTP...' : 'Send Password Reset OTP'}</span>
+                  </button>
+                </div>
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '16px' }}>
+                  {resetError && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '12px' }}>
+                      {resetError}
+                    </div>
+                  )}
+                  {resetSuccess && resetStep !== 3 && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '12px' }}>
+                      {resetSuccess}
+                    </div>
+                  )}
+
+                  {resetStep === 2 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ fontSize: '12.5px', color: '#475569' }}>
+                        Enter the 6-digit verification code sent to <strong>{distributor?.email}</strong> and choose a new password:
+                      </div>
+                      <div className="settings-fields-row">
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            6-Digit OTP Code
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={6}
+                            placeholder="• • • • • •"
+                            value={resetOtp}
+                            onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ''))}
+                            style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', letterSpacing: '4px', textAlign: 'center', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            New Password (min 6 chars)
+                          </label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type={showResetPass ? 'text' : 'password'}
+                              placeholder="Enter new password"
+                              value={resetNewPass}
+                              onChange={(e) => setResetNewPass(e.target.value)}
+                              style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowResetPass(!showResetPass)}
+                              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                            >
+                              {showResetPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Confirm New Password
+                          </label>
+                          <input
+                            type={showResetPass ? 'text' : 'password'}
+                            placeholder="Confirm new password"
+                            value={resetConfirmPass}
+                            onChange={(e) => setResetConfirmPass(e.target.value)}
+                            style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswordResetFlow(false)}
+                          style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12.5px', cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={handleStartPasswordReset}
+                            disabled={resendCooldown > 0 || resetLoading}
+                            style={{ background: 'none', border: 'none', color: resendCooldown > 0 ? '#94a3b8' : '#00A3E0', fontSize: '12px', fontWeight: 600, cursor: resendCooldown > 0 ? 'default' : 'pointer' }}
+                          >
+                            {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend OTP'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleConfirmPasswordReset}
+                            disabled={resetLoading || resetOtp.length !== 6 || resetNewPass.length < 6}
+                            style={{ background: '#00A3E0', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            {resetLoading ? 'Updating Password...' : 'Save New Password'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {resetStep === 3 && (
+                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                      <CheckCircle2 size={32} color="#16a34a" style={{ margin: '0 auto 8px' }} />
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                        Password Updated Successfully!
+                      </div>
+                      <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px', marginBottom: '12px' }}>
+                        A confirmation notification has been sent via Brevo to {distributor?.email}.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordResetFlow(false)}
+                        style={{ background: '#00A3E0', color: '#ffffff', border: 'none', padding: '6px 16px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
@@ -476,7 +680,7 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
 
           {isSubDistributor ? (
             /* Locked Hub Information for Temporary Substitute */
-            <div className="admin-card" style={{ padding: '24px', borderLeft: '4px solid #0284c7' }}>
+            <div className="admin-card substitute-locked-hub-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
                 <Building2 size={20} color="#0284c7" />
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
@@ -550,17 +754,16 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
                     Designated Co-Manager / Standby Delegate
                   </label>
-                  <select
+                  <CustomDropdown
                     value={selectedDelegatee}
-                    onChange={(e) => setSelectedDelegatee(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
-                  >
-                    {teamData.coManagers.map(c => (
-                      <option key={c.distributorId} value={c.contactPerson || c.businessName}>
-                        {c.contactPerson || c.businessName} ({c.email})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSelectedDelegatee(val)}
+                    options={teamData.coManagers.map(c => ({
+                      value: c.contactPerson || c.businessName,
+                      label: c.contactPerson || c.businessName,
+                      sublabel: c.email
+                    }))}
+                    placeholder="Select Co-Manager / Standby Delegate"
+                  />
                 </div>
               )}
 
@@ -879,29 +1082,20 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                   Leave Category *
                 </label>
-                <select
+                <CustomDropdown
                   value={leaveReasonCategory}
-                  onChange={(e) => setLeaveReasonCategory(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    fontSize: '13.5px',
-                    color: '#0f172a',
-                    background: '#f8fafc',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <option value="Personal / Family Leave">🌴 Personal / Family Leave</option>
-                  <option value="Medical / Health Emergency">🏥 Medical / Health Emergency</option>
-                  <option value="Vacation / Scheduled Time Off">✈️ Vacation / Scheduled Time Off</option>
-                  <option value="Official Atomy Training & Conferences">🎓 Official Atomy Training &amp; Conferences</option>
-                  <option value="Facility / Depot Maintenance">🛠️ Facility / Depot Maintenance</option>
-                  <option value="Urgent Travel">🚗 Urgent Travel / Out of Station</option>
-                  <option value="Other Operational Reason">📋 Other Operational Reason</option>
-                </select>
+                  onChange={(val) => setLeaveReasonCategory(val)}
+                  options={[
+                    '🌴 Personal / Family Leave',
+                    '🏥 Medical / Health Emergency',
+                    '✈️ Vacation / Scheduled Time Off',
+                    '🎓 Official Atomy Training & Conferences',
+                    '🛠️ Facility / Depot Maintenance',
+                    '🚗 Urgent Travel / Out of Station',
+                    '📋 Other Operational Reason'
+                  ]}
+                  triggerStyle={{ background: '#f8fafc' }}
+                />
               </div>
 
               <div style={{ marginBottom: '22px' }}>

@@ -1,16 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Package, 
-  Truck, 
-  CheckCircle2, 
-  Clock, 
-  RotateCcw, 
-  FileText, 
-  ChevronRight, 
-  Search, 
-  Calendar, 
-  Filter, 
-  ShoppingBag, 
+import {
+  Package,
+  Truck,
+  CheckCircle2,
+  Clock,
+  RotateCcw,
+  FileText,
+  ChevronRight,
+  Search,
+  Calendar,
+  Filter,
+  ShoppingBag,
   ExternalLink,
   Info,
   MapPin,
@@ -32,6 +32,7 @@ import {
 import DeliveryStatusStepper from './DeliveryStatusStepper';
 import { updateAdminOrderStatus, syncUnsyncedOrdersToBackend } from '../../services/api';
 import { mergeProductIntoCatalog } from '../../services/catalogSyncService';
+import { formatDateIST, formatTimeIST, parseDateSafe } from '../../utils/dateUtils';
 import './OrderHistoryPage.css';
 
 // Benchmark Reason Catalog (Amazon / Myntra / Flipkart standard)
@@ -134,10 +135,10 @@ export const resolveOrderDestination = (order) => {
       customerLocation: ""
     };
   }
-  
+
   const recipient = order.customerName || order.recipient || order.shippingAddress?.recipient || order.address?.recipient || "Customer";
   const phone = order.customerPhone || order.phone || order.shippingAddress?.phone || order.address?.phone || "";
-  
+
   const isPickupOrder = Boolean(
     order.fulfillmentType === "STORE_PICKUP" ||
     order.shippingMethod === "STORE_PICKUP" ||
@@ -190,7 +191,7 @@ export const resolveOrderDestination = (order) => {
           }
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const cCity = order.city || order.shippingAddress?.city || order.address?.city || "Krishnagiri";
@@ -261,9 +262,9 @@ export const resolveOrderDestination = (order) => {
   };
 };
 
-export default function OrderHistoryPage({ 
-  onNavigateHome, 
-  onAddToCart, 
+export default function OrderHistoryPage({
+  onNavigateHome,
+  onAddToCart,
   onProductClick,
   placedOrders = [],
   initialOrderId = ''
@@ -279,7 +280,7 @@ export default function OrderHistoryPage({
         const params = new URLSearchParams(window.location.search);
         return params.get('orderId') || null;
       }
-    } catch (e) {}
+    } catch (e) { }
     return null;
   });
 
@@ -347,7 +348,7 @@ export default function OrderHistoryPage({
       if (Object.keys(combined).length > 0) {
         setReviewedProductMap(prev => ({ ...prev, ...combined }));
       }
-    } catch {}
+    } catch { }
 
     // 2. Fetch order reviews from backend
     if (Array.isArray(placedOrders)) {
@@ -368,12 +369,12 @@ export default function OrderHistoryPage({
                 try {
                   localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updated));
                   localStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updated));
-                } catch {}
+                } catch { }
                 return updated;
               });
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       });
     }
 
@@ -388,14 +389,14 @@ export default function OrderHistoryPage({
               const s2 = localStorage.getItem('@atomy_reviewed_orders_map');
               const c = { ...(s1 ? JSON.parse(s1) : {}), ...(s2 ? JSON.parse(s2) : {}) };
               setReviewedProductMap(prev => ({ ...prev, ...c }));
-            } catch {}
+            } catch { }
           }
         };
         return () => {
           isMounted = false;
           bc.close();
         };
-      } catch {}
+      } catch { }
     }
 
     return () => { isMounted = false; };
@@ -431,7 +432,7 @@ export default function OrderHistoryPage({
         }
         setLocalOrderOverrides(overrides);
       }
-    } catch {}
+    } catch { }
 
     // Auto-sync any locally cached offline orders to backend MongoDB Atlas
     syncUnsyncedOrdersToBackend();
@@ -446,18 +447,18 @@ export default function OrderHistoryPage({
         return true;
       })
       .map((o) => {
-      const oId = o.orderId || `AT-${Date.now().toString().slice(-8)}`;
-      const override = localOrderOverrides[oId] || {};
-      const isCod = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
-      const defaultStatus = isCod ? 'Cash on Delivery' : 'Payment Completed';
-      let status = override.status || o.status || defaultStatus;
-      if (isCod && status === 'Payment Completed' && (!o.paymentStatus || o.paymentStatus === 'PENDING')) {
-        status = 'Cash on Delivery';
-      }
-      const paymentStatus = override.paymentStatus || o.paymentStatus || (status === 'Cancelled' ? 'REFUNDED' : isCod ? 'PENDING' : 'PAID');
+        const oId = o.orderId || `AT-${Date.now().toString().slice(-8)}`;
+        const override = localOrderOverrides[oId] || {};
+        const isCod = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
+        const defaultStatus = isCod ? 'Cash on Delivery' : 'Payment Completed';
+        let status = override.status || o.status || defaultStatus;
+        if (isCod && status === 'Payment Completed' && (!o.paymentStatus || o.paymentStatus === 'PENDING')) {
+          status = 'Cash on Delivery';
+        }
+        const paymentStatus = override.paymentStatus || o.paymentStatus || (status === 'Cancelled' ? 'REFUNDED' : isCod ? 'PENDING' : 'PAID');
 
-      const rawItems = (o.items && o.items.length > 0)
-        ? o.items.map((it) => ({
+        const rawItems = (o.items && o.items.length > 0)
+          ? o.items.map((it) => ({
             id: it.id || it.productId,
             name: it.name || it.productName || o.title || 'Atomy Product',
             image: it.image || it.productImage || it.img || 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg',
@@ -465,7 +466,7 @@ export default function OrderHistoryPage({
             price: it.price || 0,
             pv: it.pv || 0
           }))
-        : [{
+          : [{
             id: o.productId || o.orderId,
             name: o.title || o.productName || 'Atomy Product',
             image: o.image || o.productImage || 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg',
@@ -473,84 +474,101 @@ export default function OrderHistoryPage({
             price: o.totalAmount || o.price || 0,
             pv: o.pv || 0
           }];
-      const itemsSum = rawItems.reduce((sum, it) => sum + (it.price * it.qty), 0);
-      let shipFee = (o.shippingFee !== undefined && o.shippingFee !== null) ? Number(o.shippingFee) : (itemsSum > 0 && itemsSum < 1500 ? 150 : 0);
-      let orderGrandTotal = (o.grandTotal && Number(o.grandTotal) > 0) ? Number(o.grandTotal) : (o.totalAmount && Number(o.totalAmount) > 0 ? Number(o.totalAmount) : (itemsSum + shipFee));
-      if (itemsSum === 1400 && (orderGrandTotal === 1500 || shipFee === 100)) {
-        orderGrandTotal = 1550;
-        shipFee = 150;
-      }
-
-      // Reconcile single-item orders so item unit price matches the paid merchandise subtotal
-      if (rawItems.length === 1 && orderGrandTotal > 0) {
-        const itemNetTotal = orderGrandTotal - shipFee;
-        if (itemNetTotal > 0) {
-          rawItems[0].price = itemNetTotal / (rawItems[0].qty || 1);
+        const itemsSum = rawItems.reduce((sum, it) => sum + (it.price * it.qty), 0);
+        let shipFee = (o.shippingFee !== undefined && o.shippingFee !== null) ? Number(o.shippingFee) : (itemsSum > 0 && itemsSum < 1500 ? 150 : 0);
+        let orderGrandTotal = (o.grandTotal && Number(o.grandTotal) > 0) ? Number(o.grandTotal) : (o.totalAmount && Number(o.totalAmount) > 0 ? Number(o.totalAmount) : (itemsSum + shipFee));
+        if (itemsSum === 1400 && (orderGrandTotal === 1500 || shipFee === 100)) {
+          orderGrandTotal = 1550;
+          shipFee = 150;
         }
-      }
-      const reconciledSubtotal = rawItems.reduce((sum, it) => sum + (it.price * it.qty), 0);
 
-      const isStorePickupOrder = Boolean(
-        o.fulfillmentType === 'STORE_PICKUP' ||
-        o.shippingMethod === 'STORE_PICKUP' ||
-        o.isPickup === true ||
-        (o.pickupStatus && o.pickupStatus !== 'NONE') ||
-        (typeof o.shippingAddress === 'string' && o.shippingAddress.toLowerCase().includes('direct hub pickup')) ||
-        (typeof o.shippingAddress === 'string' && o.shippingAddress.toLowerCase().includes('direct store pickup')) ||
-        (o.hubName && !o.courier)
-      );
+        // Reconcile single-item orders so item unit price matches the paid merchandise subtotal
+        if (rawItems.length === 1 && orderGrandTotal > 0) {
+          const itemNetTotal = orderGrandTotal - shipFee;
+          if (itemNetTotal > 0) {
+            rawItems[0].price = itemNetTotal / (rawItems[0].qty || 1);
+          }
+        }
+        const reconciledSubtotal = rawItems.reduce((sum, it) => sum + (it.price * it.qty), 0);
 
-      const dest = resolveOrderDestination(o);
+        const isStorePickupOrder = Boolean(
+          o.fulfillmentType === 'STORE_PICKUP' ||
+          o.shippingMethod === 'STORE_PICKUP' ||
+          o.isPickup === true ||
+          (o.pickupStatus && o.pickupStatus !== 'NONE') ||
+          (typeof o.shippingAddress === 'string' && o.shippingAddress.toLowerCase().includes('direct hub pickup')) ||
+          (typeof o.shippingAddress === 'string' && o.shippingAddress.toLowerCase().includes('direct store pickup')) ||
+          (o.hubName && !o.courier)
+        );
 
-      return {
-        ...o,
-        orderId: oId,
-        orderDate: o.date ? o.date.split('T')[0] : (o.orderDate || new Date().toISOString().split('T')[0]),
-        status: status,
-        paymentStatus: paymentStatus,
-        fulfillmentType: isStorePickupOrder ? 'STORE_PICKUP' : (o.fulfillmentType || 'COURIER_DELIVERY'),
-        isPickup: isStorePickupOrder,
-        pickupStatus: o.pickupStatus || (isStorePickupOrder ? 'PENDING_PACKING' : null),
-        hubName: o.hubName || o.assignedDistributorName || 'Atomy Regional Logistics Hub',
-        hubAddress: o.hubAddress || (isStorePickupOrder ? dest.fullAddress : null),
-        statusStep: status === 'Delivered' ? 5 : status === 'In Transit' ? 3 : status === 'Preparing Shipment' ? 2 : status === 'Cancelled' ? 0 : 1,
-        courier: isStorePickupOrder ? 'Direct Hub Pickup' : (o.courier || (status === 'Payment Completed' || status === 'Cash on Delivery' ? 'Awaiting Allocation' : 'Blue Dart Express')),
-        trackingNumber: o.trackingNumber || (isStorePickupOrder ? `PICKUP-${oId}` : ''),
-        paymentMethod: o.paymentMethod || 'Online Payment',
-        replacementRequested: override.replacementRequested || o.replacementRequested || false,
-        returnRequested: override.returnRequested || o.returnRequested || false,
-        customerEmail: o.customerEmail || o.email || '',
-        shippingFee: shipFee,
-        grandTotal: orderGrandTotal,
-        totalAmount: orderGrandTotal,
-        subtotal: reconciledSubtotal,
-        recipient: dest.recipient,
-        customerAddress: dest.customerAddress || dest.customerLocation || o.customerAddress,
-        customerLocation: dest.customerLocation,
-        customerName: dest.recipient,
-        phone: dest.phone,
-        city: dest.city,
-        state: dest.state,
-        pincode: dest.pincode,
-        shippingAddress: {
+        const dest = resolveOrderDestination(o);
+
+        const rawDate = o.createdAt || o.date || o.orderDate;
+        const parsedBase = parseDateSafe(rawDate);
+        const orderDateStr = formatDateIST(rawDate);
+        const orderTimeStr = formatTimeIST(rawDate);
+
+        const slaTarget = new Date(parsedBase);
+        slaTarget.setDate(slaTarget.getDate() + 2);
+        const now = new Date();
+        const isPastDeadline = now > slaTarget && status !== 'Delivered' && status !== 'Cancelled';
+        const delayDays = Math.max(1, Math.ceil((now.getTime() - slaTarget.getTime()) / (1000 * 60 * 60 * 24)));
+        const deadlineStr = formatDateIST(slaTarget);
+
+        return {
+          ...o,
+          orderId: oId,
+          orderDate: orderDateStr,
+          orderTime: orderTimeStr,
+          rawDate: rawDate,
+          deliveryDeadline: deadlineStr,
+          isOverdue: isPastDeadline,
+          overdueDays: delayDays,
+          status: status,
+          paymentStatus: paymentStatus,
+          fulfillmentType: isStorePickupOrder ? 'STORE_PICKUP' : (o.fulfillmentType || 'COURIER_DELIVERY'),
+          isPickup: isStorePickupOrder,
+          pickupStatus: o.pickupStatus || (isStorePickupOrder ? 'PENDING_PACKING' : null),
+          hubName: o.hubName || o.assignedDistributorName || 'Atomy Regional Logistics Hub',
+          hubAddress: o.hubAddress || (isStorePickupOrder ? dest.fullAddress : null),
+          statusStep: status === 'Delivered' ? 5 : status === 'In Transit' ? 3 : status === 'Preparing Shipment' ? 2 : status === 'Cancelled' ? 0 : 1,
+          courier: isStorePickupOrder ? 'Direct Hub Pickup' : (o.courier || (status === 'Payment Completed' || status === 'Cash on Delivery' ? 'Awaiting Allocation' : 'Blue Dart Express')),
+          trackingNumber: o.trackingNumber || (isStorePickupOrder ? `PICKUP-${oId}` : ''),
+          paymentMethod: o.paymentMethod || 'Online Payment',
+          replacementRequested: override.replacementRequested || o.replacementRequested || false,
+          returnRequested: override.returnRequested || o.returnRequested || false,
+          customerEmail: o.customerEmail || o.email || '',
+          shippingFee: shipFee,
+          grandTotal: orderGrandTotal,
+          totalAmount: orderGrandTotal,
+          subtotal: reconciledSubtotal,
           recipient: dest.recipient,
+          customerAddress: dest.customerAddress || dest.customerLocation || o.customerAddress,
+          customerLocation: dest.customerLocation,
+          customerName: dest.recipient,
           phone: dest.phone,
-          address: dest.fullAddress,
-          fullAddress: dest.fullAddress,
-          street: dest.street,
           city: dest.city,
           state: dest.state,
-          pincode: dest.pincode
-        },
-        address: {
-          recipient: dest.recipient,
-          phone: dest.phone,
-          address: dest.fullAddress,
-          fullAddress: dest.fullAddress
-        },
-        items: rawItems
-      };
-    });
+          pincode: dest.pincode,
+          shippingAddress: {
+            recipient: dest.recipient,
+            phone: dest.phone,
+            address: dest.fullAddress,
+            fullAddress: dest.fullAddress,
+            street: dest.street,
+            city: dest.city,
+            state: dest.state,
+            pincode: dest.pincode
+          },
+          address: {
+            recipient: dest.recipient,
+            phone: dest.phone,
+            address: dest.fullAddress,
+            fullAddress: dest.fullAddress
+          },
+          items: rawItems
+        };
+      });
   }, [placedOrders, localOrderOverrides]);
 
 
@@ -648,13 +666,14 @@ export default function OrderHistoryPage({
     try {
       // 1. Backend update
       try {
-        await updateAdminOrderStatus(oId, 'CANCELLED');
+        await updateAdminOrderStatus(oId, 'CANCELLED', { cancelReason: fullReason, cancelNotes });
       } catch (err) {
         console.warn('Backend sync warning:', err);
       }
 
       const inTransit = isInTransitOrShipped(cancelModalOrder);
       const paymentStatusVal = inTransit ? 'NON_REFUNDABLE' : 'REFUNDED';
+      const cancelledAtIso = new Date().toISOString();
 
       // 2. Local State update
       setLocalOrderOverrides(prev => ({
@@ -662,32 +681,37 @@ export default function OrderHistoryPage({
         [oId]: {
           ...prev[oId],
           status: 'Cancelled',
+          orderStatus: 'CANCELLED',
           paymentStatus: paymentStatusVal,
           cancelReason: fullReason,
-          cancelNotes: cancelNotes + (inTransit ? ' [Cancelled In Transit - Non-Refundable]' : '')
+          cancelNotes: cancelNotes + (inTransit ? ' [Cancelled In Transit - Non-Refundable]' : ''),
+          cancelledAt: cancelledAtIso
         }
       }));
 
       // 3. LocalStorage persistence & Broadcast
       try {
         const placed = JSON.parse(localStorage.getItem('atomy_placed_orders') || '[]');
-        const updatedPlaced = placed.map(o => o.orderId === oId ? { 
-          ...o, 
-          status: 'Cancelled', 
-          orderStatus: 'CANCELLED', 
+        const updatedPlaced = placed.map(o => o.orderId === oId ? {
+          ...o,
+          status: 'Cancelled',
+          orderStatus: 'CANCELLED',
           paymentStatus: paymentStatusVal,
           cancelReason: fullReason,
-          cancelNotes: cancelNotes
+          cancelNotes: cancelNotes,
+          cancelledAt: cancelledAtIso
         } : o);
         localStorage.setItem('atomy_placed_orders', JSON.stringify(updatedPlaced));
 
         const adminOrders = JSON.parse(localStorage.getItem('atomy_admin_orders') || '[]');
-        const updatedAdmin = adminOrders.map(o => o.orderId === oId ? { 
-          ...o, 
-          orderStatus: 'CANCELLED', 
+        const updatedAdmin = adminOrders.map(o => o.orderId === oId ? {
+          ...o,
+          status: 'Cancelled',
+          orderStatus: 'CANCELLED',
           paymentStatus: paymentStatusVal,
           cancelReason: fullReason,
-          cancelNotes: cancelNotes
+          cancelNotes: cancelNotes,
+          cancelledAt: cancelledAtIso
         } : o);
         localStorage.setItem('atomy_admin_orders', JSON.stringify(updatedAdmin));
 
@@ -705,12 +729,63 @@ export default function OrderHistoryPage({
           message: inTransit
             ? `Customer cancelled order after transit started. Non-refundable policy applied (₹0 refunded per policy).\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\nOriginal Value: ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
             : `Customer initiated 100% automated pre-dispatch cancellation.\nReason: ${fullReason}\nComments: ${cancelNotes || 'None'}\nRefund Amount: ₹${orderTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\nRefund SLA: UPI (24h) / Cards (3-5d).`,
-          createdAt: new Date().toISOString()
+          createdAt: cancelledAtIso
         });
         localStorage.setItem('atomy_admin_tickets', JSON.stringify(adminTickets));
 
-        window.dispatchEvent(new CustomEvent('atomy:order-cancelled', { detail: cancelModalOrder }));
-      } catch {}
+        // Broadcast to Distributor Hub & Admin Consoles
+        if (typeof BroadcastChannel !== 'undefined') {
+          const syncChannel = new BroadcastChannel('atomy_sync_channel');
+          syncChannel.postMessage({
+            type: 'ORDER_CANCELLED',
+            orderId: oId,
+            cancelReason: fullReason,
+            cancelNotes: cancelNotes,
+            cancelledAt: cancelledAtIso,
+            order: {
+              ...cancelModalOrder,
+              orderId: oId,
+              status: 'Cancelled',
+              orderStatus: 'CANCELLED',
+              paymentStatus: paymentStatusVal,
+              cancelReason: fullReason,
+              cancelNotes: cancelNotes,
+              cancelledAt: cancelledAtIso
+            }
+          });
+          const orderChannel = new BroadcastChannel('atomy_order_channel');
+          orderChannel.postMessage({
+            type: 'ORDER_CANCELLED',
+            orderId: oId,
+            cancelReason: fullReason,
+            cancelNotes: cancelNotes,
+            cancelledAt: cancelledAtIso,
+            order: {
+              ...cancelModalOrder,
+              orderId: oId,
+              status: 'Cancelled',
+              orderStatus: 'CANCELLED',
+              paymentStatus: paymentStatusVal,
+              cancelReason: fullReason,
+              cancelNotes: cancelNotes,
+              cancelledAt: cancelledAtIso
+            }
+          });
+        }
+
+        window.dispatchEvent(new CustomEvent('atomy:order-cancelled', {
+          detail: {
+            ...cancelModalOrder,
+            orderId: oId,
+            orderStatus: 'CANCELLED',
+            cancelReason: fullReason,
+            cancelNotes,
+            cancelledAt: cancelledAtIso
+          }
+        }));
+      } catch (e) {
+        console.warn('Storage sync error:', e);
+      }
 
       setToastMessage({
         type: inTransit ? 'warning' : 'success',
@@ -738,7 +813,7 @@ export default function OrderHistoryPage({
     try {
       const isReplacement = resolutionMode === 'replacement';
       const ticketCategory = isReplacement ? 'DAMAGED_PRODUCT' : 'REFUND_REQUEST';
-      const ticketSubject = isReplacement 
+      const ticketSubject = isReplacement
         ? `Zero-Cost 1-to-1 Replacement Request for Order #${oId}: ${fullReason}`
         : `30-Day Money-Back Guarantee Return for Order #${oId}: ${fullReason}`;
 
@@ -769,7 +844,7 @@ export default function OrderHistoryPage({
           returnRequested: !isReplacement ? true : o.returnRequested
         } : o);
         localStorage.setItem('atomy_placed_orders', JSON.stringify(updatedPlaced));
-      } catch {}
+      } catch { }
 
       setLocalOrderOverrides(prev => ({
         ...prev,
@@ -868,7 +943,7 @@ export default function OrderHistoryPage({
       const storedName = localStorage.getItem('atomy_customer_name') || localStorage.getItem('atomy_user_name');
       if (storedName) customerName = storedName;
       else if (reviewModalOrder.shippingAddress?.recipient) customerName = reviewModalOrder.shippingAddress.recipient;
-    } catch {}
+    } catch { }
 
     const payload = {
       orderId: reviewModalOrder.orderId,
@@ -907,7 +982,7 @@ export default function OrderHistoryPage({
       try {
         localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updatedMap));
         localStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updatedMap));
-      } catch {}
+      } catch { }
 
       // Update in-memory catalog structures
       try {
@@ -931,7 +1006,7 @@ export default function OrderHistoryPage({
           });
           bc.close();
         }
-      } catch {}
+      } catch { }
 
       setToastMessage({
         type: 'success',
@@ -955,7 +1030,7 @@ export default function OrderHistoryPage({
       setReviewedProductMap(updatedMap);
       try {
         localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updatedMap));
-      } catch {}
+      } catch { }
 
       try {
         mergeProductIntoCatalog({
@@ -963,7 +1038,7 @@ export default function OrderHistoryPage({
           rating: reviewRating,
           reviewsCount: 1
         });
-      } catch {}
+      } catch { }
 
       setToastMessage({
         type: 'success',
@@ -1007,7 +1082,7 @@ export default function OrderHistoryPage({
     const orderId = order.orderId || order.id || 'ORDER';
     const orderDate = order.orderDate || new Date().toISOString().split('T')[0];
     const invoiceNo = `INV-${orderId}`;
-    
+
     // Shipping Address Details
     const dest = resolveOrderDestination(order);
     const recipient = dest.recipient;
@@ -1433,7 +1508,7 @@ export default function OrderHistoryPage({
               Inspect order details, monitor live package transit checkpoints, request replacements, cancel orders, and review policies.
             </p>
           </div>
-          <button 
+          <button
             type="button"
             className="order-header-policy-link"
             onClick={() => setIsRulesModalOpen(true)}
@@ -1449,35 +1524,35 @@ export default function OrderHistoryPage({
 
         {/* 3. Order Status Summary Tracker Cards */}
         <div className="order-status-tracker-strip">
-          <div 
+          <div
             className={`status-tracker-card ${statusFilter === 'all' ? 'active' : ''}`}
             onClick={() => setStatusFilter('all')}
           >
             <div className="tracker-card-label">Total Orders</div>
             <div className="tracker-card-count">{counters.all}</div>
           </div>
-          <div 
+          <div
             className={`status-tracker-card ${statusFilter === 'Payment Completed' ? 'active' : ''}`}
             onClick={() => setStatusFilter('Payment Completed')}
           >
             <div className="tracker-card-label">Order Confirmed / Paid</div>
             <div className="tracker-card-count">{counters.paid}</div>
           </div>
-          <div 
+          <div
             className={`status-tracker-card ${statusFilter === 'Preparing Shipment' ? 'active' : ''}`}
             onClick={() => setStatusFilter('Preparing Shipment')}
           >
             <div className="tracker-card-label">Preparing Shipment</div>
             <div className="tracker-card-count">{counters.preparing}</div>
           </div>
-          <div 
+          <div
             className={`status-tracker-card ${statusFilter === 'In Transit' ? 'active' : ''}`}
             onClick={() => setStatusFilter('In Transit')}
           >
             <div className="tracker-card-label">In Transit</div>
             <div className="tracker-card-count">{counters.inTransit}</div>
           </div>
-          <div 
+          <div
             className={`status-tracker-card ${statusFilter === 'Delivered' ? 'active' : ''}`}
             onClick={() => setStatusFilter('Delivered')}
           >
@@ -1485,7 +1560,7 @@ export default function OrderHistoryPage({
             <div className="tracker-card-count highlight">{counters.delivered}</div>
           </div>
           {counters.cancelled > 0 && (
-            <div 
+            <div
               className={`status-tracker-card cancelled-tracker-card ${statusFilter === 'Cancelled' ? 'active' : ''}`}
               onClick={() => setStatusFilter('Cancelled')}
             >
@@ -1528,8 +1603,8 @@ export default function OrderHistoryPage({
               className="order-search-input"
             />
             {searchQuery && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="clear-search-btn"
                 onClick={() => setSearchQuery('')}
               >
@@ -1547,12 +1622,12 @@ export default function OrderHistoryPage({
             </div>
             <h3 className="empty-state-title">No orders found</h3>
             <p className="empty-state-desc">
-              {searchQuery 
-                ? `No orders matching "${searchQuery}" for the chosen filters.` 
+              {searchQuery
+                ? `No orders matching "${searchQuery}" for the chosen filters.`
                 : 'You have no order history in the selected period.'}
             </p>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="empty-state-btn"
               onClick={onNavigateHome}
             >
@@ -1587,10 +1662,25 @@ export default function OrderHistoryPage({
                 <div key={order.orderId} className={`order-item-card ${isCanc ? 'card-cancelled' : ''}`}>
                   {/* Card Header */}
                   <div className="order-card-header">
-                    <div className="order-header-info">
-                      <span className="order-date-text">{order.orderDate}</span>
+                    <div className="order-header-info" style={{ flexWrap: 'wrap', gap: '6px 8px' }}>
+                      <span className="order-date-text">
+                        {order.orderDate} {order.orderTime && <span style={{ fontSize: '11px', color: '#64748b' }}>at {order.orderTime}</span>}
+                      </span>
                       <span className="order-divider">|</span>
                       <span className="order-id-code">Order No: <strong>{order.orderId}</strong></span>
+                      {order.deliveryDeadline && (
+                        <>
+                          <span className="order-divider">|</span>
+                          <span style={{ fontSize: '11.5px', color: order.isOverdue ? '#dc2626' : '#0369a1', fontWeight: 600 }}>
+                            Deadline: <strong>{order.deliveryDeadline}</strong>
+                          </span>
+                          {order.isOverdue && (
+                            <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '10.5px', display: 'inline-flex', alignItems: 'center', gap: '3px', background: '#fee2e2', padding: '1px 6px', borderRadius: '4px', marginLeft: '4px' }}>
+                              <AlertTriangle size={11} /> Overdue ({order.overdueDays}d)
+                            </span>
+                          )}
+                        </>
+                      )}
                     </div>
 
                     <div className="order-header-badges">
@@ -1658,13 +1748,13 @@ export default function OrderHistoryPage({
                   <div className="order-products-table">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="order-product-row">
-                        <div 
+                        <div
                           className="product-img-box"
                           onClick={() => onProductClick && onProductClick(item)}
                         >
-                          <img 
-                            src={item.image} 
-                            alt={item.name} 
+                          <img
+                            src={item.image}
+                            alt={item.name}
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg';
@@ -1673,7 +1763,7 @@ export default function OrderHistoryPage({
                         </div>
 
                         <div className="product-details-col">
-                          <h4 
+                          <h4
                             className="product-title"
                             onClick={() => onProductClick && onProductClick(item)}
                           >
@@ -1853,74 +1943,77 @@ export default function OrderHistoryPage({
                   </div>
 
                   {/* Inline Expanded Delivery / Cancellation Tracker Section */}
-                  {expandedOrderId === order.orderId && (
-                    <div className="order-inline-tracker-box animate-fade">
-                      <div className="inline-tracker-header">
-                        <div className="inline-tracker-meta">
-                          {isPickup ? (
-                            <>
-                              <span className="meta-carrier" style={{ color: '#15803d' }}>
-                                Fulfillment: <strong>🏢 Direct Hub Pickup (Counter Collection)</strong>
-                              </span>
-                              <span className="sep">•</span>
-                              <span className="meta-awb">
-                                Collection Hub: <strong>{order.hubName || order.hubAddress || 'Atomy Regional Logistics Hub'}</strong>
-                              </span>
-                              <span className="sep">•</span>
-                              <span className="meta-date">
-                                Order Date: <strong>{order.orderDate}</strong>
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="meta-carrier">
-                                Carrier: <strong>{isCanc ? 'Transit Halted' : (order.courier || 'Blue Dart Express')}</strong>
-                              </span>
-                              <span className="sep">•</span>
-                              <span className="meta-awb">
-                                AWB: <strong className="mono">{order.trackingNumber || (order.orderId ? `BD-${order.orderId}` : 'BD-Pending Allocation')}</strong>
-                              </span>
-                              <span className="sep">•</span>
-                              <span className="meta-date">
-                                Order Date: <strong>{order.orderDate}</strong>
-                              </span>
-                            </>
-                          )}
+                  {expandedOrderId === order.orderId && (() => {
+                    const dest = resolveOrderDestination(order);
+                    return (
+                      <div className="order-inline-tracker-box animate-fade">
+                        <div className="inline-tracker-header">
+                          <div className="inline-tracker-meta">
+                            {isPickup ? (
+                              <>
+                                <span className="meta-carrier" style={{ color: '#15803d' }}>
+                                  Fulfillment: <strong>🏢 Direct Hub Pickup (Counter Collection)</strong>
+                                </span>
+                                <span className="sep">•</span>
+                                <span className="meta-awb">
+                                  Collection Hub: <strong>{dest.hubName || order.hubName || 'Atomy Regional Logistics Hub'}</strong>
+                                </span>
+                                <span className="sep">•</span>
+                                <span className="meta-date">
+                                  Order Date: <strong>{order.orderDate}</strong>
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="meta-carrier">
+                                  Carrier: <strong>{isCanc ? 'Transit Halted' : (order.courier || 'Blue Dart Express')}</strong>
+                                </span>
+                                <span className="sep">•</span>
+                                <span className="meta-awb">
+                                  AWB: <strong className="mono">{order.trackingNumber || (order.orderId ? `BD-${order.orderId}` : 'BD-Pending Allocation')}</strong>
+                                </span>
+                                <span className="sep">•</span>
+                                <span className="meta-date">
+                                  Order Date: <strong>{order.orderDate}</strong>
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="inline-tracker-close-btn"
+                            onClick={() => setExpandedOrderId(null)}
+                            title="Close tracking details"
+                          >
+                            <X size={14} />
+                            <span>Close</span>
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          className="inline-tracker-close-btn"
-                          onClick={() => setExpandedOrderId(null)}
-                          title="Close tracking details"
-                        >
-                          <X size={14} />
-                          <span>Close</span>
-                        </button>
+
+                        {/* Animated Delivery or Travelling Cancellation Stepper */}
+                        <DeliveryStatusStepper order={order} />
+
+                        {/* Destination Shipping Address Banner */}
+                        {isPickup ? (
+                          <div className="inline-tracker-destination" style={{ background: '#f0fdf4', borderColor: '#86efac' }}>
+                            <Building2 size={16} color="#16a34a" />
+                            <span>
+                              Pickup Counter Location: <strong>{dest.hubName || order.hubName || 'Atomy Regional Logistics Hub'}</strong> — {dest.hubAddress || order.hubAddress || 'Collect in person at designated regional logistics counter'}
+                              {order.hubPhone ? ` • Contact: ${order.hubPhone}` : ''}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="inline-tracker-destination">
+                            <MapPin size={15} color="#00A3E0" />
+                            <span>
+                              Shipping to: <strong>{order.shippingAddress?.recipient || 'Customer'}</strong>
+                              {order.shippingAddress?.address ? ` — ${order.shippingAddress.address}` : ''}
+                            </span>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Animated Delivery or Travelling Cancellation Stepper */}
-                      <DeliveryStatusStepper order={order} />
-
-                      {/* Destination Shipping Address Banner */}
-                      {isPickup ? (
-                        <div className="inline-tracker-destination" style={{ background: '#f0fdf4', borderColor: '#86efac' }}>
-                          <Building2 size={16} color="#16a34a" />
-                          <span>
-                            Pickup Location: <strong>{order.hubName || 'Atomy Regional Logistics Hub'}</strong> — {order.hubAddress || 'Collect in person at designated regional logistics counter'}
-                            {order.hubPhone ? ` • Contact: ${order.hubPhone}` : ''}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="inline-tracker-destination">
-                          <MapPin size={15} color="#00A3E0" />
-                          <span>
-                            Shipping to: <strong>{order.shippingAddress?.recipient || 'Customer'}</strong>
-                            {order.shippingAddress?.address ? ` — ${order.shippingAddress.address}` : ''}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -1945,7 +2038,7 @@ export default function OrderHistoryPage({
                     <div>
                       <h3>Cancel Order #{cancelModalOrder.orderId}</h3>
                       <p>
-                        {inTransit 
+                        {inTransit
                           ? 'Package is already in transit. You can cancel, but the amount is non-refundable.'
                           : 'Eligible for instant free pre-dispatch cancellation with 100% automated refund.'}
                       </p>
@@ -2002,100 +2095,100 @@ export default function OrderHistoryPage({
                       </div>
                     )}
 
-              {/* Reason Selector (Amazon / Myntra Style Radio Tiles) */}
-              <div className="action-form-group">
-                <label className="form-label">
-                  Please select a reason for cancellation <span className="req">*</span>
-                </label>
-                <div className="reason-radio-list">
-                  {CANCELLATION_REASONS.map((reason) => {
-                    const isSelected = cancelReasonId === reason.id;
-                    return (
-                      <label 
-                        key={reason.id} 
-                        className={`reason-radio-tile ${isSelected ? 'selected danger-tone' : ''}`}
-                      >
-                        <input
-                          type="radio"
-                          name="cancellationReason"
-                          value={reason.id}
-                          checked={isSelected}
-                          onChange={() => setCancelReasonId(reason.id)}
-                        />
-                        <div className="reason-tile-text">
-                          <span className="reason-tile-title">{reason.title}</span>
-                          <span className="reason-tile-desc">{reason.desc}</span>
-                        </div>
+                    {/* Reason Selector (Amazon / Myntra Style Radio Tiles) */}
+                    <div className="action-form-group">
+                      <label className="form-label">
+                        Please select a reason for cancellation <span className="req">*</span>
                       </label>
-                    );
-                  })}
-                </div>
-              </div>
+                      <div className="reason-radio-list">
+                        {CANCELLATION_REASONS.map((reason) => {
+                          const isSelected = cancelReasonId === reason.id;
+                          return (
+                            <label
+                              key={reason.id}
+                              className={`reason-radio-tile ${isSelected ? 'selected danger-tone' : ''}`}
+                            >
+                              <input
+                                type="radio"
+                                name="cancellationReason"
+                                value={reason.id}
+                                checked={isSelected}
+                                onChange={() => setCancelReasonId(reason.id)}
+                              />
+                              <div className="reason-tile-text">
+                                <span className="reason-tile-title">{reason.title}</span>
+                                <span className="reason-tile-desc">{reason.desc}</span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-              {/* Helpful hint if address change reason is selected */}
-              {cancelReasonId === 'address' && (
-                <div className="reason-tip-banner animate-fade">
-                  <AlertCircle size={18} color="#1d4ed8" />
-                  <div>
-                    <strong>Need to change your shipping address?</strong>
-                    <p style={{ margin: '2px 0 0', fontSize: '11.5px' }}>
-                      If you only need to change your address or phone number, our customer care team can update your delivery destination before dispatch without cancelling your order.
-                    </p>
+                    {/* Helpful hint if address change reason is selected */}
+                    {cancelReasonId === 'address' && (
+                      <div className="reason-tip-banner animate-fade">
+                        <AlertCircle size={18} color="#1d4ed8" />
+                        <div>
+                          <strong>Need to change your shipping address?</strong>
+                          <p style={{ margin: '2px 0 0', fontSize: '11.5px' }}>
+                            If you only need to change your address or phone number, our customer care team can update your delivery destination before dispatch without cancelling your order.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Optional comments box */}
+                    <div className="action-form-group">
+                      <label className="form-label">Additional Comments / Feedback (Optional)</label>
+                      <textarea
+                        placeholder="Share any additional details with our support team..."
+                        value={cancelNotes}
+                        onChange={(e) => setCancelNotes(e.target.value)}
+                        className="form-textarea-input"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="policy-reminder-box">
+                      <ShieldCheck size={18} color="#00A3E0" />
+                      <span>
+                        <strong>Atomy ₹0 Cancellation Guarantee:</strong> No deduction or restocking fee will be levied. 100% of your invoice amount is refunded.
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
 
-              {/* Optional comments box */}
-              <div className="action-form-group">
-                <label className="form-label">Additional Comments / Feedback (Optional)</label>
-                <textarea
-                  placeholder="Share any additional details with our support team..."
-                  value={cancelNotes}
-                  onChange={(e) => setCancelNotes(e.target.value)}
-                  className="form-textarea-input"
-                  rows={2}
-                />
-              </div>
-
-              <div className="policy-reminder-box">
-                <ShieldCheck size={18} color="#00A3E0" />
-                <span>
-                  <strong>Atomy ₹0 Cancellation Guarantee:</strong> No deduction or restocking fee will be levied. 100% of your invoice amount is refunded.
-                </span>
-              </div>
-            </div>
-
-              <div className="modal-action-footer">
-                <button 
-                  type="button" 
-                  className="btn-modal-cancel" 
-                  onClick={() => setCancelModalOrder(null)}
-                  disabled={isSubmittingAction}
-                >
-                  Keep My Order
-                </button>
-                <button 
-                  type="button" 
-                  className="btn-modal-confirm-danger" 
-                  onClick={handleConfirmCancelOrder}
-                  disabled={isSubmittingAction}
-                >
-                  {isSubmittingAction ? (
-                    'Processing Cancellation...'
-                  ) : (
-                    <>
-                      <XCircle size={16} />
-                      <span>{inTransit ? 'Confirm Cancellation (No Refund)' : 'Confirm Cancellation & Full Refund'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </>
-          );
-        })()}
-      </div>
-    </div>
-  )}
+                  <div className="modal-action-footer">
+                    <button
+                      type="button"
+                      className="btn-modal-cancel"
+                      onClick={() => setCancelModalOrder(null)}
+                      disabled={isSubmittingAction}
+                    >
+                      Keep My Order
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-modal-confirm-danger"
+                      onClick={handleConfirmCancelOrder}
+                      disabled={isSubmittingAction}
+                    >
+                      {isSubmittingAction ? (
+                        'Processing Cancellation...'
+                      ) : (
+                        <>
+                          <XCircle size={16} />
+                          <span>{inTransit ? 'Confirm Cancellation (No Refund)' : 'Confirm Cancellation & Full Refund'}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* ========================================================
           MODAL 2 & 3: ZERO-COST REPLACEMENT OR 30-DAY RETURN MODAL
@@ -2114,8 +2207,8 @@ export default function OrderHistoryPage({
                 </div>
                 <div>
                   <h3>
-                    {isReplacement 
-                      ? `Request Zero-Cost 1-to-1 Replacement (#${modalOrder.orderId})` 
+                    {isReplacement
+                      ? `Request Zero-Cost 1-to-1 Replacement (#${modalOrder.orderId})`
                       : `30-Day Money-Back Guarantee Return (#${modalOrder.orderId})`}
                   </h3>
                   <p>
@@ -2163,7 +2256,7 @@ export default function OrderHistoryPage({
                     </span>
                   </div>
                   <div className="rsb-destination">
-                    {isReplacement 
+                    {isReplacement
                       ? 'Free doorstep reverse pickup scheduled via Blue Dart Express with ₹0 fee.'
                       : 'Credited directly back to your payment account once inspection is complete.'}
                   </div>
@@ -2198,8 +2291,8 @@ export default function OrderHistoryPage({
                     {RETURN_REPLACEMENT_REASONS.map((reason) => {
                       const isSelected = returnReasonId === reason.id;
                       return (
-                        <label 
-                          key={reason.id} 
+                        <label
+                          key={reason.id}
                           className={`reason-radio-tile ${isSelected ? 'selected' : ''}`}
                         >
                           <input
@@ -2255,16 +2348,16 @@ export default function OrderHistoryPage({
               </div>
 
               <div className="modal-action-footer">
-                <button 
-                  type="button" 
-                  className="btn-modal-cancel" 
+                <button
+                  type="button"
+                  className="btn-modal-cancel"
                   onClick={() => { setReplacementModalOrder(null); setReturnModalOrder(null); }}
                   disabled={isSubmittingAction}
                 >
                   Keep Product
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={isReplacement ? 'btn-modal-confirm-indigo' : 'btn-modal-confirm-green'}
                   onClick={handleConfirmReplacementOrReturn}
                   disabled={isSubmittingAction || !conditionConfirmed}
@@ -2310,32 +2403,32 @@ export default function OrderHistoryPage({
 
             {/* Interactive Tab Switcher Bar */}
             <div className="rules-tabs-bar">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`rules-tab-btn ${activeRulesTab === 'cancellation' ? 'active' : ''}`}
                 onClick={() => setActiveRulesTab('cancellation')}
               >
                 <XCircle size={15} />
                 <span>Pre-Dispatch Cancellation</span>
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`rules-tab-btn ${activeRulesTab === 'replacement' ? 'active' : ''}`}
                 onClick={() => setActiveRulesTab('replacement')}
               >
                 <Truck size={15} />
                 <span>7-Day Free Replacement</span>
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`rules-tab-btn ${activeRulesTab === 'refund_guarantee' ? 'active' : ''}`}
                 onClick={() => setActiveRulesTab('refund_guarantee')}
               >
                 <ShieldCheck size={15} />
                 <span>30-Day Money-Back Guarantee</span>
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`rules-tab-btn ${activeRulesTab === 'timelines' ? 'active' : ''}`}
                 onClick={() => setActiveRulesTab('timelines')}
               >
@@ -2480,8 +2573,8 @@ export default function OrderHistoryPage({
                   <Download size={14} />
                   <span>Download PDF</span>
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="invoice-close-btn"
                   onClick={() => setActiveInvoiceOrder(null)}
                   title="Close"
@@ -2649,8 +2742,8 @@ export default function OrderHistoryPage({
             </div>
 
             <div className="invoice-modal-footer">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="invoice-close-action"
                 onClick={() => setActiveInvoiceOrder(null)}
               >

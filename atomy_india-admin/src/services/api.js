@@ -76,9 +76,11 @@ export async function fetchAdminOrders(statusFilter) {
   return res.json();
 }
 
-export async function updateAdminOrderStatus(orderId, newStatus) {
+export async function updateAdminOrderStatus(orderId, newStatus, extraData = {}) {
   const res = await fetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderId)}/status?status=${newStatus}`, {
-    method: 'PUT'
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: newStatus, ...extraData })
   });
   if (!res.ok) throw new Error('Failed to update order status');
   return res.json();

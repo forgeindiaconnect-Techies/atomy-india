@@ -26,6 +26,7 @@ import {
   Clock,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
   Eye,
   X,
   Calendar,
@@ -72,7 +73,7 @@ import {
   sendDelayApologyEmail,
   triggerAllDelayedEmails
 } from '../../services/api';
-import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
+import { formatDateIST, formatTimeIST, parseDateSafe } from '../../utils/dateUtils';
 import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import {
   playOrderAlertSound,
@@ -88,6 +89,7 @@ import TerritoryManagementPage from './TerritoryManagementPage';
 import InviteDistributorsPage from './InviteDistributorsPage';
 import { fetchDistributorList } from '../../services/distributorService';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
+import CustomDropdown from '../common/CustomDropdown';
 import {
   getAdConfig,
   saveAdConfig,
@@ -210,8 +212,28 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   // Sub-sidebar state inside Settings page: 'profile' | 'security' | 'audio' | 'store' | 'policies'
   const [settingsSubTab, setSettingsSubTab] = useState('profile');
-  const [isSettingsSubSidebarOpen, setIsSettingsSubSidebarOpen] = useState(true);
+  const [isSettingsSubSidebarOpen, setIsSettingsSubSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true);
   const [adPromotionConfig, setAdPromotionConfig] = useState(getAdConfig);
+
+  // Custom Stock Status Filter Dropdown State
+  const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
+  const stockDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleStockClickOutside = (e) => {
+      if (stockDropdownRef.current && !stockDropdownRef.current.contains(e.target)) {
+        setIsStockDropdownOpen(false);
+      }
+    };
+    if (isStockDropdownOpen) {
+      document.addEventListener('mousedown', handleStockClickOutside);
+      document.addEventListener('touchstart', handleStockClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleStockClickOutside);
+      document.removeEventListener('touchstart', handleStockClickOutside);
+    };
+  }, [isStockDropdownOpen]);
 
   // Automatically map legacy or external 'profile' tab requests into the unified Settings subsidebar
   useEffect(() => {
@@ -646,7 +668,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     // 1. Try order.createdAt or order.date or order.orderDate
     const raw = order.createdAt || order.date || order.orderDate;
     if (raw) {
-      const d = new Date(raw);
+      const d = parseDateSafe(raw);
       if (!isNaN(d.getTime())) return d;
     }
     // 2. Parse from orderId format: ORD-YYYYMMDD-XXXX (100% immune to clock changes or re-logins)
@@ -1958,12 +1980,38 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
   const handleOpenTrackingModal = (order) => {
     setEditingTrackingOrder(order);
+    const isPickup = order.fulfillmentType === 'STORE_PICKUP' || order.pickupStatus || order.isPickup;
+    const hubName = order.assignedDistributorName || order.hubName;
+    const hubAddr = order.hubAddress;
+    const pin = order.pincode || '635002';
+
+    let resolvedLoc;
+    if (isPickup) {
+      if (hubName && hubAddr) {
+        resolvedLoc = `${hubName} — ${hubAddr}`;
+      } else if (hubAddr) {
+        resolvedLoc = hubAddr;
+      } else if (hubName) {
+        resolvedLoc = `${hubName} Counter (PIN: ${pin})`;
+      } else {
+        resolvedLoc = `Regional Hub Pickup Counter (PIN: ${pin})`;
+      }
+    } else {
+      resolvedLoc = `${order.city || 'Regional'} Logistics Hub (PIN: ${pin})`;
+    }
+
+    const existingLoc = order.tracking?.currentLocation;
+    const isHardcodedGurugram = existingLoc && (
+      existingLoc.toLowerCase().includes('gurugram') ||
+      existingLoc.toLowerCase().includes('order processing center')
+    );
+
     setTrackingForm({
-      courierPartner: order.tracking?.courierPartner || order.courier || 'Blue Dart Express',
-      trackingNumber: order.tracking?.trackingNumber || order.trackingNumber || `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+      courierPartner: order.tracking?.courierPartner || order.courier || (isPickup ? 'Self Pickup / Counter Collection' : 'Blue Dart Express'),
+      trackingNumber: order.tracking?.trackingNumber || order.trackingNumber || (isPickup ? `PICKUP-${order.orderId}` : `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`),
       currentStatus: order.orderStatus || 'PLACED',
-      currentLocation: order.tracking?.currentLocation || 'Gurugram Hub',
-      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || (isRemoteTerrain(order) ? 'Within 3 Days (Mountain/Forest)' : 'Within 2 Days (Nearby Hub)')
+      currentLocation: (existingLoc && !isHardcodedGurugram) ? existingLoc : resolvedLoc,
+      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || (isPickup ? 'Direct Counter Pickup' : (isRemoteTerrain(order) ? 'Within 3 Days (Mountain/Forest)' : 'Within 2 Days (Nearby Hub)'))
     });
   };
 
@@ -2297,17 +2345,19 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
     });
   }, [tickets, ticketStatusFilter, ticketSearchQuery]);
 
+  const getCustomerStoreUrl = () => {
+    return import.meta.env.VITE_STORE_URL || 'https://atomy-india-eta.vercel.app';
+  };
+
   const ADMIN_NAV_ITEMS = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Catalog', icon: Boxes },
-    { id: 'territories', label: 'Distributor / Territories', icon: MapPin },
-    { id: 'orders', label: 'Customer Orders', icon: Package, badge: (overviewStats?.allDelayedOrders?.length || 0) > 0 ? `${overviewStats.allDelayedOrders.length} Late` : null },
-    { id: 'customers', label: 'Customer Accounts', icon: Users },
-    { id: 'membership', label: 'Membership Verification', icon: Crown },
-    { id: 'coupons', label: 'Promotions & Coupons', icon: Tag },
-    { id: 'support', label: 'Customer Support Desk', icon: Headphones },
-    { id: 'floating-ad', label: 'Promotional Ad Floater', icon: Sparkles },
-    { id: 'settings', label: 'Settings & Administration', icon: Settings }
+    { id: 'territories', label: 'Distributors & Territories', icon: MapPin },
+    { id: 'invite-distributors', label: 'Invite Distributors', icon: UserPlus },
+    { id: 'membership', label: 'Membership & Privileges', icon: Crown },
+    { id: 'floating-ad', label: 'Ads & Banner Promotions', icon: Sparkles },
+    { id: 'coupons', label: 'Coupons & Offers', icon: Ticket },
+    { id: 'settings', label: 'Settings', icon: Settings }
   ];
 
   return (
@@ -2419,9 +2469,6 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           >
             <Menu size={18} strokeWidth={2.4} />
             <span className="mobile-hamburger-text">Menu</span>
-            <span className="mobile-hamburger-active-pill">
-              {ADMIN_NAV_ITEMS.find(n => n.id === activeTab)?.label || 'Overview'}
-            </span>
           </button>
 
           <div className="quick-strip-desktop-info">
@@ -2433,15 +2480,15 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
         <div className="quick-strip-right">
           <a
-            href="http://localhost:5173"
+            href={getCustomerStoreUrl()}
             target="_blank"
             rel="noopener noreferrer"
             className="quick-refresh-btn"
             style={{ textDecoration: 'none', background: '#00a3e0', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
-            title="Open Live Customer Store (http://localhost:5173)"
+            title="Open Live Customer Store"
           >
             <ExternalLink size={13} />
-            <span>Customer Store (5173)</span>
+            <span>Customer Store</span>
           </a>
         </div>
       </div>
@@ -2498,13 +2545,13 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
             <div className="mobile-drawer-footer">
               <a
-                href="http://localhost:5173"
+                href={getCustomerStoreUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mobile-drawer-store-btn"
               >
                 <ExternalLink size={15} />
-                <span>Customer Store (5173)</span>
+                <span>Customer Store</span>
               </a>
               {onLogout && (
                 <button
@@ -3310,17 +3357,62 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                         )}
                       </div>
 
-                      {/* Stock Status Filter */}
-                      <div className="stock-filter-wrapper">
-                        <select
-                          value={productStockFilter}
-                          onChange={(e) => setProductStockFilter(e.target.value)}
-                          className="atomy-dropdown"
+                      {/* Stock Status Filter - Custom Controlled Dropdown (Never overflows) */}
+                      <div className="stock-filter-wrapper custom-select-container" ref={stockDropdownRef}>
+                        <button
+                          type="button"
+                          className={`atomy-dropdown-trigger ${isStockDropdownOpen ? 'active' : ''}`}
+                          onClick={() => setIsStockDropdownOpen(!isStockDropdownOpen)}
+                          aria-expanded={isStockDropdownOpen}
+                          title="Filter by stock status"
                         >
-                          <option value="ALL">All Stock Statuses</option>
-                          <option value="LOW">Low Stock Only (&le; 10)</option>
-                          <option value="OUT">Out of Stock (0)</option>
-                        </select>
+                          <span>
+                            {productStockFilter === 'ALL' && 'All Stock Statuses'}
+                            {productStockFilter === 'LOW' && 'Low Stock Only (≤ 10)'}
+                            {productStockFilter === 'OUT' && 'Out of Stock (0)'}
+                          </span>
+                          <ChevronDown size={15} className={`dropdown-chevron ${isStockDropdownOpen ? 'rotate' : ''}`} />
+                        </button>
+
+                        {isStockDropdownOpen && (
+                          <div className="custom-dropdown-menu">
+                            <button
+                              type="button"
+                              className={`custom-dropdown-item ${productStockFilter === 'ALL' ? 'selected' : ''}`}
+                              onClick={() => {
+                                setProductStockFilter('ALL');
+                                setIsStockDropdownOpen(false);
+                              }}
+                            >
+                              <span>All Stock Statuses</span>
+                              {productStockFilter === 'ALL' && <Check size={14} color="#0284c7" />}
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`custom-dropdown-item ${productStockFilter === 'LOW' ? 'selected' : ''}`}
+                              onClick={() => {
+                                setProductStockFilter('LOW');
+                                setIsStockDropdownOpen(false);
+                              }}
+                            >
+                              <span>Low Stock Only (&le; 10)</span>
+                              {productStockFilter === 'LOW' && <Check size={14} color="#0284c7" />}
+                            </button>
+
+                            <button
+                              type="button"
+                              className={`custom-dropdown-item ${productStockFilter === 'OUT' ? 'selected' : ''}`}
+                              onClick={() => {
+                                setProductStockFilter('OUT');
+                                setIsStockDropdownOpen(false);
+                              }}
+                            >
+                              <span>Out of Stock (0)</span>
+                              {productStockFilter === 'OUT' && <Check size={14} color="#0284c7" />}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -3628,32 +3720,38 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   <span className="order-id-text">{o.orderId}</span>
                                 </div>
                                 <div className="order-date-text">
-                                  {formatDateIST(o.createdAt || o.date)}
+                                  {formatDateIST(o.createdAt || o.date || o.orderDate)}
                                   <span className="order-time-text">
-                                    {formatTimeIST(o.createdAt || o.date)}
+                                    {formatTimeIST(o.createdAt || o.date || o.orderDate)}
                                   </span>
                                 </div>
                                 {(() => {
                                   const sla = getOrderDeliverySLA(o);
-                                  if (sla.isDelivered) {
-                                    return (
-                                      <span className="sla-badge delivered">
-                                        <CheckCircle2 size={11} color="#15803d" /> Delivered
-                                      </span>
-                                    );
-                                  }
-                                  if (sla.isCancelled) return null;
-                                  if (sla.isDelayed) {
-                                    return (
-                                      <span className="sla-badge delayed" title={`Target was ${sla.targetDateStr} (${sla.slaDays}d SLA)`}>
-                                        <AlertTriangle size={11} color="#dc2626" /> Overdue ({sla.delayDays}d)
-                                      </span>
-                                    );
-                                  }
                                   return (
-                                    <span className="sla-badge on-schedule" title={`Delivery target: ${sla.targetDateStr}`}>
-                                      <Clock size={11} color="#15803d" /> {sla.statusText}
-                                    </span>
+                                    <>
+                                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
+                                        Deadline: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#0369a1' }}>{sla.targetDateStr}</strong>
+                                      </div>
+                                      <div style={{ marginTop: '4px' }}>
+                                        {sla.isDelivered ? (
+                                          <span className="sla-badge delivered">
+                                            <CheckCircle2 size={11} color="#15803d" /> Delivered
+                                          </span>
+                                        ) : sla.isCancelled ? (
+                                          <span className="sla-badge cancelled" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}>
+                                            Cancelled
+                                          </span>
+                                        ) : sla.isDelayed ? (
+                                          <span className="sla-badge delayed" title={`Target deadline was ${sla.targetDateStr} (${sla.slaDays}d SLA)`}>
+                                            <AlertTriangle size={11} color="#dc2626" /> Overdue ({sla.delayDays}d)
+                                          </span>
+                                        ) : (
+                                          <span className="sla-badge on-schedule" title={`Delivery target: ${sla.targetDateStr}`}>
+                                            <Clock size={11} color="#15803d" /> {sla.statusText}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </>
                                   );
                                 })()}
                               </td>
@@ -4261,7 +4359,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                         {selectedTicket ? (
                           <div className="thread-wrapper">
                             <div className="thread-top-bar">
-                              <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                              <div className="thread-title-info" style={{ flex: '1 1 auto', minWidth: 0 }}>
                                 <span className="mono-ticket">{selectedTicket.ticketId}</span>
                                 <h3 className="thread-main-subject" style={{ wordBreak: 'break-word' }}>{selectedTicket.subject}</h3>
                                 <div className="thread-customer-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
@@ -4283,17 +4381,17 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
                               <div className="thread-status-select-wrap" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>Status:</label>
-                                <select
+                                <CustomDropdown
                                   value={selectedTicket.status}
-                                  onChange={(e) => handleUpdateTicketStatus(selectedTicket.ticketId, e.target.value)}
-                                  className="atomy-dropdown"
-                                  style={{ minWidth: '140px', fontWeight: 700 }}
-                                >
-                                  <option value="OPEN">OPEN</option>
-                                  <option value="IN_PROGRESS">IN PROGRESS</option>
-                                  <option value="RESOLVED">RESOLVED</option>
-                                  <option value="CLOSED">CLOSED</option>
-                                </select>
+                                  onChange={(val) => handleUpdateTicketStatus(selectedTicket.ticketId, val)}
+                                  options={[
+                                    { value: 'OPEN', label: 'OPEN', badge: true, bg: '#e0f2fe', color: '#0284c7' },
+                                    { value: 'IN_PROGRESS', label: 'IN PROGRESS', badge: true, bg: '#fef3c7', color: '#d97706' },
+                                    { value: 'RESOLVED', label: 'RESOLVED', badge: true, bg: '#dcfce7', color: '#16a34a' },
+                                    { value: 'CLOSED', label: 'CLOSED', badge: true, bg: '#f1f5f9', color: '#64748b' }
+                                  ]}
+                                  style={{ minWidth: '150px' }}
+                                />
                                 <button
                                   type="button"
                                   onClick={() => setSelectedTicket(null)}
@@ -4396,129 +4494,156 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     <div className="settings-top-dock-bar">
                       <button
                         type="button"
-                        className="sub-sidebar-toggle-btn top-docked"
+                        className="sub-sidebar-toggle-btn top-docked settings-mobile-menu-trigger-btn"
                         onClick={() => setIsSettingsSubSidebarOpen(true)}
                         title="Expand Sub-Sidebar Menu"
                         aria-label="Expand Sub-Sidebar Menu"
                       >
-                        <Menu size={19} />
+                        <Menu size={18} />
+                        <span className="settings-btn-text">Settings Menu</span>
                       </button>
+                      <div className="settings-mobile-current-pill">
+                        <span>
+                          {settingsSubTab === 'profile' && 'Admin Profile'}
+                          {settingsSubTab === 'security' && 'Security & Access'}
+                          {settingsSubTab === 'audio' && 'Audio & Alerts'}
+                          {settingsSubTab === 'store' && 'Store & Logistics'}
+                          {settingsSubTab === 'policies' && 'Refunds & Policies'}
+                        </span>
+                      </div>
                     </div>
                   )}
 
                   <div className={`settings-split-wrapper ${!isSettingsSubSidebarOpen ? 'sidebar-hidden' : ''}`}>
                     {/* Left Sub-Sidebar Navigation (Joined with Toggle Icon) */}
                     {isSettingsSubSidebarOpen && (
-                      <aside className="settings-sub-sidebar expanded">
-                        <div className="sub-sidebar-header">
-                          <div className="sub-sidebar-header-left">
+                      <div className="settings-sidebar-mobile-overlay" onClick={() => setIsSettingsSubSidebarOpen(false)}>
+                        <aside className="settings-sub-sidebar expanded" onClick={(e) => e.stopPropagation()}>
+                          <div className="sub-sidebar-header">
+                            <div className="sub-sidebar-header-left">
+                              <button
+                                type="button"
+                                className="sub-sidebar-toggle-btn active"
+                                onClick={() => setIsSettingsSubSidebarOpen(false)}
+                                title="Collapse Sub-Sidebar Menu"
+                                aria-label="Collapse Sub-Sidebar Menu"
+                              >
+                                <Menu size={18} />
+                              </button>
+                              <div className="sub-sidebar-header-text">
+                                <span className="sub-sidebar-kicker">SETTINGS &amp; PREFERENCES</span>
+                                <h4 className="sub-sidebar-current-title">
+                                  {settingsSubTab === 'profile' && 'Admin Profile & Credentials'}
+                                  {settingsSubTab === 'security' && 'Security & Authorization'}
+                                  {settingsSubTab === 'audio' && 'Audio & Alerts Configuration'}
+                                  {settingsSubTab === 'store' && 'Store Profile & Logistics'}
+                                  {settingsSubTab === 'policies' && 'Refunds & Policy Operations'}
+                                </h4>
+                              </div>
+                            </div>
                             <button
                               type="button"
-                              className="sub-sidebar-toggle-btn active"
+                              className="sub-sidebar-close-btn"
                               onClick={() => setIsSettingsSubSidebarOpen(false)}
-                              title="Collapse Sub-Sidebar Menu"
-                              aria-label="Collapse Sub-Sidebar Menu"
+                              title="Hide sub-sidebar"
+                              aria-label="Close sub-sidebar"
                             >
-                              <Menu size={18} />
+                              <X size={16} />
                             </button>
-                            <div className="sub-sidebar-header-text">
-                              <span className="sub-sidebar-kicker">SETTINGS &amp; PREFERENCES</span>
-                              <h4 className="sub-sidebar-current-title">
-                                {settingsSubTab === 'profile' && 'Admin Profile & Credentials'}
-                                {settingsSubTab === 'security' && 'Security & Authorization'}
-                                {settingsSubTab === 'audio' && 'Audio & Alerts Configuration'}
-                                {settingsSubTab === 'store' && 'Store Profile & Logistics'}
-                                {settingsSubTab === 'policies' && 'Refunds & Policy Operations'}
-                              </h4>
-                            </div>
                           </div>
-                          <button
-                            type="button"
-                            className="sub-sidebar-close-btn"
-                            onClick={() => setIsSettingsSubSidebarOpen(false)}
-                            title="Hide sub-sidebar"
-                            aria-label="Close sub-sidebar"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                        <nav className="sub-sidebar-nav">
-                          <button
-                            type="button"
-                            className={`sub-sidebar-item ${settingsSubTab === 'profile' ? 'active' : ''}`}
-                            onClick={() => setSettingsSubTab('profile')}
-                          >
-                            <div className="sub-sidebar-icon">
-                              <User size={18} />
-                            </div>
-                            <div className="sub-sidebar-text">
-                              <strong>Admin Profile</strong>
-                              <span>Identity & station info</span>
-                            </div>
-                            <ChevronRight size={14} className="sub-sidebar-chevron" />
-                          </button>
+                          <nav className="sub-sidebar-nav">
+                            <button
+                              type="button"
+                              className={`sub-sidebar-item ${settingsSubTab === 'profile' ? 'active' : ''}`}
+                              onClick={() => {
+                                setSettingsSubTab('profile');
+                                if (window.innerWidth <= 768) setIsSettingsSubSidebarOpen(false);
+                              }}
+                            >
+                              <div className="sub-sidebar-icon">
+                                <User size={18} />
+                              </div>
+                              <div className="sub-sidebar-text">
+                                <strong>Admin Profile</strong>
+                                <span>Identity & station info</span>
+                              </div>
+                              <ChevronRight size={14} className="sub-sidebar-chevron" />
+                            </button>
 
-                          <button
-                            type="button"
-                            className={`sub-sidebar-item ${settingsSubTab === 'security' ? 'active' : ''}`}
-                            onClick={() => setSettingsSubTab('security')}
-                          >
-                            <div className="sub-sidebar-icon">
-                              <ShieldCheck size={18} />
-                            </div>
-                            <div className="sub-sidebar-text">
-                              <strong>Security & Access</strong>
-                              <span>2FA, IP audit & permissions</span>
-                            </div>
-                            <ChevronRight size={14} className="sub-sidebar-chevron" />
-                          </button>
+                            <button
+                              type="button"
+                              className={`sub-sidebar-item ${settingsSubTab === 'security' ? 'active' : ''}`}
+                              onClick={() => {
+                                setSettingsSubTab('security');
+                                if (window.innerWidth <= 768) setIsSettingsSubSidebarOpen(false);
+                              }}
+                            >
+                              <div className="sub-sidebar-icon">
+                                <ShieldCheck size={18} />
+                              </div>
+                              <div className="sub-sidebar-text">
+                                <strong>Security & Access</strong>
+                                <span>2FA, IP audit & permissions</span>
+                              </div>
+                              <ChevronRight size={14} className="sub-sidebar-chevron" />
+                            </button>
 
-                          <button
-                            type="button"
-                            className={`sub-sidebar-item ${settingsSubTab === 'audio' ? 'active' : ''}`}
-                            onClick={() => setSettingsSubTab('audio')}
-                          >
-                            <div className="sub-sidebar-icon">
-                              <Volume2 size={18} />
-                            </div>
-                            <div className="sub-sidebar-text">
-                              <strong>Audio & Alerts</strong>
-                              <span>Synthesizer chimes & polling</span>
-                            </div>
-                            <ChevronRight size={14} className="sub-sidebar-chevron" />
-                          </button>
+                            <button
+                              type="button"
+                              className={`sub-sidebar-item ${settingsSubTab === 'audio' ? 'active' : ''}`}
+                              onClick={() => {
+                                setSettingsSubTab('audio');
+                                if (window.innerWidth <= 768) setIsSettingsSubSidebarOpen(false);
+                              }}
+                            >
+                              <div className="sub-sidebar-icon">
+                                <Volume2 size={18} />
+                              </div>
+                              <div className="sub-sidebar-text">
+                                <strong>Audio & Alerts</strong>
+                                <span>Synthesizer chimes & polling</span>
+                              </div>
+                              <ChevronRight size={14} className="sub-sidebar-chevron" />
+                            </button>
 
-                          <button
-                            type="button"
-                            className={`sub-sidebar-item ${settingsSubTab === 'store' ? 'active' : ''}`}
-                            onClick={() => setSettingsSubTab('store')}
-                          >
-                            <div className="sub-sidebar-icon">
-                              <Truck size={18} />
-                            </div>
-                            <div className="sub-sidebar-text">
-                              <strong>Store & Logistics</strong>
-                              <span>Entity profile, couriers & stock</span>
-                            </div>
-                            <ChevronRight size={14} className="sub-sidebar-chevron" />
-                          </button>
+                            <button
+                              type="button"
+                              className={`sub-sidebar-item ${settingsSubTab === 'store' ? 'active' : ''}`}
+                              onClick={() => {
+                                setSettingsSubTab('store');
+                                if (window.innerWidth <= 768) setIsSettingsSubSidebarOpen(false);
+                              }}
+                            >
+                              <div className="sub-sidebar-icon">
+                                <Truck size={18} />
+                              </div>
+                              <div className="sub-sidebar-text">
+                                <strong>Store & Logistics</strong>
+                                <span>Entity profile, couriers & stock</span>
+                              </div>
+                              <ChevronRight size={14} className="sub-sidebar-chevron" />
+                            </button>
 
-                          <button
-                            type="button"
-                            className={`sub-sidebar-item ${settingsSubTab === 'policies' ? 'active' : ''}`}
-                            onClick={() => setSettingsSubTab('policies')}
-                          >
-                            <div className="sub-sidebar-icon">
-                              <RotateCcw size={18} />
-                            </div>
-                            <div className="sub-sidebar-text">
-                              <strong>Refunds & Policies</strong>
-                              <span>Satisfaction guarantee & workflow</span>
-                            </div>
-                            <ChevronRight size={14} className="sub-sidebar-chevron" />
-                          </button>
-                        </nav>
-                      </aside>
+                            <button
+                              type="button"
+                              className={`sub-sidebar-item ${settingsSubTab === 'policies' ? 'active' : ''}`}
+                              onClick={() => {
+                                setSettingsSubTab('policies');
+                                if (window.innerWidth <= 768) setIsSettingsSubSidebarOpen(false);
+                              }}
+                            >
+                              <div className="sub-sidebar-icon">
+                                <RotateCcw size={18} />
+                              </div>
+                              <div className="sub-sidebar-text">
+                                <strong>Refunds & Policies</strong>
+                                <span>Satisfaction guarantee & workflow</span>
+                              </div>
+                              <ChevronRight size={14} className="sub-sidebar-chevron" />
+                            </button>
+                          </nav>
+                        </aside>
+                      </div>
                     )}
 
                     {/* Right Sub-Content Area */}
@@ -4584,11 +4709,30 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 />
                               </div>
                               <div className="setting-field-group">
-                                <label>Phone Number</label>
+                                <label>Phone Number (10 digits starting with 6–9)</label>
                                 <input
-                                  type="text"
+                                  type="tel"
                                   value={adminProfile.phone || ''}
-                                  onChange={(e) => setAdminProfile({ ...adminProfile, phone: e.target.value })}
+                                  maxLength={14}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    // Strip non-digits except initial + if present
+                                    const digits = val.replace(/\D/g, '');
+                                    // If digits exist, ensure Indian format starting with 6-9
+                                    let cleanDigits = digits;
+                                    if (cleanDigits.startsWith('91') && cleanDigits.length > 2) {
+                                      cleanDigits = cleanDigits.slice(2);
+                                    }
+                                    if (cleanDigits.length > 0 && !/^[6-9]/.test(cleanDigits)) {
+                                      // Disallow numbers starting with 1-5
+                                      return;
+                                    }
+                                    cleanDigits = cleanDigits.slice(0, 10);
+                                    setAdminProfile({
+                                      ...adminProfile,
+                                      phone: cleanDigits ? `+91 ${cleanDigits}` : ''
+                                    });
+                                  }}
                                   className="atomy-form-input"
                                   placeholder="+91 98765 43210"
                                 />
@@ -5187,6 +5331,62 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
           {/* Fullscreen Body Content (Covers entire screen) */}
           <div className="inspection-fullscreen-content">
+            {/* Customer Cancellation Reason Banner (Visible for Cancelled & Refunded Orders) */}
+            {Boolean(
+              String(selectedOrderDetail.orderStatus).toUpperCase() === 'CANCELLED' ||
+              String(selectedOrderDetail.orderStatus).toUpperCase() === 'REFUNDED' ||
+              selectedOrderDetail.cancelReason ||
+              selectedOrderDetail.cancellationReason ||
+              selectedOrderDetail.returnReason
+            ) && (
+              <div style={{
+                background: '#fff1f2',
+                border: '1.5px solid #fecdd3',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                marginBottom: '18px',
+                boxShadow: '0 2px 8px rgba(225, 29, 72, 0.06)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#be123c', fontWeight: 800, fontSize: '14px' }}>
+                    <AlertTriangle size={18} />
+                    <span>CUSTOMER CANCELLATION & REFUND AUDIT</span>
+                  </div>
+                  <span style={{
+                    background: '#ffe4e6',
+                    color: '#9f1239',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '20px',
+                    textTransform: 'uppercase'
+                  }}>
+                    {selectedOrderDetail.orderStatus || 'CANCELLED'}
+                  </span>
+                </div>
+
+                <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #ffe4e6', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Reason Provided by Customer:
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#9f1239', lineHeight: '1.4' }}>
+                    "{selectedOrderDetail.cancelReason || selectedOrderDetail.cancellationReason || selectedOrderDetail.returnReason || 'Ordered by mistake / Change of mind'}"
+                  </div>
+                  {selectedOrderDetail.cancelNotes && (
+                    <div style={{ marginTop: '8px', fontSize: '12.5px', color: '#334155', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #f43f5e' }}>
+                      <strong style={{ color: '#0f172a' }}>Customer Note:</strong> {selectedOrderDetail.cancelNotes}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: '#881337', fontWeight: 500 }}>
+                  <span>• <strong>Cancelled On:</strong> {selectedOrderDetail.cancelledAt ? new Date(selectedOrderDetail.cancelledAt).toLocaleString('en-IN') : 'Recent'}</span>
+                  <span>• <strong>Refund Settlement:</strong> 100% Refund Approved</span>
+                  <span>• <strong>Payment Reversal:</strong> Auto-credited to Source Account</span>
+                </div>
+              </div>
+            )}
+
             {/* Live Animated Delivery Stepper matching Customer Experience */}
             <div className="inspection-card stepper-card">
               <DeliveryStatusStepper order={selectedOrderDetail} />
@@ -5203,14 +5403,20 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
               <div className="meta-info-card">
                 <div className="meta-card-label">
-                  {selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' ? 'PICKUP LOCATION' : 'DELIVERY LOCATION'}
+                  {(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.pickupStatus || selectedOrderDetail.isPickup) ? 'PICKUP COUNTER LOCATION' : 'DELIVERY LOCATION'}
                 </div>
                 <div className="meta-card-main">
-                  {selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' && selectedOrderDetail.hubAddress
-                    ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                  {(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.pickupStatus || selectedOrderDetail.isPickup)
+                    ? (selectedOrderDetail.hubAddress
+                        ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                        : (selectedOrderDetail.assignedDistributorName ? `${selectedOrderDetail.assignedDistributorName} Counter (PIN: ${selectedOrderDetail.pincode || '635002'})` : 'Regional Hub Pickup Counter'))
                     : selectedOrderDetail.shippingAddress}
                 </div>
-                <div className="meta-card-sub">{selectedOrderDetail.city}, {selectedOrderDetail.state} - {selectedOrderDetail.pincode}</div>
+                <div className="meta-card-sub">
+                  {(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.pickupStatus || selectedOrderDetail.isPickup)
+                    ? `${selectedOrderDetail.city || 'Regional'}, ${selectedOrderDetail.state || 'India'} - ${selectedOrderDetail.pincode || '635002'}`
+                    : `${selectedOrderDetail.city}, ${selectedOrderDetail.state} - ${selectedOrderDetail.pincode}`}
+                </div>
               </div>
 
               <div className="meta-info-card">
@@ -5327,21 +5533,22 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             <div className="inspection-card status-actions-card">
               <div className="status-update-control">
                 <label className="status-update-label">Update Order Status:</label>
-                <select
+                <CustomDropdown
                   value={selectedOrderDetail.orderStatus}
-                  onChange={(e) => handleUpdateOrderStatus(selectedOrderDetail.orderId, e.target.value)}
-                  className="atomy-dropdown status-modal-dropdown"
-                >
-                  <option value="PLACED">PLACED (New Order)</option>
-                  <option value="PROCESSING">PROCESSING (Warehouse Packed)</option>
-                  <option value="SHIPPED">SHIPPED (In Transit)</option>
-                  <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY (Local Hub)</option>
-                  <option value="DELIVERED">DELIVERED (Customer Received)</option>
-                  <option value="CANCELLED">CANCELLED (Cancelled & Refunded)</option>
-                </select>
+                  onChange={(val) => handleUpdateOrderStatus(selectedOrderDetail.orderId, val)}
+                  options={[
+                    { value: 'PLACED', label: 'PLACED (New Order)' },
+                    { value: 'PROCESSING', label: 'PROCESSING (Warehouse Packed)' },
+                    { value: 'SHIPPED', label: 'SHIPPED (In Transit)' },
+                    { value: 'OUT_FOR_DELIVERY', label: 'OUT FOR DELIVERY (Local Hub)' },
+                    { value: 'DELIVERED', label: 'DELIVERED (Customer Received)' },
+                    { value: 'CANCELLED', label: 'CANCELLED (Cancelled & Refunded)' }
+                  ]}
+                  className="status-update-dropdown"
+                />
               </div>
 
-              <div className="modal-actions-right">
+              <div className="modal-actions-right status-actions-buttons">
                 <button
                   type="button"
                   className="order-footer-btn courier-btn"
@@ -5403,27 +5610,23 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                     Select a stage to preview vehicle movement animation
                   </span>
                 </label>
-                <select
+                <CustomDropdown
                   value={trackingForm.currentStatus}
-                  onChange={(e) => setTrackingForm({ ...trackingForm, currentStatus: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                  onChange={(val) => setTrackingForm({ ...trackingForm, currentStatus: val })}
+                  options={[
+                    { value: 'PLACED', label: 'Stage 1: PLACED (Payment Confirmed)' },
+                    { value: 'PROCESSING', label: 'Stage 2: PROCESSING (Warehouse Packing)' },
+                    { value: 'SHIPPED', label: 'Stage 3: SHIPPED (In Transit - Blue Dart Line-haul)' },
+                    { value: 'OUT_FOR_DELIVERY', label: 'Stage 4: OUT FOR DELIVERY (Executive on Bike)' },
+                    { value: 'DELIVERED', label: 'Stage 5: DELIVERED (Package Received)' }
+                  ]}
+                  triggerStyle={{
                     border: '1.5px solid #00A3E0',
                     background: '#f0f9ff',
                     color: '#0284c7',
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    cursor: 'pointer'
+                    fontWeight: 700
                   }}
-                >
-                  <option value="PLACED">Stage 1: PLACED (Payment Confirmed)</option>
-                  <option value="PROCESSING">Stage 2: PROCESSING (Warehouse Packing)</option>
-                  <option value="SHIPPED">Stage 3: SHIPPED (In Transit - Blue Dart Line-haul)</option>
-                  <option value="OUT_FOR_DELIVERY">Stage 4: OUT FOR DELIVERY (Delivery Executive on Bike)</option>
-                  <option value="DELIVERED">Stage 5: DELIVERED (Package Received)</option>
-                </select>
+                />
               </div>
 
               <div className="modal-row-2">
@@ -5449,15 +5652,26 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
               <div className="modal-row-2">
                 <div className="modal-form-group">
-                  <label>Current Location Hub</label>
+                  <label>
+                    {(editingTrackingOrder?.fulfillmentType === 'STORE_PICKUP' || editingTrackingOrder?.pickupStatus || editingTrackingOrder?.isPickup)
+                      ? 'Pickup Counter Location'
+                      : 'Current Location Hub'}
+                  </label>
                   <input
                     type="text"
                     value={trackingForm.currentLocation}
                     onChange={(e) => setTrackingForm({ ...trackingForm, currentLocation: e.target.value })}
+                    placeholder={(editingTrackingOrder?.fulfillmentType === 'STORE_PICKUP' || editingTrackingOrder?.pickupStatus || editingTrackingOrder?.isPickup)
+                      ? 'e.g. Regional Hub Counter, Rayakotta Main Road'
+                      : 'e.g. Regional Logistics Hub'}
                   />
                 </div>
                 <div className="modal-form-group">
-                  <label>Estimated Delivery</label>
+                  <label>
+                    {(editingTrackingOrder?.fulfillmentType === 'STORE_PICKUP' || editingTrackingOrder?.pickupStatus || editingTrackingOrder?.isPickup)
+                      ? 'Handover / Delivery Schedule'
+                      : 'Estimated Delivery'}
+                  </label>
                   <input
                     type="text"
                     value={trackingForm.estimatedDelivery}
@@ -5697,29 +5911,29 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               <div className="modal-row-2">
                 <div className="form-group">
                   <label>Category</label>
-                  <select
+                  <CustomDropdown
                     value={newTicketForm.category}
-                    onChange={(e) => setNewTicketForm({ ...newTicketForm, category: e.target.value })}
-                    className="atomy-dropdown"
-                  >
-                    <option value="COURIER_TRACKING">Courier & Delivery Tracking</option>
-                    <option value="PV_SYNC">PV Points & Member Genealogy</option>
-                    <option value="RETURN_EXCHANGE">Return & Replacement Policy</option>
-                    <option value="PRODUCT_USAGE">Product Usage & Guidance</option>
-                    <option value="GENERAL">General Customer Inquiry</option>
-                  </select>
+                    onChange={(val) => setNewTicketForm({ ...newTicketForm, category: val })}
+                    options={[
+                      { value: 'COURIER_TRACKING', label: 'Courier & Delivery Tracking' },
+                      { value: 'PV_SYNC', label: 'PV Points & Member Genealogy' },
+                      { value: 'RETURN_EXCHANGE', label: 'Return & Replacement Policy' },
+                      { value: 'PRODUCT_USAGE', label: 'Product Usage & Guidance' },
+                      { value: 'GENERAL', label: 'General Customer Inquiry' }
+                    ]}
+                  />
                 </div>
                 <div className="form-group">
                   <label>Priority</label>
-                  <select
+                  <CustomDropdown
                     value={newTicketForm.priority}
-                    onChange={(e) => setNewTicketForm({ ...newTicketForm, priority: e.target.value })}
-                    className="atomy-dropdown"
-                  >
-                    <option value="HIGH">HIGH (Urgent)</option>
-                    <option value="MEDIUM">MEDIUM (Standard)</option>
-                    <option value="LOW">LOW</option>
-                  </select>
+                    onChange={(val) => setNewTicketForm({ ...newTicketForm, priority: val })}
+                    options={[
+                      { value: 'HIGH', label: 'HIGH (Urgent)' },
+                      { value: 'MEDIUM', label: 'MEDIUM (Standard)' },
+                      { value: 'LOW', label: 'LOW' }
+                    ]}
+                  />
                 </div>
               </div>
 

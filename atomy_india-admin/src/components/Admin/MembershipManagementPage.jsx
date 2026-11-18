@@ -41,6 +41,17 @@ export default function MembershipManagementPage() {
   const [isSavedToast, setIsSavedToast] = useState(false);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return String(dateStr).split('T')[0];
+      return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return String(dateStr).split('T')[0];
+    }
+  };
   
   // New Member form state
   const [newMemberForm, setNewMemberForm] = useState({
@@ -585,10 +596,14 @@ export default function MembershipManagementPage() {
                         </div>
                       </td>
                       <td>
-                        <div className="member-date">{member.startDate ? String(member.startDate).split('T')[0] : 'Today'}</div>
+                        <div className="member-date" style={{ whiteSpace: 'nowrap' }}>
+                          {formatDateDisplay(member.startDate || member.joinedAt || member.enrolledAt || member.createdAt)}
+                        </div>
                       </td>
                       <td>
-                        <div className="member-date">{member.expiryDate ? String(member.expiryDate).split('T')[0] : '1 Year'}</div>
+                        <div className="member-date" style={{ whiteSpace: 'nowrap' }}>
+                          {formatDateDisplay(member.expiryDate)}
+                        </div>
                       </td>
                       <td>
                         <div className="member-pv-val">

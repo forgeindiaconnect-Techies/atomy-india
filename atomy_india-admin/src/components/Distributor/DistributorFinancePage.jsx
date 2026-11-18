@@ -32,6 +32,7 @@ import {
   User,
   Package
 } from 'lucide-react';
+import CustomDropdown from '../common/CustomDropdown';
 import '../Admin/FinanceSettlementPage.css';
 
 export default function DistributorFinancePage({
@@ -216,6 +217,8 @@ export default function DistributorFinancePage({
         st === 'REFUNDED' ||
         retSt === 'REFUNDED' ||
         order.paymentStatus === 'REFUNDED' ||
+        Boolean(order.cancelReason) ||
+        Boolean(order.cancellationReason) ||
         order.isReplacement ||
         Boolean(order.replacementReason)
       );
@@ -280,8 +283,8 @@ export default function DistributorFinancePage({
         </div>
 
         <div className="heading-actions-cluster">
-          <button className="secondary-action-btn" onClick={handleExportCSV} title="Export financial transaction ledger to CSV">
-            <Download size={15} />
+          <button type="button" className="secondary-action-btn" onClick={handleExportCSV} title="Export financial transaction ledger to CSV">
+            <Download size={16} strokeWidth={2.2} />
             <span>Export Territory Audit</span>
           </button>
         </div>
@@ -433,30 +436,36 @@ export default function DistributorFinancePage({
       {/* 3. Sub-Tab Navigation Bar */}
       <div className="finance-subnav-strip">
         <button
+          type="button"
           className={`finance-subnav-btn ${activeFinanceSubTab === 'overview' ? 'active' : ''}`}
           onClick={() => setActiveFinanceSubTab('overview')}
         >
           <FileText size={16} />
-          <span>Financial Ledger &amp; Settlement Audit</span>
+          <span className="subtab-text-full">Financial Ledger &amp; Settlement Audit</span>
+          <span className="subtab-text-short">Ledger &amp; Audit</span>
         </button>
 
         <button
+          type="button"
           className={`finance-subnav-btn ${activeFinanceSubTab === 'queue' ? 'active' : ''}`}
           onClick={() => setActiveFinanceSubTab('queue')}
         >
           <RotateCcw size={16} />
-          <span>Refund &amp; Replacement Queue</span>
+          <span className="subtab-text-full">Refund &amp; Replacement Queue</span>
+          <span className="subtab-text-short">Refund Queue</span>
           {financeStats.totalRefundedCount > 0 && (
             <span className="subnav-count-badge">{financeStats.totalRefundedCount}</span>
           )}
         </button>
 
         <button
+          type="button"
           className={`finance-subnav-btn ${activeFinanceSubTab === 'rules' ? 'active' : ''}`}
           onClick={() => setActiveFinanceSubTab('rules')}
         >
           <ShieldCheck size={16} />
-          <span>Refund, Replacement &amp; Cancellation Rules</span>
+          <span className="subtab-text-full">Refund, Replacement &amp; Cancellation Rules</span>
+          <span className="subtab-text-short">Policy Rules</span>
         </button>
       </div>
 
@@ -529,16 +538,17 @@ export default function DistributorFinancePage({
                 ))}
               </div>
 
-              <select
+              <CustomDropdown
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="finance-status-select"
-              >
-                <option value="ALL">All Payment Statuses</option>
-                <option value="PAID">Settled / Paid Only</option>
-                <option value="REFUNDED">Refunded / Reversals</option>
-                <option value="CANCELLED">Cancelled Orders</option>
-              </select>
+                onChange={(val) => setStatusFilter(val)}
+                options={[
+                  { value: 'ALL', label: 'All Payment Statuses' },
+                  { value: 'PAID', label: 'Settled / Paid Only' },
+                  { value: 'REFUNDED', label: 'Refunded / Reversals' },
+                  { value: 'CANCELLED', label: 'Cancelled Orders' }
+                ]}
+                style={{ minWidth: '190px' }}
+              />
             </div>
           </div>
 
@@ -761,8 +771,13 @@ export default function DistributorFinancePage({
                         </td>
                         <td>
                           <span className="reason-pill">
-                            {order.isReplacement || order.replacementReason ? 'Damaged in Transit (Free Replacement)' : (order.returnReason || 'Customer Cancellation / 30-Day Guarantee')}
+                            {order.cancelReason || order.cancellationReason || (order.isReplacement || order.replacementReason ? 'Damaged in Transit (Free Replacement)' : (order.returnReason || 'Customer Cancellation / 30-Day Guarantee'))}
                           </span>
+                          {order.cancelNotes && (
+                            <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', fontStyle: 'italic', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={order.cancelNotes}>
+                              Note: {order.cancelNotes}
+                            </div>
+                          )}
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <span className="amt-val amt-refunded">
@@ -912,7 +927,8 @@ export default function DistributorFinancePage({
             borderRadius: '16px',
             maxWidth: '580px',
             width: '100%',
-            padding: '24px',
+            padding: 'min(24px, 5vw)',
+            boxSizing: 'border-box',
             boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
             maxHeight: '90vh',
             overflowY: 'auto'
@@ -936,7 +952,7 @@ export default function DistributorFinancePage({
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px', background: '#f8fafc', padding: '14px', borderRadius: '10px', fontSize: '12.5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '16px', background: '#f8fafc', padding: '14px', borderRadius: '10px', fontSize: '12.5px' }}>
               <div>
                 <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>Customer Name:</span>
                 <strong>{inspectedOrder.customerName || 'Customer'}</strong>
@@ -947,7 +963,7 @@ export default function DistributorFinancePage({
               </div>
               <div>
                 <span style={{ color: '#64748b', display: 'block', marginBottom: '2px' }}>Order Status:</span>
-                <span style={{ fontWeight: 700, color: String(inspectedOrder.orderStatus).toUpperCase() === 'REFUNDED' ? '#dc2626' : '#16a34a' }}>
+                <span style={{ fontWeight: 700, color: (String(inspectedOrder.orderStatus).toUpperCase() === 'REFUNDED' || String(inspectedOrder.orderStatus).toUpperCase() === 'CANCELLED') ? '#dc2626' : '#16a34a' }}>
                   {inspectedOrder.orderStatus || 'PLACED'}
                 </span>
               </div>
@@ -956,6 +972,44 @@ export default function DistributorFinancePage({
                 <strong>{inspectedOrder.paymentMethod || 'ONLINE_UPI'}</strong>
               </div>
             </div>
+
+            {/* Customer Cancellation Reason Banner (Visible for Cancelled & Refunded Orders) */}
+            {Boolean(
+              String(inspectedOrder.orderStatus).toUpperCase() === 'CANCELLED' ||
+              String(inspectedOrder.orderStatus).toUpperCase() === 'REFUNDED' ||
+              inspectedOrder.cancelReason ||
+              inspectedOrder.cancellationReason ||
+              inspectedOrder.returnReason
+            ) && (
+              <div style={{
+                background: '#fff1f2',
+                border: '1.5px solid #fecdd3',
+                borderRadius: '10px',
+                padding: '14px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#be123c', fontWeight: 700, fontSize: '13px' }}>
+                  <AlertTriangle size={16} />
+                  <span>Customer Cancellation & Return Reason</span>
+                </div>
+                <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ffe4e6', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '3px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reason Given by Customer:</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#9f1239', lineHeight: '1.4' }}>
+                    "{inspectedOrder.cancelReason || inspectedOrder.cancellationReason || inspectedOrder.returnReason || 'Ordered by mistake / Change of mind'}"
+                  </div>
+                  {inspectedOrder.cancelNotes && (
+                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#475569', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', borderLeft: '3px solid #f43f5e' }}>
+                      <strong style={{ color: '#0f172a' }}>Customer Note:</strong> {inspectedOrder.cancelNotes}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '11.5px', color: '#881337' }}>
+                  <span>• <strong>Cancelled On:</strong> {inspectedOrder.cancelledAt ? new Date(inspectedOrder.cancelledAt).toLocaleString('en-IN') : 'Recent'}</span>
+                  <span>• <strong>Refund Settlement:</strong> 100% Refund Approved</span>
+                  <span>• <strong>Deduction:</strong> ₹0 Territory Penalty</span>
+                </div>
+              </div>
+            )}
 
             <div style={{ marginBottom: '16px' }}>
               <h4 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 700, color: '#334155', textTransform: 'uppercase' }}>Items in Parcel</h4>

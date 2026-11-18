@@ -114,6 +114,15 @@ public class CustomerOrder {
     @Field("replacement_notes")
     private String replacementNotes;
 
+    @Field("cancel_reason")
+    private String cancelReason;
+
+    @Field("cancel_notes")
+    private String cancelNotes;
+
+    @Field("cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @Field("order_source")
     private String orderSource = "WEB_BROWSER"; // "WEB_BROWSER" or "MOBILE_APP"
 
@@ -280,6 +289,15 @@ public class CustomerOrder {
 
     public String getReplacementNotes() { return replacementNotes; }
     public void setReplacementNotes(String replacementNotes) { this.replacementNotes = replacementNotes; }
+
+    public String getCancelReason() { return cancelReason; }
+    public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
+
+    public String getCancelNotes() { return cancelNotes; }
+    public void setCancelNotes(String cancelNotes) { this.cancelNotes = cancelNotes; }
+
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
 
     public String getOrderSource() { return orderSource; }
     public void setOrderSource(String orderSource) { this.orderSource = orderSource; }

@@ -26,6 +26,7 @@ import {
   Eye,
   Info
 } from 'lucide-react';
+import CustomDropdown from '../common/CustomDropdown';
 import './FinanceSettlementPage.css';
 
 export default function FinanceSettlementPage({
@@ -260,8 +261,8 @@ export default function FinanceSettlementPage({
         </div>
 
         <div className="heading-actions-cluster">
-          <button className="secondary-action-btn" onClick={handleExportCSV} title="Export financial transaction ledger to CSV">
-            <Download size={15} />
+          <button type="button" className="secondary-action-btn" onClick={handleExportCSV} title="Export financial transaction ledger to CSV">
+            <Download size={16} strokeWidth={2.2} />
             <span>Export Financial Audit</span>
           </button>
         </div>
@@ -413,30 +414,36 @@ export default function FinanceSettlementPage({
       {/* 3. Sub-Tab Navigation Bar */}
       <div className="finance-subnav-strip">
         <button
+          type="button"
           className={`finance-subnav-btn ${activeFinanceSubTab === 'overview' ? 'active' : ''}`}
           onClick={() => setActiveFinanceSubTab('overview')}
         >
           <FileText size={16} />
-          <span>Financial Ledger & Sales Audit</span>
+          <span className="subtab-text-full">Financial Ledger &amp; Sales Audit</span>
+          <span className="subtab-text-short">Ledger &amp; Audit</span>
         </button>
 
         <button
+          type="button"
           className={`finance-subnav-btn ${activeFinanceSubTab === 'queue' ? 'active' : ''}`}
           onClick={() => setActiveFinanceSubTab('queue')}
         >
           <RotateCcw size={16} />
-          <span>Refund & Replacement Queue</span>
+          <span className="subtab-text-full">Refund &amp; Replacement Queue</span>
+          <span className="subtab-text-short">Refund Queue</span>
           {financeStats.totalRefundedCount > 0 && (
             <span className="subnav-count-badge">{financeStats.totalRefundedCount}</span>
           )}
         </button>
 
         <button
+          type="button"
           className={`finance-subnav-btn ${activeFinanceSubTab === 'rules' ? 'active' : ''}`}
           onClick={() => setActiveFinanceSubTab('rules')}
         >
           <ShieldCheck size={16} />
-          <span>Refund, Replacement & Cancellation Rules</span>
+          <span className="subtab-text-full">Refund, Replacement &amp; Cancellation Rules</span>
+          <span className="subtab-text-short">Policy Rules</span>
         </button>
       </div>
 
@@ -509,16 +516,17 @@ export default function FinanceSettlementPage({
                 ))}
               </div>
 
-              <select
+              <CustomDropdown
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="finance-status-select"
-              >
-                <option value="ALL">All Payment Statuses</option>
-                <option value="PAID">Settled / Paid Only</option>
-                <option value="REFUNDED">Refunded / Reversals</option>
-                <option value="CANCELLED">Cancelled Orders</option>
-              </select>
+                onChange={(val) => setStatusFilter(val)}
+                options={[
+                  { value: 'ALL', label: 'All Payment Statuses' },
+                  { value: 'PAID', label: 'Settled / Paid Only' },
+                  { value: 'REFUNDED', label: 'Refunded / Reversals' },
+                  { value: 'CANCELLED', label: 'Cancelled Orders' }
+                ]}
+                style={{ minWidth: '190px' }}
+              />
             </div>
           </div>
 

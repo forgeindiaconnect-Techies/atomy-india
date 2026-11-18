@@ -234,6 +234,7 @@ export default function SignInPage({
           state: loginRes.customer.state || '',
           pincode: loginRes.customer.pincode || '',
           isMember: Boolean(loginRes.customer.isMember),
+          membership: loginRes.membership || loginRes.customer.membership || null,
           role: 'customer'
         };
 
@@ -280,6 +281,7 @@ export default function SignInPage({
         state: gRes.customer.state || '',
         pincode: gRes.customer.pincode || '',
         isMember: Boolean(gRes.customer.isMember),
+        membership: gRes.membership || gRes.customer.membership || null,
         role: 'customer'
       };
 

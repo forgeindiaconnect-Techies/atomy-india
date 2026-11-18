@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { 
+import {
   LayoutDashboard,
   Boxes,
-  Package, 
-  Users, 
+  Package,
+  Users,
   IndianRupee,
   Crown,
   Settings,
@@ -34,13 +34,14 @@ import DistributorSupportPage from './DistributorSupportPage';
 import DistributorMembershipsPage from './DistributorMembershipsPage';
 import DistributorFinancePage from './DistributorFinancePage';
 import DistributorSettingsPage from './DistributorSettingsPage';
+import DistributorNotificationsPage from './DistributorNotificationsPage';
 import DistributorTrackingModal from './DistributorTrackingModal';
 import ProductEditorPage from '../Admin/ProductEditorPage';
 import { updateAdminProduct } from '../../services/api';
-import { 
-  fetchDistributorStats, 
-  fetchDistributorOrders, 
-  updateDistributorOrderTracking, 
+import {
+  fetchDistributorStats,
+  fetchDistributorOrders,
+  updateDistributorOrderTracking,
   updateDistributorOrderStatus,
   fetchDistributorCustomers,
   fetchDistributorProfile,
@@ -53,6 +54,7 @@ import '../Admin/AdminDashboard.css';
 
 export default function DistributorDashboard({ distributorUser, onLogout, onBackToStore }) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [inspectingOrderId, setInspectingOrderId] = useState(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false); // overview | inventory | orders | customers | support | membership | finance | settings
   const [liveDistributor, setLiveDistributor] = useState(() => {
     try {
@@ -67,7 +69,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           };
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return distributorUser;
   });
   const [stats, setStats] = useState(null);
@@ -93,7 +95,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     try {
       const cached = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('atomy_cached_hub_team') : null;
       if (cached) return JSON.parse(cached);
-    } catch (e) {}
+    } catch (e) { }
     return null;
   });
 
@@ -204,6 +206,41 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     showToast(`🎧 New Support Ticket #${ticketIdStr} from ${ticket.customerName || 'Customer'}`);
   };
 
+  const alertedCancelIdsRef = useRef(new Map());
+  const triggerDistributorCancelAlert = (data) => {
+    if (isSubDistributor && isSubstituteStandbyRef.current) return;
+    if (!data) return;
+    const orderIdStr = String(data.orderId || data.order?.orderId || data.order?.id || '');
+    if (!orderIdStr) return;
+
+    // Deduplicate: ignore duplicate triggers within 20s
+    const lastAlertTime = alertedCancelIdsRef.current.get(orderIdStr);
+    const now = Date.now();
+    if (lastAlertTime && (now - lastAlertTime < 20000)) return;
+    alertedCancelIdsRef.current.set(orderIdStr, now);
+
+    const reason = data.cancelReason || data.order?.cancelReason || 'Ordered by mistake / Change of mind';
+    const notes = data.cancelNotes || data.order?.cancelNotes || '';
+
+    // Play warning chime
+    playSupportAlertSound(0.95);
+
+    // Show high-priority cancellation alert banner
+    setActiveAlert({
+      type: 'cancellation',
+      title: '🚫 CUSTOMER ORDER CANCELLED!',
+      message: `Order #${orderIdStr} was cancelled by customer. Reason: "${reason}"${notes ? ` (Note: ${notes})` : ''}`,
+      time: 'Just now',
+      targetId: orderIdStr
+    });
+
+    sendDesktopNotification(`🚫 Order #${orderIdStr} Cancelled`, {
+      body: `Customer cancelled order. Reason: ${reason}`
+    });
+
+    showToast(`🚫 Order #${orderIdStr} Cancelled: "${reason}"`);
+  };
+
   // Handover Notification: Only trigger when a LIVE transition from Active -> Leave occurs
   useEffect(() => {
     if (!isSubDistributor) return;
@@ -214,7 +251,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       if (isPrimaryOnLeave) {
         try {
           sessionStorage.setItem(handoverStorageKey, 'true');
-        } catch (e) {}
+        } catch (e) { }
       }
       return;
     }
@@ -231,7 +268,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       prevLeaveStatusRef.current = true;
       try {
         sessionStorage.setItem(handoverStorageKey, 'true');
-      } catch (e) {}
+      } catch (e) { }
 
       // Show temporary command banner for 7 seconds
       setShowCommandBanner(true);
@@ -276,7 +313,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       prevLeaveStatusRef.current = false;
       try {
         sessionStorage.removeItem(handoverStorageKey);
-      } catch (e) {}
+      } catch (e) { }
       setShowCommandBanner(false);
       showToast('🔒 Primary Distributor has returned. Hub console returned to Standby mode.');
       setActiveAlert(null);
@@ -310,7 +347,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         setHubTeamInfo(teamRes.value);
         try {
           sessionStorage.setItem('atomy_cached_hub_team', JSON.stringify(teamRes.value));
-        } catch (e) {}
+        } catch (e) { }
       }
       if (profileRes.status === 'fulfilled' && profileRes.value) {
         setLiveDistributor(prev => ({ ...prev, ...profileRes.value }));
@@ -394,6 +431,14 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         orderChannel = new BroadcastChannel('atomy_order_channel');
         orderChannel.onmessage = (event) => {
           const data = event.data;
+          if (data && data.type === 'ORDER_CANCELLED') {
+            const o = data.order || { orderId: data.orderId, pincode: data.pincode };
+            if (!o.pincode || matchesDistributorTerritory(o)) {
+              triggerDistributorCancelAlert(data);
+              loadDashboardData(true);
+            }
+            return;
+          }
           if (data && (data.type === 'ORDER_PLACED' || data.type === 'NEW_ORDER') && data.order) {
             const o = data.order;
             if (matchesDistributorTerritory(o)) {
@@ -413,8 +458,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           if (data && (data.type === 'NEW_TICKET' || data.type === 'TICKET_CREATED') && data.ticket) {
             const t = data.ticket;
             const matchesTicket = (t.assignedDistributorId && t.assignedDistributorId === distId) ||
-                                  (t.pincode && matchesDistributorTerritory({ pincode: t.pincode })) ||
-                                  (!t.assignedDistributorId && !t.pincode);
+              (t.pincode && matchesDistributorTerritory({ pincode: t.pincode })) ||
+              (!t.assignedDistributorId && !t.pincode);
             if (matchesTicket) {
               triggerDistributorTicketAlert(t);
               loadDashboardData(true);
@@ -437,7 +482,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                 };
                 try {
                   sessionStorage.setItem('atomy_cached_hub_team', JSON.stringify(updated));
-                } catch (e) {}
+                } catch (e) { }
                 return updated;
               });
               setLiveDistributor(prev => ({
@@ -447,6 +492,14 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
               }));
             }
             loadDashboardData(true);
+            return;
+          }
+          if (data && data.type === 'ORDER_CANCELLED') {
+            const o = data.order || { orderId: data.orderId, pincode: data.pincode };
+            if (!o.pincode || matchesDistributorTerritory(o)) {
+              triggerDistributorCancelAlert(data);
+              loadDashboardData(true);
+            }
             return;
           }
           if (data && (data.type === 'ORDER_PLACED' || data.type === 'NEW_ORDER') && data.order) {
@@ -465,6 +518,14 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       console.warn('BroadcastChannel error:', err);
     }
 
+    const handleWindowCancel = (e) => {
+      if (e.detail) {
+        triggerDistributorCancelAlert({ order: e.detail, orderId: e.detail.orderId, cancelReason: e.detail.cancelReason, cancelNotes: e.detail.cancelNotes });
+        loadDashboardData(true);
+      }
+    };
+    window.addEventListener('atomy:order-cancelled', handleWindowCancel);
+
     // 2. Real-time background sync polling every 5 seconds
     const pollInterval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
@@ -475,6 +536,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       if (orderChannel) orderChannel.close();
       if (ticketChannel) ticketChannel.close();
       if (syncChannel) syncChannel.close();
+      window.removeEventListener('atomy:order-cancelled', handleWindowCancel);
       clearInterval(pollInterval);
     };
   }, [distId, JSON.stringify(assignedPins)]);
@@ -537,7 +599,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     try {
       const syncChannel = new BroadcastChannel('atomy_sync_channel');
       syncChannel.postMessage({ type: 'ORDER_STATUS_UPDATED', orderId, newStatus: targetStatus });
-    } catch (e) {}
+    } catch (e) { }
 
     // 3. Update localStorage atomy_placed_orders immediately
     try {
@@ -576,7 +638,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
         window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
       }
-    } catch (e) {}
+    } catch (e) { }
 
     showToast('Dispatch tracking updated & customer notified via email / SMS!');
 
@@ -588,7 +650,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     }
 
     // Refresh dashboard in background
-    loadDashboardData().catch(() => {});
+    loadDashboardData().catch(() => { });
     return { success: true };
   };
 
@@ -602,9 +664,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       if (o.orderId === orderId || o.id === orderId) {
         const isCodOrder = (o.paymentMethod || '').toLowerCase().includes('cash') || (o.paymentMethod || '').toLowerCase().includes('cod');
         const newPaymentStatus = (newStatus === 'DELIVERED' && isCodOrder) ? 'PAID' : (newStatus === 'CANCELLED' ? 'REFUNDED' : o.paymentStatus);
-        return { 
-          ...o, 
-          orderStatus: newStatus, 
+        return {
+          ...o,
+          orderStatus: newStatus,
           status: newStatus,
           paymentStatus: newPaymentStatus,
           tracking: {
@@ -638,7 +700,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     try {
       const syncChannel = new BroadcastChannel('atomy_sync_channel');
       syncChannel.postMessage({ type: 'ORDER_STATUS_UPDATED', orderId, newStatus });
-    } catch (e) {}
+    } catch (e) { }
 
     // 3. Update localStorage atomy_placed_orders immediately
     try {
@@ -674,7 +736,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         localStorage.setItem('atomy_placed_orders', JSON.stringify(updated));
         window.dispatchEvent(new CustomEvent('atomy:orders-updated', { detail: updated }));
       }
-    } catch (e) {}
+    } catch (e) { }
 
     showToast(`Order ${orderId} status set to ${newStatus}`);
 
@@ -686,7 +748,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     }
 
     // Refresh dashboard in background
-    loadDashboardData().catch(() => {});
+    loadDashboardData().catch(() => { });
   };
 
   // Open Full Product Editor for the Sub-Admin
@@ -745,7 +807,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
     try {
       await updateAdminProduct(payload.id, payload);
-      await updateDistributorStock(distId, payload.id, payload.stockQuantity, payload.lowStockThreshold).catch(() => {});
+      await updateDistributorStock(distId, payload.id, payload.stockQuantity, payload.lowStockThreshold).catch(() => { });
       showToast(`Product "${payload.name}" updated and synced successfully!`);
     } catch (err) {
       console.warn('Backend update warning:', err);
@@ -821,8 +883,321 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     }).slice(0, 5);
   }, [orders, isSubstituteStandby]);
 
+  // Notification State Management for Distributor & Substitute
+  const [notifState, setNotifState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`atomy_hub_notif_state_${distId}`);
+      return saved ? JSON.parse(saved) : { readIds: [], deletedIds: [], allRead: false };
+    } catch {
+      return { readIds: [], deletedIds: [], allRead: false };
+    }
+  });
+
+  const persistNotifState = (nextState) => {
+    setNotifState(nextState);
+    try {
+      localStorage.setItem(`atomy_hub_notif_state_${distId}`, JSON.stringify(nextState));
+    } catch { }
+  };
+
+  // Dynamically generated real-time notifications for this regional hub
+  const hubNotifications = useMemo(() => {
+    if (!currentDist) return [];
+    const list = [];
+    const readSet = new Set(notifState?.readIds || []);
+    const deletedSet = new Set(notifState?.deletedIds || []);
+    const isAllRead = Boolean(notifState?.allRead);
+    const allReadTs = notifState?.allReadTimestamp ? Number(notifState.allReadTimestamp) : 0;
+
+    const checkIsRead = (id, targetId, createdAt) => {
+      if (isAllRead) return true;
+      if (allReadTs > 0 && createdAt && new Date(createdAt).getTime() <= allReadTs) return true;
+      if (readSet.has(id)) return true;
+      if (targetId && readSet.has(targetId)) return true;
+      if (readSet.has('all')) return true;
+      return false;
+    };
+
+    // 1. Handover & Operational Command Alerts
+    if (isSubDistributor) {
+      if (isSubstituteInCommand) {
+        const id = `notif_handover_command_${distId}`;
+        if (!deletedSet.has(id)) {
+          list.push({
+            id,
+            type: 'handover',
+            priority: 'high',
+            title: '⚡ Operational Handover: You Are In Command',
+            message: `Primary Distributor ${primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Franchise Owner'} is on leave. Full operational authority of Regional Hub PIN ${currentDist?.primaryPincode || '635002'} is transferred to you.`,
+            targetTab: 'settings',
+            createdAt: new Date().toISOString(),
+            read: checkIsRead(id, null, null)
+          });
+        }
+      } else {
+        const id = `notif_handover_standby_${distId}`;
+        if (!deletedSet.has(id)) {
+          list.push({
+            id,
+            type: 'system',
+            priority: 'normal',
+            title: '🛡️ Standby Relief Co-Manager Mode',
+            message: `Primary Hub Manager is on active duty. You are on standby to take over regional operations whenever leave is requested.`,
+            targetTab: 'settings',
+            createdAt: new Date().toISOString(),
+            read: checkIsRead(id, null, null)
+          });
+        }
+      }
+    } else if (currentDist?.substituteManagerName || currentDist?.substituteManagerEmail) {
+      const id = `notif_substitute_linked_${distId}`;
+      if (!deletedSet.has(id)) {
+        list.push({
+          id,
+          type: 'system',
+          priority: 'normal',
+          title: '👥 Co-Manager Linked for Relief Duty',
+          message: `Co-Manager ${currentDist?.substituteManagerName || 'Assistant'} (${currentDist?.substituteManagerEmail}) is registered for PIN ${currentDist?.primaryPincode || '635002'} to maintain uninterrupted operations during leave.`,
+          targetTab: 'settings',
+          createdAt: new Date().toISOString(),
+          read: checkIsRead(id, null, null)
+        });
+      }
+    }
+
+    // 2. Customer Orders (Delayed SLA, Placed, Preparing, Pickup Ready, Delivered)
+    (orders || []).forEach(order => {
+      const oid = String(order.orderId || order.id || '');
+      if (!oid) return;
+      const st = String(order.orderStatus || order.status || 'PLACED').toUpperCase();
+
+      // Delayed SLA Alert
+      const base = new Date(order.createdAt || Date.now());
+      const isDelayed = (new Date() > new Date(base.getTime() + 2 * 24 * 60 * 60 * 1000)) && st !== 'DELIVERED' && st !== 'CANCELLED';
+      if (isDelayed) {
+        const delayedId = `notif_delayed_${oid}`;
+        if (!deletedSet.has(delayedId)) {
+          list.push({
+            id: delayedId,
+            type: 'delayed_order',
+            priority: 'alert',
+            title: `⚠️ Delivery SLA Delay Warning: #${oid}`,
+            message: `Shipment for ${order.customerName || 'Customer'} is past the 48-hour delivery commitment. Please expedite dispatch.`,
+            targetTab: 'orders',
+            targetId: oid,
+            createdAt: order.createdAt || new Date().toISOString(),
+            read: checkIsRead(delayedId, oid, order.createdAt)
+          });
+        }
+      }
+
+      // Order Status Specific Notification
+      const orderNotifId = `notif_order_${oid}_${st}`;
+      if (!deletedSet.has(orderNotifId)) {
+        let notifType = 'order';
+        let title = `New Order Placed: #${oid}`;
+        let message = `Customer ${order.customerName || 'Customer'} placed order for ₹${Number(order.totalAmount || 0).toLocaleString('en-IN')}.`;
+        let priority = 'normal';
+
+        if (st === 'PLACED') {
+          priority = 'high';
+          title = `📦 New Order Placed: #${oid}`;
+          message = `New order received from ${order.customerName || 'Customer'} (₹${Number(order.totalAmount || 0).toLocaleString('en-IN')}) for ${order.fulfillmentType === 'STORE_PICKUP' ? 'Store Pickup' : 'Courier Delivery'}.`;
+        } else if (st === 'PROCESSING') {
+          title = `📋 Order Packing in Progress: #${oid}`;
+          message = `Hub staff currently picking items and packing package for ${order.customerName || 'Customer'}.`;
+        } else if (st === 'READY_FOR_PICKUP') {
+          notifType = 'pickup';
+          priority = 'high';
+          title = `🏬 Ready for Customer Pickup: #${oid}`;
+          message = `Package is waiting at hub counter for customer collection. OTP required for handover.`;
+        } else if (st === 'DELIVERED') {
+          notifType = 'delivery';
+          priority = 'success';
+          title = `✅ Order Handed Over & Completed: #${oid}`;
+          message = `Order #${oid} verified and completed. Hub commission has been recorded.`;
+        } else if (st === 'CANCELLED' || st === 'REFUNDED') {
+          notifType = 'cancellation';
+          priority = 'alert';
+          const reason = order.cancelReason || order.cancellationReason || order.returnReason || 'Ordered by mistake / Change of mind';
+          title = `🚫 Order Cancelled: #${oid}`;
+          message = `Order #${oid} for ${order.customerName || 'Customer'} was cancelled. Reason: "${reason}"${order.cancelNotes ? ` (Note: ${order.cancelNotes})` : ''}. 100% refund settlement registered.`;
+        }
+
+        list.push({
+          id: orderNotifId,
+          type: notifType,
+          priority,
+          title,
+          message,
+          targetTab: 'orders',
+          targetId: oid,
+          createdAt: order.updatedAt || order.createdAt || new Date().toISOString(),
+          read: checkIsRead(orderNotifId, oid, order.updatedAt || order.createdAt)
+        });
+      }
+    });
+
+    // 3. Customer Support Inquiries
+    (tickets || []).forEach(ticket => {
+      const tid = String(ticket.ticketId || ticket.id || '');
+      if (!tid) return;
+      const ticketNotifId = `notif_ticket_${tid}_${ticket.status || 'OPEN'}`;
+      if (!deletedSet.has(ticketNotifId)) {
+        list.push({
+          id: ticketNotifId,
+          type: 'support',
+          priority: ticket.status === 'OPEN' ? 'high' : 'normal',
+          title: `Customer Support: #${tid}`,
+          message: `[${ticket.category || 'Inquiry'}] From ${ticket.customerName || ticket.name || 'Customer'}: "${ticket.subject || ticket.message || 'Help requested'}" (${ticket.status || 'OPEN'})`,
+          targetTab: 'support',
+          targetId: tid,
+          createdAt: ticket.createdAt || new Date().toISOString(),
+          read: checkIsRead(ticketNotifId, tid, ticket.createdAt)
+        });
+      }
+    });
+
+    // 4. Low stock alert if any
+    if (stats?.lowStockProductsCount > 0) {
+      const stockId = `notif_low_stock_${distId}`;
+      if (!deletedSet.has(stockId)) {
+        list.push({
+          id: stockId,
+          type: 'inventory',
+          priority: 'alert',
+          title: `📉 Inventory Alert: ${stats.lowStockProductsCount} Products Low on Stock`,
+          message: `Several catalog products in regional hub PIN ${currentDist?.primaryPincode || '635002'} are approaching safety thresholds. Restock to prevent order fulfillment delays.`,
+          targetTab: 'inventory',
+          createdAt: new Date().toISOString(),
+          read: checkIsRead(stockId, null, null)
+        });
+      }
+    }
+
+    return list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  }, [currentDist, notifState, isSubDistributor, isSubstituteInCommand, orders, tickets, distId, primaryManager, stats]);
+
+  // Handlers for user interactions
+  const handleMarkNotificationAsRead = (id, forceRead = true) => {
+    setNotifState(prev => {
+      const currentReads = new Set(prev?.readIds || []);
+      const cleanOid = String(id).replace(/^notif_(order|delayed|ticket)_/, '').replace(/_[A-Z_]+$/, '');
+      if (forceRead) {
+        currentReads.add(id);
+        if (cleanOid) {
+          currentReads.add(cleanOid);
+          currentReads.add(`notif_order_${cleanOid}_PLACED`);
+          currentReads.add(`notif_order_${cleanOid}_PROCESSING`);
+          currentReads.add(`notif_order_${cleanOid}_READY_FOR_PICKUP`);
+          currentReads.add(`notif_order_${cleanOid}_DELIVERED`);
+          currentReads.add(`notif_order_${cleanOid}_CANCELLED`);
+          currentReads.add(`notif_order_${cleanOid}_REFUNDED`);
+          currentReads.add(`notif_delayed_${cleanOid}`);
+        }
+      } else {
+        currentReads.delete(id);
+        if (cleanOid) currentReads.delete(cleanOid);
+      }
+      const next = {
+        ...(prev || {}),
+        allRead: false,
+        readIds: Array.from(currentReads),
+        deletedIds: prev?.deletedIds || []
+      };
+      try {
+        localStorage.setItem(`atomy_hub_notif_state_${distId}`, JSON.stringify(next));
+      } catch { }
+      return next;
+    });
+  };
+
+  const handleMarkAllNotificationsAsRead = () => {
+    setNotifState(prev => {
+      const allIds = hubNotifications.map(n => n.id);
+      const allOids = hubNotifications.map(n => n.targetId).filter(Boolean);
+      const currentReads = new Set([...(prev?.readIds || []), ...allIds, ...allOids, 'all']);
+      const next = {
+        ...(prev || {}),
+        allRead: true,
+        allReadTimestamp: Date.now(),
+        readIds: Array.from(currentReads),
+        deletedIds: prev?.deletedIds || []
+      };
+      try {
+        localStorage.setItem(`atomy_hub_notif_state_${distId}`, JSON.stringify(next));
+      } catch { }
+      return next;
+    });
+  };
+
+  const handleDeleteNotification = (id) => {
+    setNotifState(prev => {
+      const currentDeletes = new Set(prev?.deletedIds || []);
+      currentDeletes.add(id);
+      const next = {
+        ...(prev || {}),
+        deletedIds: Array.from(currentDeletes)
+      };
+      try {
+        localStorage.setItem(`atomy_hub_notif_state_${distId}`, JSON.stringify(next));
+      } catch { }
+      return next;
+    });
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifState(prev => {
+      const readIds = hubNotifications.filter(n => n.read).map(n => n.id);
+      const next = {
+        ...(prev || {}),
+        deletedIds: Array.from(new Set([...(prev?.deletedIds || []), ...readIds]))
+      };
+      try {
+        localStorage.setItem(`atomy_hub_notif_state_${distId}`, JSON.stringify(next));
+      } catch { }
+      return next;
+    });
+  };
+
+  const handleDismissNotificationFromHeader = (notifIdOrOrder) => {
+    let targetId = '';
+    if (typeof notifIdOrOrder === 'object') {
+      targetId = notifIdOrOrder.orderId || notifIdOrOrder.id || '';
+    } else {
+      targetId = String(notifIdOrOrder);
+    }
+    const cleanId = targetId.replace(/^delayed_/, '');
+    setNotifState(prev => {
+      const currentReads = new Set(prev?.readIds || []);
+      currentReads.add(targetId);
+      currentReads.add(cleanId);
+      currentReads.add(`notif_order_${cleanId}_PLACED`);
+      currentReads.add(`notif_order_${cleanId}_PROCESSING`);
+      currentReads.add(`notif_order_${cleanId}_READY_FOR_PICKUP`);
+      currentReads.add(`notif_order_${cleanId}_DELIVERED`);
+      currentReads.add(`notif_order_${cleanId}_CANCELLED`);
+      currentReads.add(`notif_order_${cleanId}_REFUNDED`);
+      currentReads.add(`notif_delayed_${cleanId}`);
+      const next = {
+        ...(prev || {}),
+        readIds: Array.from(currentReads),
+        deletedIds: prev?.deletedIds || []
+      };
+      try {
+        localStorage.setItem(`atomy_hub_notif_state_${distId}`, JSON.stringify(next));
+      } catch { }
+      return next;
+    });
+  };
+
+  const unreadNotifsCount = useMemo(() => {
+    if (isSubstituteStandby) return 0;
+    return hubNotifications.filter(n => !n.read).length;
+  }, [hubNotifications, isSubstituteStandby]);
+
   const overviewStatsMapped = {
-    todayOrdersCount: isSubstituteStandby ? 0 : (orders || []).filter(o => new Date(o.createdAt || Date.now()) >= new Date(new Date().setHours(0,0,0,0))).length,
+    todayOrdersCount: isSubstituteStandby ? 0 : (orders || []).filter(o => new Date(o.createdAt || Date.now()) >= new Date(new Date().setHours(0, 0, 0, 0))).length,
     unreadOrdersCount: isSubstituteStandby ? 0 : recentNewOrders.length,
     delayedCount: isSubstituteStandby ? 0 : delayedOrders.length,
     delayedOrders: isSubstituteStandby ? [] : delayedOrders,
@@ -844,6 +1219,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     { id: 'support', label: 'Customer Support', icon: Headphones, isLocked: isSubstituteStandby },
     { id: 'membership', label: 'Membership Accounts', icon: Crown, isLocked: isSubstituteStandby },
     { id: 'finance', label: 'Finance & Settlements', icon: IndianRupee, isLocked: isSubstituteStandby },
+    { id: 'notifications', label: 'Notifications', icon: Bell, badge: (activeTab !== 'notifications' && unreadNotifsCount > 0) ? String(unreadNotifsCount) : null, isLocked: false },
     { id: 'settings', label: isSubDistributor ? 'Profile Settings' : 'Hub Settings', icon: isSubDistributor ? User : Settings, isLocked: false }
   ];
 
@@ -852,7 +1228,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       {/* 1. Master Header with live notifications & profile */}
       <Header
         cartCount={0}
-        onCartClick={() => {}}
+        onCartClick={() => { }}
         onNavigateHome={onBackToStore}
         currentView="admin"
         adminProfile={headerAdminProfile}
@@ -861,18 +1237,27 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           setIsEditingProductView(false);
           setActiveTab('settings');
         }}
-        notificationCount={isSubstituteStandby ? 0 : (delayedOrders.length + (tickets || []).filter(t => t.status === 'OPEN').length + (overviewStatsMapped.handoverNotification ? 1 : 0))}
+        notificationCount={unreadNotifsCount}
         overviewStats={overviewStatsMapped}
-        onSelectNotificationTab={(tab) => {
+        onSelectNotificationTab={(tab, filter, targetId) => {
           setIsEditingProductView(false);
-          if (tab === 'orders') {
+          if (targetId) setInspectingOrderId(targetId);
+          if (tab === 'notifications') {
+            setActiveTab('notifications');
+          } else if (tab === 'orders') {
             setActiveTab('orders');
           } else if (tab === 'support') {
             setActiveTab('support');
+          } else if (tab === 'inventory') {
+            setActiveTab('inventory');
+          } else if (tab === 'settings') {
+            setActiveTab('settings');
+          } else if (tab === 'finance') {
+            setActiveTab('finance');
           }
         }}
-        onMarkAllNotifsAsRead={() => {}}
-        onDismissNotif={() => {}}
+        onMarkAllNotifsAsRead={handleMarkAllNotificationsAsRead}
+        onDismissNotif={handleDismissNotificationFromHeader}
       />
 
       {/* 2. Top Emergency / High-Priority Alert Banner (Hits hard with audio chime) */}
@@ -893,13 +1278,15 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
               onClick={() => {
                 if (activeAlert.type === 'support') {
                   setActiveTab('support');
+                } else if (activeAlert.type === 'cancellation') {
+                  setActiveTab('finance');
                 } else {
                   setActiveTab('orders');
                 }
                 setActiveAlert(null);
               }}
             >
-              {activeAlert.type === 'support' ? 'View Support Inquiry →' : 'Fulfill & Dispatch Order →'}
+              {activeAlert.type === 'support' ? 'View Support Inquiry →' : (activeAlert.type === 'cancellation' ? 'Inspect Refund Queue →' : 'Fulfill & Dispatch Order →')}
             </button>
             <button className="alert-btn-dismiss" onClick={() => setActiveAlert(null)}>
               <X size={18} />
@@ -921,9 +1308,6 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           >
             <Menu size={18} strokeWidth={2.4} />
             <span className="mobile-hamburger-text">Menu</span>
-            <span className="mobile-hamburger-active-pill">
-              {NAV_ITEMS.find(n => n.id === activeTab)?.label || 'Overview'}
-            </span>
           </button>
 
           <div className="quick-strip-desktop-info">
@@ -950,7 +1334,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
         <div className="quick-strip-right">
           <a
-            href="http://localhost:5173"
+            href={import.meta.env.VITE_STORE_URL || "https://atomy-india-eta.vercel.app"}
             target="_blank"
             rel="noopener noreferrer"
             className="quick-refresh-btn"
@@ -958,10 +1342,27 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
             title="Open Live Customer Store"
           >
             <ExternalLink size={13} />
-            <span>Customer Store (5173)</span>
+            <span>Customer Store</span>
           </a>
         </div>
       </div>
+
+      {/* Mobile-Only Substitute Co-Manager Status Pill */}
+      {isSubDistributor && (
+        <div className="substitute-mobile-status-strip">
+          {isSubstituteStandby ? (
+            <div className="substitute-mobile-badge standby">
+              <Clock size={12} />
+              <span>STANDBY RELIEF • Primary Active (PIN {currentDist?.primaryPincode})</span>
+            </div>
+          ) : (
+            <div className="substitute-mobile-badge command">
+              <Sparkles size={12} />
+              <span>TEMPORARY COMMAND ACTIVE • Full Authority</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Mobile Slide-Out Sidebar Drawer */}
       {isMobileNavOpen && (
@@ -970,14 +1371,16 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
             <div className="mobile-drawer-header">
               <div className="mobile-drawer-brand">
                 <div className="mobile-drawer-avatar">
-                  {(currentDist?.businessName || currentDist?.contactPerson || 'A').charAt(0).toUpperCase()}
+                  {(currentDist?.contactPerson || currentDist?.businessName || 'A').charAt(0).toUpperCase()}
                 </div>
                 <div className="mobile-drawer-meta">
                   <span className="mobile-drawer-title">
-                    {currentDist?.businessName || 'Regional Hub'}
+                    {currentDist?.contactPerson || currentDist?.businessName || 'Regional Hub'}
                   </span>
                   <span className="mobile-drawer-pin">
-                    Assigned Area: PIN {currentDist?.primaryPincode}
+                    {isSubDistributor
+                      ? (isSubstituteStandby ? `Standby Co-Manager • PIN ${currentDist?.primaryPincode}` : `Co-Manager In Command • PIN ${currentDist?.primaryPincode}`)
+                      : `Assigned Area: PIN ${currentDist?.primaryPincode}`}
                   </span>
                 </div>
               </div>
@@ -995,23 +1398,31 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
+                const isLocked = item.isLocked;
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    className={`mobile-drawer-nav-item ${isActive ? 'active' : ''}`}
+                    className={`mobile-drawer-nav-item ${isActive ? 'active' : ''} ${isLocked ? 'is-locked-tab' : ''}`}
                     onClick={() => {
                       setIsEditingProductView(false);
                       setActiveTab(item.id);
                       setIsMobileNavOpen(false);
+                      if (isLocked) {
+                        showToast(`Access Blocked: ${item.label} is locked while Primary is on active duty.`);
+                      }
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
+                    style={isLocked ? { opacity: 0.65 } : {}}
                   >
                     <div className="mobile-drawer-nav-icon">
                       <Icon size={18} />
                     </div>
-                    <span className="mobile-drawer-nav-label">{item.label}</span>
-                    {item.badge && (
+                    <span className="mobile-drawer-nav-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <span>{item.label}</span>
+                      {isLocked && <Lock size={12} style={{ color: '#d97706', marginLeft: 'auto', flexShrink: 0 }} />}
+                    </span>
+                    {item.badge && !isLocked && (
                       <span className="mobile-drawer-badge">{item.badge}</span>
                     )}
                   </button>
@@ -1021,13 +1432,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
             <div className="mobile-drawer-footer">
               <a
-                href="http://localhost:5173"
+                href={import.meta.env.VITE_STORE_URL || "https://atomy-india-eta.vercel.app"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mobile-drawer-store-btn"
               >
                 <ExternalLink size={15} />
-                <span>Customer Store (5173)</span>
+                <span>Customer Store</span>
               </a>
             </div>
           </div>
@@ -1097,123 +1508,73 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
               </span>
             </div>
           ) : isSubstituteStandby && activeTab !== 'settings' ? (
-            <div className="admin-tab-content standby-lockout-tab" style={{ padding: '24px 20px' }}>
-              <div style={{
-                maxWidth: '840px',
-                margin: '10px auto',
-                background: '#ffffff',
-                borderRadius: '16px',
-                border: '1.5px solid #fde68a',
-                boxShadow: '0 8px 30px rgba(217, 119, 6, 0.08)',
-                padding: '40px 36px',
-                textAlign: 'center'
-              }}>
+            <div className="admin-tab-content standby-lockout-tab">
+              <div className="standby-lockout-card">
                 {/* Big Lock / Shield Graphic */}
-                <div style={{
-                  width: '84px',
-                  height: '84px',
-                  borderRadius: '50%',
-                  background: '#fffbeb',
-                  border: '3px solid #fef3c7',
-                  color: '#d97706',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 20px auto',
-                  boxShadow: '0 4px 16px rgba(245, 158, 11, 0.15)'
-                }}>
-                  <ShieldCheck size={46} strokeWidth={2.2} />
+                <div className="standby-graphic-circle">
+                  <ShieldCheck className="standby-shield-icon" strokeWidth={2.2} />
                 </div>
 
-                <div style={{
-                  display: 'inline-block',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.8px',
-                  background: '#fef3c7',
-                  color: '#b45309',
-                  border: '1px solid #fde68a',
-                  padding: '5px 14px',
-                  borderRadius: '20px',
-                  marginBottom: '14px'
-                }}>
+                <div className="standby-status-pill">
                   🔒 Standby Relief Mode Active — All Operations Locked
                 </div>
 
-                <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: '0 0 10px 0' }}>
+                <h1 className="standby-title">
                   Primary Distributor is Currently Active
                 </h1>
 
-                <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.6, maxWidth: '640px', margin: '0 auto 26px auto' }}>
+                <p className="standby-desc">
                   Primary Distributor <strong style={{ color: '#0f172a' }}>{primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Selva Kumar'}</strong> is on active duty managing this hub. As the Temporary Substitute / Co-Manager, all hub operational pages (Inventory, Orders, Customers, Membership, and Settlements) are locked while the Primary is active.
                 </p>
 
                 {/* Hub & Role Summary Card */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                  gap: '14px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  textAlign: 'left',
-                  marginBottom: '26px'
-                }}>
-                  <div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '3px' }}>
+                <div className="standby-summary-grid">
+                  <div className="standby-summary-item">
+                    <span className="standby-summary-label">
                       Regional Hub Franchise
                     </span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="standby-summary-value text-slate">
                       <Building2 size={15} color="#00A3E0" />
                       {currentDist?.parentHubName || currentDist?.businessName || 'Regional Hub'}
                     </span>
-                    <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                    <span className="standby-summary-sub">
                       Territory PIN: <strong>{currentDist?.primaryPincode}</strong>
                     </span>
                   </div>
 
-                  <div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '3px' }}>
+                  <div className="standby-summary-item">
+                    <span className="standby-summary-label">
                       Primary Manager on Duty
                     </span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }}></span>
+                    <span className="standby-summary-value text-green">
+                      <span className="standby-dot-green"></span>
                       {primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Selva Kumar'} (Active)
                     </span>
-                    <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                    <span className="standby-summary-sub">
                       {primaryManager?.email || 'primary.hub@atomy.com'}
                     </span>
                   </div>
 
-                  <div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '3px' }}>
+                  <div className="standby-summary-item">
+                    <span className="standby-summary-label">
                       Your Account &amp; Status
                     </span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#b45309', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="standby-summary-value text-amber">
                       <Clock size={15} color="#b45309" />
                       {currentDist?.contactPerson || 'Temporary Substitute'} (Standby)
                     </span>
-                    <span style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'block' }}>
+                    <span className="standby-summary-sub">
                       Account ID: <strong>{currentDist?.distributorId}</strong>
                     </span>
                   </div>
                 </div>
 
                 {/* Blocked Pages Overview List */}
-                <div style={{
-                  background: '#fffbeb',
-                  border: '1px solid #fef3c7',
-                  borderRadius: '12px',
-                  padding: '16px 20px',
-                  textAlign: 'left',
-                  marginBottom: '28px'
-                }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                <div className="standby-blocked-box">
+                  <div className="standby-blocked-heading">
                     🔒 Hub Operational Pages Blocked in Standby Mode:
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <div className="standby-blocked-grid">
                     {[
                       'Overview & Metrics',
                       'Inventory & Stock Management',
@@ -1223,45 +1584,22 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                       'Membership Accounts & Tier Approvals',
                       'Finance & Remittance Settlements'
                     ].map(p => (
-                      <span key={p} style={{
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        background: '#ffffff',
-                        color: '#78350f',
-                        border: '1px solid #fde68a',
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px'
-                      }}>
-                        <Lock size={11} color="#d97706" /> {p}
+                      <span key={p} className="standby-blocked-chip">
+                        <Lock size={11} color="#d97706" />
+                        <span>{p}</span>
                       </span>
                     ))}
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                <div className="standby-actions-row">
                   <button
                     type="button"
                     onClick={() => setActiveTab('settings')}
-                    style={{
-                      background: '#00A3E0',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '10px',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 4px 14px rgba(0, 163, 224, 0.25)'
-                    }}
+                    className="standby-action-btn primary"
                   >
-                    <User size={18} />
+                    <User size={17} />
                     <span>Manage My Profile Settings →</span>
                   </button>
 
@@ -1271,21 +1609,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                       loadDashboardData();
                       showToast('Checking Primary Distributor live status...');
                     }}
-                    style={{
-                      background: '#f1f5f9',
-                      color: '#334155',
-                      border: '1px solid #cbd5e1',
-                      padding: '12px 20px',
-                      borderRadius: '10px',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
+                    className="standby-action-btn secondary"
                   >
-                    <RefreshCw size={16} />
+                    <RefreshCw size={15} />
                     <span>Refresh Live Status</span>
                   </button>
                 </div>
@@ -1295,53 +1621,28 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
             <>
               {/* TEMPORARY COMMAND ACTIVE BANNER */}
               {isSubstituteInCommand && showCommandBanner && (
-                <div style={{
-                  background: '#ecfdf5',
-                  border: '1.5px solid #a7f3d0',
-                  borderRadius: '10px',
-                  padding: '14px 18px',
-                  margin: '16px 24px 0 24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
-                  animation: 'fadeIn 0.3s ease-out'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
+                <div className="temporary-command-banner">
+                  <div className="command-banner-content">
+                    <div className="command-banner-icon">
                       <Sparkles size={22} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 800, fontSize: '14px', color: '#065f46', marginBottom: '2px' }}>
+                      <div className="command-banner-title">
                         ⚡ TEMPORARY COMMAND ACTIVE — Full Operational Authority
                       </div>
-                      <div style={{ fontSize: '12.5px', color: '#047857', lineHeight: 1.4 }}>
+                      <div className="command-banner-desc">
                         Primary Distributor <strong>{primaryManager?.contactPerson || currentDist?.primaryManagerName || 'Franchise Owner'}</strong> is currently on leave. You have full operational control over stock, orders, and customer store pickups.
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 800, background: '#d1fae5', color: '#065f46', border: '1px solid #a7f3d0', padding: '5px 12px', borderRadius: '20px', whiteSpace: 'nowrap' }}>
+                  <div className="command-banner-actions">
+                    <span className="command-banner-badge">
                       IN COMMAND
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowCommandBanner(false)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#065f46',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '6px',
-                        opacity: 0.75,
-                        transition: 'opacity 0.2s'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                      onMouseOut={(e) => e.currentTarget.style.opacity = '0.75'}
+                      className="command-banner-close-btn"
                       title="Dismiss banner"
                       aria-label="Dismiss banner"
                     >
@@ -1386,6 +1687,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   showToast={showToast}
                   isLoading={isLoading}
                   isStandby={isSubstituteStandby}
+                  initialSelectedOrderId={inspectingOrderId}
                 />
               )}
 
@@ -1426,6 +1728,28 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   distributor={currentDist}
                   onNavigateToOrders={() => setActiveTab('orders')}
                   onNavigateToSupport={() => setActiveTab('support')}
+                />
+              )}
+
+              {activeTab === 'notifications' && (
+                <DistributorNotificationsPage
+                  distributorUser={currentDist}
+                  isSubstitute={isSubDistributor}
+                  isSubstituteInCommand={isSubstituteInCommand}
+                  isSubstituteStandby={isSubstituteStandby}
+                  orders={orders}
+                  tickets={tickets}
+                  primaryManager={primaryManager}
+                  notifications={hubNotifications}
+                  onMarkAsRead={handleMarkNotificationAsRead}
+                  onMarkAllAsRead={handleMarkAllNotificationsAsRead}
+                  onDeleteNotification={handleDeleteNotification}
+                  onClearAllNotifications={handleClearAllNotifications}
+                  onNavigateTab={(tab, filter, targetId) => {
+                    setIsEditingProductView(false);
+                    if (targetId) setInspectingOrderId(targetId);
+                    setActiveTab(tab);
+                  }}
                 />
               )}
 

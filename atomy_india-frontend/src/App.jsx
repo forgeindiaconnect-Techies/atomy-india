@@ -683,7 +683,8 @@ export default function App() {
           city: remoteCustomer.city || prev.city,
           state: remoteCustomer.state || prev.state,
           pincode: remoteCustomer.pincode || prev.pincode,
-          isMember: Boolean(remoteCustomer.isMember ?? prev.isMember)
+          isMember: Boolean(remoteCustomer.isMember ?? prev.isMember),
+          membership: remoteCustomer.membership || prev.membership || null
         };
         try {
           localStorage.setItem('atomy_current_user', JSON.stringify(merged));
@@ -1014,7 +1015,7 @@ export default function App() {
             localStorage.setItem('atomy_current_membership_data', JSON.stringify(data.membership));
           } catch { }
         }
-        if (data?.isMember && !currentUser.isMember) {
+        if (data?.isMember) {
           const updated = {
             ...currentUser,
             isMember: true,
@@ -1025,11 +1026,13 @@ export default function App() {
               active: true
             }
           };
-          setCurrentUser(updated);
-          try {
-            localStorage.setItem('atomy_current_user', JSON.stringify(updated));
-          } catch { }
-          setMembershipVersion((v) => v + 1);
+          if (!currentUser.isMember || JSON.stringify(currentUser.membership) !== JSON.stringify(updated.membership)) {
+            setCurrentUser(updated);
+            try {
+              localStorage.setItem('atomy_current_user', JSON.stringify(updated));
+            } catch { }
+            setMembershipVersion((v) => v + 1);
+          }
         } else if (data && !data.isMember && currentUser.isMember) {
           const updated = {
             ...currentUser,
@@ -1848,6 +1851,7 @@ export default function App() {
           <div className="shopping-body-wrapper membership-page-body-wrapper">
             <MembershipPage
               currentUser={currentUser}
+              membershipData={membershipData}
               isMember={isMember}
               onNavigateHome={handleNavigateHome}
               onNavigateBack={handleGoBack}

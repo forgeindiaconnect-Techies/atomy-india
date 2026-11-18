@@ -16,6 +16,7 @@ import {
   Check
 } from 'lucide-react';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
+import CustomDropdown from '../common/CustomDropdown';
 import { sendPickupOtp, verifyPickupOtp } from '../../services/distributorService';
 import '../Admin/AdminDashboard.css';
 import './DistributorTrackingModal.css';
@@ -35,8 +36,54 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
     )
   );
 
-  const [verificationNote, setVerificationNote] = useState(
-    order?.pickupNote || 'Verified Customer at Hub Counter via OTP'
+  const resolveDynamicLocation = (ord, dist, pickup) => {
+    const existing = ord?.tracking?.currentLocation;
+    const isHardcodedGurugram = existing && (
+      existing.toLowerCase().includes('gurugram') ||
+      existing.toLowerCase().includes('order processing center')
+    );
+
+    // If existing tracking location has a real custom update that isn't the Gurugram default, respect it
+    if (existing && !isHardcodedGurugram) {
+      return existing;
+    }
+
+    if (pickup) {
+      const hubName = dist?.businessName || dist?.hubName || ord?.assignedDistributorName || ord?.hubName;
+      const hubAddr = dist?.hubAddress || ord?.hubAddress;
+      const pin = dist?.primaryPincode || ord?.pincode || '635002';
+
+      if (hubName && hubAddr) {
+        return `${hubName} — ${hubAddr}`;
+      }
+      if (hubAddr) {
+        return `${hubAddr}`;
+      }
+      if (hubName) {
+        return `${hubName} Counter (PIN: ${pin})`;
+      }
+      return `Regional Hub Pickup Counter (PIN: ${pin})`;
+    }
+
+    // Standard courier delivery
+    const distName = dist?.businessName || dist?.hubName || ord?.assignedDistributorName;
+    const city = dist?.city || ord?.city || 'Regional';
+    const pin = dist?.primaryPincode || ord?.pincode || '635002';
+    return `${distName ? distName + ' — ' : ''}${city} Logistics Hub (PIN: ${pin})`;
+  };
+
+  const resolveVerificationNote = (ord, dist) => {
+    if (ord?.pickupNote) return ord.pickupNote;
+    const hubName = dist?.businessName || dist?.hubName || ord?.assignedDistributorName || ord?.hubName || 'Hub';
+    return `Verified Customer at ${hubName} Counter via OTP`;
+  };
+
+  const [verificationNote, setVerificationNote] = useState(() =>
+    resolveVerificationNote(order, distributor)
+  );
+
+  const [currentLocation, setCurrentLocation] = useState(() =>
+    resolveDynamicLocation(order, distributor, isPickup)
   );
 
   const [trackingNumber, setTrackingNumber] = useState(
@@ -93,18 +140,29 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
       if (order?.tracking?.trackingNumber || order?.trackingNumber) {
         setTrackingNumber(order?.tracking?.trackingNumber || order?.trackingNumber);
       }
+      const resolvedLoc = resolveDynamicLocation(order, distributor, isPickup);
       if (order?.tracking?.currentLocation) {
-        setCurrentLocation(order.tracking.currentLocation);
+        const isHardcodedGurugram = order.tracking.currentLocation.toLowerCase().includes('gurugram') ||
+          order.tracking.currentLocation.toLowerCase().includes('order processing center');
+        if (!isHardcodedGurugram) {
+          setCurrentLocation(order.tracking.currentLocation);
+        } else {
+          setCurrentLocation(resolvedLoc);
+        }
+      } else {
+        setCurrentLocation(resolvedLoc);
+      }
+      if (order?.pickupNote) {
+        setVerificationNote(order.pickupNote);
+      } else {
+        setVerificationNote(resolveVerificationNote(order, distributor));
       }
       if (order?.estimatedDeliveryDate || order?.estimatedDelivery) {
         setEstimatedDelivery(order.estimatedDeliveryDate || order.estimatedDelivery);
       }
     }
-  }, [order?.orderStatus, order?.status, order?.tracking?.currentStatus, order?.orderId, order?.id]);
+  }, [order?.orderStatus, order?.status, order?.tracking?.currentStatus, order?.orderId, order?.id, distributor?.hubAddress, distributor?.businessName]);
 
-  const [currentLocation, setCurrentLocation] = useState(
-    order?.tracking?.currentLocation || distributor?.hubAddress || (distributor?.city ? `${distributor.city} Hub` : 'Regional Hub Facility')
-  );
   const [estimatedDelivery, setEstimatedDelivery] = useState(
     order?.estimatedDeliveryDate || order?.estimatedDelivery || 'Within 2 Days (Nearby Hub)'
   );
@@ -565,35 +623,28 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
                     Direct Counter Collection Flow
                   </span>
                 </label>
-                <select
+                <CustomDropdown
                   value={currentStatus}
-                  onChange={(e) => {
-                    const nextVal = e.target.value;
+                  onChange={(nextVal) => {
                     if (nextVal === 'DELIVERED' && !isOtpVerified) {
                       setOtpErrorMessage('Handover requires OTP verification! Please verify OTP at counter first.');
                       return;
                     }
                     setCurrentStatus(nextVal);
                   }}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                  options={[
+                    { value: 'PLACED', label: 'Stage 1: PLACED (Payment Confirmed)' },
+                    { value: 'PROCESSING', label: 'Stage 2: PREPARING (Hub Staff Packing Items)' },
+                    { value: 'READY_FOR_PICKUP', label: 'Stage 3: READY TO PICK UP (Package Waiting at Counter)' },
+                    { value: 'DELIVERED', label: `Stage 4: DELIVERED / COLLECTED ${isOtpVerified ? '(Handed Over)' : '(Requires OTP Verification)'}`, disabled: !isOtpVerified }
+                  ]}
+                  triggerStyle={{
                     border: '1.5px solid #16a34a',
                     background: '#f0fdf4',
                     color: '#15803d',
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    cursor: 'pointer'
+                    fontWeight: 700
                   }}
-                >
-                  <option value="PLACED">Stage 1: PLACED (Payment Confirmed)</option>
-                  <option value="PROCESSING">Stage 2: PREPARING (Hub Staff Packing Items)</option>
-                  <option value="READY_FOR_PICKUP">Stage 3: READY TO PICK UP (Package Waiting at Counter)</option>
-                  <option value="DELIVERED" disabled={!isOtpVerified}>
-                    Stage 4: DELIVERED / COLLECTED {isOtpVerified ? '(Handed Over)' : '(Requires OTP Verification)'}
-                  </option>
-                </select>
+                />
 
                 {/* Quick Action One-Click Pills for Subadmin */}
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
@@ -670,27 +721,23 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
                     Select a stage to preview vehicle movement animation
                   </span>
                 </label>
-                <select
+                <CustomDropdown
                   value={currentStatus}
-                  onChange={(e) => setCurrentStatus(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
+                  onChange={(nextVal) => setCurrentStatus(nextVal)}
+                  options={[
+                    { value: 'PLACED', label: 'Stage 1: PLACED (Payment Confirmed)' },
+                    { value: 'PROCESSING', label: 'Stage 2: PROCESSING (Warehouse Packing)' },
+                    { value: 'SHIPPED', label: 'Stage 3: SHIPPED (In Transit - Blue Dart Line-haul)' },
+                    { value: 'OUT_FOR_DELIVERY', label: 'Stage 4: OUT FOR DELIVERY (Executive on Bike)' },
+                    { value: 'DELIVERED', label: 'Stage 5: DELIVERED (Package Received)' }
+                  ]}
+                  triggerStyle={{
                     border: '1.5px solid #00A3E0',
                     background: '#f0fdf4',
                     color: '#0284c7',
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    cursor: 'pointer'
+                    fontWeight: 700
                   }}
-                >
-                  <option value="PLACED">Stage 1: PLACED (Payment Confirmed)</option>
-                  <option value="PROCESSING">Stage 2: PROCESSING (Warehouse Packing)</option>
-                  <option value="SHIPPED">Stage 3: SHIPPED (In Transit - Blue Dart Line-haul)</option>
-                  <option value="OUT_FOR_DELIVERY">Stage 4: OUT FOR DELIVERY (Delivery Executive on Bike)</option>
-                  <option value="DELIVERED">Stage 5: DELIVERED (Package Received)</option>
-                </select>
+                />
               </div>
 
               <div className="modal-row-2">

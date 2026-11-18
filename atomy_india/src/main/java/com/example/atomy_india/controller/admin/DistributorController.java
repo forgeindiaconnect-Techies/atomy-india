@@ -305,7 +305,10 @@ public class DistributorController {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid order status: " + statusStr));
         }
 
-        CustomerOrder updatedOrder = adminService.updateOrderStatus(orderId, newStatus);
+        String cancelReason = body.get("cancelReason");
+        if (cancelReason == null) cancelReason = body.get("reason");
+        String cancelNotes = body.get("cancelNotes");
+        CustomerOrder updatedOrder = adminService.updateOrderStatus(orderId, newStatus, cancelReason, cancelNotes);
         if (updatedOrder != null) {
             if (updatedOrder.getAssignedDistributorId() == null || "CENTRAL_SUPER_HUB".equals(updatedOrder.getAssignedDistributorId())) {
                 updatedOrder.setAssignedDistributorId(dist.getDistributorId());

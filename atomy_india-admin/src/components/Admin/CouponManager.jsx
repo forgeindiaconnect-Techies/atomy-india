@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Ticket,
   Plus,
   Search,
   Filter,
   Check,
+  ChevronDown,
   Copy,
   Edit2,
   Trash2,
@@ -131,6 +132,34 @@ export default function CouponManager({ showToast }) {
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [scopeFilter, setScopeFilter] = useState('ALL');
   const [copiedCode, setCopiedCode] = useState(null);
+
+  // Custom Filter Dropdowns State
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef(null);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const typeDropdownRef = useRef(null);
+  const [isScopeDropdownOpen, setIsScopeDropdownOpen] = useState(false);
+  const scopeDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleFilterClickOutside = (e) => {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target)) {
+        setIsStatusDropdownOpen(false);
+      }
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target)) {
+        setIsTypeDropdownOpen(false);
+      }
+      if (scopeDropdownRef.current && !scopeDropdownRef.current.contains(e.target)) {
+        setIsScopeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleFilterClickOutside);
+    document.addEventListener('touchstart', handleFilterClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleFilterClickOutside);
+      document.removeEventListener('touchstart', handleFilterClickOutside);
+    };
+  }, []);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -478,46 +507,148 @@ export default function CouponManager({ showToast }) {
         </div>
 
         <div className="coupon-filter-dropdowns">
-          <div className="filter-group">
-            <label>Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
+          {/* Status Custom Dropdown */}
+          <div className="filter-group custom-select-container" ref={statusDropdownRef}>
+            <button
+              type="button"
+              className={`coupon-select-trigger ${isStatusDropdownOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsStatusDropdownOpen(!isStatusDropdownOpen);
+                setIsTypeDropdownOpen(false);
+                setIsScopeDropdownOpen(false);
+              }}
+              aria-expanded={isStatusDropdownOpen}
+              title="Filter by coupon status"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="ACTIVE">Active Only</option>
-              <option value="PAUSED">Paused Only</option>
-            </select>
+              <span className="filter-prefix">Status:</span>
+              <strong className="filter-selected-val">
+                {statusFilter === 'ALL' && 'All Statuses'}
+                {statusFilter === 'ACTIVE' && 'Active Only'}
+                {statusFilter === 'PAUSED' && 'Paused Only'}
+              </strong>
+              <ChevronDown size={14} className={`dropdown-chevron ${isStatusDropdownOpen ? 'rotate' : ''}`} />
+            </button>
+
+            {isStatusDropdownOpen && (
+              <div className="custom-dropdown-menu">
+                {[
+                  { id: 'ALL', label: 'All Statuses' },
+                  { id: 'ACTIVE', label: 'Active Only' },
+                  { id: 'PAUSED', label: 'Paused Only' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`custom-dropdown-item ${statusFilter === opt.id ? 'selected' : ''}`}
+                    onClick={() => {
+                      setStatusFilter(opt.id);
+                      setIsStatusDropdownOpen(false);
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {statusFilter === opt.id && <Check size={14} color="#0284c7" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="filter-group">
-            <label>Type:</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="filter-select"
+          {/* Type Custom Dropdown */}
+          <div className="filter-group custom-select-container" ref={typeDropdownRef}>
+            <button
+              type="button"
+              className={`coupon-select-trigger ${isTypeDropdownOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                setIsStatusDropdownOpen(false);
+                setIsScopeDropdownOpen(false);
+              }}
+              aria-expanded={isTypeDropdownOpen}
+              title="Filter by discount type"
             >
-              <option value="ALL">All Discount Types</option>
-              <option value="PERCENTAGE">Percentage (% Off)</option>
-              <option value="FLAT">Flat Cash (₹ Off)</option>
-              <option value="FREE_SHIPPING">Free Shipping</option>
-            </select>
+              <span className="filter-prefix">Type:</span>
+              <strong className="filter-selected-val">
+                {typeFilter === 'ALL' && 'All Discount Types'}
+                {typeFilter === 'PERCENTAGE' && 'Percentage (% Off)'}
+                {typeFilter === 'FLAT' && 'Flat Cash (₹ Off)'}
+                {typeFilter === 'FREE_SHIPPING' && 'Free Shipping'}
+              </strong>
+              <ChevronDown size={14} className={`dropdown-chevron ${isTypeDropdownOpen ? 'rotate' : ''}`} />
+            </button>
+
+            {isTypeDropdownOpen && (
+              <div className="custom-dropdown-menu">
+                {[
+                  { id: 'ALL', label: 'All Discount Types' },
+                  { id: 'PERCENTAGE', label: 'Percentage (% Off)' },
+                  { id: 'FLAT', label: 'Flat Cash (₹ Off)' },
+                  { id: 'FREE_SHIPPING', label: 'Free Shipping' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`custom-dropdown-item ${typeFilter === opt.id ? 'selected' : ''}`}
+                    onClick={() => {
+                      setTypeFilter(opt.id);
+                      setIsTypeDropdownOpen(false);
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {typeFilter === opt.id && <Check size={14} color="#0284c7" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="filter-group">
-            <label>Scope:</label>
-            <select
-              value={scopeFilter}
-              onChange={(e) => setScopeFilter(e.target.value)}
-              className="filter-select"
+          {/* Scope Custom Dropdown */}
+          <div className="filter-group custom-select-container" ref={scopeDropdownRef}>
+            <button
+              type="button"
+              className={`coupon-select-trigger ${isScopeDropdownOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsScopeDropdownOpen(!isScopeDropdownOpen);
+                setIsStatusDropdownOpen(false);
+                setIsTypeDropdownOpen(false);
+              }}
+              aria-expanded={isScopeDropdownOpen}
+              title="Filter by scope"
             >
-              <option value="ALL">All Products (Storewide)</option>
-              <option value="HEALTH">Health Care & Supplements</option>
-              <option value="BEAUTY">Skin Care & Cosmetics</option>
-              <option value="PERSONAL">Personal & Body Care</option>
-              <option value="FOOD">Food & Living</option>
-            </select>
+              <span className="filter-prefix">Scope:</span>
+              <strong className="filter-selected-val">
+                {scopeFilter === 'ALL' && 'All Products (Storewide)'}
+                {scopeFilter === 'HEALTH' && 'Health Care & Supplements'}
+                {scopeFilter === 'BEAUTY' && 'Skin Care & Cosmetics'}
+                {scopeFilter === 'PERSONAL' && 'Personal & Body Care'}
+                {scopeFilter === 'FOOD' && 'Food & Living'}
+              </strong>
+              <ChevronDown size={14} className={`dropdown-chevron ${isScopeDropdownOpen ? 'rotate' : ''}`} />
+            </button>
+
+            {isScopeDropdownOpen && (
+              <div className="custom-dropdown-menu">
+                {[
+                  { id: 'ALL', label: 'All Products (Storewide)' },
+                  { id: 'HEALTH', label: 'Health Care & Supplements' },
+                  { id: 'BEAUTY', label: 'Skin Care & Cosmetics' },
+                  { id: 'PERSONAL', label: 'Personal & Body Care' },
+                  { id: 'FOOD', label: 'Food & Living' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`custom-dropdown-item ${scopeFilter === opt.id ? 'selected' : ''}`}
+                    onClick={() => {
+                      setScopeFilter(opt.id);
+                      setIsScopeDropdownOpen(false);
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                    {scopeFilter === opt.id && <Check size={14} color="#0284c7" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

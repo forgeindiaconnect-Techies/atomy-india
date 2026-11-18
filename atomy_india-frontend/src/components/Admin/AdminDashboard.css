@@ -47,6 +47,20 @@
   background: linear-gradient(135deg, #2b1d07 0%, #78350f 100%);
 }
 
+.admin-high-alert-banner.cancellation {
+  border-bottom: 3px solid #f43f5e;
+  background: linear-gradient(135deg, #2a0812 0%, #881337 100%);
+}
+
+.admin-high-alert-banner.cancellation .alert-bell-pulse {
+  color: #fda4af;
+  box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+}
+
+.admin-high-alert-banner.cancellation .alert-badge-tag {
+  color: #fecdd3;
+}
+
 @keyframes slideDownAlert {
   from {
     transform: translateY(-100%);
@@ -3643,5 +3657,78 @@ input:checked + .slider:before {
   border-radius: 4px !important;
   font-weight: 700 !important;
   color: #0F172A !important;
+}
+
+@media (max-width: 768px) {
+  .inspection-card.status-actions-card {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 14px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .inspection-card.status-actions-card .status-update-control,
+  .status-update-control {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .status-update-label {
+    width: 100% !important;
+    text-align: left !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    white-space: normal !important;
+  }
+
+  .status-update-dropdown,
+  .status-update-control .custom-dropdown-container,
+  .status-update-control .custom-dropdown-trigger {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .inspection-card.status-actions-card .modal-actions-right,
+  .inspection-card.status-actions-card .status-actions-buttons,
+  .status-actions-buttons {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 8px !important;
+    margin-top: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  .inspection-card.status-actions-card .order-footer-btn,
+  .status-actions-buttons .order-footer-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 10px 14px !important;
+    height: auto !important;
+    min-height: 40px !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    white-space: normal !important;
+    text-align: center !important;
+    border-radius: 8px !important;
+    margin: 0 !important;
+  }
 }
 

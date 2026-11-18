@@ -88,6 +88,45 @@ export async function loginAdminOrDistributor(username, password) {
   }
 }
 
+export async function requestAdminForgotPasswordOtp(identifier) {
+  const res = await fetch(`${API_BASE}/admin/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: identifier, distributorId: identifier, username: identifier })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || data.error || 'Failed to dispatch verification code.');
+  }
+  return data;
+}
+
+export async function verifyAdminOtp(email, otp) {
+  const res = await fetch(`${API_BASE}/admin/auth/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || data.error || 'Invalid or expired verification code.');
+  }
+  return data;
+}
+
+export async function resetAdminPassword(email, otp, newPassword) {
+  const res = await fetch(`${API_BASE}/admin/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp, newPassword })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || data.error || 'Failed to reset password.');
+  }
+  return data;
+}
+
 export async function fetchDistributorProfile(distributorId) {
   const res = await fetch(`${API_BASE}/distributor/profile?distributorId=${encodeURIComponent(distributorId)}`);
   if (!res.ok) throw new Error('Failed to fetch distributor profile');
@@ -107,16 +146,23 @@ export async function fetchDistributorOrders(distributorId, status = 'ALL') {
   return res.json();
 }
 
-export async function updateDistributorOrderStatus(orderId, distributorId, status) {
+export async function updateDistributorOrderStatus(orderId, distributorId, status, extraData = {}) {
   const url = `${API_BASE}/distributor/orders/${encodeURIComponent(orderId)}/status?distributorId=${encodeURIComponent(distributorId)}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 7000);
+
+  const payload = {
+    status,
+    cancelReason: extraData.cancelReason || extraData.reason || undefined,
+    cancelNotes: extraData.cancelNotes || undefined,
+    ...extraData
+  };
 
   try {
     const res = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(payload),
       signal: controller.signal
     });
     clearTimeout(timeoutId);
@@ -137,7 +183,7 @@ export async function updateDistributorOrderStatus(orderId, distributorId, statu
     const fallbackRes = await fetch(fallbackUrl, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(payload),
       signal: fbController.signal
     });
     clearTimeout(fbTimeoutId);
@@ -148,7 +194,7 @@ export async function updateDistributorOrderStatus(orderId, distributorId, statu
     clearTimeout(fbTimeoutId);
     console.warn('Fallback status endpoint error (optimistic update kept):', err.message);
   }
-  return { success: true, status };
+  return { success: true, status, ...payload };
 }
 
 export async function updateDistributorOrderTracking(orderId, distributorId, trackingPayload) {

@@ -34,10 +34,28 @@ import {
   ChevronRight,
   Star,
   Layers,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react';
 import officialProductDetails from '../../data/officialProductDetails.json';
 import './ProductEditorPage.css';
+
+const CATEGORY_OPTIONS = [
+  { value: 'hemohim', label: 'HemoHIM' },
+  { value: 'health', label: 'Health Care' },
+  { value: 'beauty', label: 'Beauty & Cosmetics' },
+  { value: 'personal_care', label: 'Personal Care' },
+  { value: 'home', label: 'Living & Home' },
+  { value: 'food', label: 'Food & Groceries' },
+  { value: 'others', label: 'ETC / Supplementary' }
+];
+
+const HEADING_OPTIONS = [
+  { value: 'p', label: 'Normal Text' },
+  { value: 'h1', label: 'Heading 1 (Main Title)' },
+  { value: 'h2', label: 'Heading 2 (Section)' },
+  { value: 'h3', label: 'Heading 3 (Subsection)' }
+];
 
 export default function ProductEditorPage({
   initialData,
@@ -83,6 +101,30 @@ export default function ProductEditorPage({
 
   const [galleryImages, setGalleryImages] = useState(initialGallery);
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
+
+  // Controlled Category & Heading Custom Dropdown State
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef(null);
+
+  const [isHeadingDropdownOpen, setIsHeadingDropdownOpen] = useState(false);
+  const headingDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleDropdownClickOutside = (e) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) {
+        setIsCategoryDropdownOpen(false);
+      }
+      if (headingDropdownRef.current && !headingDropdownRef.current.contains(e.target)) {
+        setIsHeadingDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleDropdownClickOutside);
+    document.addEventListener('touchstart', handleDropdownClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleDropdownClickOutside);
+      document.removeEventListener('touchstart', handleDropdownClickOutside);
+    };
+  }, []);
 
   const [formData, setFormData] = useState({
     id: initialData?.id || `D0${Math.floor(1000 + Math.random() * 9000)}`,
@@ -519,22 +561,39 @@ export default function ProductEditorPage({
                 />
               </div>
 
-              <div className="editor-form-group">
+              <div className="editor-form-group custom-select-container" ref={categoryDropdownRef}>
                 <label>Category *</label>
-                <select
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  className="editor-select"
-                  required
+                <button
+                  type="button"
+                  className={`editor-select-trigger ${isCategoryDropdownOpen ? 'active' : ''}`}
+                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                  aria-expanded={isCategoryDropdownOpen}
+                  title="Select product category"
                 >
-                  <option value="hemohim">HemoHIM</option>
-                  <option value="health">Health Care</option>
-                  <option value="beauty">Beauty & Cosmetics</option>
-                  <option value="personal_care">Personal Care</option>
-                  <option value="home">Living & Home</option>
-                  <option value="food">Food & Groceries</option>
-                  <option value="others">ETC / Supplementary</option>
-                </select>
+                  <span className="selected-category-text">
+                    {CATEGORY_OPTIONS.find(opt => opt.value === formData.categoryId)?.label || 'Select Category'}
+                  </span>
+                  <ChevronDown size={15} className={`dropdown-chevron ${isCategoryDropdownOpen ? 'rotate' : ''}`} />
+                </button>
+
+                {isCategoryDropdownOpen && (
+                  <div className="custom-dropdown-menu">
+                    {CATEGORY_OPTIONS.map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className={`custom-dropdown-item ${formData.categoryId === opt.value ? 'selected' : ''}`}
+                        onClick={() => {
+                          setFormData({ ...formData, categoryId: opt.value });
+                          setIsCategoryDropdownOpen(false);
+                        }}
+                      >
+                        <span>{opt.label}</span>
+                        {formData.categoryId === opt.value && <Check size={14} color="#00A3E0" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="editor-form-group">
@@ -1060,21 +1119,39 @@ export default function ProductEditorPage({
             <div className="ribbon-divider"></div>
 
             {/* Heading / Style Selector */}
-            <div className="ribbon-btn-group">
-              <select
-                className="ribbon-select"
-                onChange={(e) => {
-                  execCmd('formatBlock', e.target.value);
-                  setActiveHeading(e.target.value);
-                }}
-                value={activeHeading}
+            <div className="ribbon-btn-group ribbon-dropdown-container" ref={headingDropdownRef}>
+              <button
+                type="button"
+                className={`ribbon-select-trigger ${isHeadingDropdownOpen ? 'active' : ''}`}
+                onClick={() => setIsHeadingDropdownOpen(!isHeadingDropdownOpen)}
+                aria-expanded={isHeadingDropdownOpen}
                 title="Heading Styles"
               >
-                <option value="p">Normal Text</option>
-                <option value="h1">Heading 1 (Main Title)</option>
-                <option value="h2">Heading 2 (Section)</option>
-                <option value="h3">Heading 3 (Subsection)</option>
-              </select>
+                <span className="selected-heading-text">
+                  {HEADING_OPTIONS.find(opt => opt.value === activeHeading)?.label || 'Normal Text'}
+                </span>
+                <ChevronDown size={14} className={`dropdown-chevron ${isHeadingDropdownOpen ? 'rotate' : ''}`} />
+              </button>
+
+              {isHeadingDropdownOpen && (
+                <div className="custom-dropdown-menu ribbon-dropdown-menu">
+                  {HEADING_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`custom-dropdown-item ${activeHeading === opt.value ? 'selected' : ''}`}
+                      onClick={() => {
+                        execCmd('formatBlock', opt.value);
+                        setActiveHeading(opt.value);
+                        setIsHeadingDropdownOpen(false);
+                      }}
+                    >
+                      <span>{opt.label}</span>
+                      {activeHeading === opt.value && <Check size={13} color="#00A3E0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="ribbon-divider"></div>

@@ -3,6 +3,7 @@ package com.example.atomy_india.controller.customer;
 import com.example.atomy_india.dto.CustomerLoginRequest;
 import com.example.atomy_india.dto.CustomerRegisterRequest;
 import com.example.atomy_india.model.CustomerUser;
+import com.example.atomy_india.model.Membership;
 import com.example.atomy_india.model.PasswordResetToken;
 import com.example.atomy_india.repository.CustomerUserRepository;
 import com.example.atomy_india.repository.MembershipRepository;
@@ -156,12 +157,12 @@ public class CustomerAuthController {
         }
 
         // Strictly verify active membership status in database
-        boolean hasActiveMembership = false;
+        Optional<Membership> activeMemOpt = Optional.empty();
         if (customer.getEmail() != null) {
-            hasActiveMembership = membershipRepository
-                    .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE")
-                    .isPresent();
+            activeMemOpt = membershipRepository
+                    .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE");
         }
+        boolean hasActiveMembership = activeMemOpt.isPresent();
         customer.setIsMember(hasActiveMembership);
 
         customer.setLastLoginAt(LocalDateTime.now());
@@ -170,6 +171,7 @@ public class CustomerAuthController {
         resp.put("success", true);
         resp.put("message", "Signed in successfully");
         resp.put("customer", customer);
+        activeMemOpt.ifPresent(mem -> resp.put("membership", mem));
         return ResponseEntity.ok(resp);
     }
 
@@ -214,9 +216,9 @@ public class CustomerAuthController {
         }
 
         // Verify membership status live
-        boolean hasActiveMembership = membershipRepository
-                .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE")
-                .isPresent();
+        Optional<Membership> activeMemOpt = membershipRepository
+                .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE");
+        boolean hasActiveMembership = activeMemOpt.isPresent();
         customer.setIsMember(hasActiveMembership);
 
         CustomerUser saved = customerUserRepository.save(customer);
@@ -225,6 +227,7 @@ public class CustomerAuthController {
         resp.put("success", true);
         resp.put("message", "Google authentication successful");
         resp.put("customer", saved);
+        activeMemOpt.ifPresent(mem -> resp.put("membership", mem));
         return ResponseEntity.ok(resp);
     }
 
@@ -245,14 +248,15 @@ public class CustomerAuthController {
         }
 
         CustomerUser customer = userOpt.get();
-        boolean hasActiveMembership = membershipRepository
-                .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE")
-                .isPresent();
+        Optional<Membership> activeMemOpt = membershipRepository
+                .findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(customer.getEmail().trim().toLowerCase(), "ACTIVE");
+        boolean hasActiveMembership = activeMemOpt.isPresent();
         customer.setIsMember(hasActiveMembership);
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("success", true);
         resp.put("customer", customer);
+        activeMemOpt.ifPresent(mem -> resp.put("membership", mem));
         return ResponseEntity.ok(resp);
     }
 

@@ -323,10 +323,16 @@
   border-color: #bbf7d0;
 }
 
-.ad-btn-icon.delete:hover {
+.ad-btn-icon.delete {
   background: #fef2f2;
   color: #dc2626;
   border-color: #fecaca;
+}
+
+.ad-btn-icon.delete:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
 }
 
 /* Empty State */
@@ -709,6 +715,33 @@
 }
 
 @media (max-width: 640px) {
+  .ad-subtabs-nav {
+    flex-direction: column !important;
+    gap: 6px !important;
+    padding: 6px !important;
+  }
+
+  .ad-subtab-btn {
+    width: 100% !important;
+    padding: 10px 14px !important;
+    font-size: 13.5px !important;
+  }
+
+  .ad-section-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .ad-section-header button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .ad-banner-card {
+    width: 100% !important;
+  }
+
   .ad-modal-backdrop {
     padding: 12px;
   }

@@ -29,6 +29,47 @@
   border: 1px solid rgba(0, 163, 224, 0.2);
 }
 
+.secondary-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #0284c7;
+  border: 1.5px solid #bae6fd;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 163, 224, 0.08);
+  white-space: nowrap;
+}
+
+.secondary-action-btn:hover {
+  background: #00A3E0;
+  color: #ffffff;
+  border-color: #00A3E0;
+  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.25);
+  transform: translateY(-1px);
+}
+
+.secondary-action-btn:active {
+  transform: translateY(0);
+}
+
+.secondary-action-btn svg {
+  color: #00A3E0;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.secondary-action-btn:hover svg {
+  color: #ffffff;
+  transform: translateY(1px);
+}
+
 /* 3-Column Balanced KPI Grid (3 boxes in a row) */
 .finance-kpi-grid {
   display: grid;
@@ -393,10 +434,18 @@
 /* Sub-Tab Navigation Strip */
 .finance-subnav-strip {
   display: flex;
+  align-items: center;
   gap: 8px;
   border-bottom: 2px solid #e2e8f0;
   margin-bottom: 20px;
   padding-bottom: 2px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.finance-subnav-strip::-webkit-scrollbar {
+  display: none;
 }
 
 .finance-subnav-btn {
@@ -414,6 +463,30 @@
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 6px 6px 0 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.subtab-text-short {
+  display: none;
+}
+
+.subtab-text-full {
+  display: inline;
+}
+
+@media (max-width: 680px) {
+  .subtab-text-short {
+    display: inline;
+  }
+  .subtab-text-full {
+    display: none;
+  }
+  .finance-subnav-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    gap: 6px;
+  }
 }
 
 .finance-subnav-btn:hover {
@@ -1041,6 +1114,20 @@
 
   .finance-header-row {
     margin-bottom: 14px !important;
+  }
+
+  .finance-header-row .heading-actions-cluster {
+    width: 100% !important;
+    margin-top: 14px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .secondary-action-btn {
+    width: 100% !important;
+    height: 42px !important;
+    padding: 0 16px !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
   }
 
   .table-responsive-container,

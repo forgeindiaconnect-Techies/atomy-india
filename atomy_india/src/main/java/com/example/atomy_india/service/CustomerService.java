@@ -340,12 +340,32 @@ public class CustomerService {
         String trackingNumber = "ATMY-" + timestamp + "-" + (100000 + new Random().nextInt(900000));
         String initialCheckpoint = "[]";
 
+        boolean isPickup = "STORE_PICKUP".equalsIgnoreCase(savedOrder.getFulfillmentType()) || savedOrder.getPickupStatus() != null;
+        String courier = isPickup ? "Regional Hub Self-Pickup" : "Blue Dart Express (Standard)";
+        String initialLoc;
+        if (isPickup) {
+            String hub = savedOrder.getHubAddress();
+            String distName = savedOrder.getAssignedDistributorName();
+            if (hub != null && !hub.trim().isEmpty() && distName != null && !distName.trim().isEmpty()) {
+                initialLoc = distName + " — " + hub;
+            } else if (hub != null && !hub.trim().isEmpty()) {
+                initialLoc = hub;
+            } else if (distName != null && !distName.trim().isEmpty()) {
+                initialLoc = distName + " Counter (PIN: " + (savedOrder.getPincode() != null ? savedOrder.getPincode() : "635002") + ")";
+            } else {
+                initialLoc = "Regional Hub Pickup Counter (PIN: " + (savedOrder.getPincode() != null ? savedOrder.getPincode() : "635002") + ")";
+            }
+        } else {
+            String hubCity = savedOrder.getCity() != null ? savedOrder.getCity() : "Regional";
+            initialLoc = hubCity + " Logistics Hub (PIN: " + (savedOrder.getPincode() != null ? savedOrder.getPincode() : "635002") + ")";
+        }
+
         OrderTracking tracking = new OrderTracking(
                 savedOrder.getOrderId(),
                 trackingNumber,
-                "Blue Dart Express (Standard)",
+                courier,
                 "PLACED",
-                "Order Processing Center, Gurugram",
+                initialLoc,
                 staticDeliveryTimeFrame,
                 initialCheckpoint);
         trackingRepository.save(tracking);
@@ -430,12 +450,32 @@ public class CustomerService {
 
             String initCheckpoints = "[]";
 
+            boolean isPickup = "STORE_PICKUP".equalsIgnoreCase(order.getFulfillmentType()) || order.getPickupStatus() != null;
+            String courier = isPickup ? "Regional Hub Self-Pickup" : "Blue Dart Express (Standard)";
+            String initialLoc;
+            if (isPickup) {
+                String hub = order.getHubAddress();
+                String distName = order.getAssignedDistributorName();
+                if (hub != null && !hub.trim().isEmpty() && distName != null && !distName.trim().isEmpty()) {
+                    initialLoc = distName + " — " + hub;
+                } else if (hub != null && !hub.trim().isEmpty()) {
+                    initialLoc = hub;
+                } else if (distName != null && !distName.trim().isEmpty()) {
+                    initialLoc = distName + " Counter (PIN: " + (order.getPincode() != null ? order.getPincode() : "635002") + ")";
+                } else {
+                    initialLoc = "Regional Hub Pickup Counter (PIN: " + (order.getPincode() != null ? order.getPincode() : "635002") + ")";
+                }
+            } else {
+                String city = order.getCity() != null ? order.getCity() : "Regional";
+                initialLoc = city + " Logistics Hub (PIN: " + (order.getPincode() != null ? order.getPincode() : "635002") + ")";
+            }
+
             OrderTracking newTracking = new OrderTracking(
                     order.getOrderId(),
                     awb,
-                    "Blue Dart Express (Standard)",
+                    courier,
                     initialStatus,
-                    "Order Processing Center, Gurugram",
+                    initialLoc,
                     estDelivery,
                     initCheckpoints);
             return Optional.of(trackingRepository.save(newTracking));

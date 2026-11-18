@@ -1234,12 +1234,38 @@ export default function AdminDashboard({ onBackToStore }) {
 
   const handleOpenTrackingModal = (order) => {
     setEditingTrackingOrder(order);
+    const isPickup = order.fulfillmentType === 'STORE_PICKUP' || order.pickupStatus || order.isPickup;
+    const hubName = order.assignedDistributorName || order.hubName;
+    const hubAddr = order.hubAddress;
+    const pin = order.pincode || '635002';
+
+    let resolvedLoc;
+    if (isPickup) {
+      if (hubName && hubAddr) {
+        resolvedLoc = `${hubName} — ${hubAddr}`;
+      } else if (hubAddr) {
+        resolvedLoc = hubAddr;
+      } else if (hubName) {
+        resolvedLoc = `${hubName} Counter (PIN: ${pin})`;
+      } else {
+        resolvedLoc = `Regional Hub Pickup Counter (PIN: ${pin})`;
+      }
+    } else {
+      resolvedLoc = `${order.city || 'Regional'} Logistics Hub (PIN: ${pin})`;
+    }
+
+    const existingLoc = order.tracking?.currentLocation;
+    const isHardcodedGurugram = existingLoc && (
+      existingLoc.toLowerCase().includes('gurugram') ||
+      existingLoc.toLowerCase().includes('order processing center')
+    );
+
     setTrackingForm({
-      courierPartner: order.tracking?.courierPartner || order.courier || 'Blue Dart Express',
-      trackingNumber: order.tracking?.trackingNumber || order.trackingNumber || `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
+      courierPartner: order.tracking?.courierPartner || order.courier || (isPickup ? 'Self Pickup / Counter Collection' : 'Blue Dart Express'),
+      trackingNumber: order.tracking?.trackingNumber || order.trackingNumber || (isPickup ? `PICKUP-${order.orderId}` : `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`),
       currentStatus: order.orderStatus || 'PLACED',
-      currentLocation: order.tracking?.currentLocation || 'Gurugram Hub',
-      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || 'Within 48 Hours (2 Days)'
+      currentLocation: (existingLoc && !isHardcodedGurugram) ? existingLoc : resolvedLoc,
+      estimatedDelivery: order.tracking?.estimatedDelivery || order.estimatedDelivery || (isPickup ? 'Direct Counter Pickup' : 'Within 48 Hours (2 Days)')
     });
   };
 
@@ -3359,6 +3385,62 @@ export default function AdminDashboard({ onBackToStore }) {
 
           {/* Fullscreen Body Content (Covers entire screen) */}
           <div className="inspection-fullscreen-content">
+            {/* Customer Cancellation Reason Banner (Visible for Cancelled & Refunded Orders) */}
+            {Boolean(
+              String(selectedOrderDetail.orderStatus).toUpperCase() === 'CANCELLED' ||
+              String(selectedOrderDetail.orderStatus).toUpperCase() === 'REFUNDED' ||
+              selectedOrderDetail.cancelReason ||
+              selectedOrderDetail.cancellationReason ||
+              selectedOrderDetail.returnReason
+            ) && (
+              <div style={{
+                background: '#fff1f2',
+                border: '1.5px solid #fecdd3',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                marginBottom: '18px',
+                boxShadow: '0 2px 8px rgba(225, 29, 72, 0.06)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#be123c', fontWeight: 800, fontSize: '14px' }}>
+                    <AlertTriangle size={18} />
+                    <span>CUSTOMER CANCELLATION & REFUND AUDIT</span>
+                  </div>
+                  <span style={{
+                    background: '#ffe4e6',
+                    color: '#9f1239',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '20px',
+                    textTransform: 'uppercase'
+                  }}>
+                    {selectedOrderDetail.orderStatus || 'CANCELLED'}
+                  </span>
+                </div>
+
+                <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #ffe4e6', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Reason Provided by Customer:
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#9f1239', lineHeight: '1.4' }}>
+                    "{selectedOrderDetail.cancelReason || selectedOrderDetail.cancellationReason || selectedOrderDetail.returnReason || 'Ordered by mistake / Change of mind'}"
+                  </div>
+                  {selectedOrderDetail.cancelNotes && (
+                    <div style={{ marginTop: '8px', fontSize: '12.5px', color: '#334155', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #f43f5e' }}>
+                      <strong style={{ color: '#0f172a' }}>Customer Note:</strong> {selectedOrderDetail.cancelNotes}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: '#881337', fontWeight: 500 }}>
+                  <span>• <strong>Cancelled On:</strong> {selectedOrderDetail.cancelledAt ? new Date(selectedOrderDetail.cancelledAt).toLocaleString('en-IN') : 'Recent'}</span>
+                  <span>• <strong>Refund Settlement:</strong> 100% Refund Approved</span>
+                  <span>• <strong>Payment Reversal:</strong> Auto-credited to Source Account</span>
+                </div>
+              </div>
+            )}
+
             {/* Live Animated Delivery Stepper matching Customer Experience */}
             <div className="inspection-card stepper-card">
               <DeliveryStatusStepper order={selectedOrderDetail} />
@@ -3375,14 +3457,20 @@ export default function AdminDashboard({ onBackToStore }) {
 
               <div className="meta-info-card">
                 <div className="meta-card-label">
-                  {selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' ? 'PICKUP LOCATION' : 'DELIVERY LOCATION'}
+                  {(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.pickupStatus || selectedOrderDetail.isPickup) ? 'PICKUP COUNTER LOCATION' : 'DELIVERY LOCATION'}
                 </div>
                 <div className="meta-card-main">
-                  {selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' && selectedOrderDetail.hubAddress
-                    ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                  {(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.pickupStatus || selectedOrderDetail.isPickup)
+                    ? (selectedOrderDetail.hubAddress
+                        ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                        : (selectedOrderDetail.assignedDistributorName ? `${selectedOrderDetail.assignedDistributorName} Counter (PIN: ${selectedOrderDetail.pincode || '635002'})` : 'Regional Hub Pickup Counter'))
                     : selectedOrderDetail.shippingAddress}
                 </div>
-                <div className="meta-card-sub">{selectedOrderDetail.city}, {selectedOrderDetail.state} - {selectedOrderDetail.pincode}</div>
+                <div className="meta-card-sub">
+                  {(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.pickupStatus || selectedOrderDetail.isPickup)
+                    ? `${selectedOrderDetail.city || 'Regional'}, ${selectedOrderDetail.state || 'India'} - ${selectedOrderDetail.pincode || '635002'}`
+                    : `${selectedOrderDetail.city}, ${selectedOrderDetail.state} - ${selectedOrderDetail.pincode}`}
+                </div>
               </div>
 
               <div className="meta-info-card">
@@ -3460,7 +3548,7 @@ export default function AdminDashboard({ onBackToStore }) {
                 </select>
               </div>
 
-              <div className="modal-actions-right">
+              <div className="modal-actions-right status-actions-buttons">
                 <button
                   type="button"
                   className="order-footer-btn courier-btn"
@@ -3568,15 +3656,26 @@ export default function AdminDashboard({ onBackToStore }) {
 
               <div className="modal-row-2">
                 <div className="modal-form-group">
-                  <label>Current Location Hub</label>
+                  <label>
+                    {(editingTrackingOrder?.fulfillmentType === 'STORE_PICKUP' || editingTrackingOrder?.pickupStatus || editingTrackingOrder?.isPickup)
+                      ? 'Pickup Counter Location'
+                      : 'Current Location Hub'}
+                  </label>
                   <input
                     type="text"
                     value={trackingForm.currentLocation}
                     onChange={(e) => setTrackingForm({ ...trackingForm, currentLocation: e.target.value })}
+                    placeholder={(editingTrackingOrder?.fulfillmentType === 'STORE_PICKUP' || editingTrackingOrder?.pickupStatus || editingTrackingOrder?.isPickup)
+                      ? 'e.g. Regional Hub Counter, Rayakotta Main Road'
+                      : 'e.g. Regional Logistics Hub'}
                   />
                 </div>
                 <div className="modal-form-group">
-                  <label>Estimated Delivery</label>
+                  <label>
+                    {(editingTrackingOrder?.fulfillmentType === 'STORE_PICKUP' || editingTrackingOrder?.pickupStatus || editingTrackingOrder?.isPickup)
+                      ? 'Handover / Delivery Schedule'
+                      : 'Estimated Delivery'}
+                  </label>
                   <input
                     type="text"
                     value={trackingForm.estimatedDelivery}
@@ -3585,7 +3684,7 @@ export default function AdminDashboard({ onBackToStore }) {
                 </div>
               </div>
 
-              <div className="modal-actions-right">
+              <div className="modal-actions-right status-actions-buttons">
                 <button type="button" className="atomy-btn-secondary" onClick={() => setEditingTrackingOrder(null)}>
                   Cancel
                 </button>

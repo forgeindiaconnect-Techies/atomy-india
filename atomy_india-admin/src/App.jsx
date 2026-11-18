@@ -58,7 +58,7 @@ export default function App() {
   };
 
   const handleBackToStore = () => {
-    const storeUrl = import.meta.env.VITE_STORE_URL || 'http://localhost:5173';
+    const storeUrl = import.meta.env.VITE_STORE_URL || 'https://atomy-india-eta.vercel.app';
     window.location.href = storeUrl;
   };
 

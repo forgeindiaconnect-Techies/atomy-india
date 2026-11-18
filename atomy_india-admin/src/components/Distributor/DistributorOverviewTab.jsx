@@ -250,9 +250,36 @@ export default function DistributorOverviewTab({
         </div>
       </div>
 
-      {/* 2. Top Sales KPI Cards (Curved Wave with Circular Icon Badge) */}
-      <div className="kpi-curve-grid" style={{ marginBottom: '24px' }}>
-        {/* Card 1: Today's Total Sale */}
+      {/* 2. Top Sales KPI Cards (Curved Wave with Circular Icon Badge - 6 Cards matching Super Admin) */}
+      <div className="kpi-curve-grid three-cols">
+        {/* Card 1: Today's Orders */}
+        <div 
+          className="kpi-curve-card interactive-kpi-card" 
+          style={{ '--accent-color': '#15803d', cursor: 'pointer' }}
+          onClick={() => onNavigateTab('orders')}
+          title="Inspect Today's Orders & Customer Fulfillment"
+        >
+          <div className="kpi-curve-corner-accent"></div>
+          <div className="kpi-curve-content">
+            <div className="kpi-curve-tag">TODAY'S ORDERS</div>
+            <div className="kpi-curve-val">
+              {todayOrdersCount} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>orders</span>
+            </div>
+            <div className="kpi-curve-sub">
+              Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
+            </div>
+          </div>
+          <div className="kpi-curve-right-wing">
+            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#dcfce7" />
+            </svg>
+            <div className="kpi-curve-icon-badge">
+              <ShoppingBag size={22} color="#15803d" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Today's Total Sale */}
         <div 
           className="kpi-curve-card interactive-kpi-card" 
           style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
@@ -261,7 +288,7 @@ export default function DistributorOverviewTab({
         >
           <div className="kpi-curve-corner-accent"></div>
           <div className="kpi-curve-content">
-            <div className="kpi-curve-tag">TODAY'S TOTAL SALE</div>
+            <div className="kpi-curve-tag">TODAY'S SALE (TERRITORY)</div>
             <div className="kpi-curve-val">
               ₹ {todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
@@ -279,33 +306,6 @@ export default function DistributorOverviewTab({
           </div>
         </div>
 
-        {/* Card 2: Today's Orders */}
-        <div 
-          className="kpi-curve-card interactive-kpi-card" 
-          style={{ '--accent-color': '#15803d', cursor: 'pointer' }}
-          onClick={() => onNavigateTab('orders')}
-          title="Inspect Today's Orders & Customer Fulfillment"
-        >
-          <div className="kpi-curve-corner-accent"></div>
-          <div className="kpi-curve-content">
-            <div className="kpi-curve-tag">TODAY'S ORDERS</div>
-            <div className="kpi-curve-val">
-              {todayOrdersCount} <span style={{ fontSize: '16px', fontWeight: 600, color: '#64748b' }}>orders</span>
-            </div>
-            <div className="kpi-curve-sub">
-              Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
-            </div>
-          </div>
-          <div className="kpi-curve-right-wing">
-            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
-              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#dcfce7" />
-            </svg>
-            <div className="kpi-curve-icon-badge">
-              <ShoppingBag size={22} color="#15803d" />
-            </div>
-          </div>
-        </div>
-
         {/* Card 3: Overall Total Sale */}
         <div 
           className="kpi-curve-card interactive-kpi-card" 
@@ -315,12 +315,12 @@ export default function DistributorOverviewTab({
         >
           <div className="kpi-curve-corner-accent"></div>
           <div className="kpi-curve-content">
-            <div className="kpi-curve-tag">OVERALL TOTAL SALE</div>
+            <div className="kpi-curve-tag">OVERALL SALES</div>
             <div className="kpi-curve-val">
               ₹ {overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="kpi-curve-sub">
-              Total lifetime gross revenue across all orders • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
+              Total lifetime gross revenue in territory • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
             </div>
           </div>
           <div className="kpi-curve-right-wing">
@@ -332,10 +332,91 @@ export default function DistributorOverviewTab({
             </div>
           </div>
         </div>
+
+        {/* Card 4: Partner Commission */}
+        <div 
+          className="kpi-curve-card interactive-kpi-card" 
+          style={{ '--accent-color': '#ea580c', cursor: 'pointer' }}
+          onClick={() => onNavigateTab('finance')}
+          title="Inspect Partner Commission Accruals & Remittance"
+        >
+          <div className="kpi-curve-corner-accent"></div>
+          <div className="kpi-curve-content">
+            <div className="kpi-curve-tag">PARTNER COMMISSION</div>
+            <div className="kpi-curve-val">
+              ₹ {totalComm.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="kpi-curve-sub">
+              {commRate}% Margin per delivery • <span style={{ color: '#ea580c', fontWeight: 600 }}>Settlements →</span>
+            </div>
+          </div>
+          <div className="kpi-curve-right-wing">
+            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#ffedd5" />
+            </svg>
+            <div className="kpi-curve-icon-badge">
+              <Sparkles size={22} color="#ea580c" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 5: Total Customers */}
+        <div 
+          className="kpi-curve-card interactive-kpi-card" 
+          style={{ '--accent-color': '#7c3aed', cursor: 'pointer' }}
+          onClick={() => onNavigateTab('customers')}
+          title="View Registered Territory Consumers & Profiles"
+        >
+          <div className="kpi-curve-corner-accent"></div>
+          <div className="kpi-curve-content">
+            <div className="kpi-curve-tag">TOTAL CUSTOMERS</div>
+            <div className="kpi-curve-val">
+              {customers.length} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>Customers</span>
+            </div>
+            <div className="kpi-curve-sub">
+              Registered territory buyers • <span style={{ color: '#7c3aed', fontWeight: 600 }}>View Customers →</span>
+            </div>
+          </div>
+          <div className="kpi-curve-right-wing">
+            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#f3e8ff" />
+            </svg>
+            <div className="kpi-curve-icon-badge">
+              <Users size={22} color="#7c3aed" />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 6: In-Stock Health */}
+        <div 
+          className="kpi-curve-card interactive-kpi-card" 
+          style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
+          onClick={() => onNavigateTab('inventory')}
+          title="Manage Warehouse Inventory & Stock Levels"
+        >
+          <div className="kpi-curve-corner-accent"></div>
+          <div className="kpi-curve-content">
+            <div className="kpi-curve-tag">IN-STOCK HEALTH</div>
+            <div className="kpi-curve-val">
+              {stockStats.inStockCount} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>In-Stock</span>
+            </div>
+            <div className="kpi-curve-sub">
+              Out of {stockStats.totalSkus} catalog items • <span style={{ color: '#0284c7', fontWeight: 600 }}>Manage Stock →</span>
+            </div>
+          </div>
+          <div className="kpi-curve-right-wing">
+            <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0f2fe" />
+            </svg>
+            <div className="kpi-curve-icon-badge">
+              <Boxes size={22} color="#0284c7" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 3. The 5 Core Status KPI Cards (01 Placed, 02 Processing, 03 In Transit, 04 Delivered, 05 Delayed SLA) */}
-      <div className="kpi-step-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      <div className="kpi-step-grid five-cols">
         {/* Step 01: PLACED */}
         <div
           className="kpi-step-card"

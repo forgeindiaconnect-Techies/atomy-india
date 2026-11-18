@@ -27,12 +27,13 @@ import {
   Building2
 } from 'lucide-react';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
+import CustomDropdown from '../common/CustomDropdown';
 import { 
   sendDelayApologyEmail,
   triggerAllDelayedEmails
 } from '../../services/api';
 import { INITIAL_ADMIN_PRODUCTS } from '../../data/defaultAdminProducts';
-import { formatDateIST, formatTimeIST } from '../../utils/dateUtils';
+import { formatDateIST, formatTimeIST, parseDateSafe } from '../../utils/dateUtils';
 import '../Admin/AdminDashboard.css';
 import './DistributorOrdersPage.css';
 
@@ -77,11 +78,24 @@ export default function DistributorOrdersPage({
   onOpenTrackingModal,
   onRefreshOrders,
   showToast,
-  isLoading 
+  isLoading,
+  initialSelectedOrderId = null
 }) {
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
-  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState(() => {
+    if (initialSelectedOrderId) {
+      return orders.find(o => String(o.orderId || o.id) === String(initialSelectedOrderId)) || null;
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (initialSelectedOrderId) {
+      const match = orders.find(o => String(o.orderId || o.id) === String(initialSelectedOrderId));
+      if (match) setSelectedOrderDetail(match);
+    }
+  }, [initialSelectedOrderId]);
 
   // Keep inspected order detail live and reactive when orders state changes
   useEffect(() => {
@@ -127,7 +141,7 @@ export default function DistributorOrdersPage({
     if (!order) return new Date();
     const raw = order.createdAt || order.date || order.orderDate;
     if (raw) {
-      const d = new Date(raw);
+      const d = parseDateSafe(raw);
       if (!isNaN(d.getTime())) return d;
     }
     if (order.orderId && /^ORD-(\d{4})(\d{2})(\d{2})/i.test(order.orderId)) {
@@ -704,24 +718,33 @@ export default function DistributorOrdersPage({
                         )}
                       </div>
                       <div className="order-date-text">
-                        {formatDateIST(o.createdAt || o.date)}
+                        {formatDateIST(o.createdAt || o.date || o.orderDate)}
                         <span className="order-time-text">
-                          {formatTimeIST(o.createdAt || o.date)}
+                          {formatTimeIST(o.createdAt || o.date || o.orderDate)}
                         </span>
                       </div>
-                      {sla.isDelivered ? (
-                        <span className="sla-badge delivered">
-                          <CheckCircle2 size={11} color="#15803d" /> Delivered
-                        </span>
-                      ) : sla.isCancelled ? null : sla.isDelayed ? (
-                        <span className="sla-badge delayed" title={`Target was ${sla.targetDateStr} (${sla.slaDays}d SLA)`}>
-                          <AlertTriangle size={11} color="#dc2626" /> Overdue ({sla.delayDays}d)
-                        </span>
-                      ) : (
-                        <span className="sla-badge on-schedule" title={`Delivery target: ${sla.targetDateStr}`}>
-                          <Clock size={11} color="#15803d" /> {sla.statusText}
-                        </span>
-                      )}
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
+                        Deadline: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#0369a1' }}>{sla.targetDateStr}</strong>
+                      </div>
+                      <div style={{ marginTop: '4px' }}>
+                        {sla.isDelivered ? (
+                          <span className="sla-badge delivered">
+                            <CheckCircle2 size={11} color="#15803d" /> Delivered
+                          </span>
+                        ) : sla.isCancelled ? (
+                          <span className="sla-badge cancelled" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}>
+                            Cancelled
+                          </span>
+                        ) : sla.isDelayed ? (
+                          <span className="sla-badge delayed" title={`Target deadline was ${sla.targetDateStr} (${sla.slaDays}d SLA)`}>
+                            <AlertTriangle size={11} color="#dc2626" /> Overdue ({sla.delayDays}d)
+                          </span>
+                        ) : (
+                          <span className="sla-badge on-schedule" title={`Delivery target: ${sla.targetDateStr}`}>
+                            <Clock size={11} color="#15803d" /> {sla.statusText}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td>
@@ -1023,27 +1046,32 @@ export default function DistributorOrdersPage({
                 }}
               >
                 <Truck size={15} />
-                <span>Courier Tracking Details</span>
+                <span className="desktop-btn-label">Courier Tracking Details</span>
+                <span className="mobile-btn-label">Tracking</span>
               </button>
 
               <button
                 type="button"
+                className="inspection-action-btn download-invoice-btn"
                 style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: 600, fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
                 onClick={() => handleDownloadInvoice(selectedOrderDetail)}
                 title="Download Official Tax Invoice as PDF"
               >
                 <Download size={14} />
-                <span>Download Invoice</span>
+                <span className="desktop-btn-label">Download Invoice</span>
+                <span className="mobile-btn-label">Invoice</span>
               </button>
 
               <button
                 type="button"
+                className="inspection-action-btn print-invoice-btn"
                 style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '8px 14px', borderRadius: '8px', fontWeight: 600, fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
                 onClick={() => handlePrintInvoice(selectedOrderDetail)}
                 title="Print / Save Tax Invoice"
               >
                 <Printer size={14} />
-                <span>Print Invoice</span>
+                <span className="desktop-btn-label">Print Invoice</span>
+                <span className="mobile-btn-label">Print</span>
               </button>
 
               <button 
@@ -1059,6 +1087,62 @@ export default function DistributorOrdersPage({
 
           {/* Fullscreen Body Content (Covers entire screen) */}
           <div className="inspection-fullscreen-content">
+            {/* Customer Cancellation Reason Banner (Visible for Cancelled & Refunded Orders) */}
+            {Boolean(
+              String(selectedOrderDetail.orderStatus).toUpperCase() === 'CANCELLED' ||
+              String(selectedOrderDetail.orderStatus).toUpperCase() === 'REFUNDED' ||
+              selectedOrderDetail.cancelReason ||
+              selectedOrderDetail.cancellationReason ||
+              selectedOrderDetail.returnReason
+            ) && (
+              <div style={{
+                background: '#fff1f2',
+                border: '1.5px solid #fecdd3',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                marginBottom: '18px',
+                boxShadow: '0 2px 8px rgba(225, 29, 72, 0.06)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#be123c', fontWeight: 800, fontSize: '14px' }}>
+                    <AlertTriangle size={18} />
+                    <span>CUSTOMER CANCELLATION & RETURN AUDIT</span>
+                  </div>
+                  <span style={{
+                    background: '#ffe4e6',
+                    color: '#9f1239',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '20px',
+                    textTransform: 'uppercase'
+                  }}>
+                    {selectedOrderDetail.orderStatus || 'CANCELLED'}
+                  </span>
+                </div>
+
+                <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #ffe4e6', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Reason Provided by Customer:
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#9f1239', lineHeight: '1.4' }}>
+                    "{selectedOrderDetail.cancelReason || selectedOrderDetail.cancellationReason || selectedOrderDetail.returnReason || 'Ordered by mistake / Change of mind'}"
+                  </div>
+                  {selectedOrderDetail.cancelNotes && (
+                    <div style={{ marginTop: '8px', fontSize: '12.5px', color: '#334155', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #f43f5e' }}>
+                      <strong style={{ color: '#0f172a' }}>Customer Note:</strong> {selectedOrderDetail.cancelNotes}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: '#881337', fontWeight: 500 }}>
+                  <span>• <strong>Cancelled On:</strong> {selectedOrderDetail.cancelledAt ? new Date(selectedOrderDetail.cancelledAt).toLocaleString('en-IN') : 'Recent'}</span>
+                  <span>• <strong>Refund Settlement:</strong> 100% Refund Approved</span>
+                  <span>• <strong>Territory Commission Impact:</strong> Reconciled to ₹0</span>
+                </div>
+              </div>
+            )}
+
             {Boolean(
               selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' ||
               selectedOrderDetail.shippingMethod === 'STORE_PICKUP' ||
@@ -1116,11 +1200,17 @@ export default function DistributorOrdersPage({
                         {Boolean(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.isPickup) ? 'PICKUP COUNTER LOCATION' : 'DELIVERY LOCATION'}
                       </div>
                       <div className="meta-card-main">
-                        {Boolean(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.isPickup) && selectedOrderDetail.hubAddress
-                          ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                        {Boolean(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.isPickup)
+                          ? (selectedOrderDetail.hubAddress
+                              ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                              : (distributor?.hubAddress ? `${distributor?.businessName ? distributor.businessName + ' — ' : ''}${distributor.hubAddress}` : (selectedOrderDetail.assignedDistributorName ? `${selectedOrderDetail.assignedDistributorName} Counter (PIN: ${selectedOrderDetail.pincode || distributor?.primaryPincode || '635002'})` : 'Regional Hub Pickup Counter')))
                           : (dest.street || dest.fullAddress)}
                       </div>
-                      <div className="meta-card-sub">{dest.city}, {dest.state} - {dest.pincode}</div>
+                      <div className="meta-card-sub">
+                        {Boolean(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.isPickup)
+                          ? `${selectedOrderDetail.city || distributor?.city || 'Krishnagiri'}, ${selectedOrderDetail.state || distributor?.state || 'Tamil Nadu'} - ${selectedOrderDetail.pincode || distributor?.primaryPincode || '635002'}`
+                          : `${dest.city}, ${dest.state} - ${dest.pincode}`}
+                      </div>
                     </div>
 
                     <div className="meta-info-card">
@@ -1248,10 +1338,9 @@ export default function DistributorOrdersPage({
                   (typeof selectedOrderDetail.shippingAddress === 'string' && selectedOrderDetail.shippingAddress.toLowerCase().includes('direct store pickup')) ||
                   (selectedOrderDetail.hubName && !selectedOrderDetail.courier)
                 ) ? (
-                  <select
+                  <CustomDropdown
                     value={String(selectedOrderDetail.orderStatus || selectedOrderDetail.status || 'PLACED').toUpperCase()}
-                    onChange={(e) => {
-                      const newSt = e.target.value;
+                    onChange={(newSt) => {
                       if (newSt === 'DELIVERED' && !selectedOrderDetail.pickupVerifiedAt && selectedOrderDetail.pickupStatus !== 'COLLECTED') {
                         // Anti-False Handover: Open Tracking Modal with OTP verification flow
                         const orderToVerify = { ...selectedOrderDetail };
@@ -1271,22 +1360,20 @@ export default function DistributorOrdersPage({
                         }
                       }));
                     }}
-                    className="atomy-dropdown status-modal-dropdown"
-                    style={{ borderColor: '#16a34a', color: '#15803d', fontWeight: 700 }}
-                  >
-                    <option value="PLACED">Stage 1: PLACED (Payment Confirmed)</option>
-                    <option value="PROCESSING">Stage 2: PREPARING (Staff Packing Goods from Shelf)</option>
-                    <option value="READY_FOR_PICKUP">Stage 3: READY TO PICK UP (Available at Counter)</option>
-                    <option value="DELIVERED">
-                      Stage 4: DELIVERED / COLLECTED (Requires Customer OTP)
-                    </option>
-                    <option value="CANCELLED">CANCELLED (Cancelled &amp; Refunded)</option>
-                  </select>
+                    options={[
+                      { value: 'PLACED', label: 'Stage 1: PLACED (Payment Confirmed)' },
+                      { value: 'PROCESSING', label: 'Stage 2: PREPARING (Staff Packing Goods)' },
+                      { value: 'READY_FOR_PICKUP', label: 'Stage 3: READY TO PICK UP (At Counter)' },
+                      { value: 'DELIVERED', label: 'Stage 4: DELIVERED (Requires Customer OTP)' },
+                      { value: 'CANCELLED', label: 'CANCELLED (Cancelled & Refunded)' }
+                    ]}
+                    className="status-update-dropdown"
+                    triggerStyle={{ borderColor: '#16a34a', color: '#15803d', fontWeight: 700 }}
+                  />
                 ) : (
-                  <select
+                  <CustomDropdown
                     value={String(selectedOrderDetail.orderStatus || selectedOrderDetail.status || 'PLACED').toUpperCase()}
-                    onChange={(e) => {
-                      const newSt = e.target.value;
+                    onChange={(newSt) => {
                       handleStatusChange(selectedOrderDetail.orderId || selectedOrderDetail.id, newSt);
                       setSelectedOrderDetail(prev => ({
                         ...prev,
@@ -1299,19 +1386,20 @@ export default function DistributorOrdersPage({
                         }
                       }));
                     }}
-                    className="atomy-dropdown status-modal-dropdown"
-                  >
-                    <option value="PLACED">PLACED (New Order)</option>
-                    <option value="PROCESSING">PROCESSING (Warehouse Packed)</option>
-                    <option value="SHIPPED">SHIPPED (In Transit)</option>
-                    <option value="OUT_FOR_DELIVERY">OUT FOR DELIVERY (Local Hub)</option>
-                    <option value="DELIVERED">DELIVERED (Customer Received)</option>
-                    <option value="CANCELLED">CANCELLED (Cancelled &amp; Refunded)</option>
-                  </select>
+                    options={[
+                      { value: 'PLACED', label: 'PLACED (New Order)' },
+                      { value: 'PROCESSING', label: 'PROCESSING (Warehouse Packed)' },
+                      { value: 'SHIPPED', label: 'SHIPPED (In Transit)' },
+                      { value: 'OUT_FOR_DELIVERY', label: 'OUT FOR DELIVERY (Local Hub)' },
+                      { value: 'DELIVERED', label: 'DELIVERED (Customer Received)' },
+                      { value: 'CANCELLED', label: 'CANCELLED (Cancelled & Refunded)' }
+                    ]}
+                    className="status-update-dropdown"
+                  />
                 )}
               </div>
 
-              <div className="modal-actions-right">
+              <div className="modal-actions-right status-actions-buttons">
                 <button
                   type="button"
                   className="order-footer-btn courier-btn"
@@ -1344,8 +1432,8 @@ export default function DistributorOrdersPage({
             </div>
 
             {/* Dedicated Official GST Tax Invoice & Download Card */}
-            <div className="inspection-card" style={{ padding: '22px 26px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '14px' }}>
+            <div className="inspection-card invoice-settlement-card" style={{ padding: '22px 26px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', marginBottom: '20px' }}>
+              <div className="invoice-settlement-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FileText size={22} />
@@ -1358,9 +1446,10 @@ export default function DistributorOrdersPage({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div className="invoice-settlement-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
                     type="button"
+                    className="invoice-action-btn primary"
                     style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '9px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', transition: 'all 0.15s ease' }}
                     onClick={() => handleDownloadInvoice(selectedOrderDetail)}
                     title="Download Official Tax Invoice as PDF"
@@ -1370,6 +1459,7 @@ export default function DistributorOrdersPage({
                   </button>
                   <button
                     type="button"
+                    className="invoice-action-btn secondary"
                     style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '9px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', transition: 'all 0.15s ease' }}
                     onClick={() => handlePrintInvoice(selectedOrderDetail)}
                     title="Print / Save Tax Invoice"

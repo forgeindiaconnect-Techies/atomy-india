@@ -125,7 +125,18 @@ export default function TrackingModal({ isOpen, onClose, initialOrderId = '' }) 
                 {trackingData.currentLocation && (
                   <div className="current-loc-badge">
                     <MapPin size={15} />
-                    <span>{trackingData.currentLocation}</span>
+                    <span>
+                      {(() => {
+                        const loc = trackingData.currentLocation;
+                        const isGurugram = loc.toLowerCase().includes('gurugram') || loc.toLowerCase().includes('order processing center');
+                        const isPickup = (trackingData.courierPartner && trackingData.courierPartner.toLowerCase().includes('pickup')) ||
+                                         (trackingData.trackingNumber && trackingData.trackingNumber.startsWith('PICKUP'));
+                        if (isGurugram && isPickup) {
+                          return 'Selva atomy hub — RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002';
+                        }
+                        return loc;
+                      })()}
+                    </span>
                   </div>
                 )}
               </div>

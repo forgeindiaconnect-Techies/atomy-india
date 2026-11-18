@@ -243,9 +243,11 @@ export async function fetchAdminOrders(statusFilter) {
   return res.json();
 }
 
-export async function updateAdminOrderStatus(orderId, newStatus) {
+export async function updateAdminOrderStatus(orderId, newStatus, extraData = {}) {
   const res = await fetch(`${API_BASE}/admin/orders/${encodeURIComponent(orderId)}/status?status=${newStatus}`, {
-    method: 'PUT'
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: newStatus, ...extraData })
   });
   if (!res.ok) throw new Error('Failed to update order status');
   return res.json();
@@ -451,7 +453,11 @@ export async function getCustomerProfile(email) {
     const res = await fetch(`${API_BASE}/customer/profile?email=${encodeURIComponent(email.trim().toLowerCase())}`);
     if (res.ok) {
       const data = await res.json();
-      return data.customer || data;
+      const customer = data.customer || data;
+      if (data.membership && customer) {
+        customer.membership = data.membership;
+      }
+      return customer;
     }
   } catch (err) {
     console.debug('Error fetching customer profile:', err);

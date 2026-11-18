@@ -21,14 +21,35 @@ export function getMembershipExpiryInfo(membership) {
     return { status: 'EXPIRING_SOON', remainingDays: 2, expiryDateStr };
   }
 
-  if (!membership.expiryDate) {
+  let expiryDate = (typeof membership.expiryDate === 'string' || membership.expiryDate instanceof Date)
+    ? membership.expiryDate
+    : null;
+
+  if (!expiryDate) {
+    const rawStart = (typeof membership.startDate === 'string' || membership.startDate instanceof Date)
+      ? membership.startDate
+      : (typeof membership.createdAt === 'string' ? membership.createdAt : (typeof membership.joinedAt === 'string' ? membership.joinedAt : null));
+    if (rawStart) {
+      try {
+        const s = new Date(rawStart);
+        if (!isNaN(s.getTime())) {
+          if (String(membership.plan || '').toUpperCase() === 'MONTHLY') s.setMonth(s.getMonth() + 1);
+          else s.setFullYear(s.getFullYear() + 1);
+          expiryDate = s.toISOString();
+        }
+      } catch {}
+    }
+  }
+
+  if (!expiryDate) {
     return { status: null, remainingDays: 0, expiryDateStr: '' };
   }
 
   try {
-    const expiry = (typeof membership.expiryDate === 'string' || membership.expiryDate instanceof Date)
-      ? new Date(membership.expiryDate)
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const expiry = new Date(expiryDate);
+    if (isNaN(expiry.getTime())) {
+      return { status: null, remainingDays: 0, expiryDateStr: '' };
+    }
     const now = new Date();
     const diffMs = expiry.getTime() - now.getTime();
     const remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));

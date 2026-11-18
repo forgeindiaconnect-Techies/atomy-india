@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Boxes, 
   Search, 
@@ -19,7 +19,8 @@ import {
   Layers,
   ArrowRight,
   Info,
-  Check
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { 
   fetchDistributorInventory, 
@@ -41,6 +42,25 @@ export default function DistributorInventoryPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedStockFilter, setSelectedStockFilter] = useState('ALL');
+  const [isStockDropdownOpen, setIsStockDropdownOpen] = useState(false);
+  const stockDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleStockClickOutside = (e) => {
+      if (stockDropdownRef.current && !stockDropdownRef.current.contains(e.target)) {
+        setIsStockDropdownOpen(false);
+      }
+    };
+    if (isStockDropdownOpen) {
+      document.addEventListener('mousedown', handleStockClickOutside);
+      document.addEventListener('touchstart', handleStockClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleStockClickOutside);
+      document.removeEventListener('touchstart', handleStockClickOutside);
+    };
+  }, [isStockDropdownOpen]);
+
   const [toastMsg, setToastMsg] = useState('');
   const [adjustingId, setAdjustingId] = useState(null);
 
@@ -473,18 +493,75 @@ export default function DistributorInventoryPage({
             )}
           </div>
 
-          {/* Stock Status Filter placed directly in the search bar row */}
-          <div className="stock-filter-wrapper">
-            <select
-              value={selectedStockFilter}
-              onChange={(e) => setSelectedStockFilter(e.target.value)}
-              className="atomy-dropdown"
+          {/* Stock Status Filter - Custom Controlled Dropdown (Zero horizontal overflow) */}
+          <div className="stock-filter-wrapper custom-select-container" ref={stockDropdownRef}>
+            <button
+              type="button"
+              className={`atomy-dropdown-trigger ${isStockDropdownOpen ? 'active' : ''}`}
+              onClick={() => setIsStockDropdownOpen(!isStockDropdownOpen)}
+              aria-expanded={isStockDropdownOpen}
+              title="Filter by stock status"
             >
-              <option value="ALL">All Stock Statuses</option>
-              <option value="IN_STOCK">In Stock Only</option>
-              <option value="LOW">Low Stock Only (&le; 10)</option>
-              <option value="OUT">Out of Stock (0)</option>
-            </select>
+              <span>
+                {selectedStockFilter === 'ALL' && 'All Stock Statuses'}
+                {selectedStockFilter === 'IN_STOCK' && 'In Stock Only'}
+                {selectedStockFilter === 'LOW' && 'Low Stock Only (≤ 10)'}
+                {selectedStockFilter === 'OUT' && 'Out of Stock (0)'}
+              </span>
+              <ChevronDown size={15} className={`dropdown-chevron ${isStockDropdownOpen ? 'rotate' : ''}`} />
+            </button>
+
+            {isStockDropdownOpen && (
+              <div className="custom-dropdown-menu">
+                <button
+                  type="button"
+                  className={`custom-dropdown-item ${selectedStockFilter === 'ALL' ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedStockFilter('ALL');
+                    setIsStockDropdownOpen(false);
+                  }}
+                >
+                  <span>All Stock Statuses</span>
+                  {selectedStockFilter === 'ALL' && <Check size={14} color="#0284c7" />}
+                </button>
+
+                <button
+                  type="button"
+                  className={`custom-dropdown-item ${selectedStockFilter === 'IN_STOCK' ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedStockFilter('IN_STOCK');
+                    setIsStockDropdownOpen(false);
+                  }}
+                >
+                  <span>In Stock Only</span>
+                  {selectedStockFilter === 'IN_STOCK' && <Check size={14} color="#0284c7" />}
+                </button>
+
+                <button
+                  type="button"
+                  className={`custom-dropdown-item ${selectedStockFilter === 'LOW' ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedStockFilter('LOW');
+                    setIsStockDropdownOpen(false);
+                  }}
+                >
+                  <span>Low Stock Only (&le; 10)</span>
+                  {selectedStockFilter === 'LOW' && <Check size={14} color="#0284c7" />}
+                </button>
+
+                <button
+                  type="button"
+                  className={`custom-dropdown-item ${selectedStockFilter === 'OUT' ? 'selected' : ''}`}
+                  onClick={() => {
+                    setSelectedStockFilter('OUT');
+                    setIsStockDropdownOpen(false);
+                  }}
+                >
+                  <span>Out of Stock (0)</span>
+                  {selectedStockFilter === 'OUT' && <Check size={14} color="#0284c7" />}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -700,20 +777,22 @@ export default function DistributorInventoryPage({
       {/* ========================================================
           MODAL: ADD PRODUCTS FROM MASTER CATALOG (SUPER ADMIN)
           ======================================================== */}
+      {/* ========================================================
+          MODAL: STOCK PRODUCTS FROM ATOMY MASTER CATALOG
+          ======================================================== */}
       {showAddModal && (
-        <div className="modal-backdrop-overlay" onClick={() => setShowAddModal(false)}>
+        <div className="modal-backdrop-overlay stock-catalog-modal-overlay" onClick={() => setShowAddModal(false)}>
           <div 
-            className="atomy-modal-box" 
-            style={{ maxWidth: '850px', width: '92%', maxHeight: '88vh', display: 'flex', flexDirection: 'column' }} 
+            className="atomy-modal-box stock-catalog-modal" 
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="atomy-modal-header" style={{ padding: '16px 24px', borderBottom: '1px solid #e2e8f0' }}>
+            <div className="atomy-modal-header stock-modal-header">
               <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
+                <h3 className="stock-modal-title">
                   Stock Products from Atomy Master Catalog
                 </h3>
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                <p className="stock-modal-subtitle">
                   Select approved products from headquarters to carry in your local hub (PIN: <strong>{hubPincode}</strong>). Enter your received stock quantity and click Add.
                 </p>
               </div>
@@ -721,14 +800,14 @@ export default function DistributorInventoryPage({
                 type="button" 
                 className="atomy-modal-close" 
                 onClick={() => setShowAddModal(false)}
-                style={{ fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                aria-label="Close modal"
               >
                 &times;
               </button>
             </div>
 
             {/* Modal Search Toolbar */}
-            <div style={{ padding: '14px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <div className="stock-modal-search">
               <div className="search-input-wrapper" style={{ margin: 0, width: '100%', maxWidth: '100%' }}>
                 <Search size={16} />
                 <input
@@ -748,7 +827,7 @@ export default function DistributorInventoryPage({
             </div>
 
             {/* Modal Body: Available Products List */}
-            <div style={{ padding: '16px 24px', overflowY: 'auto', flex: 1 }}>
+            <div className="stock-modal-body">
               {isLoadingAvailable ? (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
                   <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 12px' }} />
@@ -769,57 +848,45 @@ export default function DistributorInventoryPage({
                   </p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="stock-products-list">
                   {filteredAvailable.map(prod => {
                     const currentQty = addQtyMap[prod.id] !== undefined ? addQtyMap[prod.id] : 25;
                     const isAddingThis = addingId === prod.id;
 
                     return (
-                      <div 
-                        key={prod.id} 
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 16px',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '10px',
-                          background: '#ffffff',
-                          gap: '16px'
-                        }}
-                      >
+                      <div key={prod.id} className="catalog-stock-item">
                         {/* Product Info Left */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
+                        <div className="catalog-stock-item-info">
                           <img
                             src={prod.image || "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg"}
                             alt={prod.name}
-                            style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                            className="catalog-stock-thumb"
                             onError={(e) => {
                               e.currentTarget.src = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
                             }}
                           />
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                              <span style={{ fontSize: '11px', fontWeight: 700, background: '#f1f5f9', color: '#0284c7', padding: '1px 6px', borderRadius: '4px' }}>
+                          <div className="catalog-stock-meta">
+                            <div className="catalog-stock-badges">
+                              <span className="catalog-code-badge">
                                 {prod.id}
                               </span>
-                              <span style={{ fontSize: '11px', color: '#64748b' }}>
+                              <span className="catalog-category-tag">
                                 {prod.categoryId ? prod.categoryId.toUpperCase() : 'GENERAL'}
                               </span>
                             </div>
-                            <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div className="catalog-product-name" title={prod.name}>
                               {prod.name}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                            <div className="catalog-product-pricing">
                               ₹ {Number(prod.price || 0).toLocaleString('en-IN')} • <strong style={{ color: '#0284c7' }}>{(Number(prod.pv) || 0).toLocaleString('en-IN')} PV</strong>
                             </div>
                           </div>
                         </div>
 
                         {/* Quantity Input & Add Button Right */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <label style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>Qty:</label>
+                        <div className="catalog-stock-actions">
+                          <div className="stock-qty-input-group">
+                            <label className="stock-qty-label">Qty:</label>
                             <input
                               type="number"
                               min="1"
@@ -829,15 +896,7 @@ export default function DistributorInventoryPage({
                                 const val = Math.max(1, parseInt(e.target.value) || 1);
                                 setAddQtyMap(prev => ({ ...prev, [prod.id]: val }));
                               }}
-                              style={{
-                                width: '70px',
-                                padding: '6px 8px',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '6px',
-                                textAlign: 'center',
-                                fontWeight: 700,
-                                fontSize: '13.5px'
-                              }}
+                              className="stock-qty-input"
                             />
                           </div>
 
@@ -845,20 +904,7 @@ export default function DistributorInventoryPage({
                             type="button"
                             onClick={() => handleAddProductToHub(prod)}
                             disabled={isAddingThis}
-                            style={{
-                              background: '#00a3e0',
-                              color: '#ffffff',
-                              border: 'none',
-                              padding: '8px 14px',
-                              borderRadius: '7px',
-                              fontSize: '13px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              whiteSpace: 'nowrap'
-                            }}
+                            className="btn-add-stock-hub"
                           >
                             <Plus size={14} />
                             <span>{isAddingThis ? 'Adding...' : 'Add to Hub'}</span>
@@ -872,8 +918,8 @@ export default function DistributorInventoryPage({
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '14px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+            <div className="stock-modal-footer">
+              <span className="stock-modal-footer-count">
                 Remaining unstocked products: <strong>{filteredAvailable.length}</strong>
               </span>
               <button 

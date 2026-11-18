@@ -2,7 +2,9 @@
 // Manages single-class Atomy Distributor Membership, Monthly & Annual plans, and Member Registry
 // Synced with Spring Boot Backend & MongoDB Atlas database
 
-const rawBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const defaultBase = isLocal ? 'http://localhost:8085/api' : 'https://atomy-india-1ezb.onrender.com/api';
+const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBase).trim().replace(/\/+$/, '');
 const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
 const ADMIN_MEMBERSHIP_API = `${API_BASE}/admin/membership`;
@@ -118,17 +120,38 @@ export async function fetchMembersFromBackend() {
         const list = await res.json();
         if (Array.isArray(list)) {
           // Normalize real database records
-          const normalized = list.map(m => ({
-            ...m,
-            name: m.customerName || m.name,
-            customerName: m.customerName || m.name,
-            email: m.customerEmail || m.email,
-            customerEmail: m.customerEmail || m.email,
-            phone: m.customerPhone || m.phone,
-            customerPhone: m.customerPhone || m.phone,
-            startDate: m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : '',
-            expiryDate: m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : ''
-          }));
+          const normalized = list.map(m => {
+            const startDateStr = m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : (m.createdAt ? String(m.createdAt).split('T')[0] : '');
+            let expiryDateStr = m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : '';
+            if (!expiryDateStr && startDateStr) {
+              try {
+                const s = new Date(startDateStr);
+                if (!isNaN(s.getTime())) {
+                  if (String(m.plan).toUpperCase() === 'MONTHLY') s.setMonth(s.getMonth() + 1);
+                  else s.setFullYear(s.getFullYear() + 1);
+                  expiryDateStr = s.toISOString().split('T')[0];
+                }
+              } catch {}
+            }
+            return {
+              ...m,
+              id: m.id || m.memberId,
+              memberId: m.id || m.memberId,
+              name: m.customerName || m.name,
+              customerName: m.customerName || m.name,
+              email: m.customerEmail || m.email,
+              customerEmail: m.customerEmail || m.email,
+              phone: m.customerPhone || m.phone,
+              customerPhone: m.customerPhone || m.phone,
+              plan: m.plan || 'ANNUAL',
+              status: m.status || 'ACTIVE',
+              startDate: startDateStr,
+              joinedAt: startDateStr,
+              enrolledAt: startDateStr,
+              expiryDate: expiryDateStr,
+              createdAt: m.createdAt || startDateStr
+            };
+          });
           localStorage.setItem(MEMBERS_KEY, JSON.stringify(normalized));
           window.dispatchEvent(new CustomEvent('atomy:members-registry-updated', { detail: normalized }));
           return normalized;
@@ -183,16 +206,24 @@ export async function addMemberToRegistry(memberData) {
   }
 
   if (savedResult) {
+    const startDateStr = savedResult.startDate ? String(savedResult.startDate).split('T')[0] : now.toISOString().split('T')[0];
+    const expiryDateStr = savedResult.expiryDate ? String(savedResult.expiryDate).split('T')[0] : expiry.toISOString().split('T')[0];
     const normalized = {
       ...savedResult,
+      id: savedResult.id || savedResult.memberId,
+      memberId: savedResult.id || savedResult.memberId,
       name: savedResult.customerName || savedResult.name,
       customerName: savedResult.customerName || savedResult.name,
       email: savedResult.customerEmail || savedResult.email,
       customerEmail: savedResult.customerEmail || savedResult.email,
       phone: savedResult.customerPhone || savedResult.phone,
       customerPhone: savedResult.customerPhone || savedResult.phone,
-      startDate: savedResult.startDate ? String(savedResult.startDate).split('T')[0] : now.toISOString().split('T')[0],
-      expiryDate: savedResult.expiryDate ? String(savedResult.expiryDate).split('T')[0] : expiry.toISOString().split('T')[0]
+      plan: savedResult.plan || memberData.plan || 'ANNUAL',
+      status: savedResult.status || 'ACTIVE',
+      startDate: startDateStr,
+      joinedAt: startDateStr,
+      enrolledAt: startDateStr,
+      expiryDate: expiryDateStr
     };
     const updated = [normalized, ...registry.filter(m => (m.email || m.customerEmail) !== normalized.email)];
     saveMembersRegistry(updated);
