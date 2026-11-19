@@ -1,0 +1,9 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Basket Curved Handle -->
+  <path d="M19 19 C19 12 29 12 29 19" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Basket Tapered Body -->
+  <path d="M12 19 L36 19 L33.5 39 C33.5 40.5 32 41.5 30.5 41.5 L17.5 41.5 C16 41.5 14.5 40.5 14.5 39 Z" fill="#fef3c7" stroke="#d97706" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Vertical Ribs / items inside -->
+  <line x1="21" y1="23" x2="20.5" y2="38" stroke="#d97706" stroke-width="2" stroke-linecap="round"/>
+  <line x1="27" y1="23" x2="27.5" y2="38" stroke="#d97706" stroke-width="2" stroke-linecap="round"/>
+</svg>

@@ -570,8 +570,9 @@ export const ABSOLUTE_SKINCARE_PRODUCTS = [
     price: 17228.0,
     pv: 128000,
     formattedPrice: "₹ 17,228.00",
-    discountPercent: "15%",pv: 128000,
-    
+    discountPercent: "14%",
+    gstReduced: true,
+    tags: ["#GST REDUCED"],
     image: "https://image.atomy.com/IN/goods/D00207/org/036/260803000054036.jpg?w=260&h=260",
     category: "BEAUTY > Absolute Series",
     dpPrice: 17228.0,
@@ -782,8 +783,9 @@ export const HEALTH_ESSENTIAL_PRODUCTS = [
     price: 5015.0,
     pv: 36000,
     formattedPrice: "₹ 5,015.00",
-    discountPercent: "15%",pv: 36000,
-    
+    discountPercent: "15%",
+    gstReduced: true,
+    tags: ["#GST REDUCED"],
     image: "https://image.atomy.com/IN/goods/D00170/org/350/260401000051350.jpg?w=260&h=260",
     category: "HEALTH",
     dpPrice: 4830.0,

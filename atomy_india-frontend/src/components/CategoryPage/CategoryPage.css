@@ -476,34 +476,37 @@
   right: -22px;
 }
 
-/* Product Card Style - Clean Flat Style Matching Official in.atomy.com */
+/* Product Card Style - Clean Boxed Style with Accent Ribbon */
 .cate-product-card {
   flex: 0 0 240px;
   width: 240px;
-  background: transparent;
-  border-radius: 0;
-  border: none;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: none;
-  transition: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   backface-visibility: hidden;
   transform: translateZ(0);
 }
 
 .cate-product-card:hover {
-  box-shadow: none;
-  background: transparent;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+  border-color: #cbd5e1;
 }
 
 .cate-product-img-box {
   position: relative;
   width: 100%;
-  height: 240px;
   aspect-ratio: 1 / 1;
   background-color: #f8f9fb;
   overflow: hidden;
+  border-radius: 9px 9px 0 0;
+  border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -539,8 +542,7 @@
 }
 
 .cate-recommendation-section .cate-product-img-box {
-  width: 305px;
-  height: 305px;
+  width: 100%;
   aspect-ratio: 1 / 1;
 }
 
@@ -570,7 +572,7 @@
   right: 10px;
   background-color: #2e7d32;
   color: #ffffff;
-  font-size: 11px;
+  fontSize: 11px;
   font-weight: 800;
   padding: 3px 8px;
   border-radius: 2px;
@@ -584,7 +586,7 @@
   right: 10px;
   background-color: #d32f2f;
   color: #ffffff;
-  font-size: 11px;
+  fontSize: 11px;
   font-weight: 800;
   padding: 3px 8px;
   border-radius: 2px;
@@ -592,37 +594,66 @@
   z-index: 2;
 }
 
-/* Cyan Cart Button (bottom-right of image) */
-.cate-cart-btn {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 44px;
-  height: 44px;
-  background-color: #ffffff;
-  border: 1px solid #d4effc;
-  color: #009fe3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 3;
-  transition: all 0.2s ease;
-}
-
-.cate-cart-btn:hover {
-  background-color: #009fe3;
-  color: #ffffff;
-}
-
 /* Product Info */
 .cate-product-info {
-  padding: 14px 4px 10px 4px;
+  padding: 14px 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
   width: 100%;
+  flex: 1;
+  box-sizing: border-box;
+  background-color: #ffffff;
+}
+
+.cate-card-footer-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 8px;
+  gap: 10px;
+}
+
+.cate-footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Circular Quick Cart Button at Bottom-Right of Card Footer */
+.cate-cart-btn {
+  position: static;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1.5px solid var(--atomy-blue, #009fe3);
+  color: var(--atomy-blue, #009fe3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.22);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.cate-product-card:hover .cate-cart-btn {
+  background-color: var(--atomy-blue, #009fe3);
+  color: #ffffff;
+}
+
+.cate-cart-btn:hover {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.4);
 }
 
 .cate-product-name {
@@ -936,14 +967,21 @@
     display: none !important;
   }
 
-  /* Category Product Cards - Add to Cart Button Alignment (Bug 1) */
+  /* Category Product Cards - Add to Cart Button Alignment */
   .cate-cart-btn {
-    bottom: 8px !important;
-    right: 8px !important;
-    width: 36px !important;
-    height: 36px !important;
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
+    width: 34px !important;
+    height: 34px !important;
     border-radius: 50% !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    margin-left: auto !important;
+  }
+
+  .cate-card-footer-row {
+    padding-top: 4px !important;
+    gap: 6px !important;
   }
 }
 
@@ -982,9 +1020,11 @@
     margin-top: 4px !important;
   }
   .cate-cart-btn {
-    bottom: 6px !important;
-    right: 6px !important;
-    width: 34px !important;
-    height: 34px !important;
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin-left: auto !important;
   }
 }

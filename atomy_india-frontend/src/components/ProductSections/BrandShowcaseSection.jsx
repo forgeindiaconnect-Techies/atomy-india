@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
+import { GST_BADGE_IMAGE } from '../../data/mockData';
 import ProductPriceDisplay from './ProductPriceDisplay';
 import './ProductSection.css';
 
@@ -22,8 +23,10 @@ export default function BrandShowcaseSection({
     });
   }, []);
 
+  const isHealthSection = Boolean(title && title.toLowerCase().includes('health'));
+
   return (
-    <section className="product-showcase-section brand-showcase-section">
+    <section className={`product-showcase-section brand-showcase-section ${isHealthSection ? 'health-showcase-section' : ''}`}>
       <div className="container">
         {/* Section Title */}
         <div className="section-header-block">
@@ -55,20 +58,48 @@ export default function BrandShowcaseSection({
               : (origPrice > price ? Math.round(((origPrice - price) / origPrice) * 100) : 0);
             const hasOffer = discNum > 0 && origPrice > price;
 
+            const isGstReduced = Boolean(
+              product.gstReduced === true ||
+              (Array.isArray(product.tags) && product.tags.some(t => String(t).toUpperCase().includes('GST'))) ||
+              (typeof product.tags === 'string' && product.tags.toUpperCase().includes('GST'))
+            );
+
             return (
-              <div key={product.id} className="brand-product-card">
+              <div
+                key={product.id}
+                className="brand-product-card"
+                onClick={() => onProductClick && onProductClick(product)}
+                style={{ cursor: 'pointer' }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onProductClick && onProductClick(product);
+                  }
+                }}
+              >
                 <div className="brand-product-img-wrap">
+                  {isGstReduced && (
+                    <img
+                      src={GST_BADGE_IMAGE}
+                      alt="GST Reduced"
+                      className="brand-gst-badge"
+                      loading="lazy"
+                    />
+                  )}
                   <img
                     src={product.image}
                     alt={product.name}
                     className="brand-product-img"
                     loading="lazy"
-                    onClick={() => onProductClick && onProductClick(product)}
-                    style={{ cursor: 'pointer' }}
                   />
                   <button
                     className="product-cart-quick-btn brand-cart-btn"
-                    onClick={() => onAddToCart && onAddToCart(product)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddToCart && onAddToCart(product);
+                    }}
                     aria-label={`Add ${product.name} to cart`}
                     title="Add to Cart"
                   >
@@ -81,8 +112,6 @@ export default function BrandShowcaseSection({
                     className="brand-product-title notranslate"
                     translate="no"
                     title={product.name}
-                    onClick={() => onProductClick && onProductClick(product)}
-                    style={{ cursor: 'pointer' }}
                   >
                     {product.name}
                   </h3>

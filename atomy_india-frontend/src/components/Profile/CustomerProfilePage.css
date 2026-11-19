@@ -623,6 +623,92 @@
   line-height: 1.6;
 }
 
+/* Bottom Sign Out Card in Profile Settings */
+.profile-signout-card {
+  margin-top: 32px;
+  padding: 20px 24px;
+  background: #ffffff;
+  border: 1px solid #fee2e2;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.05);
+}
+
+.profile-signout-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-signout-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-signout-title {
+  margin: 0 0 3px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.profile-signout-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.profile-bottom-signout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+  flex-shrink: 0;
+}
+
+.profile-bottom-signout-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+.profile-bottom-signout-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .profile-signout-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 14px;
+  }
+  .profile-bottom-signout-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 
 /* Orders List */
 .orders-list-wrapper {

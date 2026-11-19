@@ -2,7 +2,7 @@ import React from 'react';
 import { calculateProductPricing } from '../../services/membershipService';
 import './ProductPriceDisplay.css';
 
-export default function ProductPriceDisplay({ product, isMember = false, size = 'medium' }) {
+export default function ProductPriceDisplay({ product, isMember = false, size = 'medium', hidePercentBadge = false }) {
   const pricing = calculateProductPricing(product, isMember);
 
   if (isMember) {
@@ -14,9 +14,11 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
           <span className="price-original notranslate" translate="no">
             ₹ {pricing.mrp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
-          <span className="price-percent member-dp-save">
-            DP Price
-          </span>
+          {!hidePercentBadge && (
+            <span className="price-percent member-dp-save">
+              DP Price
+            </span>
+          )}
         </div>
 
         <p className="product-price member-dp-price">
@@ -42,7 +44,9 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
           <span className="price-original notranslate" translate="no">
             ₹ {pricing.mrp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
-          <span className="price-percent">{pricing.discountPercent}% off</span>
+          {!hidePercentBadge && (
+            <span className="price-percent">{pricing.discountPercent}% off</span>
+          )}
         </div>
       )}
 

@@ -1,0 +1,12 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pump head & spout -->
+  <path d="M17 11 C17 9 19 7 24 7 L27 7 C28.5 7 29 7.8 29 9 C29 10.2 28.2 11 27 11 L25 11" fill="none" stroke="#ca8a04" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Pump vertical stem -->
+  <line x1="24" y1="7" x2="24" y2="15" stroke="#ca8a04" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- Bottle collar -->
+  <rect x="20" y="14" width="8" height="3" rx="1" fill="#fef08a" stroke="#ca8a04" stroke-width="1.8"/>
+  <!-- Bottle body -->
+  <rect x="14" y="17" width="20" height="24" rx="4" fill="#fef9c3" stroke="#ca8a04" stroke-width="2.4"/>
+  <!-- Inner label window -->
+  <rect x="18" y="23" width="12" height="12" rx="2.5" fill="none" stroke="#ca8a04" stroke-width="1.8"/>
+</svg>

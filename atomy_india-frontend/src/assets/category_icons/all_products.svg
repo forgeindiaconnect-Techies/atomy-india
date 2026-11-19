@@ -1,0 +1,7 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 4 rounded squares in 2x2 grid -->
+  <rect x="11" y="11" width="10.5" height="10.5" rx="3.2" fill="none" stroke="#64748b" stroke-width="2.6"/>
+  <rect x="26.5" y="11" width="10.5" height="10.5" rx="3.2" fill="none" stroke="#64748b" stroke-width="2.6"/>
+  <rect x="11" y="26.5" width="10.5" height="10.5" rx="3.2" fill="none" stroke="#64748b" stroke-width="2.6"/>
+  <rect x="26.5" y="26.5" width="10.5" height="10.5" rx="3.2" fill="none" stroke="#64748b" stroke-width="2.6"/>
+</svg>

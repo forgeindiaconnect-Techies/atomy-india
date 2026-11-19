@@ -45,6 +45,7 @@ import { ALL_CATALOG_PRODUCTS, BEST_PRODUCTS, getRelatedProducts, getPopularProd
 import { calculateProductTax, isProductGstReduced } from '../../services/taxService';
 import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import { calculateProductPricing } from '../../services/membershipService';
+import { detectCustomerLiveLocation } from '../../services/locationService';
 import customPaymentQr from '../../assets/WhatsApp Image 2026-10-06 at 12.14.42 PM.jpeg';
 
 
@@ -712,70 +713,47 @@ export default function OrderSheetPage({
   const estimatedDeliveryInfo = useMemo(() => getEstimatedDeliveryRange(new Date(), destinationAddressString), [destinationAddressString]);
 
   // Trigger Live GPS Current Location Detection inside Address Modal
-  const handleDetectCurrentLocation = () => {
-    if (!navigator.geolocation) {
+  // Trigger Live GPS Current Location Detection inside Address Modal
+  const handleDetectCurrentLocation = async () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
       setLocationFeedback('Geolocation is not supported by your browser.');
       setTimeout(() => setLocationFeedback(null), 3000);
       return;
     }
 
     setIsDetectingLocation(true);
-    setLocationFeedback('Detecting GPS location...');
+    setLocationFeedback('Detecting GPS location with high accuracy...');
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-          );
-          const data = await res.json();
+    try {
+      const loc = await detectCustomerLiveLocation({ force: true });
+      if (loc && loc.pincode) {
+        setAddressForm(prev => ({
+          ...prev,
+          pincode: loc.pincode,
+          city: loc.city || prev.city,
+          state: loc.state || prev.state,
+          addressLine2: loc.district ? `${loc.city}, ${loc.district}` : (prev.addressLine2 || loc.city)
+        }));
 
-          const detectedPin = data.postcode || '';
-          const detectedCity = data.city || data.locality || data.principalSubdivision || 'Gurugram';
-          const detectedState = data.principalSubdivision || 'Haryana';
-          const detectedArea = [data.locality, data.neighbourhood].filter(Boolean).join(', ');
+        setIsLocationDetected(true);
+        setDetectedLocationName(`${loc.city || 'Your Area'}, ${loc.state || 'India'}`);
 
-          setAddressForm(prev => ({
-            ...prev,
-            pincode: detectedPin || prev.pincode || '122003',
-            city: detectedCity || prev.city,
-            state: detectedState || prev.state,
-            addressLine2: detectedArea || prev.addressLine2
-          }));
-
-          setIsLocationDetected(true);
-          setDetectedLocationName(`${detectedCity}, ${detectedState}`);
-
-          if (detectedPin && detectedPin.length === 6) {
-            handleLookupPincodeDetails(detectedPin);
-          }
-
-          setLocationFeedback(`✓ Location applied: ${detectedCity}, ${detectedState}`);
-          setTimeout(() => setLocationFeedback(null), 4000);
-        } catch (err) {
-          setAddressForm(prev => ({
-            ...prev,
-            city: prev.city || 'Gurugram',
-            state: prev.state || 'Haryana',
-            pincode: prev.pincode || '122003'
-          }));
-          setIsLocationDetected(true);
-          setDetectedLocationName('Gurugram, Haryana');
-          setLocationFeedback('✓ Current location applied.');
-          setTimeout(() => setLocationFeedback(null), 3500);
-        } finally {
-          setIsDetectingLocation(false);
+        if (loc.pincode.length === 6) {
+          handleLookupPincodeDetails(loc.pincode);
         }
-      },
-      () => {
-        setIsDetectingLocation(false);
-        setIsLocationDetected(false);
-        setLocationFeedback('Location access not permitted. Enter 6-digit PIN code for auto-detection.');
+
+        setLocationFeedback(`✓ Location applied: ${loc.city || 'Your Area'} (${loc.pincode})`);
         setTimeout(() => setLocationFeedback(null), 4000);
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
+      } else {
+        setLocationFeedback('Could not determine postal PIN for this location. Please enter 6-digit PIN.');
+        setTimeout(() => setLocationFeedback(null), 4000);
+      }
+    } catch (err) {
+      setLocationFeedback('GPS signal unavailable. Please enter 6-digit PIN.');
+      setTimeout(() => setLocationFeedback(null), 3500);
+    } finally {
+      setIsDetectingLocation(false);
+    }
   };
 
   // Live lookup for Indian PIN code

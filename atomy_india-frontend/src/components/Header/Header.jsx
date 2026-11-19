@@ -93,7 +93,6 @@ export default function Header({
   const isCustomerMember = Boolean(isMember || currentUser?.isMember || activeMembership?.status === 'ACTIVE');
   const expiryInfo = React.useMemo(() => getMembershipExpiryInfo(activeMembership), [activeMembership]);
 
-  const [activePortal, setActivePortal] = useState('mall');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
@@ -305,13 +304,13 @@ export default function Header({
   const [navbarBgColor, setNavbarBgColor] = useState(() => {
     try {
       const saved = localStorage.getItem('atomy_navbar_bg');
-      if (!saved || saved.toUpperCase() === '#EAB308') {
-        localStorage.setItem('atomy_navbar_bg', '#00A3E0');
-        return '#00A3E0';
+      if (!saved || saved.toUpperCase() === '#EAB308' || saved.toUpperCase() === '#00A3E0') {
+        localStorage.setItem('atomy_navbar_bg', '#0059b3');
+        return '#0059b3';
       }
       return saved;
     } catch (e) {
-      return '#00A3E0';
+      return '#0059b3';
     }
   });
 
@@ -338,6 +337,13 @@ export default function Header({
     if (!isNavbarGlass) return navbarBgColor;
     return hexToRgba(navbarBgColor, navbarOpacity);
   }, [navbarBgColor, isNavbarGlass, navbarOpacity]);
+
+  // Synchronize dynamic header blue color across UI components
+  useEffect(() => {
+    if (navbarBgColor) {
+      document.documentElement.style.setProperty('--atomy-header-bg', navbarBgColor);
+    }
+  }, [navbarBgColor]);
 
   const handleNavbarColorChange = (newColor, isGlassOption) => {
     setNavbarBgColor(newColor);
@@ -616,11 +622,13 @@ export default function Header({
               }}
             >
               <div className="brand-logo-top-row">
-                <img
-                  src={ficLogo}
-                  alt="Forge India Connect"
-                  className="brand-logo-img"
-                />
+                <div className="brand-logo-circle">
+                  <img
+                    src={ficLogo}
+                    alt="Forge India Connect"
+                    className="brand-logo-img"
+                  />
+                </div>
               </div>
             </a>
 
@@ -699,29 +707,19 @@ export default function Header({
                     <span className="join-label-mobile">Join</span>
                   </button>
                 )}
-                <span className="top-utility-divider"></span>
-
-                {currentUser ? (
-                  <button
-                    type="button"
-                    className="top-logout-btn"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onLogout && onLogout();
-                    }}
-                  >
-                    Sign Out
-                  </button>
-                ) : (
-                  <a
-                    href="/signin"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onNavigateSignIn ? onNavigateSignIn('signin') : (window.location.href = '/signin');
-                    }}
-                  >
-                    Sign in
-                  </a>
+                {!currentUser && (
+                  <>
+                    <span className="top-utility-divider"></span>
+                    <a
+                      href="/signin"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onNavigateSignIn ? onNavigateSignIn('signin') : (window.location.href = '/signin');
+                      }}
+                    >
+                      Sign in
+                    </a>
+                  </>
                 )}
                 <span className="top-utility-divider top-utility-desktop-only"></span>
                 <a
@@ -768,11 +766,13 @@ export default function Header({
                   }}
                 >
                   <div className="brand-logo-top-row">
-                    <img
-                      src={ficLogo}
-                      alt="Forge India Connect"
-                      className="brand-logo-img"
-                    />
+                    <div className="brand-logo-circle">
+                      <img
+                        src={ficLogo}
+                        alt="Forge India Connect"
+                        className="brand-logo-img"
+                      />
+                    </div>
                   </div>
                 </a>
 
@@ -792,34 +792,6 @@ export default function Header({
                     <span className="fic-connect-text">CONNECT</span>
                   </div>
                 </div>
-
-                {/* Shopping Mall / My Office Portal Tabs - Hidden for Admin */}
-                {currentView !== 'admin' && (
-                  <>
-                    <div className="brand-col-divider"></div>
-                    <div className="portal-col">
-                      <span
-                        className={`portal-tab ${activePortal === 'mall' ? 'active' : ''}`}
-                        onClick={() => {
-                        setActivePortal('mall');
-                        if (onNavigateHome) onNavigateHome();
-                      }}
-                      >
-                        Shopping Mall
-                      </span>
-                      <span className="portal-divider"></span>
-                      <span
-                        className={`portal-tab ${activePortal === 'office' ? 'active' : ''}`}
-                        onClick={() => {
-                          window.open('https://in.atomy.com/main', '_blank');
-                        }}
-                        title="Official Atomy Distributor Portal (in.atomy.com/main)"
-                      >
-                        My Office ↗
-                      </span>
-                    </div>
-                  </>
-                )}
               </div>
 
               {/* Search Box placed parallel right next to My Office - Hidden for Admin */}
@@ -1028,7 +1000,7 @@ export default function Header({
                         }
                       }}
                     >
-                      <User size={25} strokeWidth={1.8} />
+                      <User size={28} strokeWidth={1.9} />
                     </button>
                     {isMember && (
                       <span
@@ -1061,7 +1033,7 @@ export default function Header({
                     }
                   }}
                 >
-                  <ShoppingCart size={25} strokeWidth={1.8} />
+                  <ShoppingCart size={28} strokeWidth={1.9} />
                   <span className="cart-badge">{cartCount}</span>
                 </button>
               )}
@@ -1809,64 +1781,6 @@ export default function Header({
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Quick 1-Click Regional Hub Select */}
-            <div>
-              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Quick Select Regional Hub:
-              </span>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleSelectPincode('635002')}
-                  style={{
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: (deliveryPincode === '635002') ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                    background: (deliveryPincode === '635002') ? '#f0f9ff' : '#ffffff',
-                    color: '#0f172a',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span style={{ fontSize: '15px' }}>🏢</span>
-                  <div>
-                    <div style={{ fontWeight: 700, color: '#0369a1' }}>Krishnagiri Hub</div>
-                    <div style={{ fontSize: '10.5px', color: '#64748b' }}>Selva • PIN 635002</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectPincode('635202')}
-                  style={{
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: (deliveryPincode === '635202') ? '1.5px solid #0284c7' : '1px solid #cbd5e1',
-                    background: (deliveryPincode === '635202') ? '#f0f9ff' : '#ffffff',
-                    color: '#0f172a',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span style={{ fontSize: '15px' }}>🏢</span>
-                  <div>
-                    <div style={{ fontWeight: 700, color: '#0369a1' }}>Dharmapuri Hub</div>
-                    <div style={{ fontSize: '10.5px', color: '#64748b' }}>Munusamy • PIN 635202</div>
-                  </div>
-                </button>
-              </div>
             </div>
 
             {/* Detect Live Location Button */}

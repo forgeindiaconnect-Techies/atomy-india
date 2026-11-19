@@ -45,6 +45,7 @@ import {
 } from '../../services/customerNotificationService';
 import { updateCustomerProfile, getCustomerProfile } from '../../services/api';
 import { setCustomerDeliveryPincode } from '../../services/catalogSyncService';
+import { detectCustomerLiveLocation } from '../../services/locationService';
 import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import OrderHistoryPage from '../Orders/OrderHistoryPage';
 import './CustomerProfilePage.css';
@@ -236,63 +237,47 @@ export default function CustomerProfilePage({
   const [availableAreas, setAvailableAreas] = useState([]);
 
   // Trigger Live GPS Current Location Detection inside Address Form
-  const handleDetectCurrentLocation = () => {
-    if (!navigator.geolocation) {
+  const handleDetectCurrentLocation = async () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
       setLocationFeedback('Geolocation is not supported by your browser.');
       setTimeout(() => setLocationFeedback(null), 3000);
       return;
     }
 
     setIsDetectingLocation(true);
-    setLocationFeedback('Detecting GPS location...');
+    setLocationFeedback('Detecting GPS location with high accuracy...');
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-          );
-          const data = await res.json();
+    try {
+      const loc = await detectCustomerLiveLocation({ force: true });
+      if (loc && loc.pincode) {
+        setNewAddressForm((prev) => ({
+          ...prev,
+          pincode: loc.pincode,
+          city: loc.city || prev.city,
+          state: loc.state || prev.state,
+          street: prev.street ? prev.street : (loc.city || '')
+        }));
 
-          const detectedPin = data.postcode || '';
-          const detectedCity = data.city || data.locality || data.principalSubdivision || '';
-          const detectedState = data.principalSubdivision || '';
-          const detectedArea = [data.locality, data.neighbourhood].filter(Boolean).join(', ');
+        setIsLocationDetected(true);
+        const locName = `${loc.city || 'Your Area'}, ${loc.state || 'India'}`;
+        setDetectedLocationName(locName);
 
-          setNewAddressForm((prev) => ({
-            ...prev,
-            pincode: detectedPin || prev.pincode,
-            city: detectedCity || prev.city,
-            state: detectedState || prev.state,
-            street: prev.street ? prev.street : (detectedArea || '')
-          }));
-
-          setIsLocationDetected(true);
-          const locName = [detectedCity, detectedState].filter(Boolean).join(', ');
-          setDetectedLocationName(locName);
-
-          if (detectedPin && detectedPin.length === 6) {
-            handleLookupPincodeDetails(detectedPin);
-          }
-
-          setLocationFeedback(`Live location detected: ${locName}`);
-          setTimeout(() => setLocationFeedback(null), 3500);
-        } catch (err) {
-          setLocationFeedback('Could not fetch address details for this location.');
-          setTimeout(() => setLocationFeedback(null), 3500);
-        } finally {
-          setIsDetectingLocation(false);
+        if (loc.pincode.length === 6) {
+          handleLookupPincodeDetails(loc.pincode);
         }
-      },
-      (error) => {
-        setIsDetectingLocation(false);
-        setIsLocationDetected(false);
-        setLocationFeedback('Location permission denied. Please enter manually.');
+
+        setLocationFeedback(`✓ Live location applied: ${loc.city || 'Your Area'} (${loc.pincode})`);
         setTimeout(() => setLocationFeedback(null), 3500);
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
+      } else {
+        setLocationFeedback('Could not determine postal PIN for this location. Please enter 6-digit PIN.');
+        setTimeout(() => setLocationFeedback(null), 3500);
+      }
+    } catch (err) {
+      setLocationFeedback('GPS signal unavailable. Please enter 6-digit PIN.');
+      setTimeout(() => setLocationFeedback(null), 3500);
+    } finally {
+      setIsDetectingLocation(false);
+    }
   };
 
   // Live lookup for Indian PIN code
@@ -1301,6 +1286,28 @@ export default function CustomerProfilePage({
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Bottom Sign Out of Account */}
+              <div className="profile-signout-card">
+                <div className="profile-signout-card-left">
+                  <div className="profile-signout-icon-box">
+                    <LogOut size={20} />
+                  </div>
+                  <div>
+                    <h3 className="profile-signout-title">Sign Out of Account</h3>
+                    <p className="profile-signout-sub">Sign out from your Atomy customer account on this browser</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="profile-bottom-signout-btn"
+                  onClick={onLogout}
+                  title="Sign out of your Atomy account"
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           )}

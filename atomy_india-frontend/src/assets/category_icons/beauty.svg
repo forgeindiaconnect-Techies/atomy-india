@@ -1,0 +1,12 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left Bottle Cap -->
+  <rect x="12" y="10" width="8" height="7" rx="1.5" fill="#e11d48" stroke="#be123c" stroke-width="1.8"/>
+  <!-- Left Bottle Body -->
+  <rect x="10" y="17" width="12" height="23" rx="2.5" fill="#fce7f3" stroke="#e11d48" stroke-width="2.2"/>
+  <!-- Right Lipstick Angled Bullet -->
+  <path d="M28 19 L28 13 C28 13 31 9 34 7 L35 9 L35 19 Z" fill="#e11d48" stroke="#be123c" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- Right Lipstick Casing Base -->
+  <rect x="27" y="22" width="9" height="18" rx="1.5" fill="#334155" stroke="#1e293b" stroke-width="2"/>
+  <!-- Right Lipstick Gold Collar Ring -->
+  <rect x="26.5" y="19" width="10" height="3.5" rx="0.5" fill="#fbbf24" stroke="#d97706" stroke-width="1"/>
+</svg>

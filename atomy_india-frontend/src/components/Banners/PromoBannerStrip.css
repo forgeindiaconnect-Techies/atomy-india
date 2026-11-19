@@ -71,34 +71,34 @@
   text-decoration: none !important;
 }
 
-/* Staggered Time-Lapse: Text appears first, arrow follows right after */
+/* Staggered Time-Lapse: Arrow points first, then text appears right after */
+.promo-banner-chevron {
+  color: #4b5563;
+  stroke-width: 2.4;
+  opacity: 0;
+  transform: translateX(-12px);
+  transition: color 0.22s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .promo-banner-text-word {
   text-decoration: none !important;
   opacity: 0;
-  transform: translateX(-14px);
+  transform: translateX(-12px);
   display: inline-block;
   transition: color 0.22s ease, transform 0.25s ease;
 }
 
-.promo-banner-chevron {
-  color: #4b5563;
-  stroke-width: 2.2;
-  opacity: 0;
-  transform: translateX(-10px);
-  transition: color 0.22s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* 1. When it comes into view (or on scroll/time-lapse): text slides in at 0.15s */
-.promo-banner-box.banner-in-view .promo-banner-text-word {
-  animation: promoStaggeredText 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
-}
-
-/* 2. Arrow appears right after text at 0.42s like in carousel cards */
+/* 1. Arrow points first at 0.1s */
 .promo-banner-box.banner-in-view .promo-banner-chevron {
-  animation: promoStaggeredArrow 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.42s forwards;
+  animation: promoPointingArrow 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
 }
 
-/* 3. When cursor hovers: glowing Atomy blue with animated forward arrow glide */
+/* 2. User Guide text appears right after arrow points (timelapse sequence) */
+.promo-banner-box.banner-in-view .promo-banner-text-word {
+  animation: promoTimelapseText 0.52s cubic-bezier(0.16, 1, 0.3, 1) 0.32s forwards;
+}
+
+/* Hover effect */
 .promo-banner-box:hover .promo-banner-text-word {
   color: #00A3E0;
   transform: translateX(2px);
@@ -109,7 +109,22 @@
   transform: translateX(8px);
 }
 
-@keyframes promoStaggeredText {
+@keyframes promoPointingArrow {
+  0% {
+    opacity: 0;
+    transform: translateX(-14px) scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(4px) scale(1.18);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes promoTimelapseText {
   0% {
     opacity: 0;
     transform: translateX(-16px);
@@ -120,19 +135,119 @@
   }
 }
 
-@keyframes promoStaggeredArrow {
+/* ==========================================================================
+   Winding Road & Traveling Guide Pin Animations (Matching Image 2)
+   ========================================================================== */
+
+.promo-guide-road-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.promo-guide-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Push the 3D book object to the very end of the banner box */
+.is-user-guide-strip {
+  background-color: #ccd7ed !important;
+  overflow: hidden !important;
+}
+
+.is-user-guide-strip .promo-banner-img {
+  transform: translateX(150px) !important;
+  transition: transform 0.4s ease !important;
+}
+
+.is-user-guide-strip:hover .promo-banner-img {
+  transform: translateX(150px) scale(1.012) !important;
+}
+
+@media (max-width: 1024px) {
+  .is-user-guide-strip .promo-banner-img {
+    transform: translateX(105px) !important;
+  }
+  .is-user-guide-strip:hover .promo-banner-img {
+    transform: translateX(105px) scale(1.012) !important;
+  }
+}
+
+/* 3. The Road develops / unfolds from the arrow all the way to the book */
+.road-reveal-rect {
+  width: 0;
+  animation: developRoad 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.65s forwards;
+}
+
+@keyframes developRoad {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 640px;
+  }
+}
+
+/* Streaming motion for dashed highway lane divider */
+.road-dashed-divider {
+  animation: streamLanes 1.2s linear infinite;
+}
+
+@keyframes streamLanes {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+/* Destination Waypoint at Book Page */
+.destination-book-pin {
+  opacity: 0;
+  transform-origin: 812px 60px;
+  animation: revealDestinationPin 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 1.6s forwards;
+}
+
+@keyframes revealDestinationPin {
   0% {
     opacity: 0;
-    transform: translateX(-12px) scale(0.85);
-  }
-  65% {
-    opacity: 1;
-    transform: translateX(3px) scale(1.15);
+    transform: scale(0.4) translateY(-14px);
   }
   100% {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: scale(1) translateY(0);
   }
+}
+
+.destination-pulse-ring {
+  opacity: 0;
+  transform-origin: center;
+  animation: pulseRingDestination 1.8s ease-out 2.8s infinite;
+}
+
+@keyframes pulseRingDestination {
+  0% {
+    r: 4;
+    opacity: 0.9;
+  }
+  75% {
+    r: 22;
+    opacity: 0;
+  }
+  100% {
+    r: 22;
+    opacity: 0;
+  }
+}
+
+/* Traveling Guide Pin Entrance & Glow */
+.traveling-guide-pin {
+  transform-origin: center;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
 }
 
 @media (max-width: 768px) {
@@ -147,10 +262,64 @@
   .promo-banner-text-link {
     font-size: 15px;
     gap: 6px;
+    font-weight: 700;
   }
 
   .promo-banner-img {
     min-height: 65px;
+  }
+
+  /* 1. Guide: Move book object to the far right end of the box and give generous space to the text */
+  .is-user-guide-strip .promo-banner-img {
+    object-position: right -80px center !important;
+  }
+
+  /* 2. Resource Material: Move the illustrations right, clearing clutter under the text and giving clear space */
+  .is-resource-strip .promo-banner-img {
+    object-position: right -115px center !important;
+  }
+
+  .is-resource-strip .promo-banner-overlay-content {
+    background: linear-gradient(
+      to right,
+      rgba(224, 238, 252, 0.96) 0%,
+      rgba(224, 238, 252, 0.92) 50%,
+      rgba(224, 238, 252, 0.65) 75%,
+      rgba(224, 238, 252, 0) 100%
+    );
+    padding-right: 42px;
+    border-radius: 8px 0 0 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .promo-guide-road-canvas {
+    display: none;
+  }
+
+  .promo-banner-text-link {
+    font-size: 14.5px;
+  }
+
+  /* On narrow phone screens, push the book further right so it stays flush at the end of the box */
+  .is-user-guide-strip .promo-banner-img {
+    object-position: right -95px center !important;
+  }
+
+  /* On narrow phone screens, push the resource laptop away and keep clean space */
+  .is-resource-strip .promo-banner-img {
+    object-position: right -135px center !important;
+  }
+
+  .is-resource-strip .promo-banner-overlay-content {
+    background: linear-gradient(
+      to right,
+      rgba(224, 238, 252, 0.98) 0%,
+      rgba(224, 238, 252, 0.94) 55%,
+      rgba(224, 238, 252, 0.70) 80%,
+      rgba(224, 238, 252, 0) 100%
+    );
+    padding-right: 36px;
   }
 }
 

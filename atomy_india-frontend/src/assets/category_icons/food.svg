@@ -1,0 +1,11 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Chopsticks laying slanted across the bowl -->
+  <line x1="7" y1="13" x2="35" y2="18" stroke="#ea580c" stroke-width="2.4" stroke-linecap="round"/>
+  <line x1="9" y1="16" x2="41" y2="21" stroke="#c2410c" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- Bowl Base Outline -->
+  <path d="M10 21 C10 21 12 37 24 37 C36 37 38 21 38 21 Z" fill="#ffedd5" stroke="#ea580c" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Bowl Top Rim -->
+  <ellipse cx="24" cy="21" rx="14" ry="2.8" fill="#fed7aa" stroke="#ea580c" stroke-width="2"/>
+  <!-- Bowl Foot -->
+  <path d="M19 37 L29 37" stroke="#ea580c" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

@@ -69,15 +69,21 @@
 }
 
 .filter-tab-pill:hover {
-  border-color: var(--atomy-blue);
-  color: var(--atomy-blue);
+  border-color: var(--atomy-header-bg, #0059b3);
+  color: var(--atomy-header-bg, #0059b3);
 }
 
 .filter-tab-pill.active {
-  background-color: var(--atomy-blue);
-  border-color: var(--atomy-blue);
+  background-color: var(--atomy-header-bg, #0059b3);
+  border-color: var(--atomy-header-bg, #0059b3);
   color: #ffffff;
-  box-shadow: 0 3px 10px rgba(0, 163, 224, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 89, 179, 0.35);
+}
+
+.filter-tab-pill.active:hover {
+  background-color: var(--atomy-header-bg, #0059b3);
+  border-color: var(--atomy-header-bg, #0059b3);
+  color: #ffffff;
 }
 
 /* Carousel / Grid Wrapper */
@@ -91,7 +97,7 @@
   gap: 20px;
   overflow-x: auto;
   scroll-behavior: smooth;
-  padding: 8px 4px 14px;
+  padding: 8px 6px 18px;
   scrollbar-width: none;
 }
 
@@ -140,7 +146,12 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  box-sizing: border-box;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .product-cards-slider.mobile-two-col-grid .product-card,
@@ -151,7 +162,9 @@
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09);
+  border-color: #cbd5e1;
 }
 
 /* Image Container */
@@ -161,10 +174,11 @@
   background-color: #f7f7f7;
   position: relative;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: 9px 9px 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .product-img {
@@ -204,7 +218,7 @@
   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.12));
 }
 
-/* Floating Cart Action Button on Image */
+/* Floating Cart Action Button on Image (Default for Hair/Body, GSGS, etc.) */
 .product-cart-quick-btn {
   position: absolute;
   bottom: 12px;
@@ -221,6 +235,7 @@
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
   transition: all 0.2s ease;
   z-index: 3;
+  cursor: pointer;
 }
 
 .product-cart-quick-btn:hover {
@@ -231,12 +246,15 @@
 
 /* Product Info */
 .product-info-wrap {
-  padding: 14px 4px 10px;
+  padding: 14px 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
   width: 100%;
+  box-sizing: border-box;
+  flex: 1;
+  background-color: #ffffff;
 }
 
 .product-title {
@@ -367,10 +385,155 @@
   width: fit-content;
 }
 
+/* ========================================================
+   Product Card Enhancements (Best, Hair & Body, GSGS, etc.):
+   - Cart button relocated to right-bottom of the product box
+   - Corner Triangle Accent on Image with Red Offer / DP Price (bottom-to-top)
+   ======================================================== */
+.product-img-corner-accent {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 78px;
+  height: 78px;
+  max-width: 32%;
+  max-height: 32%;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+  filter: drop-shadow(-1px -1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.corner-accent-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.corner-accent-line {
+  stroke: #ff1f38;
+  stroke-width: 2px;
+  stroke-linecap: round;
+}
+
+.corner-accent-text {
+  fill: #ff1f38;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  font-family: "Montserrat", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+.product-card-footer-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 6px;
+  gap: 10px;
+}
+
+.product-footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.product-card-footer-row .product-cart-quick-btn {
+  position: static;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: var(--atomy-blue);
+  border: 1.5px solid var(--atomy-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.22);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.product-card:hover .product-card-footer-row .product-cart-quick-btn {
+  background-color: var(--atomy-blue);
+  color: #ffffff;
+}
+
+.product-card-footer-row .product-cart-quick-btn:hover {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.4);
+}
+
+/* Hide duplicate percent pill next to MRP in Best section because it is now displayed in the image corner */
+.best-products-display .price-strike-row .price-percent {
+  display: none !important;
+}
+
 /* 4-column variant for Hair & Body */
 .hair-body-cards .product-card {
   flex: 0 0 calc((100% - 60px) / 4);
   min-width: 260px;
+  min-height: 470px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hair-body-cards .product-info-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 18px;
+}
+
+.hair-body-cards .product-card-footer-row {
+  margin-top: auto;
+  padding-top: 14px;
+  align-items: center;
+}
+
+/* Enlarged Cart Action Button for Hair & Body Section */
+.hair-body-cards .product-card-footer-row .product-cart-quick-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  color: var(--atomy-header-bg, #0059b3);
+  border: 1.5px solid var(--atomy-header-bg, #0059b3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(0, 89, 179, 0.22);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.hair-body-cards .product-card-footer-row .product-cart-quick-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.hair-body-cards .product-card:hover .product-card-footer-row .product-cart-quick-btn {
+  background-color: var(--atomy-header-bg, #0059b3);
+  color: #ffffff;
+}
+
+.hair-body-cards .product-card-footer-row .product-cart-quick-btn:hover {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  transform: scale(1.12);
+  box-shadow: 0 6px 18px rgba(0, 89, 179, 0.38);
 }
 
 /* ========================================================
@@ -408,28 +571,37 @@
 .brand-products-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 28px 24px;
+  gap: 16px 14px;
 }
 
 .brand-product-card {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(196, 196, 196, 0.45);
-  transition: transform 0.2s ease;
+  padding: 10px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-sizing: border-box;
+  cursor: pointer;
 }
 
 .brand-product-card:hover {
   transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
 }
 
 .brand-product-img-wrap {
-  width: 112px;
-  height: 112px;
+  width: 130px;
+  min-width: 130px;
+  min-height: 130px;
+  align-self: stretch;
   flex-shrink: 0;
   background-color: #f8f8f8;
-  border-radius: 6px;
+  border-radius: 8px;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -437,23 +609,36 @@
   justify-content: center;
 }
 
+.brand-gst-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  z-index: 3;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+}
+
 .brand-product-card .price-strike-row {
-  gap: 5px;
+  gap: 4px;
   white-space: nowrap;
   flex-wrap: nowrap;
+  margin-bottom: 2px;
 }
 
 .brand-product-card .price-mrp-label {
-  font-size: 11px;
+  font-size: 10.5px;
 }
 
 .brand-product-card .price-original {
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .brand-product-card .price-percent {
-  font-size: 10.5px;
-  padding: 1px 5px;
+  font-size: 10px;
+  padding: 1px 4px;
 }
 
 .brand-product-img {
@@ -464,10 +649,32 @@
 }
 
 .brand-product-card:hover .brand-product-img {
-  transform: scale(1.08);
+  transform: scale(1.06);
 }
 
 .brand-cart-btn {
+  width: 32px;
+  height: 32px;
+  bottom: 6px;
+  right: 6px;
+}
+
+/* Health Essential Section */
+.health-showcase-section .brand-product-img-wrap {
+  width: 130px;
+  min-width: 130px;
+  min-height: 130px;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.health-showcase-section .brand-product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.health-showcase-section .brand-cart-btn {
   width: 32px;
   height: 32px;
   bottom: 6px;
@@ -479,18 +686,18 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .brand-product-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #222222;
-  line-height: 1.35;
-  margin-bottom: 3px;
+  line-height: 1.3;
+  margin-bottom: 2px;
   height: auto;
   min-height: auto;
-  max-height: 42px;
+  max-height: 38px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -500,6 +707,29 @@
 
 .brand-product-card .product-price-block {
   margin-top: 0;
+  margin-bottom: 0;
+}
+
+.brand-product-card .product-price,
+.brand-product-card .dp-price-amount {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.brand-product-card .product-pv-note.active-member-pv {
+  font-size: 13px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.brand-product-card .product-pv-note.locked-pv-hint {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2px;
+  margin-bottom: 0;
 }
 
 /* ========================================================
@@ -509,6 +739,7 @@
   padding: 68px 0 60px;
   background-color: #ffffff;
   position: relative;
+  overflow: hidden;
 }
 
 .food-essential-section::after {
@@ -519,8 +750,32 @@
   right: 0;
   bottom: 0;
   height: 320px;
-  background-color: #f4f7fa;
+  background-color: #ffe4cc;
   z-index: 1;
+}
+
+.food-essential-section .product-pv-note.active-member-pv {
+  color: #003b73;
+  font-weight: 800;
+}
+
+.food-essential-section .product-pv-note.locked-pv-hint {
+  color: #003b73;
+  font-weight: 700;
+}
+
+.food-essential-section .price-mrp-label {
+  color: #334155;
+  font-weight: 600;
+}
+
+.food-essential-section .price-original {
+  color: #475569;
+  font-weight: 600;
+}
+
+.food-essential-section .product-price {
+  color: #0f172a;
 }
 
 .food-essential-wrap {
@@ -540,7 +795,7 @@
 .food-section-title {
   font-size: 32px;
   font-weight: 800;
-  color: #111111;
+  color: #0f172a;
   line-height: 1.25;
   letter-spacing: -0.6px;
   margin-bottom: 12px;
@@ -548,9 +803,9 @@
 
 .food-section-subtitle {
   font-size: 16.5px;
-  color: #666666;
+  color: #1e293b;
   line-height: 1.4;
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .food-essential-grid {
@@ -637,8 +892,8 @@
 
 .food-product-title {
   font-size: 16px;
-  font-weight: 700;
-  color: #222222;
+  font-weight: 800;
+  color: #0f172a;
   line-height: 1.35;
   flex: 1;
 }
@@ -648,6 +903,13 @@
   width: 36px;
   height: 36px;
   flex-shrink: 0;
+  color: #003b73;
+  border: 1.5px solid #003b73;
+}
+
+.food-cart-btn:hover {
+  background-color: #003b73 !important;
+  color: #ffffff !important;
 }
 
 /* ========================================================
@@ -663,8 +925,28 @@
   min-width: 280px;
 }
 
-.gsgs-img-wrap {
+.gsgs-cards-slider .gsgs-img-wrap {
+  width: 100%;
+  height: auto;
   aspect-ratio: 1 / 1;
+  min-height: 320px;
+}
+
+.gsgs-cards-slider .gsgs-img-wrap .product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+}
+
+.gsgs-cards-slider .product-card-footer-row .product-cart-quick-btn {
+  width: 44px;
+  height: 44px;
+}
+
+.gsgs-cards-slider .product-card-footer-row .product-cart-quick-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* ========================================================
@@ -746,7 +1028,7 @@
     gap: 4px;
     font-size: 11px;
     font-weight: 700;
-    color: #00A3E0;
+    color: var(--atomy-header-bg, #0059b3);
     margin-bottom: 8px;
     padding-right: 2px;
   }
@@ -784,7 +1066,7 @@
     border-radius: 50%;
     background: #ffffff;
     border: 1px solid #cbd5e1;
-    color: #00A3E0;
+    color: var(--atomy-header-bg, #0059b3);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
     z-index: 5;
     cursor: pointer;
@@ -854,14 +1136,11 @@
     box-sizing: border-box !important;
   }
 
-  /* Quick Add to Cart button contained cleanly inside the product picture at the bottom-right */
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn,
-  .product-cards-slider.best-products-display .product-cart-quick-btn {
-    position: absolute !important;
-    bottom: 8px !important;
-    right: 8px !important;
-    top: auto !important;
-    left: auto !important;
+  /* Mobile: Cart button at bottom-right of footer row */
+  .product-card-footer-row .product-cart-quick-btn {
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
     width: 32px !important;
     height: 32px !important;
     border-radius: 50% !important;
@@ -871,23 +1150,36 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28) !important;
-    z-index: 10 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22) !important;
+    z-index: 5 !important;
     cursor: pointer !important;
     pointer-events: auto !important;
-    margin: 0 !important;
+    margin: 0 0 0 auto !important;
     padding: 0 !important;
     flex-shrink: 0 !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn:active,
-  .product-cards-slider.best-products-display .product-cart-quick-btn:active {
+  .product-card-footer-row {
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    margin-top: auto !important;
+    padding-top: 4px !important;
+    gap: 6px !important;
+  }
+
+  .product-img-corner-accent {
+    width: 65px !important;
+    height: 65px !important;
+  }
+
+  .product-card-footer-row .product-cart-quick-btn:active {
     transform: scale(0.92) !important;
     background: #0284c7 !important;
   }
 
-  .product-cards-slider.best-products-display.mobile-two-col-grid .product-cart-quick-btn svg,
-  .product-cards-slider.best-products-display .product-cart-quick-btn svg {
+  .product-card-footer-row .product-cart-quick-btn svg {
     width: 16px !important;
     height: 16px !important;
     color: #ffffff !important;
@@ -998,9 +1290,49 @@
   .brand-products-grid {
     grid-template-columns: 1fr;
   }
+  .food-essential-section::after {
+    display: none !important;
+  }
+  .food-essential-section {
+    padding: 36px 0 24px;
+    overflow: hidden;
+  }
   .food-essential-grid {
     flex-direction: column;
     align-items: center;
+    gap: 0;
+    width: 100%;
+  }
+  .food-product-item {
+    position: relative;
+    width: 100%;
+    max-width: 280px;
+    padding-bottom: 28px;
+    margin-bottom: 24px;
+    align-items: center;
+  }
+  /* In mobile view, each stacked product gets the second half color from the circle equator down */
+  .food-product-item::before {
+    content: "";
+    position: absolute;
+    top: 125px; /* Midpoint of the 250px circular image */
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100vw;
+    background-color: #ffe4cc;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .food-img-container {
+    position: relative;
+    z-index: 2;
+  }
+  .food-info-container {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 250px;
   }
   .gsgs-cards-slider .gsgs-product-card {
     flex: 0 0 240px;
@@ -1020,6 +1352,15 @@
   .product-cards-slider:not(.best-products-display):not(.mobile-two-col-grid) .product-card,
   .hair-body-cards .product-card {
     flex: 0 0 195px;
+    min-height: auto;
+  }
+  .hair-body-cards .product-card-footer-row .product-cart-quick-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .hair-body-cards .product-card-footer-row .product-cart-quick-btn svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -1049,6 +1390,11 @@
   .product-cards-slider:not(.best-products-display) .product-cart-quick-btn svg {
     width: 14px !important;
     height: 14px !important;
+  }
+  .brand-product-img-wrap {
+    width: 110px;
+    height: 110px;
+    min-height: 110px;
   }
 }
 

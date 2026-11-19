@@ -139,6 +139,26 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     setTimeout(() => setToastMessage(''), 3500);
   };
 
+  // Real-Time Audio Alert Settings
+  const [soundSettings, setSoundSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_distributor_sound_settings');
+      return saved ? JSON.parse(saved) : {
+        orderSoundEnabled: true,
+        supportSoundEnabled: true,
+        volume: 0.85
+      };
+    } catch {
+      return { orderSoundEnabled: true, supportSoundEnabled: true, volume: 0.85 };
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('atomy_distributor_sound_settings', JSON.stringify(soundSettings));
+    } catch { }
+  }, [soundSettings]);
+
   // =========================================================================
   // CENTRALIZED BROWSER & MOBILE BACK BUTTON NAVIGATION MANAGER
   // =========================================================================
@@ -288,7 +308,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     alertedOrderIdsRef.current.set(orderIdStr, now);
 
     // Trigger audible fanfare chime
-    playOrderAlertSound(0.95);
+    if (soundSettings.orderSoundEnabled) {
+      playOrderAlertSound(soundSettings.volume);
+    }
 
     // Show high-priority shaking alert banner
     setActiveAlert({
@@ -319,7 +341,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     alertedTicketIdsRef.current.set(ticketIdStr, now);
 
     // Play loud, crisp support chime (A5-D6 double pulse)
-    playSupportAlertSound(0.9);
+    if (soundSettings.supportSoundEnabled) {
+      playSupportAlertSound(soundSettings.volume);
+    }
 
     // Show high-priority shaking alert banner
     setActiveAlert({
@@ -354,7 +378,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     const notes = data.cancelNotes || data.order?.cancelNotes || '';
 
     // Play warning chime
-    playSupportAlertSound(0.95);
+    if (soundSettings.supportSoundEnabled) {
+      playSupportAlertSound(soundSettings.volume);
+    }
 
     // Show high-priority cancellation alert banner
     setActiveAlert({
@@ -408,7 +434,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       }, 7000);
 
       // 1. FIRST: Handover notification & chime
-      playOrderAlertSound(1.0);
+      if (soundSettings.orderSoundEnabled) {
+        playOrderAlertSound(soundSettings.volume);
+      }
       setActiveAlert({
         type: 'order',
         title: '⚡ PRIMARY DISTRIBUTOR ON LEAVE — HUB HANDOVER ACTIVATED!',
@@ -428,7 +456,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           return st !== 'DELIVERED' && st !== 'CANCELLED';
         });
         if (pendingOrders.length > 0) {
-          playOrderAlertSound(0.95);
+          if (soundSettings.orderSoundEnabled) {
+            playOrderAlertSound(soundSettings.volume);
+          }
           showToast(`🔔 Hub Unlocked: ${pendingOrders.length} active customer orders waiting for fulfillment!`);
         }
       }, 1800);
@@ -1885,6 +1915,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                 <div className="admin-tab-content">
                   <DistributorSettingsPage
                     distributor={currentDist}
+                    soundSettings={soundSettings}
+                    onUpdateSoundSettings={setSoundSettings}
+                    showToast={showToast}
                     onLogout={onLogout}
                     onSaveSettings={() => {
                       showToast(isSubDistributor ? 'Personal profile updated successfully!' : 'Hub settings updated successfully!');

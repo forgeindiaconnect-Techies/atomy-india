@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Volume2,
+  Headphones
 } from 'lucide-react';
 import { 
   fetchHubTeam, 
@@ -25,16 +27,65 @@ import {
   requestAdminForgotPasswordOtp,
   resetAdminPassword
 } from '../../services/distributorService';
+import { playOrderAlertSound, playSupportAlertSound } from '../../services/soundAlerts';
 import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import CustomDropdown from '../common/CustomDropdown';
 import '../Admin/AdminDashboard.css';
 
-export default function DistributorSettingsPage({ distributor, onSaveSettings, onLogout }) {
+export default function DistributorSettingsPage({
+  distributor,
+  soundSettings: propSoundSettings,
+  onUpdateSoundSettings,
+  showToast: propShowToast,
+  onSaveSettings,
+  onLogout
+}) {
   const [hubAddress, setHubAddress] = useState(distributor?.hubAddress || '');
   const [contactPerson, setContactPerson] = useState(distributor?.contactPerson || '');
   const [phone, setPhone] = useState(distributor?.phone || '');
   const [isSaved, setIsSaved] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Real-Time Audio Alert Settings
+  const [localSoundSettings, setLocalSoundSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('atomy_distributor_sound_settings');
+      return saved ? JSON.parse(saved) : {
+        orderSoundEnabled: true,
+        supportSoundEnabled: true,
+        volume: 0.85
+      };
+    } catch {
+      return { orderSoundEnabled: true, supportSoundEnabled: true, volume: 0.85 };
+    }
+  });
+
+  const effectiveSoundSettings = propSoundSettings || localSoundSettings;
+
+  const updateSoundSetting = (key, value) => {
+    const updated = { ...effectiveSoundSettings, [key]: value };
+    if (onUpdateSoundSettings) {
+      onUpdateSoundSettings(updated);
+    }
+    setLocalSoundSettings(updated);
+    try {
+      localStorage.setItem('atomy_distributor_sound_settings', JSON.stringify(updated));
+    } catch { }
+  };
+
+  const handleTestOrderSound = () => {
+    playOrderAlertSound(effectiveSoundSettings.volume);
+    if (propShowToast) {
+      propShowToast('🔔 Sound Tested: High-impact order fanfare played');
+    }
+  };
+
+  const handleTestSupportSound = () => {
+    playSupportAlertSound(effectiveSoundSettings.volume);
+    if (propShowToast) {
+      propShowToast('🎧 Sound Tested: Customer support inquiry chime played');
+    }
+  };
 
   // Secure Email Password Reset Flow (Brevo 2FA)
   const [showPasswordResetFlow, setShowPasswordResetFlow] = useState(false);
@@ -348,8 +399,9 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
 
       {/* 3. Split Two Column Cards */}
       <div className="settings-grid-layout">
-        {/* Left Column: Profile Form */}
-        <div className="admin-card" style={{ padding: '24px' }}>
+        {/* Left Column: Profile Form & Audio Alert Settings */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="admin-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
             <Building2 size={20} color="#00A3E0" />
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
@@ -674,6 +726,74 @@ export default function DistributorSettingsPage({ distributor, onSaveSettings, o
             </div>
           )}
         </div>
+
+        {/* Real-Time Strong Audio Alerts Card */}
+        <div className="admin-card settings-card" style={{ padding: '24px' }}>
+          <div className="settings-card-header">
+            <Volume2 size={22} color="#00A3E0" />
+            <div>
+              <h3>Real-Time Strong Audio Alerts</h3>
+              <p>High-impact synthesizer chimes when orders and customer inquiries arrive</p>
+            </div>
+          </div>
+
+          <div className="settings-body-form">
+            <div className="setting-toggle-row">
+              <div className="setting-info-block">
+                <div className="setting-title">New Order Arrival Chime</div>
+                <div className="setting-desc">Ascending 4-tone melodic fanfare (E5 &rarr; G#5 &rarr; B5 &rarr; E6) on new order placement</div>
+              </div>
+              <label className="switch" aria-label="Toggle New Order Arrival Chime">
+                <input
+                  type="checkbox"
+                  checked={effectiveSoundSettings.orderSoundEnabled}
+                  onChange={(e) => updateSoundSetting('orderSoundEnabled', e.target.checked)}
+                />
+                <span className="slider round"></span>
+              </label>
+            </div>
+
+            <div className="setting-toggle-row">
+              <div className="setting-info-block">
+                <div className="setting-title">Customer Support Ticket Chime</div>
+                <div className="setting-desc">Urgent dual-pulse emergency alert (A5 &rarr; D6) when an inquiry is submitted</div>
+              </div>
+              <label className="switch" aria-label="Toggle Customer Support Ticket Chime">
+                <input
+                  type="checkbox"
+                  checked={effectiveSoundSettings.supportSoundEnabled}
+                  onChange={(e) => updateSoundSetting('supportSoundEnabled', e.target.checked)}
+                />
+                <span className="slider round"></span>
+              </label>
+            </div>
+
+            <div className="setting-field-group">
+              <label>Chime Volume Level: <strong>{Math.round(effectiveSoundSettings.volume * 100)}%</strong></label>
+              <input
+                type="range"
+                min="0.1"
+                max="1.0"
+                step="0.05"
+                value={effectiveSoundSettings.volume}
+                onChange={(e) => updateSoundSetting('volume', parseFloat(e.target.value))}
+                className="volume-slider"
+              />
+            </div>
+
+            <div className="test-buttons-row">
+              <button type="button" className="test-action-btn" onClick={handleTestOrderSound}>
+                <Volume2 size={15} />
+                <span>Test Order Sound Now</span>
+              </button>
+              <button type="button" className="test-action-btn" onClick={handleTestSupportSound}>
+                <Headphones size={15} />
+                <span>Test Support Sound Now</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
         {/* Right Column: Authorized Territory Coverage & Model 1 Operations */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

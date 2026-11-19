@@ -153,16 +153,128 @@ export function getHubLabel(pin, explicitCity = '') {
 }
 
 /**
- * Reverse geocode GPS coordinates to Indian postal PIN and verify with India Post
- * Uses official OpenStreetMap Nominatim and BigDataCloud without any hardcoded bounding boxes.
+ * Haversine distance in kilometers between two GPS coordinates
  */
-async function reverseGeocodeCoords(lat, lon) {
-  // 1. Primary: Secure backend reverse geocoding (queries OpenStreetMap with valid server User-Agent, bypassing browser CORS/403 blocks)
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+const REGIONAL_HUB_CENTROIDS = [
+  { pincode: '635002', areaName: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', lat: 12.5266, lon: 78.2144, radiusKm: 35 },
+  { pincode: '635001', areaName: 'Krishnagiri', district: 'Krishnagiri', state: 'Tamil Nadu', lat: 12.5200, lon: 78.2200, radiusKm: 25 },
+  { pincode: '635109', areaName: 'Hosur', district: 'Krishnagiri', state: 'Tamil Nadu', lat: 12.7409, lon: 77.8253, radiusKm: 30 },
+  { pincode: '635202', areaName: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', lat: 12.1211, lon: 78.1582, radiusKm: 35 },
+  { pincode: '635201', areaName: 'Dharmapuri', district: 'Dharmapuri', state: 'Tamil Nadu', lat: 12.1300, lon: 78.1600, radiusKm: 25 },
+  { pincode: '560001', areaName: 'Bengaluru', district: 'Bengaluru', state: 'Karnataka', lat: 12.9716, lon: 77.5946, radiusKm: 30 },
+  { pincode: '600001', areaName: 'Chennai', district: 'Chennai', state: 'Tamil Nadu', lat: 13.0827, lon: 80.2707, radiusKm: 30 },
+  { pincode: '110001', areaName: 'New Delhi', district: 'New Delhi', state: 'Delhi', lat: 28.6139, lon: 77.2090, radiusKm: 30 },
+  { pincode: '400001', areaName: 'Mumbai', district: 'Mumbai', state: 'Maharashtra', lat: 18.9388, lon: 72.8354, radiusKm: 30 },
+  { pincode: '700001', areaName: 'Kolkata', district: 'Kolkata', state: 'West Bengal', lat: 22.5726, lon: 88.3639, radiusKm: 30 }
+];
+
+/**
+ * Reverse geocode GPS coordinates to Indian postal PIN and verify with India Post
+ * Uses Google Maps Geocoding API, Photon Komoot, OpenStreetMap, BigDataCloud, and regional centroids.
+ */
+export async function reverseGeocodeCoords(lat, lon) {
+  // 1. Primary: Google Maps Geocoding API (Official high-precision Indian address resolution)
+  const googleKey = (import.meta.env?.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyBCkc19U-8C5Ahfb7xuBAiV4BmcBtgKTbI').trim();
+  if (googleKey) {
+    try {
+      const gUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${googleKey}`;
+      const res = await fetch(gUrl, { signal: AbortSignal.timeout(6500) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'OK' && Array.isArray(data.results) && data.results.length > 0) {
+          let postalCode = '';
+          let locality = '';
+          let sublocality = '';
+          let district = '';
+          let state = '';
+
+          for (const result of data.results) {
+            if (!result.address_components) continue;
+            for (const comp of result.address_components) {
+              const types = comp.types || [];
+              if (!postalCode && types.includes('postal_code')) {
+                const cleaned = String(comp.long_name || comp.short_name || '').replace(/\D/g, '').trim();
+                if (/^\d{6}$/.test(cleaned)) postalCode = cleaned;
+              }
+              if (!sublocality && (types.includes('sublocality') || types.includes('sublocality_level_1') || types.includes('neighborhood'))) {
+                sublocality = comp.long_name;
+              }
+              if (!locality && (types.includes('locality') || types.includes('administrative_area_level_3'))) {
+                locality = comp.long_name;
+              }
+              if (!district && types.includes('administrative_area_level_2')) {
+                district = comp.long_name;
+              }
+              if (!state && types.includes('administrative_area_level_1')) {
+                state = comp.long_name;
+              }
+            }
+            if (postalCode) break;
+          }
+
+          if (postalCode) {
+            const city = sublocality || locality || district || 'Local Area';
+            return {
+              pincode: postalCode,
+              city: city,
+              district: district || city,
+              state: state || 'India',
+              method: 'google'
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.debug('Google Geocoding error, checking Photon fallback:', err);
+    }
+  }
+
+  // 2. Secondary: Photon Komoot Open Reverse Geocoding (100% open CORS, mobile-friendly OSM index)
+  try {
+    const photonUrl = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}`;
+    const res = await fetch(photonUrl, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const data = await res.json();
+      const feature = data.features?.[0];
+      const props = feature?.properties || {};
+      const rawPostcode = String(props.postcode || '').replace(/\D/g, '').trim();
+      const localArea = props.name || props.district || props.city || props.county || 'Local Area';
+      const city = props.city || props.county || localArea;
+      const district = props.county || props.district || city;
+      const state = props.state || 'India';
+
+      if (/^\d{6}$/.test(rawPostcode)) {
+        return {
+          pincode: rawPostcode,
+          city: localArea,
+          district: district,
+          state: state,
+          method: 'photon'
+        };
+      }
+    }
+  } catch (err) {
+    console.debug('Photon reverse geocode error:', err);
+  }
+
+  // 3. Tertiary: Secure backend reverse geocoding
   try {
     const rawApiBase = (import.meta.env.VITE_API_BASE_URL || 'https://atomy-india-1ezb.onrender.com/api').trim().replace(/\/+$/, '');
     const API_BASE = rawApiBase.endsWith('/api') ? rawApiBase : `${rawApiBase}/api`;
     const res = await fetch(`${API_BASE}/pincodes/reverse-geocode?lat=${lat}&lon=${lon}`, {
-      signal: AbortSignal.timeout(6500)
+      signal: AbortSignal.timeout(4500)
     });
     if (res.ok) {
       const data = await res.json();
@@ -172,104 +284,76 @@ async function reverseGeocodeCoords(lat, lon) {
           city: data.city,
           district: data.district,
           state: data.state,
-          method: 'gps'
+          method: 'backend'
         };
       }
     }
   } catch (err) {
-    console.debug('Backend reverse geocode error, trying client fallbacks:', err);
+    console.debug('Backend reverse geocode note:', err);
   }
 
-  // 2. Secondary: Direct OpenStreetMap Nominatim
-  try {
-    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=16&addressdetails=1`;
-    const res = await fetch(nomUrl, {
-      headers: {
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(6000)
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const addr = data.address || {};
-      let postcode = String(addr.postcode || '').replace(/\D/g, '').trim();
-
-      if (/^\d{6}$/.test(postcode)) {
-        const localArea = addr.suburb || addr.neighbourhood || addr.village || addr.town || addr.city || addr.county || 'Your Area';
-        const district = addr.state_district || addr.county || localArea;
-        const state = addr.state || 'India';
-        const postalInfo = await lookupPostalPincode(postcode);
-
-        return {
-          pincode: postcode,
-          city: postalInfo?.areaName || localArea,
-          district: postalInfo?.district || district,
-          state: postalInfo?.state || state,
-          method: 'gps'
-        };
-      }
-    }
-  } catch (err) {
-    console.debug('Nominatim reverse geocode error:', err);
-  }
-
-  // 2. Secondary: BigDataCloud reverse geocode client
+  // 4. Quaternary: BigDataCloud reverse geocode client with India Post PostOffice resolution
   try {
     const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const data = await res.json();
       let rawPostcode = String(data.postcode || '').replace(/\D/g, '').trim();
-      const localArea = data.locality || data.city || data.principalSubdivision || 'Your Area';
+      const locality = data.locality || data.city || '';
       const state = data.principalSubdivision || 'India';
 
       if (/^\d{6}$/.test(rawPostcode)) {
         const postalInfo = await lookupPostalPincode(rawPostcode);
         return {
           pincode: rawPostcode,
-          city: postalInfo?.areaName || localArea,
-          district: postalInfo?.district || data.city || localArea,
+          city: postalInfo?.areaName || locality || 'Local Area',
+          district: postalInfo?.district || data.city || locality,
           state: postalInfo?.state || state,
-          method: 'gps'
+          method: 'bigdatacloud'
         };
+      }
+
+      // If postcode was blank (common in India for BigDataCloud), resolve via India Post using locality/city
+      if (locality) {
+        try {
+          const poRes = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(locality)}`, {
+            signal: AbortSignal.timeout(4000)
+          });
+          if (poRes.ok) {
+            const poData = await poRes.json();
+            if (Array.isArray(poData) && poData[0]?.Status === 'Success' && Array.isArray(poData[0]?.PostOffice) && poData[0].PostOffice.length > 0) {
+              const matched = poData[0].PostOffice[0];
+              const resolvedPin = String(matched.Pincode || '').trim();
+              if (/^\d{6}$/.test(resolvedPin)) {
+                return {
+                  pincode: resolvedPin,
+                  city: matched.Name || locality,
+                  district: matched.District || locality,
+                  state: matched.State || state,
+                  method: 'bdc_indiapost'
+                };
+              }
+            }
+          }
+        } catch {}
       }
     }
   } catch (err) {
-    console.debug('BigDataCloud reverse geocode error:', err);
+    console.debug('BigDataCloud error:', err);
   }
 
-  // 3. Tertiary: OpenStreetMap Nominatim broader postal zone search (zoom 14)
-  try {
-    const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=14&addressdetails=1`;
-    const res = await fetch(nomUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'AtomyIndiaCommerce/2.0 (contact@atomy.in)'
-      },
-      signal: AbortSignal.timeout(5000)
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const addr = data.address || {};
-      let postcode = String(addr.postcode || '').replace(/\D/g, '').trim();
-
-      if (/^\d{6}$/.test(postcode)) {
-        const localArea = addr.town || addr.village || addr.city || addr.county || 'Your Area';
-        const district = addr.state_district || addr.county || localArea;
-        const state = addr.state || 'India';
-        const postalInfo = await lookupPostalPincode(postcode);
-
-        return {
-          pincode: postcode,
-          city: postalInfo?.areaName || localArea,
-          district: postalInfo?.district || district,
-          state: postalInfo?.state || state,
-          method: 'gps'
-        };
-      }
+  // 5. Quinary: Regional Hub GPS Centroid Proximity Match
+  for (const hub of REGIONAL_HUB_CENTROIDS) {
+    const distance = getDistanceFromLatLonInKm(lat, lon, hub.lat, hub.lon);
+    if (distance <= hub.radiusKm) {
+      return {
+        pincode: hub.pincode,
+        city: hub.areaName,
+        district: hub.district,
+        state: hub.state,
+        method: 'proximity'
+      };
     }
-  } catch (err) {
-    console.debug('Nominatim broader search error:', err);
   }
 
   return null;

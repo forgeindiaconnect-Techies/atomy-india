@@ -5075,11 +5075,11 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
                           <div className="settings-body-form">
                             <div className="setting-toggle-row">
-                              <div>
+                              <div className="setting-info-block">
                                 <div className="setting-title">New Order Arrival Chime</div>
                                 <div className="setting-desc">Ascending 4-tone melodic fanfare (E5 &rarr; G#5 &rarr; B5 &rarr; E6) on new order placement</div>
                               </div>
-                              <label className="switch">
+                              <label className="switch" aria-label="Toggle New Order Arrival Chime">
                                 <input
                                   type="checkbox"
                                   checked={soundSettings.orderSoundEnabled}
@@ -5090,11 +5090,11 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                             </div>
 
                             <div className="setting-toggle-row">
-                              <div>
+                              <div className="setting-info-block">
                                 <div className="setting-title">Customer Support Ticket Chime</div>
                                 <div className="setting-desc">Urgent dual-pulse emergency alert (A5 &rarr; D6) when an inquiry is submitted</div>
                               </div>
-                              <label className="switch">
+                              <label className="switch" aria-label="Toggle Customer Support Ticket Chime">
                                 <input
                                   type="checkbox"
                                   checked={soundSettings.supportSoundEnabled}
@@ -5529,53 +5529,53 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               selectedOrderDetail.cancellationReason ||
               selectedOrderDetail.returnReason
             ) && (
-              <div style={{
-                background: '#fff1f2',
-                border: '1.5px solid #fecdd3',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                marginBottom: '18px',
-                boxShadow: '0 2px 8px rgba(225, 29, 72, 0.06)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#be123c', fontWeight: 800, fontSize: '14px' }}>
-                    <AlertTriangle size={18} />
-                    <span>CUSTOMER CANCELLATION & REFUND AUDIT</span>
-                  </div>
-                  <span style={{
-                    background: '#ffe4e6',
-                    color: '#9f1239',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: '20px',
-                    textTransform: 'uppercase'
-                  }}>
-                    {selectedOrderDetail.orderStatus || 'CANCELLED'}
-                  </span>
-                </div>
-
-                <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #ffe4e6', marginBottom: '10px' }}>
-                  <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Reason Provided by Customer:
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#9f1239', lineHeight: '1.4' }}>
-                    "{selectedOrderDetail.cancelReason || selectedOrderDetail.cancellationReason || selectedOrderDetail.returnReason || 'Ordered by mistake / Change of mind'}"
-                  </div>
-                  {selectedOrderDetail.cancelNotes && (
-                    <div style={{ marginTop: '8px', fontSize: '12.5px', color: '#334155', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #f43f5e' }}>
-                      <strong style={{ color: '#0f172a' }}>Customer Note:</strong> {selectedOrderDetail.cancelNotes}
+                <div style={{
+                  background: '#fff1f2',
+                  border: '1.5px solid #fecdd3',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginBottom: '18px',
+                  boxShadow: '0 2px 8px rgba(225, 29, 72, 0.06)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#be123c', fontWeight: 800, fontSize: '14px' }}>
+                      <AlertTriangle size={18} />
+                      <span>CUSTOMER CANCELLATION & REFUND AUDIT</span>
                     </div>
-                  )}
-                </div>
+                    <span style={{
+                      background: '#ffe4e6',
+                      color: '#9f1239',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: '20px',
+                      textTransform: 'uppercase'
+                    }}>
+                      {selectedOrderDetail.orderStatus || 'CANCELLED'}
+                    </span>
+                  </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: '#881337', fontWeight: 500 }}>
-                  <span>• <strong>Cancelled On:</strong> {selectedOrderDetail.cancelledAt ? new Date(selectedOrderDetail.cancelledAt).toLocaleString('en-IN') : 'Recent'}</span>
-                  <span>• <strong>Refund Settlement:</strong> 100% Refund Approved</span>
-                  <span>• <strong>Payment Reversal:</strong> Auto-credited to Source Account</span>
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #ffe4e6', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Reason Provided by Customer:
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#9f1239', lineHeight: '1.4' }}>
+                      "{selectedOrderDetail.cancelReason || selectedOrderDetail.cancellationReason || selectedOrderDetail.returnReason || 'Ordered by mistake / Change of mind'}"
+                    </div>
+                    {selectedOrderDetail.cancelNotes && (
+                      <div style={{ marginTop: '8px', fontSize: '12.5px', color: '#334155', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #f43f5e' }}>
+                        <strong style={{ color: '#0f172a' }}>Customer Note:</strong> {selectedOrderDetail.cancelNotes}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: '#881337', fontWeight: 500 }}>
+                    <span>• <strong>Cancelled On:</strong> {selectedOrderDetail.cancelledAt ? new Date(selectedOrderDetail.cancelledAt).toLocaleString('en-IN') : 'Recent'}</span>
+                    <span>• <strong>Refund Settlement:</strong> 100% Refund Approved</span>
+                    <span>• <strong>Payment Reversal:</strong> Auto-credited to Source Account</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Live Animated Delivery Stepper matching Customer Experience */}
             <div className="inspection-card stepper-card">
@@ -5598,8 +5598,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                 <div className="meta-card-main">
                   {(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.pickupStatus || selectedOrderDetail.isPickup)
                     ? (selectedOrderDetail.hubAddress
-                        ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
-                        : (selectedOrderDetail.assignedDistributorName ? `${selectedOrderDetail.assignedDistributorName} Counter (PIN: ${selectedOrderDetail.pincode || '635002'})` : 'Regional Hub Pickup Counter'))
+                      ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                      : (selectedOrderDetail.assignedDistributorName ? `${selectedOrderDetail.assignedDistributorName} Counter (PIN: ${selectedOrderDetail.pincode || '635002'})` : 'Regional Hub Pickup Counter'))
                     : selectedOrderDetail.shippingAddress}
                 </div>
                 <div className="meta-card-sub">

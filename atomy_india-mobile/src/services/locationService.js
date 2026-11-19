@@ -116,11 +116,102 @@ export function getShortLocationLabel(pin, explicitCity = '') {
   return `Area (${p})`;
 }
 
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBCkc19U-8C5Ahfb7xuBAiV4BmcBtgKTbI';
+
 /**
  * Reverse geocode coordinates to Indian postal PIN and verify
  */
 async function reverseGeocodeCoords(lat, lon) {
-  // 1. Primary: Server-side reverse geocoding via Atomy API (uses OpenStreetMap with server User-Agent)
+  // 1. Primary: Google Maps Geocoding API
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6500);
+    const gUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${GOOGLE_MAPS_API_KEY}`;
+    const res = await fetch(gUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.status === 'OK' && Array.isArray(data.results) && data.results.length > 0) {
+        let postalCode = '';
+        let locality = '';
+        let sublocality = '';
+        let district = '';
+        let state = '';
+
+        for (const result of data.results) {
+          if (!result.address_components) continue;
+          for (const comp of result.address_components) {
+            const types = comp.types || [];
+            if (!postalCode && types.includes('postal_code')) {
+              const cleaned = String(comp.long_name || comp.short_name || '').replace(/\D/g, '').trim();
+              if (/^\d{6}$/.test(cleaned)) postalCode = cleaned;
+            }
+            if (!sublocality && (types.includes('sublocality') || types.includes('sublocality_level_1') || types.includes('neighborhood'))) {
+              sublocality = comp.long_name;
+            }
+            if (!locality && (types.includes('locality') || types.includes('administrative_area_level_3'))) {
+              locality = comp.long_name;
+            }
+            if (!district && types.includes('administrative_area_level_2')) {
+              district = comp.long_name;
+            }
+            if (!state && types.includes('administrative_area_level_1')) {
+              state = comp.long_name;
+            }
+          }
+          if (postalCode) break;
+        }
+
+        if (postalCode) {
+          const city = sublocality || locality || district || 'Local Area';
+          return {
+            pincode: postalCode,
+            city,
+            district: district || city,
+            state: state || 'India',
+            method: 'google',
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.debug('Mobile Google Geocoding note:', err);
+  }
+
+  // 2. Secondary: Photon Komoot Open Reverse Geocoding (100% open CORS, mobile-friendly)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const photonUrl = `https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}`;
+    const res = await fetch(photonUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      const feature = data.features?.[0];
+      const props = feature?.properties || {};
+      const rawPostcode = String(props.postcode || '').replace(/\D/g, '').trim();
+      const localArea = props.name || props.district || props.city || props.county || 'Local Area';
+      const city = props.city || props.county || localArea;
+      const district = props.county || props.district || city;
+      const state = props.state || 'India';
+
+      if (/^\d{6}$/.test(rawPostcode)) {
+        return {
+          pincode: rawPostcode,
+          city: localArea,
+          district,
+          state,
+          method: 'photon',
+        };
+      }
+    }
+  } catch (err) {
+    console.debug('Mobile Photon reverse geocode error:', err);
+  }
+
+  // 3. Tertiary: Server-side reverse geocoding via Atomy API (uses OpenStreetMap with server User-Agent)
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6500);
@@ -143,7 +234,7 @@ async function reverseGeocodeCoords(lat, lon) {
     console.debug('Mobile backend reverse geocode note, trying direct Nominatim:', err?.message || err);
   }
 
-  // 2. Secondary: OpenStreetMap Nominatim with street/suburb precision & addressdetails
+  // 4. Quaternary: OpenStreetMap Nominatim with street/suburb precision & addressdetails
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);

@@ -4,6 +4,7 @@ import { GSGS_PRODUCTS, GST_BADGE_IMAGE } from '../../data/mockData';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
 import { getProductStats } from '../../services/productStatsService';
 import ProductPriceDisplay from './ProductPriceDisplay';
+import ProductCornerRibbon, { getProductRibbonInfo } from './ProductCornerRibbon';
 import './ProductSection.css';
 
 export default function GsgsSection({
@@ -61,6 +62,7 @@ export default function GsgsSection({
               const stats = getProductStats(product, isLiked);
               const likesCount = stats.likes;
               const isOutOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
+              const { showRibbon } = getProductRibbonInfo(product, isMember);
 
               return (
                 <div key={product.id} className="product-card gsgs-product-card" style={isOutOfStock ? { opacity: 0.6 } : {}}>
@@ -98,19 +100,7 @@ export default function GsgsSection({
                       onClick={() => onProductClick && onProductClick(product)}
                       style={{ cursor: 'pointer', opacity: isOutOfStock ? 0.6 : 1, filter: isOutOfStock ? 'grayscale(20%)' : 'none' }}
                     />
-                    <button
-                      className="product-cart-quick-btn"
-                      disabled={isOutOfStock}
-                      style={isOutOfStock ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
-                      onClick={() => {
-                        if (isOutOfStock) return;
-                        onAddToCart && onAddToCart(product);
-                      }}
-                      aria-label={isOutOfStock ? `${product.name} is out of stock in your area` : `Add ${product.name} to cart`}
-                      title={isOutOfStock ? "Out of Stock in your area" : "Add to Cart"}
-                    >
-                      <ShoppingCart size={18} />
-                    </button>
+                    <ProductCornerRibbon product={product} isMember={isMember} />
                   </div>
 
                   <div className="product-info-wrap">
@@ -123,7 +113,7 @@ export default function GsgsSection({
                     >
                       {product.name}
                     </h3>
-                    <ProductPriceDisplay product={product} isMember={isMember} />
+                    <ProductPriceDisplay product={product} isMember={isMember} hidePercentBadge={showRibbon} />
 
                     <div className="product-meta-row">
                       <div className="likes-counter">
@@ -150,6 +140,30 @@ export default function GsgsSection({
                           ))}
                       </div>
                     )}
+
+                    <div className="product-card-footer-row">
+                      <div className="product-footer-left">
+                        {product.freeDelivery && (
+                          <span className="free-delivery-badge">Free Delivery</span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="product-cart-quick-btn"
+                        disabled={isOutOfStock}
+                        style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isOutOfStock) return;
+                          onAddToCart && onAddToCart(product);
+                        }}
+                        aria-label={isOutOfStock ? `${product.name} is out of stock in your area` : `Add ${product.name} to cart`}
+                        title={isOutOfStock ? "Out of Stock in your area" : "Add to Cart"}
+                      >
+                        <ShoppingCart size={20} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

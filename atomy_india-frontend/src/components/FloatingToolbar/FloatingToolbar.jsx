@@ -65,8 +65,6 @@ export function MenuToggleIcon({ isOpen = false, size = 24 }) {
 }
 
 export default function FloatingToolbar() {
-  const [hoveredItem, setHoveredItem] = useState(null);
-
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -87,12 +85,8 @@ export default function FloatingToolbar() {
         <button
           type="button"
           onClick={scrollToTop}
-          className="floating-btn"
+          className="floating-btn btn-top"
           aria-label="Scroll to Top"
-          onMouseEnter={() => setHoveredItem('top')}
-          onMouseLeave={() => setHoveredItem(null)}
-          onTouchStart={() => setHoveredItem('top')}
-          onTouchEnd={() => setHoveredItem(null)}
         >
           <svg className="arrow-icon" width="16" height="16" viewBox="0 0 14 14" fill="none">
             <path
@@ -103,9 +97,6 @@ export default function FloatingToolbar() {
               strokeLinejoin="round"
             />
           </svg>
-          <span className={`tooltip-label ${hoveredItem === 'top' ? 'visible' : ''}`}>
-            Top
-          </span>
         </button>
       </div>
 
@@ -114,12 +105,8 @@ export default function FloatingToolbar() {
         <button
           type="button"
           onClick={scrollToBottom}
-          className="floating-btn"
+          className="floating-btn btn-bottom"
           aria-label="Scroll to Bottom"
-          onMouseEnter={() => setHoveredItem('bottom')}
-          onMouseLeave={() => setHoveredItem(null)}
-          onTouchStart={() => setHoveredItem('bottom')}
-          onTouchEnd={() => setHoveredItem(null)}
         >
           <svg className="arrow-icon" width="16" height="16" viewBox="0 0 14 14" fill="none">
             <path
@@ -130,9 +117,6 @@ export default function FloatingToolbar() {
               strokeLinejoin="round"
             />
           </svg>
-          <span className={`tooltip-label ${hoveredItem === 'bottom' ? 'visible' : ''}`}>
-            Bottom
-          </span>
         </button>
       </div>
     </aside>
