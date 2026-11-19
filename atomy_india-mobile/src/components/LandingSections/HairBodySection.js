@@ -58,7 +58,7 @@ export default function HairBodySection({
       <View style={styles.headerBlock}>
         <View style={styles.headerTopRow}>
           <View style={styles.titleCol}>
-            <Text style={styles.mainTitle}>{"Atomy India Hair & Body\nEssential"}</Text>
+            <Text style={styles.mainTitle}>{"Hair & Body\nEssential"}</Text>
             <Text style={styles.subTitle}>Essential Quality for Head-to-Toe Wellness</Text>
           </View>
 

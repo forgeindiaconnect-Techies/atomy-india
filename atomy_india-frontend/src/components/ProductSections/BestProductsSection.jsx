@@ -123,7 +123,7 @@ export default function BestProductsSection({
       <div className="container">
         {/* Section Header */}
         <div className="section-header-block">
-          <h2 className="section-main-title">Atomy India Shopping Mall BEST</h2>
+          <h2 className="section-main-title">Shopping Mall BEST</h2>
           <p className="section-sub-title">Absolute Quality Absolute Price</p>
         </div>
 

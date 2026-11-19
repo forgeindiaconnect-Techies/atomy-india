@@ -60,7 +60,7 @@ export default function GsgsSection({
       <View style={styles.headerBlock}>
         <View style={styles.headerTopRow}>
           <View style={styles.titleCol}>
-            <Text style={styles.mainTitle}>Atomy India GSGS Product</Text>
+            <Text style={styles.mainTitle}>GSGS Product</Text>
             <Text style={styles.subTitle}>Global Sourcing, Global Sales Excellence</Text>
           </View>
 

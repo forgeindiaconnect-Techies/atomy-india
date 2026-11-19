@@ -42,7 +42,7 @@ export default function GsgsSection({
       <div className="container">
         {/* Section Header */}
         <div className="section-header-block">
-          <h2 className="section-main-title">Atomy India GSGS Product</h2>
+          <h2 className="section-main-title">GSGS Product</h2>
           <p className="section-sub-title">Where Local Meets World-Class</p>
         </div>
 

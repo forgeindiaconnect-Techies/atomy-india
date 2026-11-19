@@ -42,7 +42,7 @@ export default function HairBodySection({
       <div className="container">
         {/* Section Header */}
         <div className="section-header-block">
-          <h2 className="section-main-title">Atomy India Hair & Body Essential</h2>
+          <h2 className="section-main-title">Hair & Body Essential</h2>
           <p className="section-sub-title">Essential Quality for Head-to-Toe Wellness</p>
         </div>
 

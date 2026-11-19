@@ -30,7 +30,7 @@ export default function FoodEssentialSection({
     <View style={styles.sectionContainer}>
       {/* Section Header matching Image 2 */}
       <View style={styles.headerBlock}>
-        <Text style={styles.mainTitle}>{"Atomy Food\nEssential"}</Text>
+        <Text style={styles.mainTitle}>{"Food\nEssential"}</Text>
         <Text style={styles.subTitle}>The Foundation of Your Daily Wellness</Text>
       </View>
 

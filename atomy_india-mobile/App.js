@@ -2044,7 +2044,7 @@ export default function App() {
               {/* 6. Atomy Absolute Skincare set (Brand Showcase + Banner) */}
               <BrandShowcaseSection
                 key={`skincare-${catalogVersion}`}
-                title="Atomy Absolute Skincare set"
+                title="Absolute Skincare set"
                 subtitle="Recapture The Skin of Your Youth"
                 bannerImage={ABSOLUTE_SKINCARE_BANNER}
                 products={ABSOLUTE_SKINCARE_PRODUCTS}
@@ -2085,7 +2085,7 @@ export default function App() {
               {/* 10. Atomy India Health Essential (Brand Showcase + Banner) */}
               <BrandShowcaseSection
                 key={`health-${catalogVersion}`}
-                title={"Atomy India Health\nEssential"}
+                title={"Health\nEssential"}
                 subtitle="Your Daily Dose of Exceptional Health"
                 bannerImage={HEALTH_ESSENTIAL_BANNER}
                 products={HEALTH_ESSENTIAL_PRODUCTS}

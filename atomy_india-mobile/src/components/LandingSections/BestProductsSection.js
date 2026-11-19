@@ -236,7 +236,7 @@ function BestProductsSection({
     <View style={styles.sectionContainer}>
       {/* Section Header */}
       <View style={styles.headerBlock}>
-        <Text style={styles.mainTitle}>{'Atomy India Shopping Mall\nBEST'}</Text>
+        <Text style={styles.mainTitle}>{'Shopping Mall\nBEST'}</Text>
         <Text style={styles.subTitle}>Absolute Quality Absolute Price</Text>
       </View>
 

@@ -20,7 +20,7 @@ export default function FoodEssentialSection({ onAddToCart, onProductClick, isMe
         <div className="food-essential-wrap">
           {/* Left Title Column */}
           <div className="food-essential-title-col">
-            <h2 className="food-section-title">Atomy Food Essential</h2>
+            <h2 className="food-section-title">Food Essential</h2>
             <p className="food-section-subtitle">The Foundation of Your Daily Wellness</p>
           </div>
 
