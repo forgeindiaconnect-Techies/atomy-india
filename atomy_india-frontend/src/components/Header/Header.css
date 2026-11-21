@@ -22,7 +22,7 @@ body.mobile-drawer-open {
 /* 1. Main Brand & Search Header Bar */
 .main-header-bar {
   background-color: var(--atomy-header-bg, #0059b3);
-  padding: 12px 0 16px;
+  padding: 8px 0 6px;
   color: #ffffff;
   position: relative;
   overflow: visible !important;
@@ -53,7 +53,7 @@ body.mobile-drawer-open {
   display: flex;
   justify-content: flex-end;
   width: 100%;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .top-utility-links {
@@ -574,14 +574,14 @@ body.mobile-drawer-open {
 }
 
 .brand-logo-circle {
-  width: 90px;
-  height: 90px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.17);
   flex-shrink: 0;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -589,7 +589,7 @@ body.mobile-drawer-open {
 
 .brand-col-logo:hover .brand-logo-circle {
   transform: scale(1.04);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22);
 }
 
 .brand-logo-circle .brand-logo-img {
