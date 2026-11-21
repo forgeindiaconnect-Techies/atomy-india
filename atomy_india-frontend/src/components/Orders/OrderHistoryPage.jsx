@@ -262,6 +262,59 @@ export const resolveOrderDestination = (order) => {
   };
 };
 
+export const resolveOrderHub = (order) => {
+  if (!order) {
+    return {
+      hubName: "Krishnagiri Regional Logistics Hub",
+      hubAddress: "12, Krishnagiri Indl. Estate, Krishnagiri, Tamil Nadu - 635002",
+      hubPhone: "+91 98765 43234",
+      hubEmail: "hub.krishnagiri@atomy.in",
+      hubOperatingHours: "Mon – Sat: 9:00 AM – 8:00 PM"
+    };
+  }
+
+  // 1. Direct fields from order
+  let hubName = order.hubName || order.assignedDistributorName || "";
+  let hubAddress = order.hubAddress || "";
+  let hubPhone = order.hubPhone || "";
+  let hubEmail = order.hubEmail || "";
+  let hubOperatingHours = order.hubOperatingHours || "Mon – Sat: 9:00 AM – 8:00 PM";
+
+  // 2. Parse from shipping address if pickup string
+  if (!hubName && typeof order.shippingAddress === "string" && order.shippingAddress.includes("Hub")) {
+    const parts = order.shippingAddress.split("—");
+    hubName = parts[0]?.replace(/Pickup Counter:/i, "").trim() || "";
+    if (parts[1]) hubAddress = parts[1].trim();
+  }
+
+  // 3. Dynamic resolution based on order destination city/district/pincode
+  const destCity = order.city || order.shippingAddress?.city || order.address?.city ||
+    (typeof order.shippingAddress === "string" && order.shippingAddress.includes("Krishnagiri") ? "Krishnagiri" : "Krishnagiri");
+  const destState = order.state || order.shippingAddress?.state || order.address?.state || "Tamil Nadu";
+  const destPin = order.pincode || order.shippingAddress?.pincode || order.address?.pincode || "635002";
+
+  if (!hubName || hubName === "Central Super Admin Hub" || hubName === "Central Logistics Hub") {
+    hubName = `${destCity} Regional Logistics Hub`;
+  }
+  if (!hubAddress) {
+    hubAddress = `12, Krishnagiri Indl. Estate, ${destCity}, ${destState} - ${destPin}`;
+  }
+  if (!hubPhone) {
+    hubPhone = "+91 98765 43234";
+  }
+  if (!hubEmail) {
+    hubEmail = `hub.${destCity.toLowerCase().replace(/[^a-z0-9]/g, "")}@atomy.in`;
+  }
+
+  return {
+    hubName,
+    hubAddress,
+    hubPhone,
+    hubEmail,
+    hubOperatingHours
+  };
+};
+
 export default function OrderHistoryPage({
   onNavigateHome,
   onAddToCart,
@@ -1085,6 +1138,7 @@ export default function OrderHistoryPage({
 
     // Shipping Address Details
     const dest = resolveOrderDestination(order);
+    const hub = resolveOrderHub(order);
     const recipient = dest.recipient;
     const phone = dest.phone || 'N/A';
     const destinationLocation = dest.fullAddress;
@@ -1334,15 +1388,16 @@ export default function OrderHistoryPage({
                   ${dest.isPickup ? "PICKUP LOCATION (REGIONAL HUB):" : "Dispatched By (Logistics Hub):"}
                 </div>
                 ${dest.isPickup ? `
-                  <strong style="color: #0f172a; font-size: 13px;">${dest.hubName}</strong><br/>
-                  <span style="font-size: 12px; color: #475569;">${dest.hubAddress}</span><br/>
+                  <strong style="color: #0f172a; font-size: 13px;">${hub.hubName}</strong><br/>
+                  <span style="font-size: 12px; color: #475569;">${hub.hubAddress}</span><br/>
                   <span style="font-size: 11px; color: #0284c7; font-weight: 700; display: inline-block; margin-top: 4px;">Direct Store Pickup • In-Person Collection Desk</span><br/>
-                  <span style="font-size: 11px; color: #64748b;">Present Order ID / OTP at counter to claim shipment</span>
+                  <span style="font-size: 11px; color: #64748b;">Hub Helpline: ${hub.hubPhone} • Hours: ${hub.hubOperatingHours}</span>
                 ` : `
-                  <strong style="color: #0f172a; font-size: 13px;">Atomy Authorized Regional Fulfillment Center</strong><br/>
+                  <strong style="color: #0f172a; font-size: 13px;">${hub.hubName}</strong><br/>
+                  <span style="font-size: 12px; color: #475569;">📍 ${hub.hubAddress}</span><br/>
                   <span style="font-size: 12px; color: #475569;">Carrier Partner: ${courierPartner}</span><br/>
                   <span style="font-size: 12px; color: #475569;">Official Waybill Tracking ID: <strong>${trackingNumber}</strong></span><br/>
-                  <span style="font-size: 11px; color: #64748b;">Support: 1800-123-2866 • support@atomyindia.com</span>
+                  <span style="font-size: 11px; color: #64748b;">Hub Helpline: ${hub.hubPhone} • Email: ${hub.hubEmail}</span>
                 `}
               </td>
               <td style="width: 50%; vertical-align: top; padding-left: 14px; border-left: 1px solid #cbd5e1;">
@@ -1683,7 +1738,7 @@ export default function OrderHistoryPage({
                       )}
                     </div>
 
-                    <div className="order-header-badges">
+                    <div className="order-header-badges" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       {isPickup ? (
                         <span style={{
                           display: 'inline-flex',
@@ -2606,6 +2661,7 @@ export default function OrderHistoryPage({
 
               {(() => {
                 const dest = resolveOrderDestination(activeInvoiceOrder);
+                const hub = resolveOrderHub(activeInvoiceOrder);
                 const isPickup = dest.isPickup;
 
                 return isPickup ? (
@@ -2625,12 +2681,14 @@ export default function OrderHistoryPage({
                         <span>🏬</span>
                         <span>REGIONAL HUB PICKUP COUNTER:</span>
                       </div>
-                      <strong style={{ fontSize: "14px", color: "#0f172a", display: "block" }}>{dest.hubName}</strong>
+                      <strong style={{ fontSize: "14px", color: "#0f172a", display: "block" }}>{dest.hubName || hub.hubName}</strong>
                       <div style={{ marginTop: "4px", color: "#334155", fontSize: "13px", lineHeight: "1.5" }}>
-                        {dest.hubAddress}
+                        {dest.hubAddress || hub.hubAddress}
                       </div>
-                      <div style={{ marginTop: "6px", fontSize: "11.5px", color: "#0369a1", fontWeight: 600 }}>
-                        ✓ In-Person Collection Desk • Present OTP or Order ID at counter to collect parcel
+                      <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "11.5px", color: "#0369a1", fontWeight: 600 }}>
+                        <span>✓ In-Person Collection Desk • Present OTP or Order ID to collect</span>
+                        {hub.hubPhone && <span>📞 <strong>Hub Helpline:</strong> {hub.hubPhone}</span>}
+                        {hub.hubOperatingHours && <span>⏰ <strong>Hours:</strong> {hub.hubOperatingHours}</span>}
                       </div>
                     </div>
 
@@ -2649,22 +2707,50 @@ export default function OrderHistoryPage({
                     </div>
                   </div>
                 ) : (
-                  <div className="invoice-shipping-box">
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                      <span className="shipping-box-label" style={{ fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0 }}>
-                        🚚 DELIVERY LOCATION:
-                      </span>
-                      <span style={{ background: "#f1f5f9", color: "#475569", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                        Doorstep Delivery
-                      </span>
+                  <>
+                    {/* Dispatching Logistics Hub (Dynamic) */}
+                    <div className="invoice-shipping-box" style={{ background: "#f8fafc", borderColor: "#cbd5e1", marginBottom: "12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                        <span className="shipping-box-label" style={{ color: "#0284c7", fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span>🏬</span>
+                          <span>DISPATCHING LOGISTICS HUB:</span>
+                        </span>
+                        <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", border: "1px solid #bae6fd" }}>
+                          Authorized Regional Hub
+                        </span>
+                      </div>
+                      <strong style={{ fontSize: "14px", color: "#0f172a", display: "block" }}>{hub.hubName}</strong>
+                      <div style={{ marginTop: "4px", color: "#334155", fontSize: "13px", lineHeight: "1.45" }}>
+                        📍 {hub.hubAddress}
+                      </div>
+                      <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "12px", color: "#475569" }}>
+                        {hub.hubPhone && (
+                          <span>📞 <strong>Hub Helpline:</strong> {hub.hubPhone}</span>
+                        )}
+                        {hub.hubOperatingHours && (
+                          <span>⏰ <strong>Operating Hours:</strong> {hub.hubOperatingHours}</span>
+                        )}
+                      </div>
                     </div>
-                    <p className="shipping-box-text">
-                      <strong>{dest.recipient}</strong> {dest.phone && ("(" + dest.phone + ")")}<br />
-                      <span style={{ display: "block", marginTop: "4px", color: "#1e293b", fontSize: "13.5px", lineHeight: "1.5" }}>
-                        {dest.fullAddress}
-                      </span>
-                    </p>
-                  </div>
+
+                    {/* Customer Delivery Location */}
+                    <div className="invoice-shipping-box">
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                        <span className="shipping-box-label" style={{ fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0 }}>
+                          🚚 DELIVERY LOCATION:
+                        </span>
+                        <span style={{ background: "#f1f5f9", color: "#475569", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                          Doorstep Delivery
+                        </span>
+                      </div>
+                      <p className="shipping-box-text">
+                        <strong>{dest.recipient}</strong> {dest.phone && ("(" + dest.phone + ")")}<br />
+                        <span style={{ display: "block", marginTop: "4px", color: "#1e293b", fontSize: "13.5px", lineHeight: "1.5" }}>
+                          {dest.fullAddress}
+                        </span>
+                      </p>
+                    </div>
+                  </>
                 );
               })()}
 
