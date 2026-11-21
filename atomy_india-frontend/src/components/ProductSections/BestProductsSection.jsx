@@ -12,7 +12,8 @@ export default function BestProductsSection({
   onProductClick,
   isMember = false,
   favorites = [],
-  onToggleFavorite
+  onToggleFavorite,
+  cartItems = []
 }) {
   const [activeTab, setActiveTab] = useState('ALL');
   const [, setCatalogTick] = useState(0);
@@ -79,15 +80,17 @@ export default function BestProductsSection({
     setActiveTab(tab);
   };
 
-  const tabs = ['ALL', 'BEST', 'NEW', 'RECOMMENDATION', 'HEALTH', 'BEAUTY', 'LIVING', 'FOOD'];
+  const tabs = ['ALL', 'BEST', 'NEW', 'RECOMMENDATION'];
 
   const filteredProducts = BEST_PRODUCTS.filter((item) => {
     if (activeTab === 'ALL') return true;
     if (item.categoryTab && Array.isArray(item.categoryTab) && item.categoryTab.includes(activeTab)) return true;
     if (item.category && item.category.toUpperCase() === activeTab) return true;
-    if (activeTab === 'LIVING' && (item.category === 'home' || item.category === 'personal_care')) return true;
     return false;
-  });
+  }).map((item, idx) => ({
+    ...item,
+    rank: item.rank || (idx + 1)
+  }));
 
   const productsToDisplay = activeTab === 'BEST' ? shuffledBestProducts : filteredProducts;
 
@@ -145,7 +148,7 @@ export default function BestProductsSection({
                 className={`filter-tab-pill ${activeTab === tab ? 'active' : ''}`}
                 onClick={() => handleTabClick(tab)}
               >
-                {tab}
+                {tab === 'ALL' ? 'All' : tab}
               </button>
             ))}
           </div>
@@ -179,20 +182,19 @@ export default function BestProductsSection({
             className={`product-cards-slider best-products-display ${isMobile ? 'mobile-two-col-grid' : 'desktop-slider'}`}
             ref={sliderRef}
           >
-            {visibleProducts.map((product) => {
+            {visibleProducts.map((product, index) => {
               const isLiked = favorites.some((f) => f.id === product.id);
               const stats = getProductStats(product, isLiked);
               const likesCount = stats.likes;
               const isOutOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
               const { showRibbon } = getProductRibbonInfo(product, isMember);
+              const displayRank = product.rank || (index + 1);
 
               return (
                 <div key={product.id} className="product-card" style={isOutOfStock ? { opacity: 0.6 } : {}}>
                   {/* Product Image Box */}
                   <div className="product-img-wrap">
-                    {product.rank && (
-                      <div className="product-rank-badge">{product.rank}</div>
-                    )}
+                    <div className="product-rank-badge">{displayRank}</div>
                     {isOutOfStock && (
                       <div style={{
                         position: 'absolute',
@@ -287,21 +289,43 @@ export default function BestProductsSection({
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        className="product-cart-quick-btn"
-                        disabled={isOutOfStock}
-                        style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' } : {}}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isOutOfStock) return;
-                          onAddToCart && onAddToCart(product);
-                        }}
-                        aria-label={isOutOfStock ? `${product.name} is out of stock in your area` : `Add ${product.name} to cart`}
-                        title={isOutOfStock ? "Out of Stock in your area" : "Add to Cart"}
-                      >
-                        <ShoppingCart size={18} />
-                      </button>
+                      {(() => {
+                        const isInCart = Boolean(
+                          cartItems &&
+                          cartItems.some(
+                            (item) =>
+                              String(item.id) === String(product.id) ||
+                              (product.code && String(item.code || item.itemCode) === String(product.code || product.itemCode))
+                          )
+                        );
+                        return (
+                          <button
+                            type="button"
+                            className={`product-cart-quick-btn ${isInCart ? 'in-cart' : ''}`}
+                            disabled={isOutOfStock}
+                            style={
+                              isOutOfStock
+                                ? { opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' }
+                                : (isInCart
+                                  ? { background: '#00b6f0', borderColor: '#00b6f0', color: '#ffffff' }
+                                  : {})
+                            }
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isOutOfStock) return;
+                              onAddToCart && onAddToCart(product);
+                            }}
+                            aria-label={
+                              isOutOfStock
+                                ? `${product.name} is out of stock in your area`
+                                : (isInCart ? `${product.name} is already in cart` : `Add ${product.name} to cart`)
+                            }
+                            title={isOutOfStock ? "Out of Stock in your area" : (isInCart ? "Already in Cart" : "Add to Cart")}
+                          >
+                            <ShoppingCart size={18} />
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

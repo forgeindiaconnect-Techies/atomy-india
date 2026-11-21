@@ -1065,21 +1065,19 @@ export default function App() {
       image: product.image || product.img,
     };
 
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
-        );
-      }
-      return [
-        ...prev,
-        {
-          ...enrichedProduct,
-          qty: 1,
-        },
-      ];
-    });
+    const existing = cart.find((item) => item.id === product.id);
+    if (existing) {
+      showToast(`"${product.name}" is already in your cart!`);
+      return;
+    }
+
+    setCart((prev) => [
+      ...prev,
+      {
+        ...enrichedProduct,
+        qty: 1,
+      },
+    ]);
     showToast(`Added "${product.name}" to Cart!`);
   };
 

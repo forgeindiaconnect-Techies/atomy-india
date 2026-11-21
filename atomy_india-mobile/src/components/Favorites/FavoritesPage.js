@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   discountBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#DCFCE7',
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 3,
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
   discountBadgeText: {
     fontSize: 9.5,
     fontWeight: '800',
-    color: '#DC2626',
+    color: '#15803D',
   },
   dpBadge: {
     backgroundColor: '#ECFDF5',

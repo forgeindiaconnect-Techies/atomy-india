@@ -86,6 +86,35 @@ export default function CustomerProfilePage({
     }
   };
 
+  // Helper to ensure DOB year is strictly 4 digits (e.g. cleans 200008-03-08 -> 2000-03-08, and handles ISO/DMY)
+  const cleanDob = (dobStr) => {
+    if (!dobStr) return '';
+    const str = String(dobStr).trim().split('T')[0].split(' ')[0];
+
+    // Check YYYY-MM-DD or YYYY...-MM-DD
+    const isoMatch = str.match(/^(\d{4,8})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (isoMatch) {
+      let year = isoMatch[1];
+      if (year.length > 4) {
+        year = year.slice(0, 4);
+      }
+      const month = isoMatch[2].padStart(2, '0');
+      const day = isoMatch[3].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Check DD-MM-YYYY or DD/MM/YYYY
+    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if (dmyMatch) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const month = dmyMatch[2].padStart(2, '0');
+      const year = dmyMatch[3];
+      return `${year}-${month}-${day}`;
+    }
+
+    return str;
+  };
+
   const memEnrolled = currentUser?.membership?.startDate || currentUser?.membership?.joinedAt || currentUser?.membership?.createdAt || (hasActiveMembership ? '2026-10-24T12:32:55' : null);
   let memExpiry = (typeof currentUser?.membership?.expiryDate === 'string' || currentUser?.membership?.expiryDate instanceof Date)
     ? currentUser.membership.expiryDate
@@ -548,6 +577,20 @@ export default function CustomerProfilePage({
       }
     }
 
+    // Strict validation for Date of Birth: year must be exactly 4 digits between 1900 and current year
+    if (profileForm.dob && profileForm.dob.trim()) {
+      const sanitizedDob = cleanDob(profileForm.dob);
+      const parts = sanitizedDob.split('-');
+      const yearStr = parts[0] || '';
+      const year = parseInt(yearStr, 10);
+      const currentYear = new Date().getFullYear();
+
+      if (yearStr.length !== 4 || isNaN(year) || year < 1900 || year > currentYear) {
+        alert(`Please enter a valid 4-digit birth year between 1900 and ${currentYear}.`);
+        return;
+      }
+    }
+
     setIsSavingProfile(true);
 
     const updatedUser = {
@@ -557,7 +600,7 @@ export default function CustomerProfilePage({
       email: (profileForm.email || currentUser?.email || '').trim(),
       phone: normalizeIndianMobile(profileForm.phone),
       gender: profileForm.gender,
-      dob: profileForm.dob
+      dob: cleanDob(profileForm.dob)
     };
 
     try {
@@ -584,12 +627,21 @@ export default function CustomerProfilePage({
         phone: saveRes.customer.phone ?? updatedUser.phone
       } : updatedUser;
 
-      // 2. Synchronize with parent state & localStorage
+      // 2. Synchronize with local profileForm state, parent state & localStorage
+      setProfileForm({
+        name: finalUser.fullName || finalUser.name || '',
+        email: finalUser.email || '',
+        phone: finalUser.phone || '',
+        gender: finalUser.gender || 'Prefer not to say',
+        dob: cleanDob(finalUser.dob || '')
+      });
+
       if (onUpdateUser) {
         onUpdateUser(finalUser);
       }
       try {
         localStorage.setItem('atomy_current_user', JSON.stringify(finalUser));
+        window.dispatchEvent(new CustomEvent('atomy:user-updated', { detail: finalUser }));
       } catch {}
 
       setIsEditingProfile(false);
@@ -1066,7 +1118,16 @@ export default function CustomerProfilePage({
                   <button
                     type="button"
                     className="profile-action-primary-btn"
-                    onClick={() => setIsEditingProfile(true)}
+                    onClick={() => {
+                      setProfileForm({
+                        name: currentUser?.fullName || currentUser?.name || '',
+                        email: currentUser?.email || '',
+                        phone: currentUser?.phone || '',
+                        gender: currentUser?.gender || 'Prefer not to say',
+                        dob: cleanDob(currentUser?.dob || '')
+                      });
+                      setIsEditingProfile(true);
+                    }}
                   >
                     <Edit3 size={15} />
                     <span>Edit Profile</span>
@@ -1100,7 +1161,7 @@ export default function CustomerProfilePage({
                   </div>
                   <div className="profile-detail-card">
                     <span className="detail-card-label">Date of Birth</span>
-                    <span className="detail-card-value">{currentUser?.dob || profileForm.dob || 'Not Provided'}</span>
+                    <span className="detail-card-value">{cleanDob(currentUser?.dob || profileForm.dob) || 'Not Provided'}</span>
                   </div>
                 </div>
 
@@ -1224,8 +1285,13 @@ export default function CustomerProfilePage({
                       <input
                         type="date"
                         className="profile-field-input"
-                        value={profileForm.dob}
-                        onChange={(e) => setProfileForm({ ...profileForm, dob: e.target.value })}
+                        min="1900-01-01"
+                        max={new Date().toISOString().split('T')[0]}
+                        value={cleanDob(profileForm.dob)}
+                        onChange={(e) => {
+                          const val = cleanDob(e.target.value);
+                          setProfileForm({ ...profileForm, dob: val });
+                        }}
                       />
                     </div>
                   </div>

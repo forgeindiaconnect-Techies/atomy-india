@@ -528,8 +528,9 @@
 }
 
 .pdp-retail-discount-pill {
-  background: #fee2e2;
-  color: #dc2626;
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
   font-size: 12px;
   font-weight: 700;
   padding: 3px 9px;

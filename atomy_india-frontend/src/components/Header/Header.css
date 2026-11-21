@@ -574,14 +574,14 @@ body.mobile-drawer-open {
 }
 
 .brand-logo-circle {
-  width: 76px;
-  height: 76px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   flex-shrink: 0;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -589,19 +589,19 @@ body.mobile-drawer-open {
 
 .brand-col-logo:hover .brand-logo-circle {
   transform: scale(1.04);
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
 }
 
 .brand-logo-circle .brand-logo-img {
-  width: 70%;
-  height: 70%;
-  max-width: 56px;
-  max-height: 56px;
-  object-fit: contain;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover;
   display: block;
+  border-radius: 50%;
   background-color: transparent !important;
   background: transparent !important;
-  border-radius: 0;
   box-shadow: none !important;
   border: none !important;
   transition: transform 0.2s ease;
@@ -2037,22 +2037,24 @@ body.mobile-drawer-open {
   }
 
   .mobile-only-brand-col .brand-logo-circle {
-    width: 44px !important;
-    height: 44px !important;
+    width: 52px !important;
+    height: 52px !important;
     border-radius: 50% !important;
     background-color: #ffffff !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
     flex-shrink: 0 !important;
     overflow: hidden !important;
   }
 
   .mobile-only-brand-col .brand-logo-circle .brand-logo-img {
-    width: 72% !important;
-    height: 72% !important;
-    max-height: 32px !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
   }
 
   .mobile-only-brand-col .fic-brand-col {

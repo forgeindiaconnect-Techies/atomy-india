@@ -18,8 +18,8 @@ import {
 import { onCatalogUpdate, resolveTargetCategoryKey } from '../../services/catalogSyncService';
 import LandingProductCard from '../Products/LandingProductCard';
 
-// Authentic Website Filter Tabs (ALL, BEST, NEW, RECOMMENDATION, HEALTH, BEAUTY, LIVING, FOOD)
-const TABS = ['ALL', 'BEST', 'NEW', 'RECOMMENDATION', 'HEALTH', 'BEAUTY', 'LIVING', 'FOOD'];
+// Authentic Website Filter Tabs (ALL, BEST, NEW, RECOMMENDATION)
+const TABS = ['ALL', 'BEST', 'NEW', 'RECOMMENDATION'];
 
 function BestProductsSection({
   onAddToCart,
@@ -263,7 +263,7 @@ function BestProductsSection({
                 onPress={() => handleTabChange(tab, idx)}
               >
                 <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {tab}
+                  {tab === 'ALL' ? 'All' : tab}
                 </Text>
               </TouchableOpacity>
             );

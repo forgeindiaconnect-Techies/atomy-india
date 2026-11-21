@@ -352,8 +352,11 @@ export default function App() {
           message: toastInput,
           type: 'cart',
           actionLabel: 'Visit Cart',
-          onAction: () => setIsCartOpen(true),
-          duration: 2000
+          onAction: () => {
+            setIsCartOpen(false);
+            navigateTo('cart');
+          },
+          duration: 3500
         };
       } else if (lower.includes('sign in') || lower.includes('sign up') || lower.includes('auth')) {
         toastObj = {
@@ -1290,7 +1293,6 @@ export default function App() {
     navigateTo('signin', { authMode: mode });
   };
   const handleNavigateCart = () => {
-    if (!currentUser) return requireAuth('sign in to view your shopping cart');
     setIsCartOpen(false);
     navigateTo('cart');
   };
@@ -1372,13 +1374,25 @@ export default function App() {
     }
 
     const addQty = typeof quantity === 'number' && quantity > 0 ? quantity : 1;
-    const existing = cart.find((item) => item.id === product.id);
-    const currentCartQty = existing ? existing.qty : 0;
+    const existing = cart.find((item) => String(item.id) === String(product.id) || (product.code && String(item.code || item.itemCode) === String(product.code || product.itemCode)));
 
-    if (currentCartQty + addQty > maxOrderable) {
+    // Dynamic Flow: If item is already in cart, do not add duplicate; notify dynamically with "Visit Cart"
+    if (existing) {
+      showToast({
+        title: 'Already in cart',
+        message: `${product.name} is already in your cart!`,
+        type: 'cart',
+        actionLabel: 'Visit Cart',
+        onAction: () => handleNavigateCart(),
+        duration: 3500
+      });
+      return;
+    }
+
+    if (addQty > maxOrderable) {
       showToast({
         title: 'Order Limit Reached',
-        message: `Maximum allowed order is ${maxOrderable} units (${currentCartQty} already in cart). 1 unit must always remain in warehouse stock.`,
+        message: `Maximum allowed order is ${maxOrderable} units. 1 unit must always remain in warehouse stock.`,
         type: 'warning'
       });
       return;
@@ -1394,24 +1408,16 @@ export default function App() {
       pv: pricing.pv
     };
 
-    setCart((prev) => {
-      const exist = prev.find((item) => item.id === product.id);
-      if (exist) {
-        return prev.map((item) =>
-          item.id === product.id ? { ...item, ...itemToCart, qty: item.qty + addQty } : item
-        );
-      }
-      return [...prev, { ...itemToCart, qty: addQty }];
-    });
+    setCart((prev) => [...prev, { ...itemToCart, qty: addQty }]);
 
-    // Modern customer-friendly toast with "Visit Cart" button on the right side
+    // Modern customer-friendly toast with "Visit Cart" navigating to dedicated Cart Page
     showToast({
       title: 'Item added to cart',
       message: `${addQty > 1 ? `${addQty} × ` : ''}${product.name}`,
       type: 'cart',
       actionLabel: 'Visit Cart',
-      onAction: () => setIsCartOpen(true),
-      duration: 2000
+      onAction: () => handleNavigateCart(),
+      duration: 3500
     });
   };
 
@@ -1603,6 +1609,7 @@ export default function App() {
                 isMember={isMember}
                 favorites={favorites}
                 onToggleFavorite={handleToggleFavorite}
+                cartItems={cart}
               />
 
               {/* 5. Atomy India Hair & Body Essential */}
@@ -1683,6 +1690,7 @@ export default function App() {
               onNavigateBack={handleGoBack}
               onSelectCategory={handleSelectCategory}
               onProductClick={handleSelectProduct}
+              cartItems={cart}
               onNavigateFavorites={handleNavigateFavorites}
               onNavigateOrders={handleNavigateOrders}
               onOpenQuickOrder={handleNavigateQuickOrder}

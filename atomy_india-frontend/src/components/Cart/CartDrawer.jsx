@@ -69,7 +69,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                       </button>
                       <span className="qty-val">{item.qty}</span>
                       <button
-                        className="qty-btn"
+                        className="qty-btn qty-btn-plus"
                         onClick={() => onUpdateQty(item.id, item.qty + 1)}
                       >
                         +

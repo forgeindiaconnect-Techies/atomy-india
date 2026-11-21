@@ -519,6 +519,13 @@
   font-size: 14px;
 }
 
+.order-header-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;

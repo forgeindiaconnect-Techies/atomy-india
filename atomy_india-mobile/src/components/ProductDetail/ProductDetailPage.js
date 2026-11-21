@@ -605,7 +605,7 @@ export default function ProductDetailPage({
                 <Text style={styles.joinMemberHintText}>
                   Join Membership to get the Distributor Price
                 </Text>
-                <Ionicons name="chevron-forward" size={14} color="#00A3E0" />
+                <Ionicons name="chevron-forward" size={14} color="#16a34a" />
               </TouchableOpacity>
             ) : (
               <View style={styles.activeMemberAppliedWrap}>
@@ -1927,7 +1927,7 @@ const styles = StyleSheet.create({
   joinMemberHintText: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: '#00A3E0',
+    color: '#16a34a',
   },
   activeMemberAppliedWrap: {
     flexDirection: 'row',

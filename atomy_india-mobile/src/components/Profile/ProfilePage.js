@@ -677,12 +677,54 @@ export default function ProfilePage({
   // Active Policy / FAQ expansion
   const [activePolicyIdx, setActivePolicyIdx] = useState(0);
 
+  // Helper to ensure DOB year is strictly 4 digits (handles ISO/DMY)
+  const cleanMobileDob = (dobStr) => {
+    if (!dobStr) return '';
+    const str = String(dobStr).trim().split('T')[0].split(' ')[0];
+
+    // Check YYYY-MM-DD or YYYY...-MM-DD
+    const isoMatch = str.match(/^(\d{4,8})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (isoMatch) {
+      let year = isoMatch[1];
+      if (year.length > 4) {
+        year = year.slice(0, 4);
+      }
+      const month = isoMatch[2].padStart(2, '0');
+      const day = isoMatch[3].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Check DD-MM-YYYY or DD/MM/YYYY
+    const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if (dmyMatch) {
+      const day = dmyMatch[1].padStart(2, '0');
+      const month = dmyMatch[2].padStart(2, '0');
+      const year = dmyMatch[3];
+      return `${year}-${month}-${day}`;
+    }
+
+    return str;
+  };
+
   // Save edited personal details directly to MongoDB Atlas
   const handleSaveProfile = async () => {
     if (!editForm.name.trim()) {
       Alert.alert('Required Field', 'Please enter your full name');
       return;
     }
+
+    if (editForm.dob && editForm.dob.trim()) {
+      const sanitized = cleanMobileDob(editForm.dob);
+      const parts = sanitized.split('-');
+      const year = parseInt(parts[0], 10);
+      const currentYear = new Date().getFullYear();
+
+      if (parts[0].length !== 4 || isNaN(year) || year < 1900 || year > currentYear) {
+        Alert.alert('Invalid Date of Birth', `Please enter a valid 4-digit birth year between 1900 and ${currentYear} in YYYY-MM-DD format.`);
+        return;
+      }
+    }
+
     const updated = {
       ...currentUser,
       name: editForm.name.trim(),
@@ -690,7 +732,7 @@ export default function ProfilePage({
       email: (editForm.email || currentUser?.email || '').trim(),
       phone: (editForm.phone || '').trim(),
       gender: editForm.gender || '',
-      dob: editForm.dob || '',
+      dob: cleanMobileDob(editForm.dob),
       address: editForm.address || currentUser?.address || '',
       city: editForm.city || currentUser?.city || '',
       state: editForm.state || currentUser?.state || '',
@@ -946,10 +988,11 @@ export default function ProfilePage({
               <Text style={styles.inputLabel}>Date of Birth</Text>
               <TextInput
                 style={styles.textInput}
-                value={editForm.dob}
-                onChangeText={(val) => setEditForm({ ...editForm, dob: val })}
+                value={cleanMobileDob(editForm.dob)}
+                onChangeText={(val) => setEditForm({ ...editForm, dob: cleanMobileDob(val) })}
                 placeholder="YYYY-MM-DD"
                 placeholderTextColor="#94A3B8"
+                maxLength={10}
               />
             </View>
 

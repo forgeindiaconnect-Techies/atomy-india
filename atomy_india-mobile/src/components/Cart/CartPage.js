@@ -91,8 +91,7 @@ export default function CartPage({
     }
     Alert.alert(
       'Remove Items',
-      `Are you sure you want to remove ${selectedIds.length} selected ${
-        selectedIds.length === 1 ? 'item' : 'items'
+      `Are you sure you want to remove ${selectedIds.length} selected ${selectedIds.length === 1 ? 'item' : 'items'
       } from your cart?`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -460,13 +459,13 @@ export default function CartPage({
                             <Text style={styles.stepperValue}>{item.qty}</Text>
 
                             <TouchableOpacity
-                              style={styles.stepperBtn}
+                              style={[styles.stepperBtn, styles.stepperBtnAdd]}
                               onPress={() =>
                                 onUpdateQty && onUpdateQty(item.id, item.qty + 1)
                               }
                               accessibilityLabel="Increase quantity"
                             >
-                              <Ionicons name="add" size={14} color="#0F172A" />
+                              <Ionicons name="add" size={14} color="#FFFFFF" />
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1121,6 +1120,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 5,
+  },
+  stepperBtnAdd: {
+    backgroundColor: '#00B6F0',
   },
   stepperBtnDisabled: {
     backgroundColor: '#F1F5F9',

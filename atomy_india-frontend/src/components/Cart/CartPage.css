@@ -346,8 +346,8 @@
 .qty-stepper {
   display: flex;
   align-items: center;
-  border: 1px solid #ccc;
-  border-radius: 2px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
   overflow: hidden;
   background: #fff;
 }
@@ -362,6 +362,17 @@
   color: #444;
   border: none;
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qty-btn.qty-btn-plus {
+  background: #00b6f0;
+  color: #ffffff;
+}
+
+.qty-btn.qty-btn-plus:hover {
+  background: #009ecc;
+  color: #ffffff;
 }
 
 .qty-btn:disabled {

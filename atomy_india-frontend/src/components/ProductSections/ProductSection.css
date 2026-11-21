@@ -238,10 +238,30 @@
   cursor: pointer;
 }
 
+.product-cart-quick-btn svg {
+  stroke: var(--atomy-blue, #00A3E0);
+  transition: stroke 0.2s ease;
+}
+
 .product-cart-quick-btn:hover {
-  background-color: var(--atomy-blue);
+  background-color: var(--atomy-blue, #00A3E0);
   color: #ffffff;
   transform: scale(1.1);
+}
+
+.product-cart-quick-btn:hover svg {
+  stroke: #ffffff !important;
+}
+
+.product-cart-quick-btn.in-cart {
+  background-color: #00b6f0 !important;
+  border-color: #00b6f0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(0, 182, 240, 0.35) !important;
+}
+
+.product-cart-quick-btn.in-cart svg {
+  stroke: #ffffff !important;
 }
 
 /* Product Info */
@@ -310,7 +330,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: #e53935;
+  background-color: #16a34a;
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
@@ -340,6 +360,23 @@
   margin-bottom: 10px;
   font-weight: 700;
   letter-spacing: -0.2px;
+}
+
+.locked-pv-hint,
+.product-pv-note.locked-pv-hint,
+.brand-product-card .product-pv-note.locked-pv-hint,
+.best-product-card .product-pv-note.locked-pv-hint,
+.product-card .product-pv-note.locked-pv-hint {
+  color: #16a34a !important;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.locked-pv-hint:hover,
+.product-pv-note.locked-pv-hint:hover {
+  color: #15803d !important;
+  text-decoration: underline;
 }
 
 .product-meta-row {
@@ -411,13 +448,13 @@
 }
 
 .corner-accent-line {
-  stroke: #ff1f38;
+  stroke: #16a34a;
   stroke-width: 2px;
   stroke-linecap: round;
 }
 
 .corner-accent-text {
-  fill: #ff1f38;
+  fill: #15803d;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.6px;
@@ -462,16 +499,16 @@
   margin-left: auto;
 }
 
-.product-card:hover .product-card-footer-row .product-cart-quick-btn {
-  background-color: var(--atomy-blue);
-  color: #ffffff;
-}
-
 .product-card-footer-row .product-cart-quick-btn:hover {
   background-color: #0284c7 !important;
+  border-color: #0284c7 !important;
   color: #ffffff !important;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 163, 224, 0.4);
+}
+
+.product-card-footer-row .product-cart-quick-btn:hover svg {
+  stroke: #ffffff !important;
 }
 
 /* Hide duplicate percent pill next to MRP in Best section because it is now displayed in the image corner */
@@ -523,17 +560,16 @@
   height: 22px;
 }
 
-.hair-body-cards .product-card:hover .product-card-footer-row .product-cart-quick-btn {
-  background-color: var(--atomy-header-bg, #0059b3);
-  color: #ffffff;
-}
-
 .hair-body-cards .product-card-footer-row .product-cart-quick-btn:hover {
   background-color: #0284c7 !important;
   color: #ffffff !important;
   border-color: #0284c7 !important;
   transform: scale(1.12);
   box-shadow: 0 6px 18px rgba(0, 89, 179, 0.38);
+}
+
+.hair-body-cards .product-card-footer-row .product-cart-quick-btn:hover svg {
+  stroke: #ffffff !important;
 }
 
 /* ========================================================
@@ -760,7 +796,7 @@
 }
 
 .food-essential-section .product-pv-note.locked-pv-hint {
-  color: #003b73;
+  color: #15803d;
   font-weight: 700;
 }
 

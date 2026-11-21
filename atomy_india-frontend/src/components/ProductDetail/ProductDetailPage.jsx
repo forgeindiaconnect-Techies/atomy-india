@@ -57,8 +57,17 @@ export default function ProductDetailPage({
   onOpenRecentlyViewed,
   favorites = [],
   onToggleFavorite,
-  isMember = false
+  isMember = false,
+  cartItems = []
 }) {
+  const isInCart = Boolean(
+    cartItems &&
+    cartItems.some(
+      (item) =>
+        String(item.id) === String(product?.id) ||
+        (product?.code && String(item.code || item.itemCode) === String(product?.code || product?.itemCode))
+    )
+  );
   const [liveReviews, setLiveReviews] = useState(Array.isArray(product?.reviews) ? product.reviews : []);
 
   useEffect(() => {
@@ -727,7 +736,7 @@ export default function ProductDetailPage({
                     <p
                       className="product-pv-note locked-pv-hint"
                       style={{
-                        color: '#00A3E0',
+                        color: '#16a34a',
                         fontSize: '16.5px',
                         fontWeight: '700',
                         letterSpacing: '-0.2px',
@@ -898,17 +907,20 @@ export default function ProductDetailPage({
               <div className="pdp-floating-action-buttons">
                 <button
                   type="button"
-                  className="pdp-cart-btn"
+                  className={`pdp-cart-btn ${isInCart ? 'already-in-cart' : ''}`}
                   disabled={isOutOfDelivery}
-                  style={isOutOfDelivery ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' } : {}}
+                  style={
+                    isOutOfDelivery
+                      ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' }
+                      : (isInCart ? { background: '#0284c7', borderColor: '#0284c7' } : {})
+                  }
                   onClick={() => {
                     if (isOutOfDelivery) return;
                     onAddToCart && onAddToCart(product, effectiveQty);
-                    showToast(`Added ${effectiveQty} × ${product.name} to cart!`);
                   }}
                 >
                   <ShoppingCart size={18} />
-                  <span>{isOutOfDelivery ? 'Unavailable in this Location' : 'Add to Cart'}</span>
+                  <span>{isOutOfDelivery ? 'Unavailable in this Location' : (isInCart ? 'Already in Cart' : 'Add to Cart')}</span>
                 </button>
 
                 <button
@@ -1665,17 +1677,20 @@ export default function ProductDetailPage({
                 <div className="pdp-floating-action-buttons">
                   <button
                     type="button"
-                    className="pdp-cart-btn"
+                    className={`pdp-cart-btn ${isInCart ? 'already-in-cart' : ''}`}
                     disabled={isOutOfDelivery}
-                    style={isOutOfDelivery ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' } : {}}
+                    style={
+                      isOutOfDelivery
+                        ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' }
+                        : (isInCart ? { background: '#0284c7', borderColor: '#0284c7' } : {})
+                    }
                     onClick={() => {
                       if (isOutOfDelivery) return;
                       onAddToCart && onAddToCart(product, effectiveQty);
-                      showToast(`Added ${effectiveQty} × ${product.name} to cart!`);
                     }}
                   >
                     <ShoppingCart size={18} />
-                    <span>{isOutOfDelivery ? 'Unavailable' : 'Add to Cart'}</span>
+                    <span>{isOutOfDelivery ? 'Unavailable' : (isInCart ? 'Already in Cart' : 'Add to Cart')}</span>
                   </button>
 
                   <button

@@ -63,6 +63,7 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
       {/* Distributor Price membership unlock hint */}
       <p
         className="product-pv-note locked-pv-hint"
+        style={{ color: '#16a34a' }}
         onClick={(e) => {
           e.stopPropagation();
           window.dispatchEvent(new CustomEvent('atomy:navigate-view', { detail: { view: 'membership' } }));

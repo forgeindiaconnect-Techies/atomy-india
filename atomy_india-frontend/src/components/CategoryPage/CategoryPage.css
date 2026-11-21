@@ -644,9 +644,9 @@
   margin-left: auto;
 }
 
-.cate-product-card:hover .cate-cart-btn {
-  background-color: var(--atomy-blue, #009fe3);
-  color: #ffffff;
+.cate-cart-btn svg {
+  stroke: var(--atomy-blue, #009fe3);
+  transition: stroke 0.2s ease;
 }
 
 .cate-cart-btn:hover {
@@ -654,6 +654,10 @@
   color: #ffffff !important;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 163, 224, 0.4);
+}
+
+.cate-cart-btn:hover svg {
+  stroke: #ffffff !important;
 }
 
 .cate-product-name {

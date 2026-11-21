@@ -260,7 +260,7 @@ export const BEST_PRODUCTS = [
   // NEW TAB ITEMS
   {
     id: "D01440",
-    rank: null,
+    rank: 6,
     name: "Brush Pen Eyeliner - Black",
     originalPrice: 900.0,
     formattedOriginalPrice: "₹ 900.00",
@@ -280,7 +280,7 @@ export const BEST_PRODUCTS = [
   },
   {
     id: "D04704",
-    rank: null,
+    rank: 7,
     name: "Adelica Concealer - Beige",
     originalPrice: 900.0,
     formattedOriginalPrice: "₹ 900.00",
@@ -300,7 +300,7 @@ export const BEST_PRODUCTS = [
   },
   {
     id: "D01526",
-    rank: null,
+    rank: 8,
     name: "Atomy Absolute Snow Dark Spot Corrector",
     originalPrice: 1200.0,
     formattedOriginalPrice: "₹ 1,200.00",
@@ -319,7 +319,7 @@ export const BEST_PRODUCTS = [
   },
   {
     id: "D00396",
-    rank: null,
+    rank: 9,
     name: "Atomy Air Pact #21",
     originalPrice: 1900.0,
     formattedOriginalPrice: "₹ 1,900.00",
@@ -340,7 +340,7 @@ export const BEST_PRODUCTS = [
   // RECOMMENDATION TAB ITEMS
   {
     id: "D00170",
-    rank: null,
+    rank: 10,
     name: "Atomy Noni Drink",
     originalPrice: 5900.0,
     formattedOriginalPrice: "₹ 5,900.00",
@@ -360,7 +360,7 @@ export const BEST_PRODUCTS = [
   },
   {
     id: "D00281",
-    rank: null,
+    rank: 11,
     name: "Sunscreen SPF50+ PA+++(Beige)",
     originalPrice: 900.0,
     formattedOriginalPrice: "₹ 900.00",
@@ -380,7 +380,7 @@ export const BEST_PRODUCTS = [
   },
   {
     id: "D00261",
-    rank: null,
+    rank: 12,
     name: "BB Cream SPF30 PA++",
     originalPrice: 900.0,
     formattedOriginalPrice: "₹ 900.00",
@@ -400,7 +400,7 @@ export const BEST_PRODUCTS = [
   },
   {
     id: "D00510",
-    rank: null,
+    rank: 13,
     name: "Toothbrush 8N",
     originalPrice: 950.0,
     formattedOriginalPrice: "₹ 950.00",

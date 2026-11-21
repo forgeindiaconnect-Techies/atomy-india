@@ -50,8 +50,8 @@ export function getProductRibbonInfo(product, isMember) {
 
 /**
  * Corner Triangle Accent Ribbon:
- * Displays two parallel red diagonal lines with an expanded gap and
- * bold bright red text facing bottom-to-top (-45deg angle).
+ * Displays two parallel green diagonal lines with an expanded gap and
+ * bold bright green text facing bottom-to-top (-45deg angle).
  */
 export default function ProductCornerRibbon({ product, isMember, customText }) {
   const { showRibbon, ribbonText } = getProductRibbonInfo(product, isMember);

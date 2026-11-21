@@ -11,8 +11,7 @@ import {
   getHubLabel, 
   applyDetectedLocation
 } from '../../services/locationService';
-import atomyLogo from '../../assets/atomy-logo.png';
-import ficLogo from '../../assets/fic-symbol.png';
+import brandLogo from '../../assets/logo.png';
 import IndiaMap from './IndiaMap';
 import PhoenixFlight from './PhoenixFlight';
 import NavbarColorPicker, { isHexColorDark, hexToRgba, rgbaToHex } from './NavbarColorPicker';
@@ -624,7 +623,7 @@ export default function Header({
               <div className="brand-logo-top-row">
                 <div className="brand-logo-circle">
                   <img
-                    src={ficLogo}
+                    src={brandLogo}
                     alt="Forge India Connect"
                     className="brand-logo-img"
                   />
@@ -768,7 +767,7 @@ export default function Header({
                   <div className="brand-logo-top-row">
                     <div className="brand-logo-circle">
                       <img
-                        src={ficLogo}
+                        src={brandLogo}
                         alt="Forge India Connect"
                         className="brand-logo-img"
                       />

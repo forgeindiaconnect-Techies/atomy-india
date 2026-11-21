@@ -311,7 +311,7 @@ export default function CartPage({
                               <span className="qty-val">{item.qty}</span>
                               <button
                                 type="button"
-                                className="qty-btn"
+                                className="qty-btn qty-btn-plus"
                                 onClick={() => onUpdateQty(item.id, item.qty + 1)}
                                 aria-label="Increase quantity"
                               >

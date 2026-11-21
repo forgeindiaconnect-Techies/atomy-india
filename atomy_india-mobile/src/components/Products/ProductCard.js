@@ -343,15 +343,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   discountBadge: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#DCFCE7',
     paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 3,
   },
   discountBadgeText: {
     fontSize: 9,
-    color: '#64748B',
-    fontWeight: '700',
+    color: '#15803D',
+    fontWeight: '800',
   },
   priceRow: {
     flexDirection: 'row',

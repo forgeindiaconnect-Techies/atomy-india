@@ -216,7 +216,7 @@ function LandingProductCard({
             activeOpacity={0.7}
             onPress={() => onJoinMemberPress && onJoinMemberPress(product)}
           >
-            <Ionicons name="lock-closed" size={10} color="#92400E" />
+            <Ionicons name="lock-closed" size={10} color="#15803D" />
             <Text style={styles.lockedDpText} numberOfLines={2}>
               Join Membership for Distributor Price
             </Text>
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   discountBadgeWrap: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#DCFCE7',
     paddingHorizontal: 5,
     paddingVertical: 1.5,
     borderRadius: 3.5,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   discountBadge: {
     fontSize: 9.5,
     fontWeight: '800',
-    color: '#DC2626',
+    color: '#15803D',
   },
   dpBadge: {
     backgroundColor: '#ECFDF5',
@@ -434,18 +434,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#DCFCE7',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 5,
     marginBottom: 9, // Line spacing to tags / delivery
     borderWidth: 0.8,
-    borderColor: '#FDE68A',
+    borderColor: '#BBF7D0',
   },
   lockedDpText: {
     fontSize: 9.2,
     fontWeight: '700',
-    color: '#92400E',
+    color: '#15803D',
     lineHeight: 12.5,
     flex: 1,
   },

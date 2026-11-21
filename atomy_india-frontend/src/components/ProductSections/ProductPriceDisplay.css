@@ -29,9 +29,10 @@
 
 .price-percent {
   font-size: 11px;
-  color: #e53935;
+  color: #15803d;
   font-weight: 700;
-  background-color: #fee2e2;
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
   padding: 1px 4px;
   border-radius: 3px;
 }
@@ -91,7 +92,7 @@
 }
 
 .product-pv-note.locked-pv-hint {
-  color: #00A3E0;
+  color: #16a34a;
   font-size: 14.5px;
   font-weight: 700;
   line-height: 1.35;
@@ -102,6 +103,7 @@
 }
 
 .product-pv-note.locked-pv-hint:hover {
+  color: #15803d;
   text-decoration: underline;
-  opacity: 0.85;
+  opacity: 0.9;
 }
