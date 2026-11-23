@@ -629,20 +629,28 @@ export default function DistributorOverviewTab({
           <div className="quick-actions-box">
             <div className="quick-actions-title">OPERATIONAL SHORTCUTS</div>
             <div className="quick-btn-grid">
-              <button className="quick-action-tile" onClick={() => onNavigateTab('inventory')}>
-                <Plus size={16} />
+              <button className="quick-action-tile tile-blue" onClick={() => onNavigateTab('inventory')}>
+                <div className="quick-action-icon-wrap icon-blue">
+                  <Plus size={16} />
+                </div>
                 <span>Add Product</span>
               </button>
-              <button className="quick-action-tile" onClick={() => onNavigateTab('orders')}>
-                <Bell size={16} />
+              <button className="quick-action-tile tile-orange" onClick={() => onNavigateTab('orders')}>
+                <div className="quick-action-icon-wrap icon-orange">
+                  <Bell size={16} />
+                </div>
                 <span>Review New ({placedCount})</span>
               </button>
-              <button className="quick-action-tile" onClick={() => onNavigateTab('support')}>
-                <Headphones size={16} />
+              <button className="quick-action-tile tile-purple" onClick={() => onNavigateTab('support')}>
+                <div className="quick-action-icon-wrap icon-purple">
+                  <Headphones size={16} />
+                </div>
                 <span>Support Desk ({openTicketsCount})</span>
               </button>
-              <button className="quick-action-tile" onClick={() => onNavigateTab('settings')}>
-                <Volume2 size={16} />
+              <button className="quick-action-tile tile-teal" onClick={() => onNavigateTab('settings')}>
+                <div className="quick-action-icon-wrap icon-teal">
+                  <Volume2 size={16} />
+                </div>
                 <span>Sound Controls</span>
               </button>
             </div>

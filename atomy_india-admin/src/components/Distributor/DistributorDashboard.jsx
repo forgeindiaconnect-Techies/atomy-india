@@ -1919,9 +1919,30 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     onUpdateSoundSettings={setSoundSettings}
                     showToast={showToast}
                     onLogout={onLogout}
-                    onSaveSettings={() => {
+                    onSaveSettings={async (updatedPayload) => {
+                      if (updatedPayload) {
+                        setLiveDistributor(prev => {
+                          const updated = { ...prev, ...updatedPayload };
+                          try {
+                            const sessionStr = sessionStorage.getItem('atomy_admin_session') || localStorage.getItem('atomy_admin_session');
+                            if (sessionStr) {
+                              const sessionObj = JSON.parse(sessionStr);
+                              if (sessionObj?.adminUser) {
+                                sessionObj.adminUser = { ...sessionObj.adminUser, ...updatedPayload };
+                                if (sessionStorage.getItem('atomy_admin_session')) {
+                                  sessionStorage.setItem('atomy_admin_session', JSON.stringify(sessionObj));
+                                }
+                                if (localStorage.getItem('atomy_admin_session')) {
+                                  localStorage.setItem('atomy_admin_session', JSON.stringify(sessionObj));
+                                }
+                              }
+                            }
+                          } catch (e) { console.warn(e); }
+                          return updated;
+                        });
+                      }
                       showToast(isSubDistributor ? 'Personal profile updated successfully!' : 'Hub settings updated successfully!');
-                      loadDashboardData();
+                      await loadDashboardData(true);
                     }}
                   />
                 </div>

@@ -4,7 +4,9 @@
 
 export function normalizeIndianMobile(raw) {
   if (!raw) return '';
-  let digits = String(raw).replace(/\D/g, '');
+  let str = String(raw).trim();
+  str = str.replace(/^\+91\s*/, '');
+  let digits = str.replace(/\D/g, '');
 
   // If starts with 91 and has 12 digits (or starts with 91 followed by 6, 7, 8, 9), strip country code 91
   if (digits.length >= 12 && digits.startsWith('91') && /^[6-9]/.test(digits.slice(2))) {

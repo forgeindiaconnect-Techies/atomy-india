@@ -704,15 +704,35 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   // Admin Profile & Top Nav Notification Dropdown State
   const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
   const notifDropdownRef = useRef(null);
+
+  const getAdminMobileDigits = (phoneVal) => {
+    if (!phoneVal) return '';
+    let d = String(phoneVal).replace(/^\+91\s*/, '').replace(/\D/g, '');
+    if (d.length > 10 && d.startsWith('91')) d = d.slice(2);
+    // Strict requirement: must start with 6, 7, 8, or 9
+    if (!/^[6-9]/.test(d)) return '';
+    return d.slice(0, 10);
+  };
+
   const [adminProfile, setAdminProfile] = useState(() => {
     if (adminProfileProp) return adminProfileProp;
     try {
       const saved = localStorage.getItem('atomy_admin_profile');
-      return saved ? JSON.parse(saved) : {
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.phone) {
+          const d = parsed.phone.replace(/^\+91\s*/, '').replace(/\D/g, '');
+          if (!/^[6-9]/.test(d)) {
+            parsed.phone = '+91 9876543210';
+          }
+        }
+        return parsed;
+      }
+      return {
         name: 'Naveen Sourabh Pal',
         email: 'naveen.admin@atomy.com',
         role: 'Super Administrator',
-        phone: '+91 98765 43210',
+        phone: '+91 9876543210',
         employeeId: 'AT-IN-001',
         department: 'E-Commerce Operations & Supply Chain',
         location: 'Gurugram HQ, India',
@@ -725,7 +745,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         name: 'Naveen Sourabh Pal',
         email: 'naveen.admin@atomy.com',
         role: 'Super Administrator',
-        phone: '+91 98765 43210',
+        phone: '+91 9876543210',
         employeeId: 'AT-IN-001',
         department: 'E-Commerce Operations & Supply Chain',
         location: 'Gurugram HQ, India',
@@ -739,22 +759,33 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const handleSaveAdminProfile = async () => {
+    let profileToSave = { ...adminProfile };
+    const cleanDigits = getAdminMobileDigits(adminProfile.phone);
+    if (cleanDigits) {
+      if (!/^[6-9]\d{9}$/.test(cleanDigits)) {
+        showToast('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9', 'error');
+        return;
+      }
+      profileToSave.phone = `+91 ${cleanDigits}`;
+    } else {
+      profileToSave.phone = '';
+    }
     setIsSavingProfile(true);
     try {
-      const saved = await updateAdminProfile(adminProfile);
+      const saved = await updateAdminProfile(profileToSave);
       if (saved) {
         setAdminProfile(prev => ({ ...prev, ...saved }));
         try {
-          localStorage.setItem('atomy_admin_profile', JSON.stringify({ ...adminProfile, ...saved }));
+          localStorage.setItem('atomy_admin_profile', JSON.stringify({ ...profileToSave, ...saved }));
         } catch { }
       } else {
-        localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
+        localStorage.setItem('atomy_admin_profile', JSON.stringify(profileToSave));
       }
       showToast('Admin Profile credentials saved successfully to database!', 'success');
     } catch (err) {
       console.warn('Backend sync failed, saved locally:', err);
       try {
-        localStorage.setItem('atomy_admin_profile', JSON.stringify(adminProfile));
+        localStorage.setItem('atomy_admin_profile', JSON.stringify(profileToSave));
       } catch { }
       showToast('Saved locally. Backend database connecting...', 'warning');
     } finally {
@@ -1054,11 +1085,18 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
       if (profileRes.status === 'fulfilled' && profileRes.value) {
         const bp = profileRes.value;
+        let cleanPhone = bp.phone !== undefined && bp.phone !== null ? bp.phone : prev.phone;
+        if (cleanPhone) {
+          const d = cleanPhone.replace(/^\+91\s*/, '').replace(/\D/g, '');
+          if (!/^[6-9]/.test(d)) {
+            cleanPhone = '+91 9876543210';
+          }
+        }
         setAdminProfile(prev => ({
           ...prev,
           name: bp.name || prev.name,
           email: bp.email || prev.email,
-          phone: bp.phone !== undefined && bp.phone !== null ? bp.phone : prev.phone,
+          phone: cleanPhone,
           employeeId: bp.employeeId || prev.employeeId,
           department: bp.department || prev.department,
           role: bp.role || prev.role,
@@ -1068,7 +1106,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
           lastLogin: bp.lastLogin || prev.lastLogin
         }));
         try {
-          localStorage.setItem('atomy_admin_profile', JSON.stringify(bp));
+          localStorage.setItem('atomy_admin_profile', JSON.stringify({ ...bp, phone: cleanPhone }));
         } catch { }
       }
 
@@ -3890,7 +3928,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           <th style={{ width: '140px', minWidth: '140px', textAlign: 'right' }}>Total Amount</th>
                           <th style={{ width: '130px', minWidth: '130px', textAlign: 'center' }}>Payment</th>
                           <th style={{ width: '190px', minWidth: '190px', textAlign: 'center' }}>Fulfillment Status</th>
-                          <th style={{ width: '310px', minWidth: '310px', textAlign: 'right' }}>Actions</th>
+                          <th style={{ width: '310px', minWidth: '310px', textAlign: 'center' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -4022,8 +4060,8 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                   <option value="CANCELLED">CANCELLED</option>
                                 </select>
                               </td>
-                              <td style={{ width: '310px', minWidth: '310px', textAlign: 'right' }}>
-                                <div className="row-actions-group" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}>
+                              <td style={{ width: '310px', minWidth: '310px', textAlign: 'center' }}>
+                                <div className="row-actions-group" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                   <button
                                     className="action-pill-btn detail"
                                     style={{ minWidth: '82px', justifyContent: 'center' }}
@@ -4899,33 +4937,35 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                 />
                               </div>
                               <div className="setting-field-group">
-                                <label>Phone Number (10 digits starting with 6–9)</label>
-                                <input
-                                  type="tel"
-                                  value={adminProfile.phone || ''}
-                                  maxLength={14}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    // Strip non-digits except initial + if present
-                                    const digits = val.replace(/\D/g, '');
-                                    // If digits exist, ensure Indian format starting with 6-9
-                                    let cleanDigits = digits;
-                                    if (cleanDigits.startsWith('91') && cleanDigits.length > 2) {
-                                      cleanDigits = cleanDigits.slice(2);
-                                    }
-                                    if (cleanDigits.length > 0 && !/^[6-9]/.test(cleanDigits)) {
-                                      // Disallow numbers starting with 1-5
-                                      return;
-                                    }
-                                    cleanDigits = cleanDigits.slice(0, 10);
-                                    setAdminProfile({
-                                      ...adminProfile,
-                                      phone: cleanDigits ? `+91 ${cleanDigits}` : ''
-                                    });
-                                  }}
-                                  className="atomy-form-input"
-                                  placeholder="+91 98765 43210"
-                                />
+                                <label>Phone Number</label>
+                                <div className="phone-fixed-prefix-wrapper">
+                                  <span className="phone-fixed-prefix">+91</span>
+                                  <input
+                                    type="tel"
+                                    maxLength={10}
+                                    value={getAdminMobileDigits(adminProfile.phone)}
+                                    onChange={(e) => {
+                                      let val = e.target.value.trim().replace(/^\+91\s*/, '').replace(/\D/g, '');
+                                      if (val.length > 10 && val.startsWith('91')) val = val.slice(2);
+                                      if (!val) {
+                                        setAdminProfile(prev => ({ ...prev, phone: '' }));
+                                        return;
+                                      }
+                                      // First number MUST start with 6, 7, 8, or 9!
+                                      // Digits 0, 1, 2, 3, 4, 5 are completely blocked from being the first number
+                                      if (!['6', '7', '8', '9'].includes(val[0])) {
+                                        return;
+                                      }
+                                      const clean10 = val.slice(0, 10);
+                                      setAdminProfile(prev => ({
+                                        ...prev,
+                                        phone: `+91 ${clean10}`
+                                      }));
+                                    }}
+                                    className="phone-fixed-prefix-input"
+                                    placeholder="9876543210"
+                                  />
+                                </div>
                               </div>
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div className="setting-field-group">

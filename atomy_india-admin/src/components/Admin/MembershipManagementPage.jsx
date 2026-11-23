@@ -465,15 +465,15 @@ export default function MembershipManagementPage() {
             <div className="rule-item">
               <ShieldCheck size={18} color="#00A3E0" />
               <div>
-                <strong>Wholesale DP Price Behavior:</strong>
-                <p>When a signed-in customer has an active membership, the store dynamically replaces MRP with the <strong>Wholesale DP Price</strong> and displays their earnable <strong>PV points</strong>.</p>
+                <strong className="rule-item-title">Wholesale DP Price Behavior:</strong>
+                <p>When a signed-in customer has an active membership, the store dynamically replaces MRP with the <strong>Wholesale DP Price</strong> and displays their earnable <strong>PV points.</strong></p>
               </div>
             </div>
             <div className="rule-item">
               <Users size={18} color="#64748b" />
               <div>
-                <strong>Non-Member / Guest Behavior:</strong>
-                <p>Visitors who are NOT signed in, or customers without active membership, will ONLY view the <strong>MRP price and regular offer price</strong>. They cannot access DP prices or PV values.</p>
+                <strong className="rule-item-title">Non-Member / Guest Behavior:</strong>
+                <p>Visitors who are NOT signed in, or customers without active membership, will ONLY view the <strong>MRP price and regular offer price.</strong> They cannot access DP prices or PV values.</p>
               </div>
             </div>
           </div>

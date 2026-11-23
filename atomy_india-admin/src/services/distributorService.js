@@ -423,9 +423,12 @@ export async function fetchDistributorTickets(distributorId) {
   return [];
 }
 
-export async function updateDistributorSettings(distributorId, settingsPayload) {
+export async function updateDistributorSettings(distributorId, settingsPayload, email = '') {
   try {
-    const res = await fetch(`${API_BASE}/distributor/settings?distributorId=${encodeURIComponent(distributorId)}`, {
+    const queryParams = new URLSearchParams();
+    if (distributorId) queryParams.set('distributorId', distributorId);
+    if (email) queryParams.set('email', email);
+    const res = await fetch(`${API_BASE}/distributor/settings?${queryParams.toString()}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settingsPayload)

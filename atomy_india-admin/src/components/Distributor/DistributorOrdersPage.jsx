@@ -685,7 +685,7 @@ export default function DistributorOrdersPage({
               <th style={{ width: '140px', minWidth: '140px', textAlign: 'right' }}>Total Amount</th>
               <th style={{ width: '130px', minWidth: '130px', textAlign: 'center' }}>Payment</th>
               <th style={{ width: '190px', minWidth: '190px', textAlign: 'center' }}>Fulfillment Status</th>
-              <th style={{ width: '310px', minWidth: '310px', textAlign: 'right' }}>Actions</th>
+              <th style={{ width: '310px', minWidth: '310px', textAlign: 'center' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -991,8 +991,8 @@ export default function DistributorOrdersPage({
                       })()}
                     </td>
 
-                    <td style={{ width: '310px', minWidth: '310px', textAlign: 'right' }}>
-                      <div className="row-actions-group" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}>
+                    <td style={{ width: '310px', minWidth: '310px', textAlign: 'center' }}>
+                      <div className="row-actions-group" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                         <button
                           type="button"
                           className="action-pill-btn detail"

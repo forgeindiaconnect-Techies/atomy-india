@@ -1605,8 +1605,8 @@
 .quick-action-tile {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 8px 12px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #ffffff;
@@ -1614,7 +1614,66 @@
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
+}
+
+.quick-action-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.quick-action-tile:hover .quick-action-icon-wrap {
+  transform: scale(1.08);
+}
+
+.quick-action-icon-wrap.icon-blue {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.quick-action-icon-wrap.icon-orange {
+  background-color: #ffedd5;
+  color: #ea580c;
+}
+
+.quick-action-icon-wrap.icon-purple {
+  background-color: #ede9fe;
+  color: #7c3aed;
+}
+
+.quick-action-icon-wrap.icon-teal {
+  background-color: #ccfbf1;
+  color: #0f766e;
+}
+
+.quick-action-tile.tile-blue:hover {
+  background-color: #f0f9ff;
+  border-color: #bae6fd;
+  color: #0284c7;
+}
+
+.quick-action-tile.tile-orange:hover {
+  background-color: #fff7ed;
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+
+.quick-action-tile.tile-purple:hover {
+  background-color: #faf5ff;
+  border-color: #e9d5ff;
+  color: #7c3aed;
+}
+
+.quick-action-tile.tile-teal:hover {
+  background-color: #f0fdfa;
+  border-color: #99f6e4;
+  color: #0f766e;
 }
 
 .quick-action-tile:hover {
@@ -3530,6 +3589,45 @@ select.atomy-dropdown:focus,
 
 .atomy-form-input:focus {
   border-color: #00A3E0;
+}
+
+.phone-fixed-prefix-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #ffffff;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.phone-fixed-prefix-wrapper:focus-within {
+  border-color: #00A3E0;
+  box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.15);
+}
+
+.phone-fixed-prefix {
+  padding: 10px 14px;
+  background-color: #f1f5f9;
+  border-right: 1px solid #cbd5e1;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #475569;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.5px;
+}
+
+.phone-fixed-prefix-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  background: transparent;
+  min-width: 0;
 }
 
 .volume-slider {

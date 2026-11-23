@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  MapPin, 
-  Mail, 
-  Phone, 
-  Lock, 
-  ShieldCheck, 
-  CheckCircle2, 
-  Save, 
-  User, 
-  KeyRound, 
-  Check, 
+import {
+  Building2,
+  MapPin,
+  Mail,
+  Phone,
+  Lock,
+  ShieldCheck,
+  CheckCircle2,
+  Save,
+  User,
+  KeyRound,
+  Check,
   LogOut,
   Users,
   Calendar,
@@ -25,8 +25,8 @@ import {
   Clock,
   Sliders
 } from 'lucide-react';
-import { 
-  fetchHubTeam, 
+import {
+  fetchHubTeam,
   updateHubLeaveStatus,
   requestAdminForgotPasswordOtp,
   resetAdminPassword,
@@ -70,7 +70,7 @@ export default function DistributorSettingsPage({
     try {
       const local = localStorage.getItem(`atomy_hub_logistics_${distId}`);
       if (local) saved = JSON.parse(local);
-    } catch {}
+    } catch { }
     return {
       defaultCourierPartner: distributor?.defaultCourierPartner || saved?.defaultCourierPartner || 'Blue Dart Express',
       deliveryDuration: distributor?.deliveryDuration || saved?.deliveryDuration || '1 – 2 Days',
@@ -127,7 +127,7 @@ export default function DistributorSettingsPage({
   const handleSaveLogistics = async (e) => {
     if (e) e.preventDefault();
     setIsSavingLogistics(true);
-    const finalCourier = selectedCourierType === '__CUSTOM__' 
+    const finalCourier = selectedCourierType === '__CUSTOM__'
       ? (customCourierName.trim() || 'Local Regional Courier')
       : selectedCourierType;
     const finalDuration = selectedDurationType === '__CUSTOM_DURATION__'
@@ -386,7 +386,7 @@ export default function DistributorSettingsPage({
           hubId: distributor?.effectiveHubId || distributor?.distributorId,
           leaveReason: effectiveReason
         });
-      } catch (e) {}
+      } catch (e) { }
 
       if (onSaveSettings) onSaveSettings();
     } catch (err) {
@@ -421,7 +421,7 @@ export default function DistributorSettingsPage({
           hubId: distributor?.effectiveHubId || distributor?.distributorId,
           leaveReason: null
         });
-      } catch (e) {}
+      } catch (e) { }
 
       if (onSaveSettings) onSaveSettings();
     } catch (err) {
@@ -434,7 +434,7 @@ export default function DistributorSettingsPage({
   const isSubDistributor = distributor?.distributorRole === 'SUB_DISTRIBUTOR';
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
 
-  const handleSubmitProfile = (e) => {
+  const handleSubmitProfile = async (e) => {
     e.preventDefault();
 
     if (phone && phone.trim()) {
@@ -450,13 +450,26 @@ export default function DistributorSettingsPage({
     }
 
     setErrorMsg('');
+    const cleanPhone = phone ? normalizeIndianMobile(phone) : '';
+    const updatedPayload = {
+      hubAddress,
+      contactPerson,
+      phone: cleanPhone
+    };
+
+    const targetDistId = distributor?.distributorId || distributor?.id || distId;
+    const targetEmail = distributor?.email || '';
+
+    try {
+      await updateDistributorSettings(targetDistId, updatedPayload, targetEmail);
+    } catch (err) {
+      console.warn('Backend update failed:', err);
+    }
+
+    setPhone(cleanPhone);
 
     if (onSaveSettings) {
-      onSaveSettings({
-        hubAddress,
-        contactPerson,
-        phone: normalizeIndianMobile(phone)
-      });
+      onSaveSettings(updatedPayload);
     }
 
     setIsSaved(true);
@@ -472,7 +485,7 @@ export default function DistributorSettingsPage({
             {isSubDistributor ? 'Personal Profile Settings' : 'Regional Hub Settings & Partner Profile'}
           </h2>
           <p className="content-subtitle">
-            {isSubDistributor 
+            {isSubDistributor
               ? `Manage your personal contact credentials, phone, and console password as Temporary Substitute for ${distributor?.parentHubName || 'Regional Hub'}.`
               : 'Manage your regional fulfillment center details, contact coordinates, security credentials, and view authorized territory PIN codes.'}
           </p>
@@ -519,624 +532,624 @@ export default function DistributorSettingsPage({
         {/* Left Column: Profile Form & Audio Alert Settings */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="admin-card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
-            <Building2 size={20} color="#00A3E0" />
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-              {isSubDistributor ? 'My Personal Profile Coordinates' : 'Fulfillment Hub Profile Coordinates'}
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
+              <Building2 size={20} color="#00A3E0" />
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                {isSubDistributor ? 'My Personal Profile Coordinates' : 'Fulfillment Hub Profile Coordinates'}
+              </h3>
+            </div>
+
+            <form onSubmit={handleSubmitProfile} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {!isSubDistributor && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Business Legal Enterprise Name
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={distributor?.businessName || ''}
+                    style={{ width: '100%', padding: '10px 14px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: '#64748b', boxSizing: 'border-box' }}
+                  />
+                  <span style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
+                    Verified enterprise distributor name registered with Atomy India Headquarters.
+                  </span>
+                </div>
+              )}
+
+              <div className="settings-fields-row">
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {isSubDistributor ? 'Substitute ID' : 'Distributor ID'}
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={distributor?.distributorId || ''}
+                    style={{ width: '100%', padding: '10px 14px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: '#64748b', boxSizing: 'border-box', fontWeight: 600 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {isSubDistributor ? 'Login Email (Account ID)' : 'Primary PIN Code'}
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={isSubDistributor ? (distributor?.email || '') : (distributor?.primaryPincode || '')}
+                    style={{ width: '100%', padding: '10px 14px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: isSubDistributor ? '#334155' : '#00A3E0', boxSizing: 'border-box', fontWeight: 600 }}
+                  />
+                </div>
+              </div>
+
+              <div className="settings-fields-row">
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {isSubDistributor ? 'Full Name *' : 'Contact Representative *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    {isSubDistributor ? 'Contact Phone Number *' : 'Dispatch Phone Number *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="10-digit mobile number"
+                    maxLength={15}
+                    value={phone}
+                    onChange={(e) => setPhone(normalizeIndianMobile(e.target.value))}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {!isSubDistributor && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Official Hub Dispatch Address
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={hubAddress}
+                    onChange={(e) => setHubAddress(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    placeholder="Physical warehouse or depot address where local couriers pick up dispatches"
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
+                <button
+                  type="submit"
+                  className="quick-action-pill-btn"
+                  style={{ padding: '10px 22px', fontSize: '14px', background: '#00A3E0', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+                >
+                  <Save size={16} />
+                  <span>{isSubDistributor ? 'Save Profile Settings' : 'Save Hub Profile'}</span>
+                </button>
+              </div>
+            </form>
           </div>
 
-          <form onSubmit={handleSubmitProfile} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {!isSubDistributor && (
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Business Legal Enterprise Name
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={distributor?.businessName || ''}
-                  style={{ width: '100%', padding: '10px 14px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: '#64748b', boxSizing: 'border-box' }}
-                />
-                <span style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '4px', display: 'block' }}>
-                  Verified enterprise distributor name registered with Atomy India Headquarters.
-                </span>
+          {/* Regional Fulfillment & Logistics Card */}
+          <div className="admin-card settings-card" style={{ padding: '24px' }}>
+            <div className="settings-card-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Truck size={22} color="#00A3E0" />
               </div>
-            )}
-
-            <div className="settings-fields-row">
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  {isSubDistributor ? 'Substitute ID' : 'Distributor ID'}
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={distributor?.distributorId || ''}
-                  style={{ width: '100%', padding: '10px 14px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: '#64748b', boxSizing: 'border-box', fontWeight: 600 }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  {isSubDistributor ? 'Login Email (Account ID)' : 'Primary PIN Code'}
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value={isSubDistributor ? (distributor?.email || '') : (distributor?.primaryPincode || '')}
-                  style={{ width: '100%', padding: '10px 14px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: isSubDistributor ? '#334155' : '#00A3E0', boxSizing: 'border-box', fontWeight: 600 }}
-                />
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                  Regional Fulfillment &amp; Logistics Rules
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>
+                  Default regional courier partner, estimated delivery duration, delivery modes, and rack stock warning threshold
+                </p>
               </div>
             </div>
 
-            <div className="settings-fields-row">
-              <div>
+            <div className="settings-body-form" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Preferred Courier Selection with Dropdown Indication & Manual Entry */}
+              <div className="setting-field-group">
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  {isSubDistributor ? 'Full Name *' : 'Contact Representative *'}
+                  Default Regional Courier Partner
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={contactPerson}
-                  onChange={(e) => setContactPerson(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
+                <CustomDropdown
+                  value={selectedCourierType}
+                  onChange={handleCourierSelect}
+                  options={[
+                    { value: 'Blue Dart Express', label: 'Blue Dart Express (Priority Partner)' },
+                    { value: '__CUSTOM__', label: 'Other / Custom Regional Courier (Enter Manually)' }
+                  ]}
+                  placeholder="Select Regional Courier Partner..."
+                  fullWidth={true}
                 />
+
+                {/* Manual Courier Name Entry Option */}
+                {selectedCourierType === '__CUSTOM__' && (
+                  <div style={{ marginTop: '10px', padding: '12px 14px', background: '#f0f9ff', borderRadius: '8px', border: '1.5px solid #00A3E0' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0369a1', marginBottom: '6px' }}>
+                      Enter Custom Courier / Transport Company Name
+                    </label>
+                    <input
+                      type="text"
+                      value={customCourierName}
+                      onChange={handleCustomCourierChange}
+                      placeholder="e.g. Navata Road Transport, KPN Parcel, Local Van Service..."
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        border: '1px solid #7dd3fc',
+                        borderRadius: '6px',
+                        fontSize: '13.5px',
+                        color: '#0f172a',
+                        background: '#ffffff',
+                        boxSizing: 'border-box',
+                        outline: 'none'
+                      }}
+                    />
+                    <span style={{ fontSize: '11px', color: '#0284c7', marginTop: '4px', display: 'block' }}>
+                      This custom carrier name will be saved and printed on your territory customer receipts and dispatch tracking.
+                    </span>
+                  </div>
+                )}
+
+                <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  Pre-selected when creating dispatch tracking for customers in your territory (PIN {distributor?.primaryPincode || '635002'}).
+                </span>
               </div>
 
-              <div>
+              {/* Estimated Delivery Duration with Dropdown Indication & Manual Entry */}
+              <div className="setting-field-group">
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  {isSubDistributor ? 'Contact Phone Number *' : 'Dispatch Phone Number *'}
+                  Estimated Delivery Duration
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="10-digit mobile number"
-                  maxLength={15}
+                  maxLength={10}
                   value={phone}
-                  onChange={(e) => setPhone(normalizeIndianMobile(e.target.value))}
+                  onChange={(e) => {
+                    let digits = e.target.value.replace(/\D/g, '');
+                    if (digits && !['6', '7', '8', '9'].includes(digits[0])) return;
+                    setPhone(digits.slice(0, 10));
+                  }}
                   style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
                 />
-              </div>
-            </div>
 
-            {!isSubDistributor && (
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                  Official Hub Dispatch Address
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  value={hubAddress}
-                  onChange={(e) => setHubAddress(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                  placeholder="Physical warehouse or depot address where local couriers pick up dispatches"
-                />
-              </div>
-            )}
+                {/* Manual Delivery Duration Entry Option */}
+                {selectedDurationType === '__CUSTOM_DURATION__' && (
+                  <div style={{ marginTop: '10px', padding: '12px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1.5px solid #16a34a' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>
+                      Enter Custom Delivery Duration
+                    </label>
+                    <input
+                      type="text"
+                      value={customDurationValue}
+                      onChange={handleCustomDurationChange}
+                      placeholder="e.g. 2 - 4 Business Days, Within 36 Hours..."
+                      style={{
+                        width: '100%',
+                        padding: '9px 12px',
+                        border: '1px solid #86efac',
+                        borderRadius: '6px',
+                        fontSize: '13.5px',
+                        color: '#0f172a',
+                        background: '#ffffff',
+                        boxSizing: 'border-box',
+                        outline: 'none'
+                      }}
+                    />
+                    <span style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px', display: 'block' }}>
+                      Displays as the estimated delivery timeline on the customer's checkout summary and order details.
+                    </span>
+                  </div>
+                )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
-              <button
-                type="submit"
-                className="quick-action-pill-btn"
-                style={{ padding: '10px 22px', fontSize: '14px', background: '#00A3E0', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
-              >
-                <Save size={16} />
-                <span>{isSubDistributor ? 'Save Profile Settings' : 'Save Hub Profile'}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Regional Fulfillment & Logistics Card */}
-        <div className="admin-card settings-card" style={{ padding: '24px' }}>
-          <div className="settings-card-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Truck size={22} color="#00A3E0" />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                Regional Fulfillment &amp; Logistics Rules
-              </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>
-                Default regional courier partner, estimated delivery duration, delivery modes, and rack stock warning threshold
-              </p>
-            </div>
-          </div>
-
-          <div className="settings-body-form" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Preferred Courier Selection with Dropdown Indication & Manual Entry */}
-            <div className="setting-field-group">
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                Default Regional Courier Partner
-              </label>
-              <CustomDropdown
-                value={selectedCourierType}
-                onChange={handleCourierSelect}
-                options={[
-                  { value: 'Blue Dart Express', label: 'Blue Dart Express (Priority Partner)' },
-                  { value: '__CUSTOM__', label: 'Other / Custom Regional Courier (Enter Manually)' }
-                ]}
-                placeholder="Select Regional Courier Partner..."
-                fullWidth={true}
-              />
-
-              {/* Manual Courier Name Entry Option */}
-              {selectedCourierType === '__CUSTOM__' && (
-                <div style={{ marginTop: '10px', padding: '12px 14px', background: '#f0f9ff', borderRadius: '8px', border: '1.5px solid #00A3E0' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0369a1', marginBottom: '6px' }}>
-                    Enter Custom Courier / Transport Company Name
-                  </label>
-                  <input
-                    type="text"
-                    value={customCourierName}
-                    onChange={handleCustomCourierChange}
-                    placeholder="e.g. Navata Road Transport, KPN Parcel, Local Van Service..."
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      border: '1px solid #7dd3fc',
-                      borderRadius: '6px',
-                      fontSize: '13.5px',
-                      color: '#0f172a',
-                      background: '#ffffff',
-                      boxSizing: 'border-box',
-                      outline: 'none'
-                    }}
-                  />
-                  <span style={{ fontSize: '11px', color: '#0284c7', marginTop: '4px', display: 'block' }}>
-                    This custom carrier name will be saved and printed on your territory customer receipts and dispatch tracking.
-                  </span>
-                </div>
-              )}
-
-              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                Pre-selected when creating dispatch tracking for customers in your territory (PIN {distributor?.primaryPincode || '635002'}).
-              </span>
-            </div>
-
-            {/* Estimated Delivery Duration with Dropdown Indication & Manual Entry */}
-            <div className="setting-field-group">
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                Estimated Delivery Duration
-              </label>
-              <CustomDropdown
-                value={selectedDurationType}
-                onChange={handleDurationSelect}
-                options={[
-                  { value: '1 – 2 Days', label: '1 – 2 Business Days' },
-                  { value: 'Within 24 Hours', label: 'Within 24 Hours (Express)' },
-                  { value: '2 – 3 Days', label: '2 – 3 Business Days' },
-                  { value: '3 – 5 Days', label: '3 – 5 Business Days' },
-                  { value: '__CUSTOM_DURATION__', label: 'Custom Delivery Duration (Enter Manually)' }
-                ]}
-                placeholder="Select Delivery Duration..."
-                fullWidth={true}
-              />
-
-              {/* Manual Delivery Duration Entry Option */}
-              {selectedDurationType === '__CUSTOM_DURATION__' && (
-                <div style={{ marginTop: '10px', padding: '12px 14px', background: '#f0fdf4', borderRadius: '8px', border: '1.5px solid #16a34a' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>
-                    Enter Custom Delivery Duration
-                  </label>
-                  <input
-                    type="text"
-                    value={customDurationValue}
-                    onChange={handleCustomDurationChange}
-                    placeholder="e.g. 2 - 4 Business Days, Within 36 Hours..."
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      border: '1px solid #86efac',
-                      borderRadius: '6px',
-                      fontSize: '13.5px',
-                      color: '#0f172a',
-                      background: '#ffffff',
-                      boxSizing: 'border-box',
-                      outline: 'none'
-                    }}
-                  />
-                  <span style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px', display: 'block' }}>
-                    Displays as the estimated delivery timeline on the customer's checkout summary and order details.
-                  </span>
-                </div>
-              )}
-
-              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                Standard delivery timeline communicated to customers ordering from this hub.
-              </span>
-            </div>
-
-            {/* Doorstep Delivery Toggle */}
-            <div className="setting-toggle-row" style={{ padding: '12px 0', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="setting-info-block" style={{ maxWidth: '80%' }}>
-                <div className="setting-title" style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>
-                  Doorstep Courier Delivery Service
-                </div>
-                <div className="setting-desc" style={{ fontSize: '12px', color: '#64748b' }}>
-                  Enable direct parcel dispatch to customers' shipping addresses in your territory via {logisticsSettings.defaultCourierPartner}
-                </div>
-              </div>
-              <label className="switch" aria-label="Toggle Doorstep Courier Delivery">
-                <input
-                  type="checkbox"
-                  checked={logisticsSettings.doorstepDeliveryEnabled}
-                  onChange={(e) => setLogisticsSettings(prev => ({ ...prev, doorstepDeliveryEnabled: e.target.checked }))}
-                />
-                <span className="slider round"></span>
-              </label>
-            </div>
-
-            {/* Direct Hub Pickup Toggle */}
-            <div className="setting-toggle-row" style={{ padding: '12px 0', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="setting-info-block" style={{ maxWidth: '80%' }}>
-                <div className="setting-title" style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>
-                  Direct Hub Pickup (Self-Pickup)
-                </div>
-                <div className="setting-desc" style={{ fontSize: '12px', color: '#64748b' }}>
-                  Allow customers to collect packed items directly from your physical hub counter free of delivery charges
-                </div>
-              </div>
-              <label className="switch" aria-label="Toggle Direct Hub Pickup">
-                <input
-                  type="checkbox"
-                  checked={logisticsSettings.hubPickupEnabled}
-                  onChange={(e) => setLogisticsSettings(prev => ({ ...prev, hubPickupEnabled: e.target.checked }))}
-                />
-                <span className="slider round"></span>
-              </label>
-            </div>
-
-            {/* Local Rack Low-Stock Alert Limit */}
-            <div className="setting-field-group" style={{ paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                Local Rack Low Stock Warning Limit (units)
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <input
-                  type="number"
-                  min="1"
-                  max="500"
-                  value={logisticsSettings.lowStockThreshold}
-                  onChange={(e) => setLogisticsSettings(prev => ({ ...prev, lowStockThreshold: Math.max(1, parseInt(e.target.value) || 1) }))}
-                  style={{
-                    width: '100px',
-                    padding: '8px 12px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#0f172a',
-                    fontWeight: 600
-                  }}
-                />
-                <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  Alerts on regional inventory when physical rack units fall below this threshold.
+                <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  Standard delivery timeline communicated to customers ordering from this hub.
                 </span>
               </div>
-            </div>
 
-            {/* Save Logistics Button */}
-            <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
-              {isLogisticsSaved && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '13px', fontWeight: 600 }}>
-                  <Check size={16} />
-                  <span>Logistics settings saved!</span>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={handleSaveLogistics}
-                disabled={isSavingLogistics}
-                className="admin-btn admin-btn-primary"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '9px 18px',
-                  background: '#00A3E0',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '13.5px',
-                  cursor: isSavingLogistics ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 2px 6px rgba(0, 163, 224, 0.25)'
-                }}
-              >
-                <Save size={16} />
-                <span>{isSavingLogistics ? 'Saving...' : 'Save Store & Logistics Settings'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Real-Time Strong Audio Alerts Card */}
-        <div className="admin-card settings-card" style={{ padding: '24px' }}>
-          <div className="settings-card-header">
-            <Volume2 size={22} color="#00A3E0" />
-            <div>
-              <h3>Real-Time Strong Audio Alerts</h3>
-              <p>High-impact synthesizer chimes when orders and customer inquiries arrive</p>
-            </div>
-          </div>
-
-          <div className="settings-body-form">
-            <div className="setting-toggle-row">
-              <div className="setting-info-block">
-                <div className="setting-title">New Order Arrival Chime</div>
-                <div className="setting-desc">Ascending 4-tone melodic fanfare (E5 &rarr; G#5 &rarr; B5 &rarr; E6) on new order placement</div>
-              </div>
-              <label className="switch" aria-label="Toggle New Order Arrival Chime">
-                <input
-                  type="checkbox"
-                  checked={effectiveSoundSettings.orderSoundEnabled}
-                  onChange={(e) => updateSoundSetting('orderSoundEnabled', e.target.checked)}
-                />
-                <span className="slider round"></span>
-              </label>
-            </div>
-
-            <div className="setting-toggle-row">
-              <div className="setting-info-block">
-                <div className="setting-title">Customer Support Ticket Chime</div>
-                <div className="setting-desc">Urgent dual-pulse emergency alert (A5 &rarr; D6) when an inquiry is submitted</div>
-              </div>
-              <label className="switch" aria-label="Toggle Customer Support Ticket Chime">
-                <input
-                  type="checkbox"
-                  checked={effectiveSoundSettings.supportSoundEnabled}
-                  onChange={(e) => updateSoundSetting('supportSoundEnabled', e.target.checked)}
-                />
-                <span className="slider round"></span>
-              </label>
-            </div>
-
-            <div className="setting-field-group">
-              <label>Chime Volume Level: <strong>{Math.round(effectiveSoundSettings.volume * 100)}%</strong></label>
-              <input
-                type="range"
-                min="0.1"
-                max="1.0"
-                step="0.05"
-                value={effectiveSoundSettings.volume}
-                onChange={(e) => updateSoundSetting('volume', parseFloat(e.target.value))}
-                className="volume-slider"
-              />
-            </div>
-
-            <div className="test-buttons-row">
-              <button type="button" className="test-action-btn" onClick={handleTestOrderSound}>
-                <Volume2 size={15} />
-                <span>Test Order Sound Now</span>
-              </button>
-              <button type="button" className="test-action-btn" onClick={handleTestSupportSound}>
-                <Headphones size={15} />
-                <span>Test Support Sound Now</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Security & Account Session Card (At the End of the Page) */}
-        <div className="admin-card settings-card" style={{ padding: '24px' }}>
-          {/* Security & Password Reset via Email Procedure */}
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <KeyRound size={17} color="#00A3E0" />
-                <span>Security &amp; Console Password</span>
-              </div>
-              <span style={{ fontSize: '11.5px', padding: '2px 8px', borderRadius: '12px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', fontWeight: 600 }}>
-                Brevo 2FA Protected
-              </span>
-            </div>
-
-            {!showPasswordResetFlow ? (
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '220px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '2px' }}>
-                    Console Password Recovery Procedure
+              {/* Doorstep Delivery Toggle */}
+              <div className="setting-toggle-row" style={{ padding: '12px 0', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="setting-info-block" style={{ maxWidth: '80%' }}>
+                  <div className="setting-title" style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>
+                    Doorstep Courier Delivery Service
                   </div>
-                  <div style={{ fontSize: '12px', color: '#64748b' }}>
-                    To update your password, request a 6-digit verification code to registered email <strong>{distributor?.email || 'your official email'}</strong>.
+                  <div className="setting-desc" style={{ fontSize: '12px', color: '#64748b' }}>
+                    Enable direct parcel dispatch to customers' shipping addresses in your territory via {logisticsSettings.defaultCourierPartner}
                   </div>
                 </div>
+                <label className="switch" aria-label="Toggle Doorstep Courier Delivery">
+                  <input
+                    type="checkbox"
+                    checked={logisticsSettings.doorstepDeliveryEnabled}
+                    onChange={(e) => setLogisticsSettings(prev => ({ ...prev, doorstepDeliveryEnabled: e.target.checked }))}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+
+              {/* Direct Hub Pickup Toggle */}
+              <div className="setting-toggle-row" style={{ padding: '12px 0', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="setting-info-block" style={{ maxWidth: '80%' }}>
+                  <div className="setting-title" style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>
+                    Direct Hub Pickup (Self-Pickup)
+                  </div>
+                  <div className="setting-desc" style={{ fontSize: '12px', color: '#64748b' }}>
+                    Allow customers to collect packed items directly from your physical hub counter free of delivery charges
+                  </div>
+                </div>
+                <label className="switch" aria-label="Toggle Direct Hub Pickup">
+                  <input
+                    type="checkbox"
+                    checked={logisticsSettings.hubPickupEnabled}
+                    onChange={(e) => setLogisticsSettings(prev => ({ ...prev, hubPickupEnabled: e.target.checked }))}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+
+              {/* Local Rack Low-Stock Alert Limit */}
+              <div className="setting-field-group" style={{ paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                  Local Rack Low Stock Warning Limit (units)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    value={logisticsSettings.lowStockThreshold}
+                    onChange={(e) => setLogisticsSettings(prev => ({ ...prev, lowStockThreshold: Math.max(1, parseInt(e.target.value) || 1) }))}
+                    style={{
+                      width: '100px',
+                      padding: '8px 12px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      color: '#0f172a',
+                      fontWeight: 600
+                    }}
+                  />
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    Alerts on regional inventory when physical rack units fall below this threshold.
+                  </span>
+                </div>
+              </div>
+
+              {/* Save Logistics Button */}
+              <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+                {isLogisticsSaved && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontSize: '13px', fontWeight: 600 }}>
+                    <Check size={16} />
+                    <span>Logistics settings saved!</span>
+                  </div>
+                )}
                 <button
                   type="button"
-                  onClick={handleStartPasswordReset}
-                  disabled={resetLoading}
+                  onClick={handleSaveLogistics}
+                  disabled={isSavingLogistics}
+                  className="admin-btn admin-btn-primary"
                   style={{
-                    background: '#ffffff',
-                    color: '#00A3E0',
-                    border: '1px solid #00A3E0',
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    fontSize: '12.5px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Mail size={14} />
-                  <span>{resetLoading ? 'Sending OTP...' : 'Send Password Reset OTP'}</span>
-                </button>
-              </div>
-            ) : (
-              <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '16px' }}>
-                {resetError && (
-                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '12px' }}>
-                    {resetError}
-                  </div>
-                )}
-                {resetSuccess && resetStep !== 3 && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '12px' }}>
-                    {resetSuccess}
-                  </div>
-                )}
-
-                {resetStep === 2 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ fontSize: '12.5px', color: '#475569' }}>
-                      Enter the 6-digit verification code sent to <strong>{distributor?.email}</strong> and choose a new password:
-                    </div>
-                    <div className="settings-fields-row">
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          6-Digit OTP Code
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={6}
-                          placeholder="• • • • • •"
-                          value={resetOtp}
-                          onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ''))}
-                          style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', letterSpacing: '4px', textAlign: 'center', boxSizing: 'border-box' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          New Password (min 6 chars)
-                        </label>
-                        <div style={{ position: 'relative' }}>
-                          <input
-                            type={showResetPass ? 'text' : 'password'}
-                            placeholder="Enter new password"
-                            value={resetNewPass}
-                            onChange={(e) => setResetNewPass(e.target.value)}
-                            style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowResetPass(!showResetPass)}
-                            style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
-                          >
-                            {showResetPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                          Confirm New Password
-                        </label>
-                        <input
-                          type={showResetPass ? 'text' : 'password'}
-                          placeholder="Confirm new password"
-                          value={resetConfirmPass}
-                          onChange={(e) => setResetConfirmPass(e.target.value)}
-                          style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswordResetFlow(false)}
-                        style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12.5px', cursor: 'pointer' }}
-                      >
-                        Cancel
-                      </button>
-                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={handleStartPasswordReset}
-                          disabled={resendCooldown > 0 || resetLoading}
-                          style={{ background: 'none', border: 'none', color: resendCooldown > 0 ? '#94a3b8' : '#00A3E0', fontSize: '12px', fontWeight: 600, cursor: resendCooldown > 0 ? 'default' : 'pointer' }}
-                        >
-                          {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend OTP'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleConfirmPasswordReset}
-                          disabled={resetLoading || resetOtp.length !== 6 || resetNewPass.length < 6}
-                          style={{ background: '#00A3E0', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
-                        >
-                          {resetLoading ? 'Updating Password...' : 'Save New Password'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {resetStep === 3 && (
-                  <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                    <CheckCircle2 size={32} color="#16a34a" style={{ margin: '0 auto 8px' }} />
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
-                      Password Updated Successfully!
-                    </div>
-                    <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px', marginBottom: '12px' }}>
-                      A confirmation notification has been sent via Brevo to {distributor?.email}.
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswordResetFlow(false)}
-                      style={{ background: '#00A3E0', color: '#ffffff', border: 'none', padding: '6px 16px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
-                    >
-                      Done
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Account Session & Sign Out */}
-          {onLogout && (
-            <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid #e2e8f0' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-                background: '#fef2f2',
-                border: '1px solid #fee2e2',
-                borderRadius: '10px',
-                padding: '16px 18px'
-              }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b', fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>
-                    <LogOut size={16} color="#dc2626" />
-                    <span>Hub Account Session</span>
-                  </div>
-                  <div style={{ fontSize: '12.5px', color: '#64748b', maxWidth: '380px', lineHeight: 1.4 }}>
-                    Terminate current session and sign out of this Regional Logistics Hub console.
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowSignOutModal(true)}
-                  style={{
+                    gap: '8px',
                     padding: '9px 18px',
-                    background: '#dc2626',
+                    background: '#00A3E0',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)',
-                    transition: 'background 0.2s ease'
+                    fontWeight: 600,
+                    fontSize: '13.5px',
+                    cursor: isSavingLogistics ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(0, 163, 224, 0.25)'
                   }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#b91c1c'}
-                  onMouseOut={(e) => e.currentTarget.style.background = '#dc2626'}
                 >
-                  <LogOut size={15} />
-                  <span>Sign Out</span>
+                  <Save size={16} />
+                  <span>{isSavingLogistics ? 'Saving...' : 'Save Store & Logistics Settings'}</span>
                 </button>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Real-Time Strong Audio Alerts Card */}
+          <div className="admin-card settings-card" style={{ padding: '24px' }}>
+            <div className="settings-card-header">
+              <Volume2 size={22} color="#00A3E0" />
+              <div>
+                <h3>Real-Time Strong Audio Alerts</h3>
+                <p>High-impact synthesizer chimes when orders and customer inquiries arrive</p>
+              </div>
+            </div>
+
+            <div className="settings-body-form">
+              <div className="setting-toggle-row">
+                <div className="setting-info-block">
+                  <div className="setting-title">New Order Arrival Chime</div>
+                  <div className="setting-desc">Ascending 4-tone melodic fanfare (E5 &rarr; G#5 &rarr; B5 &rarr; E6) on new order placement</div>
+                </div>
+                <label className="switch" aria-label="Toggle New Order Arrival Chime">
+                  <input
+                    type="checkbox"
+                    checked={effectiveSoundSettings.orderSoundEnabled}
+                    onChange={(e) => updateSoundSetting('orderSoundEnabled', e.target.checked)}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+
+              <div className="setting-toggle-row">
+                <div className="setting-info-block">
+                  <div className="setting-title">Customer Support Ticket Chime</div>
+                  <div className="setting-desc">Urgent dual-pulse emergency alert (A5 &rarr; D6) when an inquiry is submitted</div>
+                </div>
+                <label className="switch" aria-label="Toggle Customer Support Ticket Chime">
+                  <input
+                    type="checkbox"
+                    checked={effectiveSoundSettings.supportSoundEnabled}
+                    onChange={(e) => updateSoundSetting('supportSoundEnabled', e.target.checked)}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+
+              <div className="setting-field-group">
+                <label>Chime Volume Level: <strong>{Math.round(effectiveSoundSettings.volume * 100)}%</strong></label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1.0"
+                  step="0.05"
+                  value={effectiveSoundSettings.volume}
+                  onChange={(e) => updateSoundSetting('volume', parseFloat(e.target.value))}
+                  className="volume-slider"
+                />
+              </div>
+
+              <div className="test-buttons-row">
+                <button type="button" className="test-action-btn" onClick={handleTestOrderSound}>
+                  <Volume2 size={15} />
+                  <span>Test Order Sound Now</span>
+                </button>
+                <button type="button" className="test-action-btn" onClick={handleTestSupportSound}>
+                  <Headphones size={15} />
+                  <span>Test Support Sound Now</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Security & Account Session Card (At the End of the Page) */}
+          <div className="admin-card settings-card" style={{ padding: '24px' }}>
+            {/* Security & Password Reset via Email Procedure */}
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <KeyRound size={17} color="#00A3E0" />
+                  <span>Security &amp; Console Password</span>
+                </div>
+                <span style={{ fontSize: '11.5px', padding: '2px 8px', borderRadius: '12px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', fontWeight: 600 }}>
+                  Brevo 2FA Protected
+                </span>
+              </div>
+
+              {!showPasswordResetFlow ? (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '220px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '2px' }}>
+                      Console Password Recovery Procedure
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      To update your password, request a 6-digit verification code to registered email <strong>{distributor?.email || 'your official email'}</strong>.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleStartPasswordReset}
+                    disabled={resetLoading}
+                    style={{
+                      background: '#ffffff',
+                      color: '#00A3E0',
+                      border: '1px solid #00A3E0',
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Mail size={14} />
+                    <span>{resetLoading ? 'Sending OTP...' : 'Send Password Reset OTP'}</span>
+                  </button>
+                </div>
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '16px' }}>
+                  {resetError && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '12px' }}>
+                      {resetError}
+                    </div>
+                  )}
+                  {resetSuccess && resetStep !== 3 && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', padding: '8px 12px', borderRadius: '6px', fontSize: '12.5px', marginBottom: '12px' }}>
+                      {resetSuccess}
+                    </div>
+                  )}
+
+                  {resetStep === 2 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ fontSize: '12.5px', color: '#475569' }}>
+                        Enter the 6-digit verification code sent to <strong>{distributor?.email}</strong> and choose a new password:
+                      </div>
+                      <div className="settings-fields-row">
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            6-Digit OTP Code
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={6}
+                            placeholder="• • • • • •"
+                            value={resetOtp}
+                            onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ''))}
+                            style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', letterSpacing: '4px', textAlign: 'center', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            New Password (min 6 chars)
+                          </label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type={showResetPass ? 'text' : 'password'}
+                              placeholder="Enter new password"
+                              value={resetNewPass}
+                              onChange={(e) => setResetNewPass(e.target.value)}
+                              style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowResetPass(!showResetPass)}
+                              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                            >
+                              {showResetPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                            Confirm New Password
+                          </label>
+                          <input
+                            type={showResetPass ? 'text' : 'password'}
+                            placeholder="Confirm new password"
+                            value={resetConfirmPass}
+                            onChange={(e) => setResetConfirmPass(e.target.value)}
+                            style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswordResetFlow(false)}
+                          style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12.5px', cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={handleStartPasswordReset}
+                            disabled={resendCooldown > 0 || resetLoading}
+                            style={{ background: 'none', border: 'none', color: resendCooldown > 0 ? '#94a3b8' : '#00A3E0', fontSize: '12px', fontWeight: 600, cursor: resendCooldown > 0 ? 'default' : 'pointer' }}
+                          >
+                            {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend OTP'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleConfirmPasswordReset}
+                            disabled={resetLoading || resetOtp.length !== 6 || resetNewPass.length < 6}
+                            style={{ background: '#00A3E0', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            {resetLoading ? 'Updating Password...' : 'Save New Password'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {resetStep === 3 && (
+                    <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                      <CheckCircle2 size={32} color="#16a34a" style={{ margin: '0 auto 8px' }} />
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                        Password Updated Successfully!
+                      </div>
+                      <div style={{ fontSize: '12.5px', color: '#64748b', marginTop: '4px', marginBottom: '12px' }}>
+                        A confirmation notification has been sent via Brevo to {distributor?.email}.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordResetFlow(false)}
+                        style={{ background: '#00A3E0', color: '#ffffff', border: 'none', padding: '6px 16px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Account Session & Sign Out */}
+            {onLogout && (
+              <div style={{ marginTop: '20px', paddingTop: '18px', borderTop: '1px solid #e2e8f0' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  background: '#fef2f2',
+                  border: '1px solid #fee2e2',
+                  borderRadius: '10px',
+                  padding: '16px 18px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b', fontWeight: 700, fontSize: '14px', marginBottom: '4px' }}>
+                      <LogOut size={16} color="#dc2626" />
+                      <span>Hub Account Session</span>
+                    </div>
+                    <div style={{ fontSize: '12.5px', color: '#64748b', maxWidth: '380px', lineHeight: 1.4 }}>
+                      Terminate current session and sign out of this Regional Logistics Hub console.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSignOutModal(true)}
+                    style={{
+                      padding: '9px 18px',
+                      background: '#dc2626',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)',
+                      transition: 'background 0.2s ease'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#b91c1c'}
+                    onMouseOut={(e) => e.currentTarget.style.background = '#dc2626'}
+                  >
+                    <LogOut size={15} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
         {/* Right Column: Authorized Territory Coverage & Model 1 Operations */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -1150,7 +1163,7 @@ export default function DistributorSettingsPage({
                   Assigned Regional Hub Details (Locked)
                 </h3>
               </div>
-              
+
               <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
                 <div style={{ fontSize: '13.5px', marginBottom: '8px', color: '#1e293b' }}>
                   <strong>Parent Franchise:</strong> {distributor?.parentHubName || 'Regional Logistics Hub'}
@@ -1174,159 +1187,159 @@ export default function DistributorSettingsPage({
             <>
               {/* Model 1: Operational Status & Leave Delegation */}
               <div className="admin-card" style={{ padding: '24px', borderLeft: isOnLeave ? '4px solid #f59e0b' : '4px solid #10b981' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Calendar size={20} color={isOnLeave ? '#d97706' : '#059669'} />
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                  Operational Status &amp; Leave Delegation
-                </h3>
-              </div>
-              <span style={{
-                fontSize: '11.5px',
-                fontWeight: 700,
-                padding: '3px 8px',
-                borderRadius: '6px',
-                background: isOnLeave ? '#fef3c7' : '#dcfce7',
-                color: isOnLeave ? '#b45309' : '#15803d',
-                border: isOnLeave ? '1px solid #fde68a' : '1px solid #bbf7d0'
-              }}>
-                {isOnLeave ? '🌴 ON LEAVE' : '🟢 ACTIVE DUTY'}
-              </span>
-            </div>
-
-            <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.5, margin: '0 0 14px' }}>
-              {isOnLeave 
-                ? `Hub operations are currently delegated to ${selectedDelegatee || 'Co-Manager'}. Dispatches and customer pickups are being fulfilled under shared stock.`
-                : 'Primary manager is on active duty. Dispatches and pickups are running normally under SLA.'}
-            </p>
-
-            {isOnLeave && (
-              <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: '11px 14px', borderRadius: '8px', fontSize: '13px', color: '#92400e', marginBottom: '14px' }}>
-                <div style={{ fontWeight: 700, marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>🌴 Stated Reason for Leave:</span>
-                </div>
-                <div style={{ color: '#78350f', fontWeight: 600 }}>
-                  {currentLeaveReason || distributor?.leaveReason || 'Personal / Family Leave'}
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {teamData?.coManagers && teamData.coManagers.length > 0 && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                    Designated Co-Manager / Standby Delegate
-                  </label>
-                  <CustomDropdown
-                    value={selectedDelegatee}
-                    onChange={(val) => setSelectedDelegatee(val)}
-                    options={teamData.coManagers.map(c => ({
-                      value: c.contactPerson || c.businessName,
-                      label: c.contactPerson || c.businessName,
-                      sublabel: c.email
-                    }))}
-                    placeholder="Select Co-Manager / Standby Delegate"
-                  />
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleToggleLeave}
-                disabled={isUpdatingLeave}
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: isOnLeave ? '#10b981' : '#f59e0b',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '13.5px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  marginTop: '4px'
-                }}
-              >
-                {isUpdatingLeave ? (
-                  <RefreshCw size={16} className="animate-spin" />
-                ) : isOnLeave ? (
-                  <>
-                    <CheckCircle2 size={16} />
-                    <span>Resume Active Duty (End Leave)</span>
-                  </>
-                ) : (
-                  <>
-                    <Calendar size={16} />
-                    <span>Take Leave &amp; Delegate Hub to Co-Manager</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Model 1: Hub Co-Managers & Shared Staff */}
-          <div className="admin-card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-              <Users size={20} color="#0284c7" />
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                Hub Co-Managers (Model 1: Shared Hub)
-              </h3>
-            </div>
-            <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 0 14px', lineHeight: 1.5 }}>
-              Authorized managers who share the <strong>exact same physical inventory</strong>, customer directory, and order queues for PIN <strong>{distributor?.primaryPincode}</strong>:
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {/* Primary Manager */}
-              <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
-                      {teamData?.primaryManager?.contactPerson || distributor?.contactPerson || 'Primary Manager'}
-                    </span>
-                    <span style={{ fontSize: '10.5px', background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                      PRIMARY FRANCHISE
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Calendar size={20} color={isOnLeave ? '#d97706' : '#059669'} />
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                      Operational Status &amp; Leave Delegation
+                    </h3>
                   </div>
-                  <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                    {teamData?.primaryManager?.email || distributor?.email}
+                  <span style={{
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    background: isOnLeave ? '#fef3c7' : '#dcfce7',
+                    color: isOnLeave ? '#b45309' : '#15803d',
+                    border: isOnLeave ? '1px solid #fde68a' : '1px solid #bbf7d0'
+                  }}>
+                    {isOnLeave ? '🌴 ON LEAVE' : '🟢 ACTIVE DUTY'}
                   </span>
                 </div>
-                <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600 }}>Hub Owner</span>
+
+                <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.5, margin: '0 0 14px' }}>
+                  {isOnLeave
+                    ? `Hub operations are currently delegated to ${selectedDelegatee || 'Co-Manager'}. Dispatches and customer pickups are being fulfilled under shared stock.`
+                    : 'Primary manager is on active duty. Dispatches and pickups are running normally under SLA.'}
+                </p>
+
+                {isOnLeave && (
+                  <div style={{ background: '#fef3c7', border: '1px solid #fde68a', padding: '11px 14px', borderRadius: '8px', fontSize: '13px', color: '#92400e', marginBottom: '14px' }}>
+                    <div style={{ fontWeight: 700, marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>🌴 Stated Reason for Leave:</span>
+                    </div>
+                    <div style={{ color: '#78350f', fontWeight: 600 }}>
+                      {currentLeaveReason || distributor?.leaveReason || 'Personal / Family Leave'}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {teamData?.coManagers && teamData.coManagers.length > 0 && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                        Designated Co-Manager / Standby Delegate
+                      </label>
+                      <CustomDropdown
+                        value={selectedDelegatee}
+                        onChange={(val) => setSelectedDelegatee(val)}
+                        options={teamData.coManagers.map(c => ({
+                          value: c.contactPerson || c.businessName,
+                          label: c.contactPerson || c.businessName,
+                          sublabel: c.email
+                        }))}
+                        placeholder="Select Co-Manager / Standby Delegate"
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleToggleLeave}
+                    disabled={isUpdatingLeave}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: isOnLeave ? '#10b981' : '#f59e0b',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '13.5px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      marginTop: '4px'
+                    }}
+                  >
+                    {isUpdatingLeave ? (
+                      <RefreshCw size={16} className="animate-spin" />
+                    ) : isOnLeave ? (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>Resume Active Duty (End Leave)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Calendar size={16} />
+                        <span>Take Leave &amp; Delegate Hub to Co-Manager</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
-              {/* Co-Managers */}
-              {teamData?.coManagers && teamData.coManagers.length > 0 ? (
-                teamData.coManagers.map(sub => (
-                  <div key={sub.distributorId} style={{ padding: '10px 14px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              {/* Model 1: Hub Co-Managers & Shared Staff */}
+              <div className="admin-card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                  <Users size={20} color="#0284c7" />
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                    Hub Co-Managers (Model 1: Shared Hub)
+                  </h3>
+                </div>
+                <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 0 14px', lineHeight: 1.5 }}>
+                  Authorized managers who share the <strong>exact same physical inventory</strong>, customer directory, and order queues for PIN <strong>{distributor?.primaryPincode}</strong>:
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {/* Primary Manager */}
+                  <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#065f46' }}>
-                          {sub.contactPerson || sub.businessName}
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                          {teamData?.primaryManager?.contactPerson || distributor?.contactPerson || 'Primary Manager'}
                         </span>
-                        <span style={{ fontSize: '10.5px', background: '#d1fae5', color: '#047857', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                          CO-MANAGER
+                        <span style={{ fontSize: '10.5px', background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          PRIMARY FRANCHISE
                         </span>
                       </div>
-                      <span style={{ fontSize: '11.5px', color: '#047857' }}>
-                        {sub.email} &bull; {sub.phone}
+                      <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+                        {teamData?.primaryManager?.email || distributor?.email}
                       </span>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>Shared Stock</span>
+                    <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600 }}>Hub Owner</span>
                   </div>
-                ))
-              ) : (
-                <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
-                  No auxiliary co-managers onboarded for this PIN yet. The Super Admin can invite a Co-Manager under Model 1 via <em>Invite &amp; Onboard</em>.
+
+                  {/* Co-Managers */}
+                  {teamData?.coManagers && teamData.coManagers.length > 0 ? (
+                    teamData.coManagers.map(sub => (
+                      <div key={sub.distributorId} style={{ padding: '10px 14px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#065f46' }}>
+                              {sub.contactPerson || sub.businessName}
+                            </span>
+                            <span style={{ fontSize: '10.5px', background: '#d1fae5', color: '#047857', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                              CO-MANAGER
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '11.5px', color: '#047857' }}>
+                            {sub.email} &bull; {sub.phone}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#059669', fontWeight: 700 }}>Shared Stock</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
+                      No auxiliary co-managers onboarded for this PIN yet. The Super Admin can invite a Co-Manager under Model 1 via <em>Invite &amp; Onboard</em>.
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        </>
-      )}
+              </div>
+            </>
+          )}
 
           {/* Card: Managed Territory PINs */}
           <div className="admin-card" style={{ padding: '24px' }}>

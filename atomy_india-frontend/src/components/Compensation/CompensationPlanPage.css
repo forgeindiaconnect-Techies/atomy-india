@@ -338,6 +338,11 @@
   color: #111827;
 }
 
+.cst-data-table th.center-cell,
+.cst-commission-table th {
+  text-align: center;
+}
+
 .cst-data-table td {
   padding: 14px 18px;
   border-bottom: 1px solid #e5e7eb;
@@ -400,14 +405,17 @@
 }
 
 .criteria-left-pane {
-  width: 50%;
+  flex: 0 0 38%;
+  width: 38%;
   background-color: #f8fafc;
-  padding: 20px 20px;
+  padding: 18px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   border-right: 1px solid #e5e7eb;
   flex-shrink: 0;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .criteria-dark-circle-icon {
@@ -420,29 +428,34 @@
 }
 
 .criteria-pane-title {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #111827;
   line-height: 1.45;
+  min-width: 0;
 }
 
 .criteria-right-pane {
   flex: 1;
+  width: 62%;
   background-color: #ffffff;
-  padding: 18px 24px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .criteria-ranks-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 20px;
+  grid-template-columns: minmax(max-content, 1fr) minmax(max-content, 1fr);
+  gap: 8px 16px;
   width: 100%;
+  min-width: 0;
 }
 
 .criteria-rank-item {
-  font-size: 13.5px;
+  font-size: 13px;
   color: #374151;
   font-weight: 500;
   white-space: nowrap;
@@ -529,6 +542,13 @@
 }
 
 /* Responsive adjustments */
+@media (max-width: 1140px) {
+  .cst-criteria-split-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
 @media (max-width: 1080px) {
   .cst-dealership-cards-grid {
     flex-wrap: wrap;
@@ -539,9 +559,6 @@
   }
   .cst-class-card::after {
     display: none;
-  }
-  .cst-criteria-split-container {
-    grid-template-columns: 1fr;
   }
 }
 

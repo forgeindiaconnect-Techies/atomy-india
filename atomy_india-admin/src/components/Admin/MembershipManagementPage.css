@@ -491,7 +491,8 @@
   margin-top: 2px;
 }
 
-.rule-item strong {
+.rule-item .rule-item-title,
+.rule-item > div > strong {
   font-size: 13px;
   color: #0f172a;
   display: block;
@@ -503,6 +504,13 @@
   font-size: 12px;
   color: #64748b;
   line-height: 1.45;
+}
+
+.rule-item p strong {
+  display: inline;
+  color: #0f172a;
+  font-weight: 600;
+  margin-bottom: 0;
 }
 
 .form-submit-row {

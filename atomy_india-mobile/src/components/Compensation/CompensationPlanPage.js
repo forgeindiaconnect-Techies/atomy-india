@@ -374,10 +374,10 @@ export default function CompensationPlanPage({
 
               <View style={styles.tableCard}>
                 <View style={styles.tableHeadRow}>
-                  <Text style={[styles.tableHeadText, { flex: 1.1 }]}>Grade</Text>
-                  <Text style={[styles.tableHeadText, { flex: 1.2 }]}>Class</Text>
-                  <Text style={[styles.tableHeadText, { flex: 1.4 }]}>Daily Leg PV</Text>
-                  <Text style={[styles.tableHeadText, { flex: 1.1, textAlign: 'right' }]}>INR</Text>
+                  <Text style={[styles.tableHeadText, { flex: 1.1, textAlign: 'center' }]}>Grade</Text>
+                  <Text style={[styles.tableHeadText, { flex: 1.2, textAlign: 'center' }]}>Class</Text>
+                  <Text style={[styles.tableHeadText, { flex: 1.4, textAlign: 'center' }]}>Daily Leg PV</Text>
+                  <Text style={[styles.tableHeadText, { flex: 1.1, textAlign: 'center' }]}>INR</Text>
                 </View>
 
                 {[
@@ -391,10 +391,10 @@ export default function CompensationPlanPage({
                   { grade: '1 / 300 pts', class: 'E.D.', pv: '≥ 5 Crore PV', inr: '₹79,287' },
                 ].map((row, idx) => (
                   <View key={`gc-${idx}`} style={[styles.tableRow, idx % 2 === 1 && styles.tableRowAlt]}>
-                    <Text style={[styles.tableCellBold, { flex: 1.1 }]}>{row.grade}</Text>
-                    <Text style={[styles.tableCellText, { flex: 1.2, fontWeight: '600' }]}>{row.class}</Text>
-                    <Text style={[styles.tableCellText, { flex: 1.4 }]}>{row.pv}</Text>
-                    <Text style={[styles.tableCellGreen, { flex: 1.1, textAlign: 'right' }]}>{row.inr}</Text>
+                    <Text style={[styles.tableCellBold, { flex: 1.1, textAlign: 'center' }]}>{row.grade}</Text>
+                    <Text style={[styles.tableCellText, { flex: 1.2, fontWeight: '600', textAlign: 'center' }]}>{row.class}</Text>
+                    <Text style={[styles.tableCellText, { flex: 1.4, textAlign: 'center' }]}>{row.pv}</Text>
+                    <Text style={[styles.tableCellGreen, { flex: 1.1, textAlign: 'center' }]}>{row.inr}</Text>
                   </View>
                 ))}
               </View>

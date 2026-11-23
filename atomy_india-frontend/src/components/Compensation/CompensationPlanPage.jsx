@@ -344,10 +344,10 @@ export default function CompensationPlanPage({ onNavigateHome, onNavigateBack, o
                   </colgroup>
                   <thead>
                     <tr>
-                      <th>Grade/Score</th>
-                      <th>My Grade Standard</th>
-                      <th>Daily Small Leg**</th>
-                      <th>Commission in INR</th>
+                      <th className="center-cell">Grade/Score</th>
+                      <th className="center-cell">My Grade Standard</th>
+                      <th className="center-cell">Daily Small Leg**</th>
+                      <th className="center-cell">Commission in INR</th>
                     </tr>
                   </thead>
                   <tbody>
