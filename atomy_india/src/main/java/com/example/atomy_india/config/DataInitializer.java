@@ -107,9 +107,17 @@ public class DataInitializer implements CommandLineRunner {
                     true,
                     "192.168.1.104 (Secure VPN)"
             );
+            defaultProfile.setPasswordHash("Admin@123");
             defaultProfile.setLastLogin("Today, 09:30 AM (IST)");
             defaultProfile.setUpdatedAt(LocalDateTime.now());
             adminProfileRepository.save(defaultProfile);
+        } else {
+            adminProfileRepository.findAll().forEach(p -> {
+                if (p.getPasswordHash() == null || p.getPasswordHash().isBlank()) {
+                    p.setPasswordHash("Admin@123");
+                    adminProfileRepository.save(p);
+                }
+            });
         }
 
         // 3. Ensure customer naveen.mj2.45@gmail.com is present with password Naveen@123
@@ -349,8 +357,11 @@ public class DataInitializer implements CommandLineRunner {
                         d.setContactPerson("Selva Kumar");
                         d.setPhone("+91 95388 53454");
                         d.setHubAddress("RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002");
-                        distributorRepository.save(d);
                     }
+                    if (d.getPasswordHash() == null || d.getPasswordHash().isBlank()) {
+                        d.setPasswordHash("Admin@123");
+                    }
+                    distributorRepository.save(d);
                 });
             }
 

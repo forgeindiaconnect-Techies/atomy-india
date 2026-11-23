@@ -52,7 +52,7 @@ import MembershipPaymentPage from './components/Membership/MembershipPaymentPage
 import MembershipExpiryBanner from './components/Membership/MembershipExpiryBanner';
 import { isUserMember, calculateProductPricing, verifyUserMembershipWithBackend, fetchFullMembershipStatusWithBackend } from './services/membershipService';
 import { recordProductAddedToCart, recordProductPurchased } from './services/productStatsService';
-import { updateCustomerProfile, getCustomerProfile } from './services/api';
+import { updateCustomerProfile, getCustomerProfile, fetchRatingsSummary } from './services/api';
 import './App.css';
 
 // Parse current browser URL into route state
@@ -98,7 +98,8 @@ const parseRouteFromLocation = () => {
 
   if (path === '/product' || path.startsWith('/product/')) {
     const prodId = search.get('id') || path.split('/')[2];
-    return { view: 'product', productId: prodId };
+    const tab = search.get('tab') || 'details';
+    return { view: 'product', productId: prodId, tab };
   }
 
   return { view: 'home' };
@@ -127,7 +128,8 @@ const getUrlForView = (view, extra = {}) => {
     case 'category': return extra.categoryId ? `/category?id=${encodeURIComponent(extra.categoryId)}` : '/category';
     case 'product': {
       const pId = extra.product?.id || extra.productId;
-      return pId ? `/product?id=${encodeURIComponent(pId)}` : '/product';
+      const tabParam = extra.tab && extra.tab !== 'details' ? `&tab=${encodeURIComponent(extra.tab)}` : '';
+      return pId ? `/product?id=${encodeURIComponent(pId)}${tabParam}` : '/product';
     }
     case 'home':
     default: return '/';
@@ -245,6 +247,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState(initialRoute.authMode || 'signin');
   const [selectedCategory, setSelectedCategory] = useState(initialRoute.categoryId || 'health');
   const [selectedMembershipPlan, setSelectedMembershipPlan] = useState(initialRoute.plan || 'MONTHLY');
+  const [selectedProductTab, setSelectedProductTab] = useState(initialRoute.tab || 'details');
   const [selectedProduct, setSelectedProduct] = useState(() => {
     if (initialRoute.productId && ALL_CATALOG_PRODUCTS) {
       return ALL_CATALOG_PRODUCTS.find(p => p.id === initialRoute.productId) || ALL_CATALOG_PRODUCTS[0];
@@ -552,6 +555,7 @@ export default function App() {
       if (route.authMode) setAuthMode(route.authMode);
       if (route.categoryId) setSelectedCategory(route.categoryId);
       if (route.plan) setSelectedMembershipPlan(route.plan);
+      if (route.tab) setSelectedProductTab(route.tab);
       if (route.productId && ALL_CATALOG_PRODUCTS) {
         const prod = ALL_CATALOG_PRODUCTS.find(p => p.id === route.productId) || ALL_CATALOG_PRODUCTS[0];
         if (prod) setSelectedProduct(prod);
@@ -572,6 +576,7 @@ export default function App() {
     };
 
     window.addEventListener('popstate', handlePopState);
+    fetchRatingsSummary();
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
@@ -1296,15 +1301,28 @@ export default function App() {
     setIsCartOpen(false);
     navigateTo('cart');
   };
-  const handleSelectProduct = (product) => {
+  const handleSelectProduct = (product, extra = {}) => {
     if (!product) return;
     setSelectedProduct(product);
+    const tab = extra.tab || 'details';
+    setSelectedProductTab(tab);
     setRecentlyViewed((prev) => {
       const filtered = prev.filter((p) => p.id !== product.id);
       return [product, ...filtered].slice(0, 20);
     });
-    navigateTo('product', { product });
+    navigateTo('product', { product, tab, ...extra });
   };
+
+  useEffect(() => {
+    const handleOpenReview = (e) => {
+      const targetProd = e?.detail?.product;
+      if (targetProd) {
+        handleSelectProduct(targetProd, { tab: 'review' });
+      }
+    };
+    window.addEventListener('atomy:open-product-review', handleOpenReview);
+    return () => window.removeEventListener('atomy:open-product-review', handleOpenReview);
+  }, []);
 
   // Route access limitation guard: Customers without sign in or sign up can only browse products and prices
   useEffect(() => {
@@ -1684,6 +1702,7 @@ export default function App() {
           <div className="shopping-body-wrapper product-detail-body-wrapper">
             <ProductDetailPage
               product={selectedProduct || (ALL_CATALOG_PRODUCTS && ALL_CATALOG_PRODUCTS[0])}
+              initialTab={selectedProductTab}
               onAddToCart={handleAddToCart}
               onBuyNow={handleBuyNow}
               onNavigateHome={handleNavigateHome}
@@ -2024,6 +2043,9 @@ export default function App() {
               onNavigateHome={handleNavigateHome}
               onNavigateBack={handleGoBack}
               isMember={isMember}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+              cartItems={cart}
             />
 
             {/* Notice Strip */}

@@ -58,7 +58,8 @@ export default function ProductDetailPage({
   favorites = [],
   onToggleFavorite,
   isMember = false,
-  cartItems = []
+  cartItems = [],
+  initialTab = 'details'
 }) {
   const isInCart = Boolean(
     cartItems &&
@@ -117,7 +118,10 @@ export default function ProductDetailPage({
   const [isImgModalOpen, setIsImgModalOpen] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [qty, setQty] = useState(1);
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'review' | 'payment' | 'return'
+  const startingTab = initialTab === 'review' || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'review')
+    ? 'review'
+    : (initialTab || 'details');
+  const [activeTab, setActiveTab] = useState(startingTab); // 'details' | 'review' | 'payment' | 'return'
   const [isProductInfoOpen, setIsProductInfoOpen] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(product?.likes || 224);
@@ -127,6 +131,7 @@ export default function ProductDetailPage({
   const [isPdpQuickMenuOpen, setIsPdpQuickMenuOpen] = useState(false);
   const [isEducationCentreOpen, setIsEducationCentreOpen] = useState(false);
   const [isSelfPickUpOpen, setIsSelfPickUpOpen] = useState(false);
+  const [showTaxBreakdown, setShowTaxBreakdown] = useState(false);
 
   const [activePin, setActivePin] = useState(() => {
     return (typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_customer_delivery_pincode') : '') || '635002';
@@ -241,13 +246,36 @@ export default function ProductDetailPage({
   useEffect(() => {
     setCurrentImgIdx(0);
     setQty(1);
-    setActiveTab('details');
+    const searchTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+    const targetTab = initialTab === 'review' || searchTab === 'review' ? 'review' : (initialTab || 'details');
+    setActiveTab(targetTab);
     setIsLiked(false);
     setLikesCount(product?.likes || 224);
     setIsProductInfoOpen(true);
     setIsExpandedDetails(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [product?.id]);
+
+    if (targetTab === 'review') {
+      setTimeout(() => {
+        if (tabsSectionRef.current) {
+          const topOffset = tabsSectionRef.current.getBoundingClientRect().top + window.pageYOffset - 50;
+          window.scrollTo({ top: topOffset, behavior: 'smooth' });
+        }
+      }, 150);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [product?.id, initialTab]);
+
+  useEffect(() => {
+    const handleJumpToReviewEvent = (e) => {
+      const p = e?.detail?.product;
+      if (!p || !product || String(p.id) === String(product.id)) {
+        handleJumpToReviews();
+      }
+    };
+    window.addEventListener('atomy:open-product-review', handleJumpToReviewEvent);
+    return () => window.removeEventListener('atomy:open-product-review', handleJumpToReviewEvent);
+  }, [product]);
 
   if (!product) {
     return (
@@ -688,47 +716,64 @@ export default function ProductDetailPage({
                     </div>
                   )}
 
-                  {/* Top Line: e.g. ₹ 13,940.00 (Including Tax) 1,28,000 PV ⓘ */}
+                  {/* Top Line: Price & (Including Tax) toggle with arrow of Image 2 */}
                   <div className="pdp-tax-headline-row">
                     <span className="pdp-price-amount-hero">
                       ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    <span className="pdp-including-tax-label">
-                      (Including Tax)
-                    </span>
+                    <button
+                      type="button"
+                      className="pdp-including-tax-toggle-btn"
+                      onClick={() => setShowTaxBreakdown(prev => !prev)}
+                      title={showTaxBreakdown ? "Hide Tax Breakdown" : "View Tax Breakdown (Base Price, GST, Total)"}
+                      aria-expanded={showTaxBreakdown}
+                    >
+                      <span className="pdp-including-tax-label">
+                        (Including Tax)
+                      </span>
+                      <span className="pdp-tax-arrow-box">
+                        {showTaxBreakdown ? <ChevronUp size={13} strokeWidth={2.5} /> : <ChevronDown size={13} strokeWidth={2.5} />}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* 3-Row Tax & Base Breakdown Table (Collapsible, hidden inside Include Tax button) */}
+                  {showTaxBreakdown && (
+                    <div className="pdp-tax-breakdown-list animate-fade-in">
+                      <div className="pdp-tax-breakdown-line">
+                        <span className="pdp-tax-line-title">
+                          {isMember ? 'Distributor price' : 'Base Price'}
+                        </span>
+                        <span className="pdp-tax-line-amount">
+                          <strong>₹ {unitGstBase.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                          <span className="pdp-tax-excl-note"> (Excluding Tax)</span>
+                        </span>
+                      </div>
+
+                      <div className="pdp-tax-breakdown-line">
+                        <span className="pdp-tax-line-title">{gstRate === 5 ? 'GST (5%)' : 'GST'}</span>
+                        <span className="pdp-tax-line-amount">
+                          ₹ {unitGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="pdp-tax-breakdown-line">
+                        <span className="pdp-tax-line-title">Total Price</span>
+                        <span className="pdp-tax-line-amount">
+                          ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PV Value Pushed Down onto its own row */}
+                  <div className="pdp-pv-headline-row">
                     <span className="pdp-pv-amount-hero">
                       {itemPv.toLocaleString('en-IN')} PV
                     </span>
                     <span className="pdp-pv-info-icon" title="Point Value (PV) earned upon purchase">
                       ⓘ
                     </span>
-                  </div>
-
-                  {/* 3-Row Tax & Base Breakdown Table */}
-                  <div className="pdp-tax-breakdown-list">
-                    <div className="pdp-tax-breakdown-line">
-                      <span className="pdp-tax-line-title">
-                        {isMember ? 'Distributor price' : 'Base Price'}
-                      </span>
-                      <span className="pdp-tax-line-amount">
-                        <strong>₹ {unitGstBase.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-                        <span className="pdp-tax-excl-note"> (Excluding Tax)</span>
-                      </span>
-                    </div>
-
-                    <div className="pdp-tax-breakdown-line">
-                      <span className="pdp-tax-line-title">{gstRate === 5 ? 'GST (5%)' : 'GST'}</span>
-                      <span className="pdp-tax-line-amount">
-                        ₹ {unitGst.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-
-                    <div className="pdp-tax-breakdown-line">
-                      <span className="pdp-tax-line-title">Total Price</span>
-                      <span className="pdp-tax-line-amount">
-                        ₹ {unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
                   </div>
 
                   {/* Simple text hint like on the home page */}
@@ -1779,7 +1824,7 @@ export default function ProductDetailPage({
                         </p>
 
                         <div className="related-likes-line">
-                          {item.likes || 246} Likes
+                          {getProductStats(item).likes} Likes
                         </div>
                       </div>
                     </div>

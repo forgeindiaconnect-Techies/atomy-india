@@ -74,6 +74,24 @@ public class DistributorUser {
     @Field("leave_reason")
     private String leaveReason;
 
+    @Field("default_courier_partner")
+    private String defaultCourierPartner = "Blue Dart Express";
+
+    @Field("doorstep_delivery_enabled")
+    private Boolean doorstepDeliveryEnabled = true;
+
+    @Field("hub_pickup_enabled")
+    private Boolean hubPickupEnabled = true;
+
+    @Field("low_stock_threshold")
+    private Integer lowStockThreshold = 10;
+
+    @Field("dispatch_sla")
+    private String dispatchSla = "Within 24-48 Hours";
+
+    @Field("delivery_duration")
+    private String deliveryDuration = "1 – 2 Days";
+
     @Field("created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -176,6 +194,24 @@ public class DistributorUser {
 
     public String getLeaveReason() { return leaveReason; }
     public void setLeaveReason(String leaveReason) { this.leaveReason = leaveReason; }
+
+    public String getDefaultCourierPartner() { return defaultCourierPartner != null ? defaultCourierPartner : "Blue Dart Express"; }
+    public void setDefaultCourierPartner(String defaultCourierPartner) { this.defaultCourierPartner = defaultCourierPartner; }
+
+    public Boolean getDoorstepDeliveryEnabled() { return doorstepDeliveryEnabled != null ? doorstepDeliveryEnabled : true; }
+    public void setDoorstepDeliveryEnabled(Boolean doorstepDeliveryEnabled) { this.doorstepDeliveryEnabled = doorstepDeliveryEnabled; }
+
+    public Boolean getHubPickupEnabled() { return hubPickupEnabled != null ? hubPickupEnabled : true; }
+    public void setHubPickupEnabled(Boolean hubPickupEnabled) { this.hubPickupEnabled = hubPickupEnabled; }
+
+    public Integer getLowStockThreshold() { return lowStockThreshold != null ? lowStockThreshold : 10; }
+    public void setLowStockThreshold(Integer lowStockThreshold) { this.lowStockThreshold = lowStockThreshold; }
+
+    public String getDispatchSla() { return dispatchSla != null ? dispatchSla : "Within 24-48 Hours"; }
+    public void setDispatchSla(String dispatchSla) { this.dispatchSla = dispatchSla; }
+
+    public String getDeliveryDuration() { return deliveryDuration != null ? deliveryDuration : "1 – 2 Days"; }
+    public void setDeliveryDuration(String deliveryDuration) { this.deliveryDuration = deliveryDuration; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

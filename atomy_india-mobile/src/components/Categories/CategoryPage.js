@@ -425,10 +425,11 @@ export default function CategoryPage({
                     ...prod,
                     image: prod.image || prod.img,
                   }}
-                  isFavorite={favorites.includes(prod.id)}
+                  isFavorite={favorites.some((f) => (typeof f === 'string' ? f : f?.id) === prod.id) || favorites.includes(prod.id)}
                   onToggleFavorite={onToggleFavorite}
                   onAddToCart={onAddToCart}
-                  onPress={onProductClick}
+                  onPress={(p, tab) => onProductClick && onProductClick(p, tab)}
+                  onReviewClick={(p) => onProductClick && onProductClick(p, 'review')}
                   isMember={isMember}
                   onJoinMemberPress={onJoinMemberPress}
                   cardWidth={176}
@@ -488,10 +489,11 @@ export default function CategoryPage({
                     ...prod,
                     image: prod.image || prod.img,
                   }}
-                  isFavorite={favorites.includes(prod.id)}
+                  isFavorite={favorites.some((f) => (typeof f === 'string' ? f : f?.id) === prod.id) || favorites.includes(prod.id)}
                   onToggleFavorite={onToggleFavorite}
                   onAddToCart={onAddToCart}
-                  onPress={onProductClick}
+                  onPress={(p, tab) => onProductClick && onProductClick(p, tab)}
+                  onReviewClick={(p) => onProductClick && onProductClick(p, 'review')}
                   isMember={isMember}
                   onJoinMemberPress={onJoinMemberPress}
                   cardWidth="100%"

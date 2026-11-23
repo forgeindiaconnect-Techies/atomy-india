@@ -47,56 +47,42 @@ public class AdminAuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Username/email and password are required."));
         }
 
-        String lowerUser = username.toLowerCase();
-
-        // 1. Check Super Admin credentials
-        boolean isSuperAdminUser = lowerUser.equals("naveen.admin@atomy.com") ||
-                lowerUser.equals("admin@atomy.in") ||
-                lowerUser.equals("admin") ||
-                lowerUser.equals("superadmin");
-
-        if (isSuperAdminUser && (password.equals("admin123") || password.equals("Admin@123"))) {
-            Optional<AdminProfile> profileOpt = adminProfileRepository.findByEmailIgnoreCase("naveen.admin@atomy.com");
-            AdminProfile profile = profileOpt.orElseGet(() -> adminProfileRepository.findAll().stream().findFirst().orElse(null));
+        // 1. Check Super Admin in MongoDB admin_profiles by exact email
+        Optional<AdminProfile> profileOpt = adminProfileRepository.findByEmailIgnoreCase(username);
+        if (profileOpt.isPresent()) {
+            AdminProfile profile = profileOpt.get();
+            String storedPass = profile.getPasswordHash() != null ? profile.getPasswordHash() : "Admin@123";
+            if (!storedPass.equals(password)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid administrator credentials. Access denied."));
+            }
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("role", "SUPER_ADMIN");
-            resp.put("name", profile != null ? profile.getName() : "Naveen Sourabh Pal");
-            resp.put("email", profile != null ? profile.getEmail() : "naveen.admin@atomy.com");
-            resp.put("phone", profile != null ? profile.getPhone() : "+91 98765 43210");
-            resp.put("employeeId", profile != null ? profile.getEmployeeId() : "AT-IN-001");
-            resp.put("department", profile != null ? profile.getDepartment() : "E-Commerce Operations & Supply Chain");
-            resp.put("location", profile != null ? profile.getLocation() : "Gurugram HQ, India");
-            resp.put("twoFactorEnabled", profile != null ? profile.getTwoFactorEnabled() : true);
+            resp.put("name", profile.getName() != null ? profile.getName() : "Naveen Sourabh Pal");
+            resp.put("email", profile.getEmail());
+            resp.put("phone", profile.getPhone() != null ? profile.getPhone() : "+91 98765 43210");
+            resp.put("employeeId", profile.getEmployeeId() != null ? profile.getEmployeeId() : "AT-IN-001");
+            resp.put("department", profile.getDepartment() != null ? profile.getDepartment() : "E-Commerce Operations & Supply Chain");
+            resp.put("location", profile.getLocation() != null ? profile.getLocation() : "Gurugram HQ, India");
+            resp.put("twoFactorEnabled", profile.getTwoFactorEnabled() != null ? profile.getTwoFactorEnabled() : true);
             resp.put("lastLogin", "Just now (IST)");
             resp.put("sessionIp", "192.168.1.104 (Secure VPN)");
             return ResponseEntity.ok(resp);
         }
 
-        // 2. Check Regional Distributor (Sub-Admin) credentials
+        // 2. Check Regional Distributor / Substitute in MongoDB distributors collection by exact email or exact distributorId
         Optional<DistributorUser> distOpt = distributorRepository.findByEmailIgnoreCase(username)
-                .or(() -> distributorRepository.findByDistributorId(username))
-                .or(() -> {
-                    if (lowerUser.contains("selva")) {
-                        return distributorRepository.findByDistributorId("DIST-635002");
-                    }
-                    return Optional.empty();
-                });
+                .or(() -> distributorRepository.findByDistributorId(username));
 
         if (distOpt.isPresent()) {
             DistributorUser dist = distOpt.get();
 
-            // Validate password against hash or default initial password
-            boolean passMatches = dist.getPasswordHash() != null && (
-                    dist.getPasswordHash().equals(password) ||
-                    password.equals("Admin@123") ||
-                    password.equals("admin123") ||
-                    dist.getPasswordHash().equalsIgnoreCase(password)
-            );
-
-            if (!passMatches) {
+            // Validate strictly against database passwordHash
+            String storedPass = dist.getPasswordHash();
+            if (storedPass == null || !storedPass.equals(password)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Invalid distributor password. Access denied."));
+                        .body(Map.of("error", "Invalid distributor credentials. Access denied."));
             }
 
             if ("SUSPENDED".equalsIgnoreCase(dist.getStatus()) || "INACTIVE".equalsIgnoreCase(dist.getStatus())) {
@@ -138,10 +124,16 @@ public class AdminAuthController {
             resp.put("onLeave", dist.isOnLeave());
             resp.put("isSubstituteActive", isSubstituteActive);
             resp.put("primaryManagerName", primaryManagerName);
+            resp.put("defaultCourierPartner", dist.getDefaultCourierPartner());
+            resp.put("deliveryDuration", dist.getDeliveryDuration());
+            resp.put("doorstepDeliveryEnabled", dist.getDoorstepDeliveryEnabled());
+            resp.put("hubPickupEnabled", dist.getHubPickupEnabled());
+            resp.put("lowStockThreshold", dist.getLowStockThreshold());
             resp.put("lastLogin", "Just now (IST)");
             return ResponseEntity.ok(resp);
         }
 
+        // 3. Not found in MongoDB
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of("error", "Invalid administrative credentials. Access denied."));
     }
@@ -171,10 +163,6 @@ public class AdminAuthController {
         Optional<DistributorUser> distOpt = distributorRepository.findByEmailIgnoreCase(clean)
                 .or(() -> distributorRepository.findByDistributorId(clean));
 
-        if (distOpt.isEmpty() && clean.toLowerCase().contains("selva")) {
-            distOpt = distributorRepository.findByDistributorId("DIST-635002");
-        }
-
         if (distOpt.isPresent()) {
             DistributorUser dist = distOpt.get();
             targetEmail = dist.getEmail();
@@ -183,21 +171,10 @@ public class AdminAuthController {
                     : dist.getBusinessName();
         } else {
             // 2. Check Admin Profile
-            String lower = clean.toLowerCase();
-            boolean isSuperAdminUser = lower.equals("naveen.admin@atomy.com") ||
-                    lower.equals("admin@atomy.in") ||
-                    lower.equals("admin") ||
-                    lower.equals("superadmin");
-
-            if (isSuperAdminUser) {
-                targetEmail = "naveen.admin@atomy.com";
-                targetName = "Naveen Sourabh Pal";
-            } else {
-                Optional<AdminProfile> profileOpt = adminProfileRepository.findByEmailIgnoreCase(clean);
-                if (profileOpt.isPresent()) {
-                    targetEmail = profileOpt.get().getEmail();
-                    targetName = profileOpt.get().getName();
-                }
+            Optional<AdminProfile> profileOpt = adminProfileRepository.findByEmailIgnoreCase(clean);
+            if (profileOpt.isPresent()) {
+                targetEmail = profileOpt.get().getEmail();
+                targetName = profileOpt.get().getName();
             }
         }
 

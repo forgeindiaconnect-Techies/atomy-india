@@ -118,6 +118,72 @@ public class DistributorController {
         resp.put("leaveReason", dist.getLeaveReason());
         resp.put("isSubstituteActive", isSubstituteActive);
         resp.put("primaryManagerName", primaryManagerName);
+        resp.put("defaultCourierPartner", dist.getDefaultCourierPartner());
+        resp.put("doorstepDeliveryEnabled", dist.getDoorstepDeliveryEnabled());
+        resp.put("hubPickupEnabled", dist.getHubPickupEnabled());
+        resp.put("lowStockThreshold", dist.getLowStockThreshold());
+        resp.put("dispatchSla", dist.getDispatchSla());
+        resp.put("deliveryDuration", dist.getDeliveryDuration());
+
+        return ResponseEntity.ok(resp);
+    }
+
+    @PutMapping("/settings")
+    public ResponseEntity<?> updateSettings(@RequestParam(required = false) String distributorId,
+                                            @RequestParam(required = false) String email,
+                                            @RequestBody Map<String, Object> payload) {
+        String query = (distributorId != null && !distributorId.trim().isEmpty()) ? distributorId : email;
+        Optional<DistributorUser> distOpt = findDistributor(query);
+        if (distOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Distributor not found"));
+        }
+        DistributorUser dist = distOpt.get();
+
+        if (payload.containsKey("hubAddress") && payload.get("hubAddress") != null) {
+            dist.setHubAddress(String.valueOf(payload.get("hubAddress")).trim());
+        }
+        if (payload.containsKey("contactPerson") && payload.get("contactPerson") != null) {
+            dist.setContactPerson(String.valueOf(payload.get("contactPerson")).trim());
+        }
+        if (payload.containsKey("phone") && payload.get("phone") != null) {
+            dist.setPhone(String.valueOf(payload.get("phone")).trim());
+        }
+        if (payload.containsKey("defaultCourierPartner") && payload.get("defaultCourierPartner") != null) {
+            dist.setDefaultCourierPartner(String.valueOf(payload.get("defaultCourierPartner")).trim());
+        }
+        if (payload.containsKey("doorstepDeliveryEnabled") && payload.get("doorstepDeliveryEnabled") != null) {
+            dist.setDoorstepDeliveryEnabled(Boolean.parseBoolean(String.valueOf(payload.get("doorstepDeliveryEnabled"))));
+        }
+        if (payload.containsKey("hubPickupEnabled") && payload.get("hubPickupEnabled") != null) {
+            dist.setHubPickupEnabled(Boolean.parseBoolean(String.valueOf(payload.get("hubPickupEnabled"))));
+        }
+        if (payload.containsKey("lowStockThreshold") && payload.get("lowStockThreshold") != null) {
+            try {
+                dist.setLowStockThreshold(Integer.parseInt(String.valueOf(payload.get("lowStockThreshold"))));
+            } catch (NumberFormatException ignored) {}
+        }
+        if (payload.containsKey("dispatchSla") && payload.get("dispatchSla") != null) {
+            dist.setDispatchSla(String.valueOf(payload.get("dispatchSla")).trim());
+        }
+        if (payload.containsKey("deliveryDuration") && payload.get("deliveryDuration") != null) {
+            dist.setDeliveryDuration(String.valueOf(payload.get("deliveryDuration")).trim());
+        }
+
+        dist.setUpdatedAt(LocalDateTime.now());
+        distributorRepository.save(dist);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("success", true);
+        resp.put("message", "Hub logistics and profile settings updated successfully");
+        resp.put("defaultCourierPartner", dist.getDefaultCourierPartner());
+        resp.put("doorstepDeliveryEnabled", dist.getDoorstepDeliveryEnabled());
+        resp.put("hubPickupEnabled", dist.getHubPickupEnabled());
+        resp.put("lowStockThreshold", dist.getLowStockThreshold());
+        resp.put("dispatchSla", dist.getDispatchSla());
+        resp.put("deliveryDuration", dist.getDeliveryDuration());
+        resp.put("hubAddress", dist.getHubAddress());
+        resp.put("contactPerson", dist.getContactPerson());
+        resp.put("phone", dist.getPhone());
 
         return ResponseEntity.ok(resp);
     }

@@ -24,16 +24,37 @@ function saveStoredStatsMap(statsMap) {
 }
 
 /**
+ * Check if a product is in the user's wishlist / favorites (reads persistent localStorage)
+ */
+export function isProductFavorited(productId) {
+  try {
+    const raw = localStorage.getItem('atomy_favorites');
+    if (!raw) return false;
+    const favs = JSON.parse(raw);
+    if (!Array.isArray(favs)) return false;
+    const cleanId = String(productId || '').toLowerCase().trim();
+    return favs.some(f => {
+      const fId = String(f.id || f.code || f.itemCode || '').toLowerCase().trim();
+      return fId && fId === cleanId;
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Get live stats for a product considering base numbers, favorites state, and recorded actions.
  */
-export function getProductStats(product, isFavorited = false) {
+export function getProductStats(product, isFavorited = undefined) {
   if (!product) {
     return { likes: 51, purchased: 1219, addedToCart: 2333 };
   }
 
-  const pId = String(product.id || 'D00101');
+  const pId = String(product.id || product.code || 'D00101');
   const statsMap = getStoredStatsMap();
   const prodStats = statsMap[pId] || { extraPurchased: 0, extraAddedToCart: 0 };
+
+  const favState = isFavorited === true || (isFavorited !== false && isProductFavorited(pId)) || isProductFavorited(pId);
 
   // Parse baseline values
   const baseLikes = typeof product.likes === 'number'
@@ -49,7 +70,7 @@ export function getProductStats(product, isFavorited = false) {
     : parseInt(String(product.addedToCart || '2,333').replace(/[^0-9]/g, ''), 10) || 2333;
 
   return {
-    likes: baseLikes + (isFavorited ? 1 : 0),
+    likes: baseLikes + (favState ? 1 : 0),
     purchased: basePurchased + (prodStats.extraPurchased || 0),
     addedToCart: baseAddedToCart + (prodStats.extraAddedToCart || 0)
   };

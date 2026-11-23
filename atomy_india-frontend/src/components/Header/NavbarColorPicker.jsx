@@ -39,6 +39,7 @@ export const NAVBAR_COLOR_PRESETS = [
   { name: 'Lemon Chiffon', hex: '#FFFDE7', category: 'yellow' },
 
   // Blues & Cyans
+  { name: 'Forge Brand Dark Blue', hex: '#08267e', category: 'blue' },
   { name: 'Atomy Dark Blue', hex: '#0059b3', category: 'blue' },
   { name: 'Atomy Cyan', hex: '#00A3E0', category: 'blue' },
   { name: 'Deep Atomy Blue', hex: '#0082CD', category: 'blue' },
@@ -185,7 +186,7 @@ export function parseAndValidateColor(input) {
 }
 
 export default function NavbarColorPicker({
-  currentColor = '#0059b3',
+  currentColor = '#08267e',
   isGlass = false,
   opacity = 0.45,
   onChangeColor,
@@ -486,7 +487,7 @@ export default function NavbarColorPicker({
                 className="navbar-reset-color-btn"
                 onClick={() => {
                   if (onReset) onReset();
-                  else if (onChangeColor) onChangeColor('#0059b3', false);
+                  else if (onChangeColor) onChangeColor('#08267e', false);
                 }}
                 title="Reset to default Atomy blue"
               >

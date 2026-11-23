@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/customer/reviews")
@@ -138,6 +139,44 @@ public class ProductReviewController {
     @GetMapping("/order/{orderId}")
     public ResponseEntity<List<ProductReview>> getReviewsByOrder(@PathVariable String orderId) {
         return ResponseEntity.ok(productReviewRepository.findByOrderId(orderId.trim()));
+    }
+
+    /**
+     * GET /api/customer/reviews/summary
+     * Dynamically aggregates actual ratings and review counts from MongoDB
+     */
+    @GetMapping("/summary")
+    public ResponseEntity<Map<String, Map<String, Object>>> getRatingsSummary() {
+        Map<String, Map<String, Object>> summary = new HashMap<>();
+
+        // 1. Load actual ratings & review counts directly from products collection in MongoDB
+        productRepository.findAll().forEach(p -> {
+            if (p.getId() != null) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("rating", p.getRating() != null ? p.getRating() : 0.0);
+                item.put("reviewsCount", p.getReviewsCount() != null ? p.getReviewsCount() : 0);
+                summary.put(p.getId().trim(), item);
+            }
+        });
+
+        // 2. Also ensure any verified reviews in product_reviews are reflected with exact average
+        List<ProductReview> allReviews = productReviewRepository.findAll();
+        if (!allReviews.isEmpty()) {
+            Map<String, List<ProductReview>> grouped = allReviews.stream()
+                    .filter(r -> r.getProductId() != null && !r.getProductId().trim().isEmpty())
+                    .collect(Collectors.groupingBy(r -> r.getProductId().trim()));
+
+            grouped.forEach((prodId, reviews) -> {
+                int count = reviews.size();
+                double avg = reviews.stream().mapToInt(ProductReview::getRating).average().orElse(0.0);
+                double rounded = Math.round(avg * 10.0) / 10.0;
+                Map<String, Object> item = summary.computeIfAbsent(prodId, k -> new HashMap<>());
+                item.put("rating", rounded);
+                item.put("reviewsCount", count);
+            });
+        }
+
+        return ResponseEntity.ok(summary);
     }
 }
 

@@ -30,7 +30,7 @@ import {
   Star
 } from 'lucide-react';
 import DeliveryStatusStepper from './DeliveryStatusStepper';
-import { updateAdminOrderStatus, syncUnsyncedOrdersToBackend } from '../../services/api';
+import { updateAdminOrderStatus, syncUnsyncedOrdersToBackend, fetchRatingsSummary } from '../../services/api';
 import { mergeProductIntoCatalog } from '../../services/catalogSyncService';
 import { formatDateIST, formatTimeIST, parseDateSafe } from '../../utils/dateUtils';
 import './OrderHistoryPage.css';
@@ -149,34 +149,43 @@ export const resolveOrderDestination = (order) => {
     (order.hubName && !order.courier)
   );
 
+  const cleanUndefinedText = (str) => {
+    if (!str || typeof str !== "string") return "";
+    return str
+      .replace(/undefined\s*,?\s*,?\s*(Landmark:\s*N\/A\s*,?)?/gi, "")
+      .replace(/^,\s*/, "")
+      .replace(/,\s*$/, "")
+      .trim();
+  };
+
   // Extract customer personal address / location before hub mapping
   let rawCustomerAddr = "";
   if (order.customerAddress && typeof order.customerAddress === "string" && order.customerAddress.trim()) {
-    rawCustomerAddr = order.customerAddress.trim();
+    rawCustomerAddr = cleanUndefinedText(order.customerAddress.trim());
   } else if (order.customerLocation && typeof order.customerLocation === "string" && order.customerLocation.trim()) {
-    rawCustomerAddr = order.customerLocation.trim();
+    rawCustomerAddr = cleanUndefinedText(order.customerLocation.trim());
   } else if (typeof order.shippingAddress === "string" && order.shippingAddress.trim() && !order.shippingAddress.toLowerCase().includes("pickup counter") && !order.shippingAddress.toLowerCase().includes("direct hub pickup") && !order.shippingAddress.toLowerCase().includes("direct store pickup")) {
-    rawCustomerAddr = order.shippingAddress.trim();
+    rawCustomerAddr = cleanUndefinedText(order.shippingAddress.trim());
   } else if (order.shippingAddress && typeof order.shippingAddress === "object") {
-    const raw = order.shippingAddress.address || order.shippingAddress.fullAddress || order.shippingAddress.street || "";
+    const raw = order.shippingAddress.address || order.shippingAddress.fullAddress || order.shippingAddress.street || order.shippingAddress.addressLine1 || "";
     if (raw && !raw.toLowerCase().includes("pickup counter") && !raw.toLowerCase().includes("direct hub pickup") && !raw.toLowerCase().includes("direct store pickup")) {
-      rawCustomerAddr = raw;
+      rawCustomerAddr = cleanUndefinedText(raw);
     }
   } else if (order.address && typeof order.address === "object") {
-    const raw = order.address.fullAddress || order.address.address || order.address.street || "";
+    const raw = order.address.fullAddress || order.address.address || order.address.street || order.address.addressLine1 || "";
     if (raw && !raw.toLowerCase().includes("pickup counter") && !raw.toLowerCase().includes("direct hub pickup") && !raw.toLowerCase().includes("direct store pickup")) {
-      rawCustomerAddr = raw;
+      rawCustomerAddr = cleanUndefinedText(raw);
     }
   }
 
-  // Fallback to customer saved address in localStorage if address string missing
+  // Fallback to customer saved address in localStorage if address string missing or was cleaned away
   if (!rawCustomerAddr) {
     try {
       const savedActive = typeof window !== "undefined" ? localStorage.getItem("atomy_shipping_address") : null;
       if (savedActive) {
         const parsed = JSON.parse(savedActive);
-        if (parsed && (parsed.addressLine1 || parsed.fullAddress)) {
-          rawCustomerAddr = parsed.fullAddress || (parsed.addressLine1 + ", " + (parsed.addressLine2 || "")).trim();
+        if (parsed) {
+          rawCustomerAddr = cleanUndefinedText(parsed.fullAddress || parsed.addressLine1 || parsed.street || parsed.address || "");
         }
       }
       if (!rawCustomerAddr && typeof window !== "undefined") {
@@ -186,8 +195,17 @@ export const resolveOrderDestination = (order) => {
           if (Array.isArray(list) && list.length > 0) {
             const match = list.find(a => a.isDefault) || list[0];
             if (match) {
-              rawCustomerAddr = match.fullAddress || (match.addressLine1 + ", " + (match.addressLine2 || "")).trim();
+              rawCustomerAddr = cleanUndefinedText(match.fullAddress || match.addressLine1 || match.street || match.address || "");
             }
+          }
+        }
+      }
+      if (!rawCustomerAddr && typeof window !== "undefined") {
+        const savedUser = localStorage.getItem("atomy_customer_user");
+        if (savedUser) {
+          const u = JSON.parse(savedUser);
+          if (u && (u.street || u.address)) {
+            rawCustomerAddr = cleanUndefinedText(u.street || u.address);
           }
         }
       }
@@ -228,15 +246,17 @@ export const resolveOrderDestination = (order) => {
   let street = rawCustomerAddr;
   if (!street) {
     if (typeof order.shippingAddress === "string" && order.shippingAddress.trim()) {
-      street = order.shippingAddress.trim();
+      street = cleanUndefinedText(order.shippingAddress.trim());
     } else if (order.shippingAddress && typeof order.shippingAddress === "object") {
-      street = order.shippingAddress.address || order.shippingAddress.fullAddress || order.shippingAddress.street || "";
+      street = cleanUndefinedText(order.shippingAddress.address || order.shippingAddress.fullAddress || order.shippingAddress.street || order.shippingAddress.addressLine1 || "");
     } else if (typeof order.address === "string" && order.address.trim()) {
-      street = order.address.trim();
+      street = cleanUndefinedText(order.address.trim());
     } else if (order.address && typeof order.address === "object") {
-      street = order.address.address || order.address.fullAddress || order.address.street || "";
+      street = cleanUndefinedText(order.address.address || order.address.fullAddress || order.address.street || order.address.addressLine1 || "");
     }
   }
+
+  street = cleanUndefinedText(street);
 
   const parts = [];
   if (street) parts.push(street);
@@ -1022,19 +1042,41 @@ export default function OrderHistoryPage({
 
       // Update local storage review registry
       const key = `${reviewModalOrder.orderId}_${prodId}`;
+      const reviewDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const reviewRecord = {
+        id: key,
+        orderId: reviewModalOrder.orderId,
+        productId: prodId,
+        productName: prodName,
+        productImage: reviewProduct.image || reviewProduct.productImage || '',
+        price: reviewProduct.price || 0,
+        rating: reviewRating,
+        title: reviewTitle.trim(),
+        reviewTitle: reviewTitle.trim(),
+        comment: reviewComment.trim(),
+        date: reviewDate,
+        verified: true
+      };
+
       const updatedMap = {
         ...reviewedProductMap,
-        [key]: {
-          rating: reviewRating,
-          title: reviewTitle.trim(),
-          comment: reviewComment.trim(),
-          date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-        }
+        [key]: reviewRecord
       };
       setReviewedProductMap(updatedMap);
       try {
         localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updatedMap));
         localStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+
+        // Sync with atomy_customer_reviews array for the Profile reviews list
+        let existingReviews = [];
+        try {
+          existingReviews = JSON.parse(localStorage.getItem('atomy_customer_reviews') || '[]');
+        } catch { }
+        const filtered = Array.isArray(existingReviews)
+          ? existingReviews.filter(r => r.id !== key && `${r.orderId}_${r.productId}` !== key)
+          : [];
+        filtered.unshift(reviewRecord);
+        localStorage.setItem('atomy_customer_reviews', JSON.stringify(filtered));
       } catch { }
 
       // Update in-memory catalog structures
@@ -1055,9 +1097,18 @@ export default function OrderHistoryPage({
           bc.postMessage({
             type: 'PRODUCT_UPDATED',
             product: { id: prodId, rating: updatedRating, reviewsCount: updatedCount },
-            reviewMap: updatedMap
+            reviewMap: updatedMap,
+            reviewRecord
           });
           bc.close();
+        }
+      } catch { }
+
+      try {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('atomy_review_updated', { detail: reviewRecord }));
+          window.dispatchEvent(new CustomEvent('atomy:review-submitted', { detail: reviewRecord }));
+          fetchRatingsSummary();
         }
       } catch { }
 
@@ -1071,18 +1122,49 @@ export default function OrderHistoryPage({
       console.warn('Review submission notice:', err);
       // Fallback local persistence
       const key = `${reviewModalOrder.orderId}_${prodId}`;
+      const reviewDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const reviewRecord = {
+        id: key,
+        orderId: reviewModalOrder.orderId,
+        productId: prodId,
+        productName: prodName,
+        productImage: reviewProduct.image || reviewProduct.productImage || '',
+        price: reviewProduct.price || 0,
+        rating: reviewRating,
+        title: reviewTitle.trim(),
+        reviewTitle: reviewTitle.trim(),
+        comment: reviewComment.trim(),
+        date: reviewDate,
+        verified: true
+      };
+
       const updatedMap = {
         ...reviewedProductMap,
-        [key]: {
-          rating: reviewRating,
-          title: reviewTitle.trim(),
-          comment: reviewComment.trim(),
-          date: 'Recent'
-        }
+        [key]: reviewRecord
       };
       setReviewedProductMap(updatedMap);
       try {
         localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+        localStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(updatedMap));
+
+        // Sync with atomy_customer_reviews array
+        let existingReviews = [];
+        try {
+          existingReviews = JSON.parse(localStorage.getItem('atomy_customer_reviews') || '[]');
+        } catch { }
+        const filtered = Array.isArray(existingReviews)
+          ? existingReviews.filter(r => r.id !== key && `${r.orderId}_${r.productId}` !== key)
+          : [];
+        filtered.unshift(reviewRecord);
+        localStorage.setItem('atomy_customer_reviews', JSON.stringify(filtered));
+      } catch { }
+
+      try {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('atomy_review_updated', { detail: reviewRecord }));
+          window.dispatchEvent(new CustomEvent('atomy:review-submitted', { detail: reviewRecord }));
+          fetchRatingsSummary();
+        }
       } catch { }
 
       try {
@@ -1759,9 +1841,9 @@ export default function OrderHistoryPage({
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
-                          background: '#f0f9ff',
-                          color: '#0284c7',
-                          border: '1px solid #bae6fd',
+                          background: '#eef2ff',
+                          color: '#4338ca',
+                          border: '1px solid #c7d2fe',
                           borderRadius: '20px',
                           padding: '3px 9px',
                           fontSize: '11px',
@@ -1774,7 +1856,7 @@ export default function OrderHistoryPage({
                       {isCanc ? (
                         <span className="status-pill cancelled">
                           <XCircle size={14} />
-                          Cancelled (Refund Initiated)
+                          Order Cancelled
                         </span>
                       ) : (
                         <span className={`status-pill ${order.status === 'Cash on Delivery' ? 'cash-on-delivery' : order.status.toLowerCase().replace(/\s+/g, '-')}`}>
@@ -2734,13 +2816,13 @@ export default function OrderHistoryPage({
                     </div>
 
                     {/* Customer Delivery Location */}
-                    <div className="invoice-shipping-box">
+                    <div className="invoice-shipping-box" style={{ background: "#ffffff", borderColor: "#c7d2fe", borderWidth: "1px", borderStyle: "solid" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span className="shipping-box-label" style={{ fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0 }}>
+                        <span className="shipping-box-label" style={{ color: "#4338ca", fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0 }}>
                           🚚 DELIVERY LOCATION:
                         </span>
-                        <span style={{ background: "#f1f5f9", color: "#475569", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                          Doorstep Delivery
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", background: "#eef2ff", color: "#4338ca", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", border: "1px solid #c7d2fe" }}>
+                          <Truck size={12} /> Doorstep Delivery
                         </span>
                       </div>
                       <p className="shipping-box-text">
@@ -2756,17 +2838,17 @@ export default function OrderHistoryPage({
 
               <div className="invoice-items-table">
                 <div className="items-table-header">
-                  <span>Product</span>
-                  <span>Qty</span>
-                  <span>Unit Price</span>
-                  <span>Total</span>
+                  <span className="col-product">Product</span>
+                  <span className="col-qty">Qty</span>
+                  <span className="col-unit">Unit Price</span>
+                  <span className="col-total">Total</span>
                 </div>
                 {activeInvoiceOrder.items.map((it, idx) => (
                   <div key={idx} className="items-table-row">
-                    <span className="item-name">{it.name}</span>
-                    <span className="item-qty">{it.qty}</span>
-                    <span className="item-unit">₹ {it.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                    <span className="item-subtotal">₹ {(it.price * it.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="item-name col-product">{it.name}</span>
+                    <span className="item-qty col-qty">{it.qty}</span>
+                    <span className="item-unit col-unit">₹ {it.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="item-subtotal col-total">₹ {(it.price * it.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 ))}
               </div>

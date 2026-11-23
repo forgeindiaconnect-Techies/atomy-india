@@ -8,6 +8,60 @@
   flex-direction: column;
 }
 
+/* ==========================================================================
+   PRODUCT RATING ROW - AMAZON / MODERN E-COMMERCE STYLE (BETWEEN NAME & AMOUNT)
+   ========================================================================== */
+
+.product-rating-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 1px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  width: fit-content;
+  user-select: none;
+  line-height: 1;
+  transition: opacity 0.15s ease;
+}
+
+.product-rating-row:hover {
+  opacity: 0.92;
+}
+
+.product-rating-score {
+  font-family: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f1111;
+  margin-right: 2px;
+  line-height: 1;
+}
+
+.product-rating-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5px;
+}
+
+.rating-star-icon {
+  flex-shrink: 0;
+}
+
+.product-rating-count {
+  font-family: "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #007185;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+.product-rating-row:hover .product-rating-count {
+  color: #c7511f;
+  text-decoration: underline;
+}
+
 .price-strike-row {
   display: flex;
   align-items: center;

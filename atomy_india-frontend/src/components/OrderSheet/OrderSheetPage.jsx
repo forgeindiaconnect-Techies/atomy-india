@@ -708,7 +708,7 @@ export default function OrderSheetPage({
 
   // Dynamic estimated delivery date calculation (Within 2 days for nearby hubs; 3 days for remote mountain/forest areas)
   const destinationAddressString = currentSelectedAddress 
-    ? `${currentSelectedAddress.addressLine1 || ''} ${currentSelectedAddress.city || ''} ${currentSelectedAddress.state || ''} ${currentSelectedAddress.pincode || ''}`
+    ? `${currentSelectedAddress.addressLine1 || currentSelectedAddress.street || currentSelectedAddress.address || ''} ${currentSelectedAddress.city || ''} ${currentSelectedAddress.state || ''} ${currentSelectedAddress.pincode || ''}`
     : '';
   const estimatedDeliveryInfo = useMemo(() => getEstimatedDeliveryRange(new Date(), destinationAddressString), [destinationAddressString]);
 
@@ -1011,10 +1011,18 @@ export default function OrderSheetPage({
       const state = isPickupOrder
         ? (hubDetails?.state || currentSelectedAddress?.state || 'India')
         : (currentSelectedAddress?.state || 'India');
+      const line1 = (currentSelectedAddress?.addressLine1 || currentSelectedAddress?.street || currentSelectedAddress?.address || currentSelectedAddress?.fullAddress || '').trim();
+      const line2 = (currentSelectedAddress?.addressLine2 || '').trim();
+      const landmark = (currentSelectedAddress?.landmark || '').trim();
+      const addressParts = [];
+      if (line1 && line1 !== 'undefined') addressParts.push(line1);
+      if (line2 && line2 !== 'undefined') addressParts.push(line2);
+      if (landmark && landmark !== 'N/A' && landmark !== 'undefined') addressParts.push(`Landmark: ${landmark}`);
+
       const fullShippingAddress = isPickupOrder
         ? (hubDetails?.hubAddress || 'Regional Logistics Hub Counter')
         : (currentSelectedAddress 
-          ? `${currentSelectedAddress.addressLine1}, ${currentSelectedAddress.addressLine2 || ''}, Landmark: ${currentSelectedAddress.landmark || 'N/A'}`
+          ? (addressParts.length > 0 ? addressParts.join(', ') : (currentSelectedAddress.street || currentSelectedAddress.address || 'Doorstep Courier Delivery'))
           : 'Doorstep Courier Delivery');
 
       let springPaymentMethod = 'ONLINE_UPI';
@@ -1084,9 +1092,9 @@ export default function OrderSheetPage({
         fulfillmentType: fulfillmentType,
         isPickup: isPickupOrder,
         pickupStatus: isPickupOrder ? 'PENDING_PACKING' : null,
-        estimatedDelivery: isPickupOrder ? 'Direct Counter Pickup' : estimatedDeliveryInfo.timeFrame,
+        estimatedDelivery: isPickupOrder ? 'Direct Counter Pickup' : (hubDetails?.deliveryDuration ? `Within ${hubDetails.deliveryDuration} (Nearby Hub)` : estimatedDeliveryInfo.timeFrame),
         estimatedDeliveryDate: isPickupOrder ? 'Available at Hub Counter' : estimatedDeliveryInfo.dateRange,
-        courier: isPickupOrder ? 'Direct Hub Pickup' : 'Blue Dart Express (Assigned)',
+        courier: isPickupOrder ? 'Direct Hub Pickup' : `${hubDetails?.defaultCourierPartner || 'Blue Dart Express'} (Assigned)`,
         trackingNumber: isPickupOrder ? `PICKUP-${assignedOrderId}` : `BD${Math.floor(100000000 + Math.random() * 900000000)}IN`,
         paymentMethod: paymentMethod === 'UPI' ? 'UPI (Google Pay / PhonePe)' 
                      : paymentMethod === 'CARD' ? 'Credit / Debit Card'
@@ -1481,60 +1489,44 @@ export default function OrderSheetPage({
                   </div>
 
                   <div className="sheet-card-body" style={{ padding: '16px 20px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    <div className="fulfillment-methods-grid">
                       {/* Option 1: Doorstep Courier Delivery */}
                       <div
                         onClick={() => {
                           if (!isNoHubAvailable) setFulfillmentType('COURIER_DELIVERY');
                         }}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          padding: '14px 16px',
-                          borderRadius: '10px',
-                          border: (!isNoHubAvailable && fulfillmentType === 'COURIER_DELIVERY') ? '2px solid #00a3e0' : '1.5px solid #e2e8f0',
-                          background: isNoHubAvailable ? '#f8fafc' : fulfillmentType === 'COURIER_DELIVERY' ? '#f0f9ff' : '#ffffff',
-                          cursor: isNoHubAvailable ? 'not-allowed' : 'pointer',
-                          opacity: isNoHubAvailable ? 0.65 : 1,
-                          transition: 'all 0.15s ease'
-                        }}
+                        className={`fulfillment-option-card ${!isNoHubAvailable && fulfillmentType === 'COURIER_DELIVERY' ? 'selected' : ''} ${isNoHubAvailable ? 'disabled' : ''}`}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <input
-                              type="radio"
-                              name="fulfillmentMethod"
-                              disabled={isNoHubAvailable}
-                              checked={!isNoHubAvailable && fulfillmentType === 'COURIER_DELIVERY'}
-                              onChange={() => {
-                                if (!isNoHubAvailable) setFulfillmentType('COURIER_DELIVERY');
-                              }}
-                              style={{ cursor: isNoHubAvailable ? 'not-allowed' : 'pointer', accentColor: '#00a3e0' }}
-                            />
-                            <Truck size={18} color={isNoHubAvailable ? '#94a3b8' : '#00a3e0'} />
-                            <strong style={{ fontSize: '14px', color: isNoHubAvailable ? '#64748b' : '#0f172a' }}>Doorstep Courier Service</strong>
+                        <div>
+                          <div className="fulfillment-card-top">
+                            <div className="fulfillment-title-wrap">
+                              <input
+                                type="radio"
+                                name="fulfillmentMethod"
+                                className="fulfillment-radio"
+                                disabled={isNoHubAvailable}
+                                checked={!isNoHubAvailable && fulfillmentType === 'COURIER_DELIVERY'}
+                                onChange={() => {
+                                  if (!isNoHubAvailable) setFulfillmentType('COURIER_DELIVERY');
+                                }}
+                              />
+                              <Truck size={18} color={isNoHubAvailable ? '#94a3b8' : (!isNoHubAvailable && fulfillmentType === 'COURIER_DELIVERY') ? '#0077c8' : '#64748b'} />
+                              <strong>Doorstep Courier Service</strong>
+                            </div>
+                            <span className={`fulfillment-badge ${isNoHubAvailable ? 'fulfillment-badge-unavailable' : isFreeDeliveryEligible ? 'fulfillment-badge-free' : 'fulfillment-badge-fee'}`}>
+                              {isNoHubAvailable ? 'UNAVAILABLE IN PIN' : isFreeDeliveryEligible ? 'FREE Delivery' : '₹ 150.00 Delivery Fee'}
+                            </span>
                           </div>
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            background: isNoHubAvailable ? '#f1f5f9' : isFreeDeliveryEligible ? '#ecfdf5' : '#fffbeb',
-                            color: isNoHubAvailable ? '#64748b' : isFreeDeliveryEligible ? '#059669' : '#d97706',
-                            border: `1px solid ${isNoHubAvailable ? '#cbd5e1' : isFreeDeliveryEligible ? '#a7f3d0' : '#fde68a'}`
-                          }}>
-                            {isNoHubAvailable ? 'UNAVAILABLE IN PIN' : isFreeDeliveryEligible ? 'FREE Delivery' : '₹ 150.00 Delivery Fee'}
-                          </span>
+                          <p className="fulfillment-card-desc">
+                            {isNoHubAvailable 
+                              ? `Doorstep delivery is unavailable because no regional logistics hub serves PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}.`
+                              : `Direct parcel dispatch to your shipping address via ${hubDetails?.defaultCourierPartner || 'Blue Dart Express'}.`}
+                          </p>
                         </div>
-                        <p style={{ margin: '0 0 6px 26px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
-                          {isNoHubAvailable 
-                            ? `Doorstep delivery is unavailable because no regional logistics hub serves PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}.`
-                            : 'Direct parcel dispatch to your shipping address via Blue Dart Express.'}
-                        </p>
-                        <div style={{ marginLeft: '26px', fontSize: '11.5px', color: isNoHubAvailable ? '#dc2626' : '#0284c7', fontWeight: 600 }}>
+                        <div className={`fulfillment-card-footer ${isNoHubAvailable ? 'accent-error' : isFreeDeliveryEligible ? 'accent-green' : 'accent-warning'}`}>
                           {isNoHubAvailable
                             ? '✗ Delivery unavailable for this PIN'
-                            : subtotal >= 4500 
+                            : isFreeDeliveryEligible 
                               ? '✓ Free Delivery eligible (Order above ₹ 4,500.00)' 
                               : `• Orders below ₹4,500 incur standard ₹150 delivery fee (Add ₹ ${(4500 - subtotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })} for FREE)`}
                         </div>
@@ -1543,6 +1535,7 @@ export default function OrderSheetPage({
                       {/* Option 2: Direct Hub Store Pickup (Self-Pickup) */}
                       {(() => {
                         const isPickupDisabled = Boolean(isNoHubAvailable || (hubDetails && !hubDetails.found));
+                        const isPickupSelected = fulfillmentType === 'STORE_PICKUP' && !isPickupDisabled;
                         return (
                           <div
                             onClick={() => {
@@ -1550,53 +1543,35 @@ export default function OrderSheetPage({
                                 setFulfillmentType('STORE_PICKUP');
                               }
                             }}
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              padding: '14px 16px',
-                              borderRadius: '10px',
-                              border: (fulfillmentType === 'STORE_PICKUP' && !isPickupDisabled) ? '2px solid #10b981' : '1.5px solid #e2e8f0',
-                              background: isPickupDisabled ? '#f8fafc' : fulfillmentType === 'STORE_PICKUP' ? '#f0fdf4' : '#ffffff',
-                              cursor: isPickupDisabled ? 'not-allowed' : 'pointer',
-                              opacity: isPickupDisabled ? 0.65 : 1,
-                              transition: 'all 0.15s ease'
-                            }}
+                            className={`fulfillment-option-card ${isPickupSelected ? 'selected' : ''} ${isPickupDisabled ? 'disabled' : ''}`}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <input
-                                  type="radio"
-                                  name="fulfillmentMethod"
-                                  disabled={isPickupDisabled}
-                                  checked={fulfillmentType === 'STORE_PICKUP' && !isPickupDisabled}
-                                  onChange={() => {
-                                    if (!isPickupDisabled) setFulfillmentType('STORE_PICKUP');
-                                  }}
-                                  style={{ cursor: isPickupDisabled ? 'not-allowed' : 'pointer', accentColor: '#10b981' }}
-                                />
-                                <Store size={18} color={isPickupDisabled ? '#94a3b8' : '#10b981'} />
-                                <strong style={{ fontSize: '14px', color: isPickupDisabled ? '#64748b' : '#0f172a' }}>
-                                  Direct Hub Pickup (Self-Pickup)
-                                </strong>
+                            <div>
+                              <div className="fulfillment-card-top">
+                                <div className="fulfillment-title-wrap">
+                                  <input
+                                    type="radio"
+                                    name="fulfillmentMethod"
+                                    className="fulfillment-radio"
+                                    disabled={isPickupDisabled}
+                                    checked={isPickupSelected}
+                                    onChange={() => {
+                                      if (!isPickupDisabled) setFulfillmentType('STORE_PICKUP');
+                                    }}
+                                  />
+                                  <Store size={18} color={isPickupDisabled ? '#94a3b8' : isPickupSelected ? '#0077c8' : '#64748b'} />
+                                  <strong>Direct Hub Pickup (Self-Pickup)</strong>
+                                </div>
+                                <span className={`fulfillment-badge ${isPickupDisabled ? 'fulfillment-badge-unavailable' : 'fulfillment-badge-free'}`}>
+                                  {isPickupDisabled ? 'UNAVAILABLE IN PIN' : 'FREE - ₹0 FEE'}
+                                </span>
                               </div>
-                              <span style={{
-                                fontSize: '11px',
-                                fontWeight: 800,
-                                padding: '3px 8px',
-                                borderRadius: '12px',
-                                background: isPickupDisabled ? '#f1f5f9' : '#dcfce7',
-                                color: isPickupDisabled ? '#64748b' : '#15803d',
-                                border: `1px solid ${isPickupDisabled ? '#cbd5e1' : '#86efac'}`
-                              }}>
-                                {isPickupDisabled ? 'UNAVAILABLE IN PIN' : 'FREE - ₹0 FEE'}
-                              </span>
+                              <p className="fulfillment-card-desc">
+                                {isPickupDisabled
+                                  ? `No physical hub counter in PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}. Hub pickup is unavailable.`
+                                  : 'Collect directly from your regional logistics hub. Hub distributor packs items & holds for pickup.'}
+                              </p>
                             </div>
-                            <p style={{ margin: '0 0 6px 26px', fontSize: '12.5px', color: '#64748b', lineHeight: 1.4 }}>
-                              {isPickupDisabled
-                                ? `No physical hub counter in PIN ${currentSelectedAddress?.pincode || deliveryPincode || ''}. Hub pickup is unavailable.`
-                                : 'Collect directly from your regional logistics hub. Hub distributor packs items & holds for pickup.'}
-                            </p>
-                            <div style={{ marginLeft: '26px', fontSize: '11.5px', color: isPickupDisabled ? '#dc2626' : '#15803d', fontWeight: 600 }}>
+                            <div className={`fulfillment-card-footer ${isPickupDisabled ? 'accent-error' : 'accent-green'}`}>
                               {isPickupDisabled
                                 ? '✗ In-store pickup unavailable for this PIN'
                                 : '✓ No delivery fee required • Present product invoice / Order ID at counter to collect parcel.'}
@@ -1846,9 +1821,9 @@ export default function OrderSheetPage({
                                     className="btn-edit-address-icon"
                                     onClick={(e) => handleOpenEditAddress(addr, e)}
                                     title="Edit this address"
+                                    aria-label="Edit this address"
                                   >
-                                    <Edit2 size={14} />
-                                    <span>Edit</span>
+                                    <Edit2 size={16} />
                                   </button>
 
                                   <button
@@ -1856,9 +1831,9 @@ export default function OrderSheetPage({
                                     className="btn-remove-address-btn"
                                     onClick={(e) => handleDeleteAddress(addr.id, e)}
                                     title="Remove this address"
+                                    aria-label="Remove this address"
                                   >
-                                    <Trash2 size={14} />
-                                    <span>Remove</span>
+                                    <Trash2 size={16} color="#dc2626" />
                                   </button>
                                 </div>
                               </div>
@@ -2010,7 +1985,7 @@ export default function OrderSheetPage({
                       </span>
                     </div>
                     <div className="summary-delivery-subtext">
-                      Expected delivery within {estimatedDeliveryInfo.timeFrame}
+                      Expected delivery within {hubDetails?.deliveryDuration || estimatedDeliveryInfo.timeFrame}
                     </div>
 
                     {/* Applied Coupon Discount Row */}
@@ -2380,7 +2355,7 @@ export default function OrderSheetPage({
                       <span>Shipping to: <strong>{currentSelectedAddress.recipientName}</strong></span>
                     </div>
                     <p className="pg-dest-line">
-                      {currentSelectedAddress.addressLine1}, {currentSelectedAddress.city} - {currentSelectedAddress.pincode}
+                      {currentSelectedAddress.addressLine1 || currentSelectedAddress.street || currentSelectedAddress.address || 'Delivery Address'}, {currentSelectedAddress.city} - {currentSelectedAddress.pincode}
                     </p>
                     <div className="pg-delivery-eta-pill">
                       <Clock size={12} color="#0284c7" />

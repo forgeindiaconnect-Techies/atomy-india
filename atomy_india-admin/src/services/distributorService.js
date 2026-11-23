@@ -12,77 +12,12 @@ export async function loginAdminOrDistributor(username, password) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const authErr = new Error(err.error || 'Invalid administrative credentials. Access denied.');
-      authErr.isAuthError = true;
-      throw authErr;
+      throw new Error(err.error || err.message || 'Invalid administrative credentials. Access denied.');
     }
-    return res.json();
+    return await res.json();
   } catch (err) {
-    // If server responded with an authentication rejection, never bypass it
-    if (err.isAuthError) {
-      throw err;
-    }
-    // Offline resilience only when backend is unreachable
-    const lower = (username || '').toLowerCase().trim();
-    if ((lower === 'admin' || lower === 'naveen.admin@atomy.com') && (password === 'admin123' || password === 'Admin@123')) {
-      return {
-        role: 'SUPER_ADMIN',
-        name: 'Naveen Sourabh Pal',
-        email: 'naveen.admin@atomy.com',
-        roleTitle: 'Super Administrator',
-        location: 'Gurugram HQ, India',
-        lastLogin: 'Just now (IST)'
-      };
-    } else if (
-      (lower === 'dist-635002' || lower === 'selva.hub@atomy.in' || lower === 'selva@atomy.in' || lower === 'selva' || lower === 'selvakumarc029@gmail.com' || lower === 'selvakumar' || lower.includes('selvakumar')) && 
-      (password === 'Admin@123' || password === 'admin123' || password === 'Selva@123')
-    ) {
-      return {
-        role: 'DISTRIBUTOR_ADMIN',
-        distributorId: 'DIST-635002',
-        distributorRole: 'PRIMARY_MANAGER',
-        parentHubId: null,
-        parentHubName: null,
-        effectiveHubId: 'DIST-635002',
-        businessName: 'Selva Atomy Regional Hub',
-        contactPerson: 'Selva Kumar',
-        email: 'selvakumarc029@gmail.com',
-        phone: '+91 95388 53454',
-        assignedPincodes: ['635002'],
-        primaryPincode: '635002',
-        hubAddress: 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002',
-        city: 'Krishnagiri',
-        state: 'Tamil Nadu',
-        commissionRate: 8.0,
-        territoryFee: 35000,
-        status: 'ACTIVE',
-        onLeave: false
-      };
-    } else if (
-      (lower.includes('sub') || lower.includes('co-manager') || lower.includes('krishnagiri.sub@atomy.in') || lower === 'subdistributor@gmail.com') &&
-      (password === 'Admin@123' || password === 'admin123')
-    ) {
-      return {
-        role: 'DISTRIBUTOR_ADMIN',
-        distributorId: 'DIST-635002-SUB1',
-        distributorRole: 'SUB_DISTRIBUTOR',
-        parentHubId: 'DIST-635002',
-        parentHubName: 'Selva Atomy Regional Hub',
-        effectiveHubId: 'DIST-635002',
-        businessName: 'Selva Regional Hub (Co-Manager)',
-        contactPerson: 'Hub Co-Manager',
-        email: 'subdistributor@gmail.com',
-        phone: '+91 98400 12345',
-        assignedPincodes: ['635002'],
-        primaryPincode: '635002',
-        hubAddress: 'RK Tower, Rayakotta main road, bayanapalli, Krishnagiri - 635002',
-        city: 'Krishnagiri',
-        state: 'Tamil Nadu',
-        commissionRate: 8.0,
-        territoryFee: 0,
-        status: 'ACTIVE',
-        onLeave: false
-      };
+    if (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+      throw new Error('Unable to connect to authentication server. Please ensure backend is running.');
     }
     throw err;
   }
@@ -486,4 +421,32 @@ export async function fetchDistributorTickets(distributorId) {
     }
   } catch {}
   return [];
+}
+
+export async function updateDistributorSettings(distributorId, settingsPayload) {
+  try {
+    const res = await fetch(`${API_BASE}/distributor/settings?distributorId=${encodeURIComponent(distributorId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settingsPayload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Failed to update distributor settings');
+    }
+    const data = await res.json();
+    // Cache locally as well
+    try {
+      const key = `atomy_hub_logistics_${distributorId}`;
+      localStorage.setItem(key, JSON.stringify(settingsPayload));
+    } catch {}
+    return data;
+  } catch (err) {
+    console.warn('Backend settings update failed, falling back to local storage cache:', err.message);
+    try {
+      const key = `atomy_hub_logistics_${distributorId}`;
+      localStorage.setItem(key, JSON.stringify(settingsPayload));
+    } catch {}
+    return { success: true, localOnly: true, ...settingsPayload };
+  }
 }

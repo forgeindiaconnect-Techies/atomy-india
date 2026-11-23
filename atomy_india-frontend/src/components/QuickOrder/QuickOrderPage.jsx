@@ -958,9 +958,9 @@ export default function QuickOrderPage({
                                 className="btn-edit-address-icon"
                                 onClick={(e) => handleOpenEditAddress(addr, e)}
                                 title="Edit this address"
+                                aria-label="Edit this address"
                               >
-                                <Edit2 size={14} />
-                                <span>Edit</span>
+                                <Edit2 size={16} />
                               </button>
 
                               {/* Remove Button */}
@@ -969,9 +969,9 @@ export default function QuickOrderPage({
                                 className="btn-remove-address-btn"
                                 onClick={(e) => handleDeleteAddress(addr.id, e)}
                                 title="Remove this address"
+                                aria-label="Remove this address"
                               >
-                                <Trash2 size={14} />
-                                <span>Remove</span>
+                                <Trash2 size={16} color="#dc2626" />
                               </button>
                             </div>
                           </div>

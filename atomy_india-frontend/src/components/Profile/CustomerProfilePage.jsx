@@ -48,7 +48,207 @@ import { setCustomerDeliveryPincode } from '../../services/catalogSyncService';
 import { detectCustomerLiveLocation } from '../../services/locationService';
 import { normalizeIndianMobile, isValidIndianMobile } from '../../utils/phoneUtils';
 import OrderHistoryPage from '../Orders/OrderHistoryPage';
+import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
 import './CustomerProfilePage.css';
+
+/**
+ * Resolve authentic product image from catalog or placed orders
+ */
+export const resolveProductImage = (productId, productName, candidateOrders = []) => {
+  const pIdStr = String(productId || '').trim().toLowerCase();
+  const pNameStr = String(productName || '').trim().toLowerCase();
+
+  // 1. Search candidate orders (including memory and localStorage)
+  let allOrders = Array.isArray(candidateOrders) ? [...candidateOrders] : [];
+  try {
+    const raw1 = localStorage.getItem('atomy_placed_orders');
+    const raw2 = localStorage.getItem('atomy_customer_orders');
+    const raw3 = localStorage.getItem('atomy_admin_orders');
+    [raw1, raw2, raw3].forEach(raw => {
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) allOrders.push(...parsed);
+      }
+    });
+  } catch {}
+
+  for (const ord of allOrders) {
+    if (ord && Array.isArray(ord.items)) {
+      for (const it of ord.items) {
+        const itId = String(it.productId || it.id || it._id || '').trim().toLowerCase();
+        const itName = String(it.name || it.productName || '').trim().toLowerCase();
+        const itImg = it.image || it.productImage || it.img;
+        if (itImg && typeof itImg === 'string' && itImg.startsWith('http')) {
+          if (pIdStr && (itId === pIdStr || itId.includes(pIdStr) || pIdStr.includes(itId))) return itImg;
+          if (pNameStr && (itName === pNameStr || itName.includes(pNameStr) || pNameStr.includes(itName))) return itImg;
+        }
+      }
+    }
+    if (ord && ord.image && typeof ord.image === 'string' && ord.image.startsWith('http')) {
+      const oName = String(ord.title || ord.productName || ord.name || '').trim().toLowerCase();
+      if (pNameStr && (oName.includes(pNameStr) || pNameStr.includes(oName))) return ord.image;
+    }
+  }
+
+  // 2. Lookup in ALL_CATALOG_PRODUCTS map
+  if (ALL_CATALOG_PRODUCTS && typeof ALL_CATALOG_PRODUCTS.entries === 'function') {
+    for (const [, p] of ALL_CATALOG_PRODUCTS.entries()) {
+      if (!p) continue;
+      const catId = String(p.id || '').trim().toLowerCase();
+      const catName = String(p.name || '').trim().toLowerCase();
+      if (p.image) {
+        if (pIdStr && (catId === pIdStr || catId.includes(pIdStr) || pIdStr.includes(catId))) return p.image;
+        if (pNameStr && (catName === pNameStr || catName.includes(pNameStr) || pNameStr.includes(catName))) return p.image;
+      }
+    }
+  }
+
+  // 3. Fallback to standard product image links by keyword
+  if (pNameStr.includes('shilajit')) return 'https://image.atomy.com/IN/goods/D94085/org/907/260422000051907.jpeg?w=480&h=480';
+  if (pNameStr.includes('scalpcare') || pNameStr.includes('shampoo')) return 'https://image.atomy.com/IN/goods/D00693/D00693_00.jpg?w=610&h=610';
+  if (pNameStr.includes('hemohim')) return 'https://image.atomy.com/IN/goods/D00001/D00001_00.jpg?w=610&h=610';
+  if (pNameStr.includes('toothpaste') || pNameStr.includes('paste')) return 'https://image.atomy.com/IN/goods/D00521/D00521_00.jpg?w=610&h=610';
+  if (pNameStr.includes('snow') || pNameStr.includes('dark spot')) return 'https://image.atomy.com/IN/goods/D00247/D00247_00.jpg?w=610&h=610';
+
+  return 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg';
+};
+
+/**
+ * Filter to exclude hardcoded demo/seed items or reviews without actual customer feedback
+ */
+const isHardcodedDemoReview = (r) => {
+  if (!r) return true;
+  const comment = String(r.comment || '').trim();
+  const title = String(r.reviewTitle || r.title || '').trim();
+  const orderId = String(r.orderId || '').trim();
+  const prodId = String(r.productId || '').trim();
+
+  // Review MUST have non-empty text comment written by the customer
+  if (!comment) return true;
+
+  // Filter out development seed/demo reviews
+  if (orderId.includes('8026') || orderId === 'ORD-20261106-8026') return true;
+  if (comment.includes('Visible difference within two weeks') || title === 'Amazing product!') return true;
+  if (prodId === 'prod_snow_spot') return true;
+
+  return false;
+};
+
+/**
+ * Reconcile reviews posted for delivered products from Order History and persistent storage.
+ */
+export const loadCustomerDeliveredReviews = (placedOrders = []) => {
+  const reviewsList = [];
+  const processedKeys = new Set();
+
+  // 1. Check atomy_reviewed_orders_map & @atomy_reviewed_orders_map
+  let reviewedMap = {};
+  try {
+    const rawMap = localStorage.getItem('atomy_reviewed_orders_map') || localStorage.getItem('@atomy_reviewed_orders_map');
+    if (rawMap) {
+      reviewedMap = JSON.parse(rawMap) || {};
+    }
+  } catch {}
+
+  // 2. Check atomy_customer_reviews array
+  let rawCustList = [];
+  try {
+    const rawList = localStorage.getItem('atomy_customer_reviews');
+    if (rawList) {
+      rawCustList = JSON.parse(rawList) || [];
+    }
+  } catch {}
+
+  // Process reviewedMap entries: key is `${orderId}_${productId}`
+  Object.entries(reviewedMap).forEach(([key, val]) => {
+    if (!val || typeof val !== 'object') return;
+    if (isHardcodedDemoReview(val)) return;
+
+    const parts = key.split('_');
+    const orderId = val.orderId || parts[0] || '';
+    const prodId = val.productId || parts.slice(1).join('_') || '';
+    const uniqueKey = `${orderId}_${prodId}`;
+    if (processedKeys.has(uniqueKey)) return;
+
+    const prodName = val.productName || 'Atomy Product';
+    const prodImg = val.productImage && val.productImage.startsWith('http')
+      ? val.productImage
+      : resolveProductImage(prodId, prodName, placedOrders);
+
+    const rating = Number(val.rating) || 5;
+    const title = val.reviewTitle || val.title || '';
+    const comment = val.comment || '';
+    const date = val.date || 'Recent';
+
+    reviewsList.push({
+      id: uniqueKey,
+      orderId,
+      productId: prodId,
+      productName: prodName,
+      productImage: prodImg,
+      rating,
+      reviewTitle: title,
+      title,
+      comment,
+      date,
+      verified: true
+    });
+    processedKeys.add(uniqueKey);
+  });
+
+  // Also include reviews from rawCustList
+  if (Array.isArray(rawCustList)) {
+    rawCustList.forEach(r => {
+      if (!r || typeof r !== 'object') return;
+      if (isHardcodedDemoReview(r)) return;
+
+      const orderId = r.orderId || '';
+      const prodId = r.productId || '';
+      const uniqueKey = `${orderId}_${prodId}`;
+      if (processedKeys.has(uniqueKey)) return;
+
+      const prodName = r.productName || 'Atomy Product';
+      const prodImg = r.productImage && r.productImage.startsWith('http')
+        ? r.productImage
+        : resolveProductImage(prodId, prodName, placedOrders);
+
+      reviewsList.push({
+        id: uniqueKey,
+        orderId,
+        productId: prodId,
+        productName: prodName,
+        productImage: prodImg,
+        rating: Number(r.rating) || 5,
+        reviewTitle: r.reviewTitle || r.title || '',
+        title: r.reviewTitle || r.title || '',
+        comment: r.comment || '',
+        date: r.date || 'Recent',
+        verified: true
+      });
+      processedKeys.add(uniqueKey);
+    });
+  }
+
+  // Clean purged demo reviews from persistent storage
+  try {
+    const cleanList = rawCustList.filter(r => !isHardcodedDemoReview(r));
+    localStorage.setItem('atomy_customer_reviews', JSON.stringify(cleanList));
+
+    let mapModified = false;
+    Object.keys(reviewedMap).forEach(k => {
+      if (isHardcodedDemoReview(reviewedMap[k])) {
+        delete reviewedMap[k];
+        mapModified = true;
+      }
+    });
+    if (mapModified) {
+      localStorage.setItem('atomy_reviewed_orders_map', JSON.stringify(reviewedMap));
+      localStorage.setItem('@atomy_reviewed_orders_map', JSON.stringify(reviewedMap));
+    }
+  } catch {}
+
+  return reviewsList;
+};
 
 export default function CustomerProfilePage({
   currentUser,
@@ -545,23 +745,42 @@ export default function CustomerProfilePage({
   const [redeemCardCode, setRedeemCardCode] = useState('');
   const [redeemMessage, setRedeemMessage] = useState('');
 
-  // Customer Reviews state (Real reviews from user, no hardcoded demo data)
-  const [reviews, setReviews] = useState(() => {
-    try {
-      const saved = localStorage.getItem('atomy_customer_reviews');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // Dynamic Customer Reviews from delivered orders
+  const [reviews, setReviews] = useState(() => loadCustomerDeliveredReviews(placedOrders));
 
-  const [newReviewForm, setNewReviewForm] = useState({
-    productName: 'Atomy Toothpaste (200g)',
-    rating: 5,
-    title: '',
-    comment: ''
-  });
-  const [isWritingReview, setIsWritingReview] = useState(false);
+  // Sync reviews dynamically when placedOrders change, or on storage / BroadcastChannel event
+  useEffect(() => {
+    const syncReviews = () => {
+      setReviews(loadCustomerDeliveredReviews(placedOrders));
+    };
+
+    syncReviews();
+
+    const handleReviewUpdate = () => {
+      syncReviews();
+    };
+
+    window.addEventListener('atomy_review_updated', handleReviewUpdate);
+    window.addEventListener('storage', handleReviewUpdate);
+
+    let bc = null;
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        bc = new BroadcastChannel('atomy_sync_channel');
+        bc.onmessage = (event) => {
+          if (event.data?.type === 'PRODUCT_UPDATED' || event.data?.type === 'REVIEW_POSTED') {
+            syncReviews();
+          }
+        };
+      }
+    } catch {}
+
+    return () => {
+      window.removeEventListener('atomy_review_updated', handleReviewUpdate);
+      window.removeEventListener('storage', handleReviewUpdate);
+      if (bc) bc.close();
+    };
+  }, [placedOrders, activeTab]);
 
   // Initial letter
   const userInitial = currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
@@ -833,23 +1052,7 @@ export default function CustomerProfilePage({
     setTimeout(() => setRedeemMessage(''), 4000);
   };
 
-  // Handle New Review Submit
-  const handleAddReview = (e) => {
-    e.preventDefault();
-    if (!newReviewForm.title || !newReviewForm.comment) return;
-    const rev = {
-      id: `rev-${Date.now()}`,
-      productName: newReviewForm.productName,
-      rating: Number(newReviewForm.rating),
-      date: 'Today',
-      reviewTitle: newReviewForm.title,
-      comment: newReviewForm.comment,
-      verified: true
-    };
-    setReviews([rev, ...reviews]);
-    setIsWritingReview(false);
-    setNewReviewForm({ productName: 'Atomy Toothpaste (200g)', rating: 5, title: '', comment: '' });
-  };
+
 
   // Mark all notifications read in state & localStorage
   const handleMarkAllRead = () => {
@@ -1034,6 +1237,9 @@ export default function CustomerProfilePage({
             >
               <Star size={18} />
               <span>My Reviews</span>
+              {reviews.length > 0 && (
+                <span className="nav-item-count">{reviews.length}</span>
+              )}
             </button>
 
             <button
@@ -1391,119 +1597,103 @@ export default function CustomerProfilePage({
             </div>
           )}
 
-          {/* TAB 4: MY REVIEWS */}
+          {/* TAB 4: MY REVIEWS - DYNAMICALLY SYNCED WITH ORDER HISTORY DELIVERED ORDERS */}
           {activeTab === 'reviews' && (
             <div className="profile-tab-section animate-fade-in">
               <div className="profile-section-header">
                 <div>
                   <h2 className="profile-section-title">My Product Reviews & Ratings</h2>
-                  <p className="profile-section-sub">Your authentic feedback on purchased Atomy products.</p>
+                  <p className="profile-section-sub">Your authentic feedback submitted for delivered Atomy products.</p>
                 </div>
-                {!isWritingReview && (
-                  <button
-                    type="button"
-                    className="profile-action-primary-btn"
-                    onClick={() => setIsWritingReview(true)}
-                  >
-                    <Plus size={15} />
-                    <span>Write a Review</span>
-                  </button>
+                {reviews.length > 0 && (
+                  <span className="reviews-summary-badge">
+                    {reviews.length} {reviews.length === 1 ? 'Delivered Review' : 'Delivered Reviews'}
+                  </span>
                 )}
               </div>
 
-              {isWritingReview && (
-                <form onSubmit={handleAddReview} className="write-review-card">
-                  <h3 className="write-review-title">Share Your Experience</h3>
-                  <div className="form-field-group">
-                    <label className="field-label">Select Product</label>
-                    <select
-                      className="profile-field-input"
-                      value={newReviewForm.productName}
-                      onChange={(e) => setNewReviewForm({ ...newReviewForm, productName: e.target.value })}
-                    >
-                      <option value="Atomy Toothpaste (200g)">Atomy Toothpaste (200g)</option>
-                      <option value="Atomy HemoHIM (60 Packets)">Atomy HemoHIM (60 Packets)</option>
-                      <option value="Atomy Absolute Skincare Set">Atomy Absolute Skincare Set</option>
-                      <option value="Atomy Deep Cleanser">Atomy Deep Cleanser</option>
-                      <option value="Adelica Soft Brow Pencil - Gray">Adelica Soft Brow Pencil - Gray</option>
-                    </select>
+              {reviews.length === 0 ? (
+                <div className="review-empty-state-card">
+                  <div className="review-empty-icon-wrap">
+                    <Star size={38} className="review-empty-star-icon" />
                   </div>
+                  <h3 className="review-empty-title">No Product Reviews Yet</h3>
+                  <p className="review-empty-desc">
+                    You can rate and share your experience for any delivered products directly from your Order History tab.
+                  </p>
+                  <button
+                    type="button"
+                    className="review-empty-cta-btn"
+                    onClick={() => setActiveTab('orders')}
+                  >
+                    <Package size={16} />
+                    <span>View Delivered Orders to Review</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="reviews-list-wrapper">
+                  {reviews.map((rev) => (
+                    <div key={rev.id || `${rev.orderId}_${rev.productId}`} className="customer-review-card">
+                      <div className="review-card-header-row">
+                        <div className="review-product-info-col">
+                          <img
+                            src={rev.productImage || 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg'}
+                            alt={rev.productName}
+                            className="review-product-thumb"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg';
+                            }}
+                          />
+                          <div>
+                            <h4
+                              className="review-product-name"
+                              style={{ cursor: onProductClick && rev.productId ? 'pointer' : 'default' }}
+                              onClick={() => {
+                                if (onProductClick && rev.productId) {
+                                  onProductClick({ id: rev.productId, name: rev.productName });
+                                }
+                              }}
+                            >
+                              {rev.productName}
+                            </h4>
+                            <div className="review-badges-row">
+                              {rev.orderId && (
+                                <span className="review-order-pill" title={`Order ID: ${rev.orderId}`}>
+                                  Order #{rev.orderId}
+                                </span>
+                              )}
+                              <span className="verified-buyer-pill">
+                                <Check size={12} /> Verified Purchaser
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-                  <div className="form-field-group">
-                    <label className="field-label">Rating (Stars)</label>
-                    <select
-                      className="profile-field-input"
-                      value={newReviewForm.rating}
-                      onChange={(e) => setNewReviewForm({ ...newReviewForm, rating: e.target.value })}
-                    >
-                      <option value="5">★★★★★ (5 Stars - Excellent)</option>
-                      <option value="4">★★★★☆ (4 Stars - Very Good)</option>
-                      <option value="3">★★★☆☆ (3 Stars - Average)</option>
-                      <option value="2">★★☆☆☆ (2 Stars - Below Average)</option>
-                      <option value="1">★☆☆☆☆ (1 Star - Poor)</option>
-                    </select>
-                  </div>
-
-                  <div className="form-field-group">
-                    <label className="field-label">Review Headline</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Best toothpaste for sensitive teeth!"
-                      className="profile-field-input"
-                      value={newReviewForm.title}
-                      onChange={(e) => setNewReviewForm({ ...newReviewForm, title: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-field-group">
-                    <label className="field-label">Review Details</label>
-                    <textarea
-                      rows={3}
-                      placeholder="Tell other shoppers why you like this product and how you use it..."
-                      className="profile-field-input"
-                      value={newReviewForm.comment}
-                      onChange={(e) => setNewReviewForm({ ...newReviewForm, comment: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="profile-form-btn-row">
-                    <button type="submit" className="profile-save-btn">Submit Review</button>
-                    <button type="button" className="profile-cancel-btn" onClick={() => setIsWritingReview(false)}>Cancel</button>
-                  </div>
-                </form>
-              )}
-
-              <div className="reviews-list-wrapper">
-                {reviews.map((rev) => (
-                  <div key={rev.id} className="customer-review-card">
-                    <div className="review-card-top">
-                      <div>
-                        <h4 className="review-product-name">{rev.productName}</h4>
-                        <div className="review-stars-row">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={14}
-                              fill={i < rev.rating ? "#f59e0b" : "none"}
-                              stroke={i < rev.rating ? "#f59e0b" : "#cbd5e1"}
-                            />
-                          ))}
+                        <div className="review-rating-col">
+                          <div className="review-stars-row">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={15}
+                                fill={i < (rev.rating || 5) ? "#f59e0b" : "none"}
+                                stroke={i < (rev.rating || 5) ? "#f59e0b" : "#cbd5e1"}
+                              />
+                            ))}
+                            <span className="review-rating-number">({rev.rating || 5}/5)</span>
+                          </div>
                           <span className="review-date">{rev.date}</span>
                         </div>
                       </div>
-                      {rev.verified && (
-                        <span className="verified-buyer-pill">
-                          <Check size={12} /> Verified Buyer
-                        </span>
+
+                      {rev.reviewTitle && (
+                        <h5 className="review-card-headline">"{rev.reviewTitle}"</h5>
                       )}
+                      <p className="review-card-text">{rev.comment}</p>
                     </div>
-                    <h5 className="review-card-headline">"{rev.reviewTitle}"</h5>
-                    <p className="review-card-text">{rev.comment}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

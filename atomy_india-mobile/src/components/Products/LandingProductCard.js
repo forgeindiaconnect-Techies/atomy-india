@@ -11,6 +11,8 @@ import { COLORS } from '../../constants/theme';
 import { GST_BADGE_IMAGE } from '../../data/mockData';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
 import { getHighResImageUrl } from '../../utils/imageUtils';
+import ProductRatingRow from './ProductRatingRow';
+import { getProductStats } from '../../services/productStatsService';
 
 function formatInr(val) {
   return Number(val || 0).toLocaleString('en-IN', {
@@ -28,6 +30,7 @@ function LandingProductCard({
   cardWidth = 176,
   isMember = false,
   onJoinMemberPress,
+  onReviewClick,
 }) {
   const isPercentWidth = typeof cardWidth === 'string' && cardWidth.includes('%');
   const resolvedWidth = isPercentWidth ? cardWidth : Math.max(Number(cardWidth) || 176, 160);
@@ -80,6 +83,13 @@ function LandingProductCard({
   const stockQty = product.stockQuantity !== undefined ? Number(product.stockQuantity) : 50;
   const isOutOfStock = product.inStock === false || stockQty < 2;
 
+  const stats = getProductStats(product, isFavorite);
+  const likesCount = stats.likes;
+  const isGstReduced = Boolean(
+    product.gstReduced ||
+    (Array.isArray(product.tags) && product.tags.some((t) => String(t).toUpperCase().includes('GST')))
+  );
+
   return (
     <TouchableOpacity
       style={[
@@ -100,7 +110,7 @@ function LandingProductCard({
         ) : null}
 
         {/* GST Reduced Flag */}
-        {product.gstReduced && GST_BADGE_IMAGE ? (
+        {isGstReduced && GST_BADGE_IMAGE ? (
           <Image
             source={{ uri: GST_BADGE_IMAGE }}
             style={styles.gstBadge}
@@ -169,6 +179,18 @@ function LandingProductCard({
           {product.name}
         </Text>
 
+        {/* Dynamic Database Star Ratings & Reviews Count */}
+        <ProductRatingRow
+          product={product}
+          onPress={() => {
+            if (onReviewClick) {
+              onReviewClick(product);
+            } else if (onPress) {
+              onPress(product, 'review');
+            }
+          }}
+        />
+
         {/* Price Strike Row (like website) */}
         {hasOffer ? (
           <View style={styles.priceRow}>
@@ -198,6 +220,22 @@ function LandingProductCard({
         <Text style={styles.pvNote}>
           {pv.toLocaleString('en-IN')} PV
         </Text>
+
+        {/* Synchronized Like Counter with Heart Icon */}
+        <TouchableOpacity
+          style={styles.likesRow}
+          activeOpacity={0.7}
+          onPress={() => onToggleFavorite && onToggleFavorite(product)}
+        >
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={13}
+            color={isFavorite ? '#E53935' : '#111827'}
+          />
+          <Text style={styles.likesText}>
+            {likesCount} Likes
+          </Text>
+        </TouchableOpacity>
 
         {/* Regional Hub Inventory Status: Only show for Out of Stock items */}
         {isOutOfStock ? (
@@ -536,6 +574,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#DC2626',
     flex: 1,
+  },
+  likesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+    marginBottom: 4,
+  },
+  likesText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
   },
 });
 

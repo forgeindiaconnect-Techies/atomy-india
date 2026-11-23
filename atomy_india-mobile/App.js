@@ -82,6 +82,7 @@ import {
   fetchCustomerProfileApi,
   updateCustomerProfileApi,
 } from './src/services/api';
+import { notifyStatsUpdated } from './src/services/productStatsService';
 import { syncCatalogFromBackend, onCatalogUpdate, setCustomerDeliveryPincode } from './src/services/catalogSyncService';
 import storageService, {
   initStorage,
@@ -210,6 +211,7 @@ const persistMembershipStatus = (status) => {
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('home'); // 'home' | 'cart' | 'payment_summary' | 'product_detail'
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProductTab, setSelectedProductTab] = useState('details');
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [activeBottomTab, setActiveBottomTab] = useState('home');
   const [activeSubTab, setActiveSubTab] = useState('home');
@@ -843,6 +845,11 @@ export default function App() {
     if (extra.category !== undefined) {
       setSelectedCategory(extra.category);
     }
+    if (extra.tab !== undefined) {
+      setSelectedProductTab(extra.tab);
+    } else if (screenName === 'product_detail') {
+      setSelectedProductTab('details');
+    }
     setIsCategoryModalOpen(false);
     setIsMembershipModalOpen(false);
     if (['home', 'favorites', 'profile'].includes(screenName)) {
@@ -1033,10 +1040,11 @@ export default function App() {
   };
 
   // Open Product Detail Page handler (pushes current screen to history & records to recently viewed)
-  const handleOpenProductDetail = (product) => {
+  const handleOpenProductDetail = (product, tab = 'details') => {
     if (!product) return;
     recordRecentlyViewed(product);
-    navigateTo('product_detail', { product });
+    setSelectedProductTab(tab || 'details');
+    navigateTo('product_detail', { product, tab: tab || 'details' });
   };
 
   // Add to cart handler
@@ -1174,6 +1182,7 @@ export default function App() {
         return [...prev, product.id];
       }
     });
+    notifyStatsUpdated();
   };
 
   // Handle bottom navigation tab press
@@ -1224,6 +1233,7 @@ export default function App() {
           /* PRODUCT DETAIL PAGE (Authentic Official Product Details) */
           <ProductDetailPage
             product={selectedProduct}
+            initialTab={selectedProductTab}
             isMember={isMember}
             isFavorite={favorites.includes(selectedProduct.id)}
             cartCount={totalCartCount}

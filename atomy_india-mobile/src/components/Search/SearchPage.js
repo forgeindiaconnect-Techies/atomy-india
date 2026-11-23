@@ -392,7 +392,7 @@ export default function SearchPage({
                       product={prod}
                       cardWidth="100%"
                       isMember={isMember}
-                      isFavorite={favorites.includes(prod.id)}
+                      isFavorite={favorites.some((f) => (typeof f === 'string' ? f : f?.id) === prod.id) || favorites.includes(prod.id)}
                       onToggleFavorite={onToggleFavorite}
                       onPress={onProductClick}
                       onAddToCart={onAddToCart}
@@ -448,7 +448,7 @@ export default function SearchPage({
                       product={product}
                       cardWidth="100%"
                       isMember={isMember}
-                      isFavorite={favorites.includes(product.id)}
+                      isFavorite={favorites.some((f) => (typeof f === 'string' ? f : f?.id) === product.id) || favorites.includes(product.id)}
                       onToggleFavorite={onToggleFavorite}
                       onPress={onProductClick}
                       onAddToCart={onAddToCart}

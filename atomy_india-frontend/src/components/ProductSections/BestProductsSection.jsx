@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ShoppingCart, Heart, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { BEST_PRODUCTS, GST_BADGE_IMAGE } from '../../data/mockData';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
-import { getProductStats } from '../../services/productStatsService';
+import { getProductStats, isProductFavorited } from '../../services/productStatsService';
 import ProductPriceDisplay from './ProductPriceDisplay';
 import ProductCornerRibbon, { getProductRibbonInfo } from './ProductCornerRibbon';
 import './ProductSection.css';
@@ -89,7 +89,7 @@ export default function BestProductsSection({
     return false;
   }).map((item, idx) => ({
     ...item,
-    rank: item.rank || (idx + 1)
+    rank: idx + 1
   }));
 
   const productsToDisplay = activeTab === 'BEST' ? shuffledBestProducts : filteredProducts;
@@ -183,12 +183,13 @@ export default function BestProductsSection({
             ref={sliderRef}
           >
             {visibleProducts.map((product, index) => {
-              const isLiked = favorites.some((f) => f.id === product.id);
+              const pId = String(product.id || product.code || '').toLowerCase().trim();
+              const isLiked = (favorites || []).some((f) => String(f.id || f.code || '').toLowerCase().trim() === pId) || isProductFavorited(pId);
               const stats = getProductStats(product, isLiked);
               const likesCount = stats.likes;
               const isOutOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
               const { showRibbon } = getProductRibbonInfo(product, isMember);
-              const displayRank = product.rank || (index + 1);
+              const displayRank = index + 1;
 
               return (
                 <div key={product.id} className="product-card" style={isOutOfStock ? { opacity: 0.6 } : {}}>

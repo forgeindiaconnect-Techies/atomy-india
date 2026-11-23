@@ -1,14 +1,23 @@
 import React from 'react';
 import { calculateProductPricing } from '../../services/membershipService';
+import ProductRatingRow from './ProductRatingRow';
 import './ProductPriceDisplay.css';
 
-export default function ProductPriceDisplay({ product, isMember = false, size = 'medium', hidePercentBadge = false }) {
+export default function ProductPriceDisplay({
+  product,
+  isMember = false,
+  size = 'medium',
+  hidePercentBadge = false,
+  showRating = true
+}) {
   const pricing = calculateProductPricing(product, isMember);
 
   if (isMember) {
     // ATOMY MEMBER WITH ACTIVE MEMBERSHIP: Shows Wholesale DP Price instead of MRP, and displays PV!
     return (
       <div className={`product-price-block is-member ${size}`}>
+        {showRating && <ProductRatingRow product={product} />}
+
         <div className="price-strike-row">
           <span className="price-mrp-label">MRP</span>
           <span className="price-original notranslate" translate="no">
@@ -38,6 +47,8 @@ export default function ProductPriceDisplay({ product, isMember = false, size = 
   // Shows MRP / Retail price and PV value, HIDES DP value!
   return (
     <div className={`product-price-block is-retail ${size}`}>
+      {showRating && <ProductRatingRow product={product} />}
+
       {pricing.hasOffer && (
         <div className="price-strike-row">
           <span className="price-mrp-label">MRP</span>

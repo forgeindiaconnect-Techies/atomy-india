@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, ShoppingCart, ArrowLeft, X } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ShoppingCart, Heart, ArrowLeft, X } from 'lucide-react';
 import { CATEGORIES, CATEGORY_CONFIGS, ALL_CATALOG_PRODUCTS, GST_BADGE_IMAGE } from '../../data/mockData';
 import { getCategoryBanners } from '../../services/bannerService';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
+import { getProductStats, isProductFavorited } from '../../services/productStatsService';
 import { CarouselPauseIcon, CarouselPlayIcon, CarouselLayersIcon } from '../common/CarouselControlsIcons';
 import ProductPriceDisplay from '../ProductSections/ProductPriceDisplay';
 import ProductCornerRibbon, { getProductRibbonInfo } from '../ProductSections/ProductCornerRibbon';
@@ -18,7 +19,10 @@ export default function CategoryPage({
   onProductClick,
   onNavigateHome,
   onNavigateBack,
-  isMember = false
+  isMember = false,
+  favorites = [],
+  onToggleFavorite,
+  cartItems = []
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeSubcategory, setActiveSubcategory] = useState('All');
@@ -27,12 +31,33 @@ export default function CategoryPage({
   const [isBannerPlaying, setIsBannerPlaying] = useState(true);
   const [isViewAllBannersOpen, setIsViewAllBannersOpen] = useState(false);
   const [, setCatalogTick] = useState(0);
+  const [, setFavTick] = useState(0);
 
   useEffect(() => {
     return onCatalogUpdate(() => {
       setCatalogTick(t => t + 1);
     });
   }, []);
+
+  useEffect(() => {
+    const handleFavUpdate = () => setFavTick(t => t + 1);
+    window.addEventListener('atomy:favorites-updated', handleFavUpdate);
+    window.addEventListener('atomy:product-stats-updated', handleFavUpdate);
+    return () => {
+      window.removeEventListener('atomy:favorites-updated', handleFavUpdate);
+      window.removeEventListener('atomy:product-stats-updated', handleFavUpdate);
+    };
+  }, []);
+
+  const checkIsLiked = (product) => {
+    if (!product) return false;
+    const pId = String(product.id || product.code || '').toLowerCase().trim();
+    const inProp = (favorites || []).some((f) => {
+      const fId = String(f.id || f.code || '').toLowerCase().trim();
+      return fId && fId === pId;
+    });
+    return inProp || isProductFavorited(pId);
+  };
 
   // Fallback to health if categoryId not found
   const categoryKey = categoryId ? categoryId.toLowerCase().replace(/[\s-]+/g, '_') : 'health';
@@ -634,6 +659,17 @@ export default function CategoryPage({
                 {categoryData.bestProducts.map((product) => {
                   const isOos = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
                   const { showRibbon } = getProductRibbonInfo(product, isMember);
+                  const isLiked = checkIsLiked(product);
+                  const stats = getProductStats(product, isLiked);
+                  const likesCount = stats.likes;
+                  const isInCart = Boolean(
+                    cartItems &&
+                    cartItems.some(
+                      (item) =>
+                        String(item.id) === String(product.id) ||
+                        (product.code && String(item.code || item.itemCode) === String(product.code || product.itemCode))
+                    )
+                  );
                   return (
                   <div key={product.id} className="cate-product-card" style={isOos ? { opacity: 0.6 } : {}}>
                     <div className="cate-product-img-box">
@@ -682,7 +718,8 @@ export default function CategoryPage({
 
                     <div className="cate-product-info">
                       <h4
-                        className="cate-product-name"
+                        className="cate-product-name notranslate"
+                        translate="no"
                         title={product.name}
                         onClick={() => onProductClick && onProductClick(product)}
                       >
@@ -690,28 +727,46 @@ export default function CategoryPage({
                       </h4>
                       {renderPricing(product, showRibbon)}
 
-                      <div className="cate-card-footer-row">
-                        <div className="cate-footer-left">
-                          {product.likes && (
-                            <div className="cate-product-meta">
-                              <span className="cate-likes-text">{product.likes}</span>
-                            </div>
-                          )}
-                          {renderProductTags(product)}
+                      <div className="cate-product-meta-row">
+                        <div
+                          className="cate-likes-counter"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite && onToggleFavorite(product);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                          title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+                        >
+                          <Heart
+                            size={14}
+                            fill={isLiked ? "#e53935" : "none"}
+                            color={isLiked ? "#e53935" : "#111827"}
+                          />
+                          <span className="cate-likes-text">{likesCount} Likes</span>
                         </div>
+                      </div>
+
+                      {renderProductTags(product)}
+
+                      <div className="cate-card-footer-row">
+                        <div className="cate-footer-left"></div>
 
                         <button
                           type="button"
-                          className="cate-cart-btn"
+                          className={`cate-cart-btn ${isInCart ? 'in-cart' : ''}`}
                           disabled={isOos}
-                          style={isOos ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                          style={
+                            isOos
+                              ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' }
+                              : (isInCart ? { background: '#00b6f0', borderColor: '#00b6f0', color: '#ffffff' } : {})
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
                             if (isOos) return;
                             onAddToCart && onAddToCart(product);
                           }}
                           aria-label={`Add ${product.name} to cart`}
-                          title={isOos ? 'Out of Stock' : `Add ${product.name} to cart`}
+                          title={isOos ? 'Out of Stock' : (isInCart ? 'Already in Cart' : `Add ${product.name} to cart`)}
                         >
                           <ShoppingCart size={18} />
                         </button>
@@ -763,6 +818,17 @@ export default function CategoryPage({
                 {categoryData.recommendationProducts.map((product) => {
                   const isOos = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
                   const { showRibbon } = getProductRibbonInfo(product, isMember);
+                  const isLiked = checkIsLiked(product);
+                  const stats = getProductStats(product, isLiked);
+                  const likesCount = stats.likes;
+                  const isInCart = Boolean(
+                    cartItems &&
+                    cartItems.some(
+                      (item) =>
+                        String(item.id) === String(product.id) ||
+                        (product.code && String(item.code || item.itemCode) === String(product.code || product.itemCode))
+                    )
+                  );
                   return (
                   <div key={product.id} className="cate-product-card" style={isOos ? { opacity: 0.6 } : {}}>
                     <div className="cate-product-img-box">
@@ -811,7 +877,8 @@ export default function CategoryPage({
 
                     <div className="cate-product-info">
                       <h4
-                        className="cate-product-name"
+                        className="cate-product-name notranslate"
+                        translate="no"
                         title={product.name}
                         onClick={() => onProductClick && onProductClick(product)}
                       >
@@ -819,28 +886,46 @@ export default function CategoryPage({
                       </h4>
                       {renderPricing(product, showRibbon)}
 
-                      <div className="cate-card-footer-row">
-                        <div className="cate-footer-left">
-                          {product.likes && (
-                            <div className="cate-product-meta">
-                              <span className="cate-likes-text">{product.likes}</span>
-                            </div>
-                          )}
-                          {renderProductTags(product)}
+                      <div className="cate-product-meta-row">
+                        <div
+                          className="cate-likes-counter"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite && onToggleFavorite(product);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                          title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+                        >
+                          <Heart
+                            size={14}
+                            fill={isLiked ? "#e53935" : "none"}
+                            color={isLiked ? "#e53935" : "#111827"}
+                          />
+                          <span className="cate-likes-text">{likesCount} Likes</span>
                         </div>
+                      </div>
+
+                      {renderProductTags(product)}
+
+                      <div className="cate-card-footer-row">
+                        <div className="cate-footer-left"></div>
 
                         <button
                           type="button"
-                          className="cate-cart-btn"
+                          className={`cate-cart-btn ${isInCart ? 'in-cart' : ''}`}
                           disabled={isOos}
-                          style={isOos ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                          style={
+                            isOos
+                              ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' }
+                              : (isInCart ? { background: '#00b6f0', borderColor: '#00b6f0', color: '#ffffff' } : {})
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
                             if (isOos) return;
                             onAddToCart && onAddToCart(product);
                           }}
                           aria-label={`Add ${product.name} to cart`}
-                          title={isOos ? 'Out of Stock' : `Add ${product.name} to cart`}
+                          title={isOos ? 'Out of Stock' : (isInCart ? 'Already in Cart' : `Add ${product.name} to cart`)}
                         >
                           <ShoppingCart size={18} />
                         </button>
@@ -906,6 +991,17 @@ export default function CategoryPage({
             {filteredProducts.map((product) => {
               const isOos = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
               const { showRibbon } = getProductRibbonInfo(product, isMember);
+              const isLiked = checkIsLiked(product);
+              const stats = getProductStats(product, isLiked);
+              const likesCount = stats.likes;
+              const isInCart = Boolean(
+                cartItems &&
+                cartItems.some(
+                  (item) =>
+                    String(item.id) === String(product.id) ||
+                    (product.code && String(item.code || item.itemCode) === String(product.code || product.itemCode))
+                )
+              );
               return (
               <div key={product.id} className="cate-product-card" style={isOos ? { opacity: 0.6 } : {}}>
                 <div className="cate-product-img-box">
@@ -954,7 +1050,8 @@ export default function CategoryPage({
 
                 <div className="cate-product-info">
                   <h4
-                    className="cate-product-name"
+                    className="cate-product-name notranslate"
+                    translate="no"
                     title={product.name}
                     onClick={() => onProductClick && onProductClick(product)}
                   >
@@ -962,28 +1059,46 @@ export default function CategoryPage({
                   </h4>
                   {renderPricing(product, showRibbon)}
 
-                  <div className="cate-card-footer-row">
-                    <div className="cate-footer-left">
-                      {product.likes && (
-                        <div className="cate-product-meta">
-                          <span className="cate-likes-text">{product.likes}</span>
-                        </div>
-                      )}
-                      {renderProductTags(product)}
+                  <div className="cate-product-meta-row">
+                    <div
+                      className="cate-likes-counter"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite && onToggleFavorite(product);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                      title={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      <Heart
+                        size={14}
+                        fill={isLiked ? "#e53935" : "none"}
+                        color={isLiked ? "#e53935" : "#111827"}
+                      />
+                      <span className="cate-likes-text">{likesCount} Likes</span>
                     </div>
+                  </div>
+
+                  {renderProductTags(product)}
+
+                  <div className="cate-card-footer-row">
+                    <div className="cate-footer-left"></div>
 
                     <button
                       type="button"
-                      className="cate-cart-btn"
+                      className={`cate-cart-btn ${isInCart ? 'in-cart' : ''}`}
                       disabled={isOos}
-                      style={isOos ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' } : {}}
+                      style={
+                        isOos
+                          ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' }
+                          : (isInCart ? { background: '#00b6f0', borderColor: '#00b6f0', color: '#ffffff' } : {})
+                      }
                       onClick={(e) => {
                         e.stopPropagation();
                         if (isOos) return;
                         onAddToCart && onAddToCart(product);
                       }}
                       aria-label={`Add ${product.name} to cart`}
-                      title={isOos ? 'Out of Stock' : `Add ${product.name} to cart`}
+                      title={isOos ? 'Out of Stock' : (isInCart ? 'Already in Cart' : `Add ${product.name} to cart`)}
                     >
                       <ShoppingCart size={18} />
                     </button>

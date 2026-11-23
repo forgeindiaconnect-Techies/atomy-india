@@ -11,6 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/theme';
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../../data/officialDistributorPrices';
 import { getHighResImageUrl } from '../../utils/imageUtils';
+import ProductRatingRow from './ProductRatingRow';
+import { getProductStats } from '../../services/productStatsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 36) / 2; // 2 products per row with 12px margin
@@ -30,10 +32,14 @@ export default function ProductCard({
   onToggleFavorite,
   isMember = false,
   onJoinMemberPress,
+  onReviewClick,
 }) {
   const [imgError, setImgError] = useState(false);
 
   if (!product) return null;
+
+  const stats = getProductStats(product, isFavorite);
+  const likesCount = stats.likes;
 
   const official = product?.id && OFFICIAL_DISTRIBUTOR_PRICES ? OFFICIAL_DISTRIBUTOR_PRICES[product.id] : null;
   const rawPrice = Number(product.price) || (official ? official.dpPrice : 1000);
@@ -128,6 +134,18 @@ export default function ProductCard({
           {product.name}
         </Text>
 
+        {/* Dynamic Database Star Ratings & Reviews Count */}
+        <ProductRatingRow
+          product={product}
+          onPress={() => {
+            if (onReviewClick) {
+              onReviewClick(product);
+            } else if (onPress) {
+              onPress(product, 'review');
+            }
+          }}
+        />
+
         {/* Price Row */}
         {hasOffer && (
           <View style={styles.strikeRow}>
@@ -150,6 +168,22 @@ export default function ProductCard({
             ₹{formatInr(activePrice)}
           </Text>
         </View>
+
+        {/* Synchronized Like Counter with Heart Icon */}
+        <TouchableOpacity
+          style={styles.likesRow}
+          activeOpacity={0.7}
+          onPress={() => onToggleFavorite && onToggleFavorite(product)}
+        >
+          <Ionicons
+            name={isFavorite ? 'heart' : 'heart-outline'}
+            size={13}
+            color={isFavorite ? '#E53935' : '#111827'}
+          />
+          <Text style={styles.likesText}>
+            {likesCount} Likes
+          </Text>
+        </TouchableOpacity>
 
         {/* Dynamic Badges & Hashtags (Configured by Admin) */}
         {(() => {
@@ -423,6 +457,18 @@ const styles = StyleSheet.create({
   },
   freeDeliveryText: {
     fontSize: 9,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  likesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  likesText: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#475569',
   },

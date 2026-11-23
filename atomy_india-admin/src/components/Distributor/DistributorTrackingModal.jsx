@@ -22,9 +22,24 @@ import '../Admin/AdminDashboard.css';
 import './DistributorTrackingModal.css';
 
 export default function DistributorTrackingModal({ order, distributor, onClose, onUpdateSuccess }) {
-  const [courierPartner, setCourierPartner] = useState(
-    order?.tracking?.courierPartner || order?.courier || 'Blue Dart Express'
-  );
+  const getInitialCourier = () => {
+    if (order?.tracking?.courierPartner) return order.tracking.courierPartner;
+    if (order?.courier && !order.courier.includes('(Assigned)')) return order.courier;
+    if (distributor?.defaultCourierPartner) return distributor.defaultCourierPartner;
+    try {
+      const distId = distributor?.effectiveHubId || distributor?.distributorId || order?.assignedDistributorId;
+      if (distId) {
+        const cached = localStorage.getItem(`atomy_hub_logistics_${distId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.defaultCourierPartner) return parsed.defaultCourierPartner;
+        }
+      }
+    } catch {}
+    return 'Blue Dart Express';
+  };
+
+  const [courierPartner, setCourierPartner] = useState(getInitialCourier);
   const isPickup = Boolean(
     order && (
       order.fulfillmentType === 'STORE_PICKUP' ||
@@ -169,14 +184,13 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const courierOptions = [
-    'Blue Dart Express',
-    'Delhivery Regional Hub',
-    'DTDC Express India',
-    'India Post Speed Post',
-    'Ekart Logistics',
-    'Distributor Direct Van Dispatch'
-  ];
+  const customCourier = distributor?.defaultCourierPartner && distributor.defaultCourierPartner !== 'Blue Dart Express'
+    ? distributor.defaultCourierPartner
+    : null;
+
+  const courierOptions = customCourier 
+    ? ['Blue Dart Express', customCourier, 'Other Courier (Manual Entry)']
+    : ['Blue Dart Express', 'Other Courier (Manual Entry)'];
 
   // Trigger 6-digit OTP delivery to customer's registered email via Brevo
   const handleSendOtp = async () => {

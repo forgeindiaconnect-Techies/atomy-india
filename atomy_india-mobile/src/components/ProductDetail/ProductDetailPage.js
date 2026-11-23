@@ -24,6 +24,7 @@ import {
 import { getProductYoutubeVideo } from '../../data/productYoutubeVideos';
 import { getHighResImageUrl } from '../../utils/imageUtils';
 import { fetchProductReviewsApi } from '../../services/api';
+import { getProductStats } from '../../services/productStatsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -123,12 +124,13 @@ export default function ProductDetailPage({
   onToggleFavorite,
   onJoinMemberPress,
   onSelectRelatedProduct,
+  initialTab = 'details',
 }) {
   if (!product) return null;
 
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   const [qty, setQty] = useState(1);
-  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'review' | 'payment' | 'return'
+  const [activeTab, setActiveTab] = useState(initialTab || 'details'); // 'details' | 'review' | 'payment' | 'return'
   const [isProductInfoOpen, setIsProductInfoOpen] = useState(true);
   const [isExpandedBrochure, setIsExpandedBrochure] = useState(false);
   const [isImgModalOpen, setIsImgModalOpen] = useState(false);
@@ -141,8 +143,13 @@ export default function ProductDetailPage({
 
   useEffect(() => {
     setCurrentImgIdx(0);
-    setActiveTab('details');
-  }, [product?.id]);
+    setActiveTab(initialTab || 'details');
+    if (initialTab === 'review') {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ y: 750, animated: true });
+      }, 250);
+    }
+  }, [product?.id, initialTab]);
 
   // Official product details data
   const config = useMemo(() => getProductDetailConfig(product), [product]);
@@ -474,10 +481,13 @@ export default function ProductDetailPage({
           <View style={styles.topMetaRow}>
             <TouchableOpacity
               style={styles.reviewSummaryLeft}
-              onPress={() => setActiveTab('review')}
+              onPress={() => {
+                setActiveTab('review');
+                scrollRef.current?.scrollTo({ y: 750, animated: true });
+              }}
               activeOpacity={0.8}
             >
-              <Ionicons name="star" size={15} color={reviewsCount > 0 ? '#0F172A' : '#94A3B8'} />
+              <Ionicons name="star" size={15} color={reviewsCount > 0 ? '#DE7921' : '#94A3B8'} />
               <Text style={styles.ratingNum}>{ratingValue}</Text>
               <Text style={styles.reviewsCountText}>
                 {reviewsCount} no(s) <Text style={styles.reviewUnderline}>Review</Text>
@@ -620,35 +630,40 @@ export default function ProductDetailPage({
           {/* Product Number Line */}
           <Text style={styles.productNumberLine}>Product number {product.id || 'D00101'}</Text>
 
-          {/* 6. SOCIAL PROOF STATS: SET ONE BY ONE VERTICALLY AS REQUESTED */}
-          <View style={styles.verticalStatsList}>
-            <View style={styles.verticalStatRow}>
-              <View style={styles.statIconWrap}>
-                <Ionicons name="heart" size={17} color="#EF4444" />
-              </View>
-              <Text style={styles.verticalStatLabel}>
-                <Text style={styles.verticalStatBold}>{product.likes || 224}</Text> Likes
-              </Text>
-            </View>
+          {/* 6. SOCIAL PROOF STATS: SYNCHRONIZED REAL-TIME WITH FAVORITES & CARDS */}
+          {(() => {
+            const stats = getProductStats(product, isFavorite, favorites);
+            return (
+              <View style={styles.verticalStatsList}>
+                <View style={styles.verticalStatRow}>
+                  <View style={styles.statIconWrap}>
+                    <Ionicons name="heart" size={17} color="#EF4444" />
+                  </View>
+                  <Text style={styles.verticalStatLabel}>
+                    <Text style={styles.verticalStatBold}>{stats.likes}</Text> Likes
+                  </Text>
+                </View>
 
-            <View style={styles.verticalStatRow}>
-              <View style={styles.statIconWrap}>
-                <Ionicons name="document-text" size={17} color="#00A3E0" />
-              </View>
-              <Text style={styles.verticalStatLabel}>
-                <Text style={styles.verticalStatBold}>250</Text> Purchased
-              </Text>
-            </View>
+                <View style={styles.verticalStatRow}>
+                  <View style={styles.statIconWrap}>
+                    <Ionicons name="document-text" size={17} color="#00A3E0" />
+                  </View>
+                  <Text style={styles.verticalStatLabel}>
+                    <Text style={styles.verticalStatBold}>{stats.purchased.toLocaleString('en-IN')}</Text> Purchased
+                  </Text>
+                </View>
 
-            <View style={styles.verticalStatRow}>
-              <View style={styles.statIconWrap}>
-                <Ionicons name="bag" size={17} color="#00A3E0" />
+                <View style={styles.verticalStatRow}>
+                  <View style={styles.statIconWrap}>
+                    <Ionicons name="bag" size={17} color="#00A3E0" />
+                  </View>
+                  <Text style={styles.verticalStatLabel}>
+                    <Text style={styles.verticalStatBold}>{stats.addedToCart.toLocaleString('en-IN')}</Text> Added to cart
+                  </Text>
+                </View>
               </View>
-              <Text style={styles.verticalStatLabel}>
-                <Text style={styles.verticalStatBold}>273</Text> Added to cart
-              </Text>
-            </View>
-          </View>
+            );
+          })()}
 
           {/* Shipping Details Row */}
           <View style={styles.shippingDetailsRow}>

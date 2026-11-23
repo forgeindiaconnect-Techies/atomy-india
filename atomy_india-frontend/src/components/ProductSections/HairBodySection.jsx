@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ShoppingCart, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { HAIR_BODY_PRODUCTS, GST_BADGE_IMAGE } from '../../data/mockData';
 import { onCatalogUpdate } from '../../services/catalogSyncService';
-import { getProductStats } from '../../services/productStatsService';
+import { getProductStats, isProductFavorited } from '../../services/productStatsService';
 import ProductPriceDisplay from './ProductPriceDisplay';
 import ProductCornerRibbon, { getProductRibbonInfo } from './ProductCornerRibbon';
 import './ProductSection.css';
@@ -58,7 +58,8 @@ export default function HairBodySection({
 
           <div className="product-cards-slider hair-body-cards" ref={sliderRef}>
             {HAIR_BODY_PRODUCTS.map((product) => {
-              const isLiked = favorites.some((f) => f.id === product.id);
+              const pId = String(product.id || product.code || '').toLowerCase().trim();
+              const isLiked = (favorites || []).some((f) => String(f.id || f.code || '').toLowerCase().trim() === pId) || isProductFavorited(pId);
               const stats = getProductStats(product, isLiked);
               const likesCount = stats.likes;
               const isOutOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);

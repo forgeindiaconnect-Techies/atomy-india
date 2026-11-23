@@ -21,7 +21,7 @@ body.mobile-drawer-open {
 
 /* 1. Main Brand & Search Header Bar */
 .main-header-bar {
-  background-color: var(--atomy-header-bg, #0059b3);
+  background-color: var(--atomy-header-bg, #08267e);
   padding: 8px 0 6px;
   color: #ffffff;
   position: relative;

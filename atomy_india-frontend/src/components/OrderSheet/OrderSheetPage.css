@@ -1082,6 +1082,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   cursor: pointer;
   user-select: none;
 }
@@ -1093,37 +1094,57 @@
   font-size: 13px;
   font-weight: 700;
   color: #1e293b;
+  min-width: 0;
+  flex: 1;
+}
+
+.coupon-widget-title span {
+  line-height: 1.35;
 }
 
 .available-coupons-badge {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #0284c7;
   background: #e0f2fe;
-  padding: 2px 8px;
-  border-radius: 999px;
+  border: 1px solid #bae6fd;
+  padding: 3px 9px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.08);
+  transition: all 0.15s ease;
+}
+
+.coupon-widget-toggle:hover .available-coupons-badge {
+  background: #bae6fd;
+  color: #0369a1;
 }
 
 .coupon-input-form {
   display: flex;
+  align-items: center;
   gap: 8px;
   width: 100%;
 }
 
 .coupon-text-input {
   flex: 1;
-  padding: 8px 12px;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
   border: 1px solid #cbd5e1;
-  border-radius: 7px;
+  border-radius: 6px;
   font-size: 12.5px;
   background: #ffffff;
   color: #0f172a;
   text-transform: uppercase;
   font-weight: 600;
   outline: none;
+  box-sizing: border-box;
   transition: all 0.15s ease;
 }
 
@@ -1133,16 +1154,22 @@
 }
 
 .coupon-submit-btn {
+  height: 38px;
   background: #00A3E0;
   color: #ffffff;
   border: none;
-  border-radius: 7px;
-  padding: 8px 14px;
-  font-size: 12.5px;
+  border-radius: 6px;
+  padding: 0 16px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .coupon-submit-btn:hover:not(:disabled) {
@@ -1152,6 +1179,7 @@
 .coupon-submit-btn:disabled {
   background: #cbd5e1;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .coupon-feedback {
@@ -2102,6 +2130,149 @@
 }
 
 /* =========================================================================
+   FULFILLMENT & DELIVERY METHOD SELECTION CARDS
+   Consistent borders, alignment, padding, and styling across all states
+   ========================================================================= */
+
+.fulfillment-methods-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .fulfillment-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.fulfillment-option-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+  height: 100%;
+  position: relative;
+}
+
+.fulfillment-option-card:hover:not(.disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.fulfillment-option-card.selected {
+  border-color: #0077c8 !important;
+  background: #f0f9ff !important;
+  box-shadow: 0 4px 14px rgba(0, 119, 200, 0.10);
+}
+
+.fulfillment-option-card.disabled {
+  opacity: 0.65;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+}
+
+.fulfillment-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.fulfillment-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fulfillment-radio {
+  cursor: pointer;
+  accent-color: #0077c8;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.fulfillment-title-wrap strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.fulfillment-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.fulfillment-badge-free {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.fulfillment-badge-fee {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.fulfillment-badge-unavailable {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.fulfillment-card-desc {
+  margin: 0 0 10px 27px;
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.fulfillment-card-footer {
+  margin-left: 27px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.fulfillment-card-footer.accent-blue {
+  color: #0284c7;
+}
+
+.fulfillment-card-footer.accent-green {
+  color: #059669;
+}
+
+.fulfillment-card-footer.accent-warning {
+  color: #d97706;
+}
+
+.fulfillment-card-footer.accent-error {
+  color: #dc2626;
+}
+
+/* =========================================================================
    SAVED ADDRESS CARDS (MATCHING QUICK ORDER PAGE)
    ========================================================================= */
 
@@ -2180,31 +2351,48 @@
   gap: 8px;
 }
 
-.btn-edit-address-icon,
-.btn-remove-address-btn {
+.btn-edit-address-icon {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: #ffffff;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  padding: 5px 12px;
-  font-size: 12.5px;
-  color: #334155;
+  border-radius: 6px;
+  color: #475569;
   cursor: pointer;
   transition: all 0.15s ease;
-  font-weight: 500;
+  padding: 0;
 }
 
 .btn-edit-address-icon:hover {
-  border-color: #00A3E0;
-  color: #00A3E0;
+  border-color: #0077c8;
+  background: #e0f2fe;
+  color: #0077c8;
+  transform: translateY(-1px);
+}
+
+.btn-remove-address-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
 }
 
 .btn-remove-address-btn:hover {
   border-color: #ef4444;
-  background: #fef2f2;
-  color: #ef4444;
+  background: #fee2e2;
+  color: #b91c1c;
+  transform: translateY(-1px);
 }
 
 .address-recipient-info {
@@ -2335,20 +2523,25 @@
 .btn-add-new-address {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
+  gap: 6px;
   background: #00A3E0;
   color: #ffffff;
   border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 13.5px;
+  border-radius: 6px;
+  padding: 0 16px;
+  height: 36px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
 }
 
 .btn-add-new-address:hover {
-  background: #0284c7;
+  background: #008cc0;
+  transform: translateY(-1px);
 }
 
 .btn-add-new-address.center-btn {
@@ -3976,6 +4169,40 @@
 
   .sheet-card-header {
     padding: 12px 14px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  .btn-add-new-address {
+    height: 34px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+  }
+
+  .coupon-widget-toggle {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .coupon-input-form {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .coupon-text-input {
+    height: 38px !important;
+    font-size: 12px !important;
+  }
+
+  .coupon-submit-btn {
+    height: 38px !important;
+    padding: 0 14px !important;
+    font-size: 12px !important;
   }
 
   .card-header-title {

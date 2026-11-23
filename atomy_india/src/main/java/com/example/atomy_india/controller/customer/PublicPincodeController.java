@@ -179,6 +179,13 @@ public class PublicPincodeController {
             res.put("operatingHours", "Mon – Sat: 9:30 AM – 7:30 PM (Sun: 10:00 AM – 2:00 PM)");
             res.put("pickupInstructions", "Present your Order ID or downloaded Invoice PDF at the hub counter to collect your packed items.");
 
+            res.put("defaultCourierPartner", primaryDist.getDefaultCourierPartner());
+            res.put("doorstepDeliveryEnabled", primaryDist.getDoorstepDeliveryEnabled());
+            res.put("hubPickupEnabled", primaryDist.getHubPickupEnabled());
+            res.put("dispatchSla", primaryDist.getDispatchSla());
+            res.put("deliveryDuration", primaryDist.getDeliveryDuration());
+            res.put("lowStockThreshold", primaryDist.getLowStockThreshold());
+
             res.put("isSubstituteActive", isSubActive);
             res.put("onLeave", isPrimaryOnLeave);
             res.put("leaveReason", primaryDist.getLeaveReason());

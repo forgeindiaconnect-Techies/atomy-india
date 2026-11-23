@@ -682,43 +682,46 @@
 .btn-edit-address-icon {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: #ffffff;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  padding: 5px 12px;
-  font-size: 13px;
-  color: #334155;
+  border-radius: 6px;
+  color: #475569;
   cursor: pointer;
   transition: all 0.15s ease;
-  font-weight: 500;
+  padding: 0;
 }
 
 .btn-edit-address-icon:hover {
-  border-color: #00A3E0;
-  color: #00A3E0;
+  border-color: #0077c8;
+  background: #e0f2fe;
+  color: #0077c8;
+  transform: translateY(-1px);
 }
 
 /* Remove Address Button (Clearly visible on all addresses) */
 .btn-remove-address-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  padding: 5px 12px;
-  font-size: 13px;
-  color: #64748b;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #dc2626;
   cursor: pointer;
   transition: all 0.15s ease;
-  font-weight: 500;
+  padding: 0;
 }
 
 .btn-remove-address-btn:hover {
   border-color: #ef4444;
-  background: #fef2f2;
-  color: #ef4444;
+  background: #fee2e2;
+  color: #b91c1c;
+  transform: translateY(-1px);
 }
 
 .address-recipient-info {

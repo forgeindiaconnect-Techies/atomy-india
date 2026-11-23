@@ -227,7 +227,10 @@ function BestProductsSection({
     }
   };
 
-  const targetList = activeTab === 'BEST' ? shuffledBestProducts : filteredProducts;
+  const targetList = (activeTab === 'BEST' ? shuffledBestProducts : filteredProducts).map((p, idx) => ({
+    ...p,
+    rank: idx + 1,
+  }));
   const displayedProducts = targetList.slice(0, visibleLimit);
   const hasMore = targetList.length > visibleLimit;
   const isExpanded = visibleLimit > 10;

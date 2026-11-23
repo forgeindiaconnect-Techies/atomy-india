@@ -300,16 +300,27 @@ export default function Header({
       setLocationStatusMsg('GPS timeout. Please enter your 6-digit PIN code above and click Apply.');
     }
   };
+  const BRAND_LOGO_DARK_BLUE = '#08267e';
+
   const [navbarBgColor, setNavbarBgColor] = useState(() => {
     try {
+      const version = localStorage.getItem('atomy_navbar_color_ver');
       const saved = localStorage.getItem('atomy_navbar_bg');
-      if (!saved || saved.toUpperCase() === '#EAB308' || saved.toUpperCase() === '#00A3E0') {
-        localStorage.setItem('atomy_navbar_bg', '#0059b3');
-        return '#0059b3';
+      const legacyBlues = ['#0059b3', '#00a3e0', '#0082cd', '#eab308', '#008dcb', '#0077c8', '#008ecc'];
+
+      // Ensure brand logo dark blue (#08267e) is always enforced across browsers/servers
+      if (
+        version !== '3' ||
+        !saved ||
+        legacyBlues.includes(saved.toLowerCase().trim())
+      ) {
+        localStorage.setItem('atomy_navbar_bg', BRAND_LOGO_DARK_BLUE);
+        localStorage.setItem('atomy_navbar_color_ver', '3');
+        return BRAND_LOGO_DARK_BLUE;
       }
       return saved;
     } catch (e) {
-      return '#0059b3';
+      return BRAND_LOGO_DARK_BLUE;
     }
   });
 

@@ -650,10 +650,11 @@
 }
 
 .cate-cart-btn:hover {
-  background-color: #0284c7 !important;
+  background-color: var(--atomy-header-bg, #08267e) !important;
+  border-color: var(--atomy-header-bg, #08267e) !important;
   color: #ffffff !important;
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.4);
+  box-shadow: 0 4px 12px rgba(8, 38, 126, 0.35);
 }
 
 .cate-cart-btn:hover svg {
@@ -753,6 +754,36 @@
   letter-spacing: -0.2px;
 }
 
+.cate-product-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 5px;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.cate-likes-counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease;
+}
+
+.cate-likes-counter:hover {
+  transform: scale(1.05);
+}
+
+.cate-likes-counter svg {
+  flex-shrink: 0;
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
 .cate-product-meta {
   display: flex;
   flex-direction: column;
@@ -761,12 +792,13 @@
   line-height: 18px;
   color: #111827;
   font-family: "Noto Sans", "Noto Sans KR", sans-serif;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .cate-likes-text {
   font-weight: 600;
   color: #111827;
+  font-size: 13px;
 }
 
 /* Product Hashtags Row (#GST REDUCED, Free Delivery, etc.) placed under likes */

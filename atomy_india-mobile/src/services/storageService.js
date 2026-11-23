@@ -286,6 +286,13 @@ export async function saveFavorites(favorites) {
 }
 
 /**
+ * Get cached favorites
+ */
+export function getFavorites() {
+  return memoryCache.favorites || [];
+}
+
+/**
  * Save placed orders
  */
 export async function savePlacedOrders(orders) {
@@ -363,6 +370,7 @@ const storageService = {
   saveRecentlyViewed,
   saveCart,
   saveFavorites,
+  getFavorites,
   savePlacedOrders,
   getDeliveryPincode,
   getDeliveryCity,

@@ -35,6 +35,9 @@ public class AdminProfile {
     @Field("session_ip")
     private String sessionIp;
 
+    @Field("password_hash")
+    private String passwordHash = "Admin@123";
+
     @Field("updated_at")
     private LocalDateTime updatedAt;
 
@@ -149,5 +152,13 @@ public class AdminProfile {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash != null ? passwordHash : "Admin@123";
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

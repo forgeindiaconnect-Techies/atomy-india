@@ -1,4 +1,5 @@
 import { Platform, NativeModules } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 // Live Production / Cloud Server API Base
@@ -1100,6 +1101,51 @@ export async function submitProductReviewApi(reviewData) {
     }
   }
   throw new Error('Unable to submit review. Server unreachable.');
+}
+
+let memoryRatingsSummary = null;
+
+/**
+ * Fetch dynamic product ratings summary from backend MongoDB
+ */
+export async function fetchRatingsSummary() {
+  const targetUrls = getCandidateBases().map((base) => `${base}/customer/reviews/summary`);
+  for (const url of targetUrls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data === 'object') {
+          memoryRatingsSummary = data;
+          try {
+            await AsyncStorage.setItem('@atomy_product_ratings_db', JSON.stringify(data));
+          } catch {}
+          return data;
+        }
+      }
+    } catch (err) {}
+  }
+  return getStoredRatingsSummary();
+}
+
+/**
+ * Get synchronously stored ratings summary from memory cache or storage
+ */
+export function getStoredRatingsSummary() {
+  if (memoryRatingsSummary) return memoryRatingsSummary;
+  AsyncStorage.getItem('@atomy_product_ratings_db')
+    .then((raw) => {
+      if (raw) {
+        try {
+          memoryRatingsSummary = JSON.parse(raw);
+        } catch {}
+      }
+    })
+    .catch(() => {});
+  return memoryRatingsSummary || {};
 }
 
 /**

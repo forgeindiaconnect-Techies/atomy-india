@@ -2173,7 +2173,8 @@ export default function OrderDeliveryPage({
 
         const recipientName = activeInvoiceOrder.recipient || activeInvoiceOrder.customerName || 'Customer';
         const recipientPhone = activeInvoiceOrder.phone || activeInvoiceOrder.customerPhone || '';
-        const fullAddress = activeInvoiceOrder.fullAddress || activeInvoiceOrder.shippingAddress || 'Direct Customer Delivery Destination';
+        const rawAddr = (activeInvoiceOrder.fullAddress || activeInvoiceOrder.shippingAddress || '').replace(/undefined\s*,?\s*,?\s*(Landmark:\s*N\/A\s*,?)?/gi, '').replace(/^,\s*/, '').replace(/,\s*$/, '').trim();
+        const fullAddress = rawAddr || 'Direct Customer Delivery Destination';
         const trackingAwb = getStableAwb(activeInvoiceOrder.id, activeInvoiceOrder.awb || activeInvoiceOrder.trackingNumber);
 
         return (
@@ -2255,8 +2256,9 @@ export default function OrderDeliveryPage({
                     <View style={styles.invoiceShippingBox}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <Text style={[styles.invoiceShippingBoxLabel, { marginBottom: 0 }]}>🚚 DELIVERY LOCATION:</Text>
-                        <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' }}>
-                          <Text style={{ color: '#475569', fontSize: 10.5, fontWeight: '700' }}>Doorstep Delivery</Text>
+                        <View style={{ backgroundColor: '#eef2ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: '#c7d2fe', flexDirection: 'row', alignItems: 'center' }}>
+                          <Ionicons name="bicycle" size={11} color="#4338ca" style={{ marginRight: 3 }} />
+                          <Text style={{ color: '#4338ca', fontSize: 10.5, fontWeight: '700' }}>Doorstep Delivery</Text>
                         </View>
                       </View>
                       <Text style={{ fontSize: 13, fontWeight: '800', color: '#0F172A', marginBottom: 3 }}>

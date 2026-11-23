@@ -244,8 +244,9 @@
 }
 
 .product-cart-quick-btn:hover {
-  background-color: var(--atomy-blue, #00A3E0);
-  color: #ffffff;
+  background-color: var(--atomy-header-bg, #08267e) !important;
+  border-color: var(--atomy-header-bg, #08267e) !important;
+  color: #ffffff !important;
   transform: scale(1.1);
 }
 
@@ -500,11 +501,11 @@
 }
 
 .product-card-footer-row .product-cart-quick-btn:hover {
-  background-color: #0284c7 !important;
-  border-color: #0284c7 !important;
+  background-color: var(--atomy-header-bg, #08267e) !important;
+  border-color: var(--atomy-header-bg, #08267e) !important;
   color: #ffffff !important;
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.4);
+  box-shadow: 0 4px 12px rgba(8, 38, 126, 0.35);
 }
 
 .product-card-footer-row .product-cart-quick-btn:hover svg {
@@ -561,11 +562,11 @@
 }
 
 .hair-body-cards .product-card-footer-row .product-cart-quick-btn:hover {
-  background-color: #0284c7 !important;
+  background-color: var(--atomy-header-bg, #08267e) !important;
   color: #ffffff !important;
-  border-color: #0284c7 !important;
+  border-color: var(--atomy-header-bg, #08267e) !important;
   transform: scale(1.12);
-  box-shadow: 0 6px 18px rgba(0, 89, 179, 0.38);
+  box-shadow: 0 6px 18px rgba(8, 38, 126, 0.38);
 }
 
 .hair-body-cards .product-card-footer-row .product-cart-quick-btn:hover svg {

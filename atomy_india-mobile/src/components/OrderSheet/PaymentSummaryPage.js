@@ -1298,7 +1298,7 @@ export default function PaymentSummaryPage({
         customerName: selectedAddress?.recipientName || currentUser?.name || 'Customer',
         customerEmail: currentUser?.email || 'customer@atomy.com',
         customerPhone: selectedAddress?.recipientPhone || currentUser?.phone || '+91 98000 00000',
-        shippingAddress: isStorePickup ? effectiveHubAddr : (selectedAddress?.addressLine1 || 'Doorstep Delivery Address'),
+        shippingAddress: isStorePickup ? effectiveHubAddr : (selectedAddress?.addressLine1 || selectedAddress?.street || selectedAddress?.address || 'Doorstep Delivery Address'),
         city: effectiveCity,
         state: effectiveState,
         pincode: effectivePin,

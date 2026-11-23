@@ -998,6 +998,18 @@
 }
 
 /* Reviews */
+.reviews-summary-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .reviews-list-wrapper {
   display: flex;
   flex-direction: column;
@@ -1007,8 +1019,94 @@
 .customer-review-card {
   padding: 18px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.customer-review-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.review-card-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.review-product-info-col {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.review-product-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.review-product-thumb-placeholder {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.review-product-name {
+  margin: 0 0 5px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.review-product-name:hover {
+  color: #0077c8;
+}
+
+.review-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.review-order-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  font-family: monospace;
+}
+
+.review-rating-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .review-card-top {
@@ -1018,23 +1116,22 @@
   margin-bottom: 8px;
 }
 
-.review-product-name {
-  margin: 0 0 4px;
-  font-size: 14.5px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
 .review-stars-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+}
+
+.review-rating-number {
+  font-size: 12px;
+  font-weight: 700;
+  color: #d97706;
+  margin-left: 4px;
 }
 
 .review-date {
-  font-size: 12px;
+  font-size: 11.5px;
   color: #94a3b8;
-  margin-left: 8px;
 }
 
 .verified-buyer-pill {
@@ -1042,25 +1139,93 @@
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: #166534;
+  color: #15803d;
   background: #dcfce7;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 4px;
+  border: 1px solid #bbf7d0;
   font-weight: 600;
 }
 
 .review-card-headline {
   margin: 0 0 6px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #334155;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .review-card-text {
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+/* Review Empty State */
+.review-empty-state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  margin-top: 10px;
+}
+
+.review-empty-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.review-empty-star-icon {
+  color: #d97706;
+  fill: #fde68a;
+}
+
+.review-empty-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.review-empty-desc {
+  margin: 0 0 20px;
+  font-size: 13.5px;
   color: #64748b;
+  max-width: 420px;
   line-height: 1.5;
+}
+
+.review-empty-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #0077c8;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 119, 200, 0.25);
+}
+
+.review-empty-cta-btn:hover {
+  background: #005fa3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 119, 200, 0.35);
 }
 
 /* Coupons Grid */

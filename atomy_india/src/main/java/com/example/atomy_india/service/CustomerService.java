@@ -186,6 +186,15 @@ public class CustomerService {
             custPhone = "9876543210";
         }
         String shipAddr = req.getShippingAddress() != null ? req.getShippingAddress() : "Standard Home Delivery";
+        if (shipAddr.contains("undefined")) {
+            shipAddr = shipAddr.replaceAll("(?i)undefined\\s*,?\\s*,?\\s*(Landmark:\\s*N/A\\s*,?)?", "")
+                               .replaceAll("^,\\s*", "")
+                               .replaceAll(",\\s*$", "")
+                               .trim();
+            if (shipAddr.isEmpty()) {
+                shipAddr = "Direct Customer Delivery Address";
+            }
+        }
         String city = req.getCity() != null ? req.getCity() : "Gurugram";
         String state = req.getState() != null ? req.getState() : "Haryana";
         String pincode = req.getPincode() != null ? req.getPincode() : "122001";

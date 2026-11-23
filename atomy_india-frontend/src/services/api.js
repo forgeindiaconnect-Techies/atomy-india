@@ -18,8 +18,9 @@ export async function fetchHubDetails(pincode) {
   }
 
   // Strict 1:1 distributor hub fallback
+  let hubData = null;
   if (pin === '635002') {
-    return {
+    hubData = {
       found: true,
       distributorId: 'DIST-635002',
       hubName: 'Selva atomy hub',
@@ -31,10 +32,15 @@ export async function fetchHubDetails(pincode) {
       city: 'Krishnagiri',
       state: 'Tamil Nadu',
       operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
-      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.'
+      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.',
+      defaultCourierPartner: 'Blue Dart Express',
+      doorstepDeliveryEnabled: true,
+      hubPickupEnabled: true,
+      dispatchSla: 'Within 24-48 Hours',
+      deliveryDuration: '1 – 2 Days'
     };
   } else if (pin === '635202') {
-    return {
+    hubData = {
       found: true,
       distributorId: 'DIST-635202',
       hubName: 'krishnapuram atomy hub',
@@ -43,12 +49,33 @@ export async function fetchHubDetails(pincode) {
       phone: '+91 88836 65452',
       email: 'naveen.mn7878@gmail.com',
       pincode: '635202',
-      city: 'Krishnapuram,dharmapuri',
+      city: 'Dharmapuri',
       state: 'Tamil Nadu',
       operatingHours: 'Mon – Sat: 9:30 AM – 7:30 PM',
-      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.'
+      pickupInstructions: 'Present your Order ID or downloaded Invoice PDF at the counter to collect your order.',
+      defaultCourierPartner: 'DTDC Express India',
+      doorstepDeliveryEnabled: true,
+      hubPickupEnabled: true,
+      dispatchSla: 'Within 24-48 Hours',
+      deliveryDuration: '1 – 2 Days'
     };
   }
+
+  if (hubData && typeof localStorage !== 'undefined') {
+    try {
+      const cached = localStorage.getItem(`atomy_hub_logistics_${hubData.distributorId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.defaultCourierPartner) hubData.defaultCourierPartner = parsed.defaultCourierPartner;
+        if (parsed.doorstepDeliveryEnabled !== undefined) hubData.doorstepDeliveryEnabled = parsed.doorstepDeliveryEnabled;
+        if (parsed.hubPickupEnabled !== undefined) hubData.hubPickupEnabled = parsed.hubPickupEnabled;
+        if (parsed.dispatchSla) hubData.dispatchSla = parsed.dispatchSla;
+        if (parsed.deliveryDuration) hubData.deliveryDuration = parsed.deliveryDuration;
+      }
+    } catch {}
+    return hubData;
+  }
+  if (hubData) return hubData;
   return {
     found: false,
     distributorId: null,
@@ -518,6 +545,45 @@ export async function resetCustomerPassword(email, otp, newPassword) {
     throw new Error(data.message || 'Failed to reset password.');
   }
   return data;
+}
+
+/**
+ * Fetch dynamic ratings summary directly from MongoDB
+ */
+let memoryRatingsSummary = null;
+
+export async function fetchRatingsSummary() {
+  try {
+    const res = await fetch(`${API_BASE}/customer/reviews/summary`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === 'object') {
+        memoryRatingsSummary = data;
+        try {
+          localStorage.setItem('atomy_product_ratings_db', JSON.stringify(data));
+        } catch {}
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('atomy:ratings-summary-updated', { detail: data }));
+        }
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('API fetchRatingsSummary note:', err.message);
+  }
+  return getStoredRatingsSummary();
+}
+
+export function getStoredRatingsSummary() {
+  if (memoryRatingsSummary) return memoryRatingsSummary;
+  try {
+    const cached = typeof localStorage !== 'undefined' ? localStorage.getItem('atomy_product_ratings_db') : null;
+    if (cached) {
+      memoryRatingsSummary = JSON.parse(cached);
+      return memoryRatingsSummary;
+    }
+  } catch {}
+  return {};
 }
 
 
