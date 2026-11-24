@@ -34,8 +34,8 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                   style={{
                     marginTop: '12px',
                     padding: '8px 18px',
-                    border: '1px solid #00b6f0',
-                    color: '#00b6f0',
+                    border: '1px solid #08267e',
+                    color: '#08267e',
                     borderRadius: '4px',
                     fontSize: '13px',
                     fontWeight: '600'
@@ -55,7 +55,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                     ₹ {(item.price * item.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </div>
                   {Boolean(item.pv || item.price) && (
-                    <div style={{ fontSize: '12px', color: '#00A3E0', fontWeight: '700', marginTop: '1px' }}>
+                    <div style={{ fontSize: '12px', color: '#08267e', fontWeight: '700', marginTop: '1px' }}>
                       {((item.pv || Math.round((item.price || 1000) * 4.5)) * item.qty).toLocaleString('en-IN')} PV
                     </div>
                   )}
@@ -107,8 +107,8 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                   style={{
                     flex: '1',
                     height: '46px',
-                    border: '1px solid #00b6f0',
-                    color: '#00b6f0',
+                    border: '1px solid #08267e',
+                    color: '#08267e',
                     background: '#fff',
                     borderRadius: '4px',
                     fontSize: '14px',

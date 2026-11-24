@@ -134,7 +134,7 @@
 
 .form-group input:focus,
 .form-group textarea:focus {
-  border-color: #00A3E0;
+  border-color: #08267e;
   box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.14);
 }
 
@@ -169,7 +169,7 @@
 }
 
 .payment-card input[type="radio"] {
-  accent-color: #00A3E0;
+  accent-color: #08267e;
 }
 
 .payment-card:hover {
@@ -178,7 +178,7 @@
 }
 
 .payment-card.selected {
-  border-color: #00A3E0;
+  border-color: #08267e;
   background: #f0f9ff;
 }
 
@@ -299,7 +299,7 @@
 }
 
 .place-order-submit-btn {
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -379,12 +379,12 @@
 
 .order-num-highlight {
   font-family: monospace;
-  color: #00A3E0;
+  color: #08267e;
   font-size: 1rem;
 }
 
 .highlight-price {
-  color: #0284c7;
+  color: #08267e;
   font-size: 1rem;
 }
 
@@ -406,7 +406,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 6px;

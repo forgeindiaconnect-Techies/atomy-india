@@ -233,11 +233,15 @@ export async function addMemberToRegistry(memberData) {
   return null;
 }
 
-export async function updateMemberStatus(memberId, newStatus) {
+export async function updateMemberStatus(memberId, newStatus, newExpiryDate = null) {
   const registry = getMembersRegistry();
   const updated = registry.map((m) => {
     if (m.id === memberId) {
-      return { ...m, status: newStatus };
+      return { 
+        ...m, 
+        status: newStatus,
+        ...(newExpiryDate ? { expiryDate: newExpiryDate } : {})
+      };
     }
     return m;
   });
@@ -249,7 +253,10 @@ export async function updateMemberStatus(memberId, newStatus) {
       fetch(`${baseUrl}/members/${encodeURIComponent(memberId)}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ 
+          status: newStatus,
+          ...(newExpiryDate ? { expiryDate: newExpiryDate } : {})
+        })
       })
     )
   );

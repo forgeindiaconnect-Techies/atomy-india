@@ -561,7 +561,15 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         return;
       }
 
-      // 3. Top-level tab -> return to overview page
+      // 3. If event state carries a specific tab in history state, restore that tab
+      if (e?.state?.tab) {
+        isPopNavigatingRef.current = true;
+        setActiveTab(e.state.tab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // 4. Top-level tab -> return to overview page
       if (activeTab !== 'overview') {
         isPopNavigatingRef.current = true;
         setActiveTab('overview');
@@ -569,7 +577,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
         return;
       }
 
-      // 4. Already at overview root with no modals -> let browser perform natural back navigation
+      // 5. Already at overview root with no modals -> let browser perform natural back navigation
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -588,28 +596,31 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
 
   // Synchronized view closers that cleanly pop history
   const handleCloseOrderDetail = () => {
-    if (window.history.state?.subView === 'order-detail') {
-      window.history.back();
-    } else {
-      setSelectedOrderDetail(null);
-    }
+    setSelectedOrderDetail(null);
+    try {
+      if (window.history.state?.subView === 'order-detail') {
+        window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
+      }
+    } catch { }
   };
 
   const handleCloseCustomerDetail = () => {
-    if (window.history.state?.subView === 'customer-detail') {
-      window.history.back();
-    } else {
-      setSelectedCustomerDetail(null);
-    }
+    setSelectedCustomerDetail(null);
+    try {
+      if (window.history.state?.subView === 'customer-detail') {
+        window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
+      }
+    } catch { }
   };
 
   const handleCloseProductEditor = () => {
-    if (window.history.state?.subView === 'product-editor') {
-      window.history.back();
-    } else {
-      setIsEditingProductView(false);
-      setCurrentEditingProduct(null);
-    }
+    setIsEditingProductView(false);
+    setCurrentEditingProduct(null);
+    try {
+      if (window.history.state?.subView === 'product-editor') {
+        window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
+      }
+    } catch { }
   };
 
   const handleCloseMobileNav = () => {
@@ -2705,7 +2716,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
             target="_blank"
             rel="noopener noreferrer"
             className="quick-refresh-btn"
-            style={{ textDecoration: 'none', background: '#00a3e0', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ textDecoration: 'none', background: '#08267e', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
             title="Open Live Customer Store"
           >
             <ExternalLink size={13} />
@@ -3002,7 +3013,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                           ₹ {overviewStats.overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </div>
                         <div className="kpi-curve-sub">
-                          Total lifetime gross revenue across all hubs • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
+                          Across all regional hubs • <span style={{ color: '#00a3e0', fontWeight: 600, whiteSpace: 'nowrap' }}>Ledger &amp; Audit →</span>
                         </div>
                       </div>
                       <div className="kpi-curve-right-wing">
@@ -3726,18 +3737,23 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
                                     .filter(t => {
                                       const u = t.toUpperCase();
                                       if (u.includes('GST') || u.includes('FREE DELIVERY')) return false;
-                                      const stripped = u.replace(/^#/, '');
+                                      const stripped = u.replace(/^#+/, '').trim();
+                                      if (!stripped) return false;
                                       // Remove legacy customized mock tags
                                       if (['HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING', 'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY', 'HEALTH', 'PERSONAL CARE', 'OTHERS'].includes(stripped)) {
                                         return false;
                                       }
                                       return true;
                                     })
-                                    .map((tag, idx) => (
-                                      <span key={idx} style={{ fontSize: '10.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 7px', borderRadius: '4px' }}>
-                                        {tag.startsWith('#') ? tag : '#' + tag}
-                                      </span>
-                                    ))}
+                                    .map((tag, idx) => {
+                                      const cleanTag = tag.replace(/^#+/, '').trim();
+                                      if (!cleanTag) return null;
+                                      return (
+                                        <span key={idx} style={{ fontSize: '10.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 7px', borderRadius: '4px' }}>
+                                          {cleanTag}
+                                        </span>
+                                      );
+                                    })}
                                 </div>
                               </td>
                               <td>

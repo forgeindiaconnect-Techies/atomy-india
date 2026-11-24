@@ -298,10 +298,10 @@ export default function MembershipPage({
               </div>
 
               <ul className="plan-feature-list">
-                <li><Check size={16} color="#00A3E0" /> Instant access to Wholesale DP Price</li>
-                <li><Check size={16} color="#00A3E0" /> Personal PV point value credit</li>
-                <li><Check size={16} color="#00A3E0" /> 30 days active distributor status</li>
-                <li><Check size={16} color="#00A3E0" /> Cancel or renew anytime</li>
+                <li><Check size={16} color="#08267e" /> Instant access to Wholesale DP Price</li>
+                <li><Check size={16} color="#08267e" /> Personal PV point value credit</li>
+                <li><Check size={16} color="#08267e" /> 30 days active distributor status</li>
+                <li><Check size={16} color="#08267e" /> Cancel or renew anytime</li>
               </ul>
 
               <button

@@ -308,7 +308,7 @@ export default function BestProductsSection({
                               isOutOfStock
                                 ? { opacity: 0.5, cursor: 'not-allowed', background: '#94a3b8' }
                                 : (isInCart
-                                  ? { background: '#00b6f0', borderColor: '#00b6f0', color: '#ffffff' }
+                                  ? { background: '#08267e', borderColor: '#08267e', color: '#ffffff' }
                                   : {})
                             }
                             onClick={(e) => {

@@ -179,7 +179,7 @@ export default function CartPage({
                   style={{
                     marginTop: '20px',
                     padding: '11px 28px',
-                    backgroundColor: '#00A3E0',
+                    backgroundColor: '#08267e',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '6px',
@@ -440,7 +440,7 @@ export default function CartPage({
               style={{
                 width: '100%',
                 height: '52px',
-                background: selectedItems.length === 0 ? '#d8dde0' : '#00b6f0',
+                background: selectedItems.length === 0 ? '#d8dde0' : '#08267e',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '4px',
@@ -518,7 +518,7 @@ export default function CartPage({
                       }}
                       aria-label="Add to cart"
                     >
-                      <ShoppingCart size={19} color="#00b6f0" strokeWidth={1.8} />
+                      <ShoppingCart size={19} color="#08267e" strokeWidth={1.8} />
                     </button>
 
                     <div 
@@ -535,7 +535,7 @@ export default function CartPage({
                         </span>
                         {isMember && <span style={{ fontSize: '11px', color: '#059669', marginLeft: '5px', fontWeight: '700' }}>DP</span>}
                       </span>
-                      <span className="pv" style={{ display: 'block', fontSize: '12px', color: '#00A3E0', fontWeight: '600', marginTop: '2px' }}>
+                      <span className="pv" style={{ display: 'block', fontSize: '12px', color: '#08267e', fontWeight: '600', marginTop: '2px' }}>
                         {(pricing.pv || prod.pv || 2000).toLocaleString('en-IN')} PV
                       </span>
                     </div>

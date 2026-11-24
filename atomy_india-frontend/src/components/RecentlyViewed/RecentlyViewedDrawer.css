@@ -119,7 +119,7 @@
 }
 
 .rv-browse-btn {
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   padding: 8px 18px;
@@ -192,7 +192,7 @@
 }
 
 .rv-item-title:hover {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .rv-item-pricing {
@@ -211,7 +211,7 @@
 .rv-item-pv {
   font-size: 11px;
   font-weight: 600;
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .rv-item-actions {
@@ -237,7 +237,7 @@
 }
 
 .rv-cart-add-btn:hover {
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
 }
 
@@ -270,7 +270,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 8px;

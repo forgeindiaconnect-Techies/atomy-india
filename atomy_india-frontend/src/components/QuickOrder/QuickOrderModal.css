@@ -85,7 +85,7 @@
 .quick-order-shortcuts {
   padding: 12px 28px;
   background: #f0f9ff;
-  border-bottom: 1px solid #e0f2fe;
+  border-bottom: 1px solid #eef2ff;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -95,7 +95,7 @@
 .shortcuts-label {
   font-size: 12px;
   font-weight: 700;
-  color: #0284c7;
+  color: #08267e;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -109,7 +109,7 @@
 
 .shortcut-chip {
   background: #ffffff;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c7d2fe;
   border-radius: 20px;
   padding: 3px 12px;
   font-size: 12px;
@@ -120,8 +120,8 @@
 }
 
 .shortcut-chip:hover {
-  background: #00A3E0;
-  border-color: #00A3E0;
+  background: #08267e;
+  border-color: #08267e;
   color: #ffffff;
 }
 
@@ -178,7 +178,7 @@
 }
 
 .code-input:focus {
-  border-color: #00A3E0;
+  border-color: #08267e;
   box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.15);
 }
 
@@ -226,7 +226,7 @@
 }
 
 .suggestion-item strong {
-  color: #00A3E0;
+  color: #08267e;
   margin-right: 4px;
 }
 
@@ -319,7 +319,7 @@
 .pv-badge {
   font-size: 12px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .row-delete-btn {
@@ -351,14 +351,14 @@
   padding: 10px 18px;
   font-size: 13px;
   font-weight: 600;
-  color: #00A3E0;
+  color: #08267e;
   cursor: pointer;
   margin-top: 14px;
   transition: all 0.15s ease;
 }
 
 .add-row-btn:hover {
-  border-color: #00A3E0;
+  border-color: #08267e;
   background: #f0f9ff;
 }
 
@@ -398,7 +398,7 @@
 }
 
 .pv-stat-box strong {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .amount-stat-box strong {
@@ -435,7 +435,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #00A3E0;
+  background: #08267e;
   border: none;
   border-radius: 8px;
   padding: 10px 24px;

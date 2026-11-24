@@ -1,3 +1,5 @@
+import { getMembershipExpiryInfo } from '../components/Membership/MembershipExpiryBanner';
+
 /**
  * Real-Time Customer Notification Service for Atomy India Web
  * Manages dynamically reconciled notifications based on actual user activity:
@@ -114,8 +116,26 @@ export function reconcileCustomerNotifications(currentUser, placedOrders = []) {
     });
   }
 
-  // 2. Real Membership Notification if Member
-  if (currentUser?.isMember || currentUser?.membership?.status === 'ACTIVE') {
+  // 2. Real Membership Notification (Active or Expired)
+  const memObj = currentUser?.membership || currentUser;
+  const expiryInfo = getMembershipExpiryInfo(memObj);
+  const isExpired = expiryInfo?.status === 'EXPIRED' || currentUser?.membership?.status === 'EXPIRED';
+
+  if (isExpired) {
+    const expiredId = `membership_expired_${userKey}`;
+    const memExpiry = currentUser?.membership?.expiryDate || new Date().toISOString();
+    const isUnread = readStatusMap.has(expiredId) ? readStatusMap.get(expiredId) : true;
+
+    reconciled.push({
+      id: expiredId,
+      title: '⚠️ Distributor Membership Expired',
+      message: 'Your Atomy Distributor Membership has expired. Reactivate your plan now to unlock wholesale DP rates and PV point accumulation.',
+      type: 'membership_expired',
+      createdAt: memExpiry,
+      time: formatRelativeTime(memExpiry),
+      unread: isUnread
+    });
+  } else if (currentUser?.isMember || currentUser?.membership?.status === 'ACTIVE') {
     const memId = `membership_${userKey}`;
     const memCreatedAt = currentUser?.membership?.startDate || currentUser?.membershipEnrolledAt || currentUser?.createdAt || new Date().toISOString();
     const isUnread = readStatusMap.has(memId) ? readStatusMap.get(memId) : false;

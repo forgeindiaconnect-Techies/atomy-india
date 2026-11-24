@@ -89,8 +89,8 @@ export default function Header({
   onNavigateMembership
 }) {
   const activeMembership = membership || currentUser?.membership;
-  const isCustomerMember = Boolean(isMember || currentUser?.isMember || activeMembership?.status === 'ACTIVE');
   const expiryInfo = React.useMemo(() => getMembershipExpiryInfo(activeMembership), [activeMembership]);
+  const isCustomerMember = Boolean((isMember || currentUser?.isMember || activeMembership?.status === 'ACTIVE') && expiryInfo?.status !== 'EXPIRED');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -306,7 +306,7 @@ export default function Header({
     try {
       const version = localStorage.getItem('atomy_navbar_color_ver');
       const saved = localStorage.getItem('atomy_navbar_bg');
-      const legacyBlues = ['#0059b3', '#00a3e0', '#0082cd', '#eab308', '#008dcb', '#0077c8', '#008ecc'];
+      const legacyBlues = ['#0059b3', '#08267e', '#0082cd', '#eab308', '#008dcb', '#0077c8', '#008ecc'];
 
       // Ensure brand logo dark blue (#08267e) is always enforced across browsers/servers
       if (
@@ -1646,7 +1646,7 @@ export default function Header({
         >
           <div className="lang-region-modal-header" style={{ padding: '0 0 16px', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MapPin size={22} color="#00a3e0" />
+              <MapPin size={22} color="#08267e" />
               <h2 className="lang-region-modal-title" style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
                 Select Delivery Location
               </h2>
@@ -1675,12 +1675,12 @@ export default function Header({
               alignItems: 'center',
               gap: '12px'
             }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: isHubAvailable ? '#0284c7' : '#ef4444', flexShrink: 0 }}></div>
+              <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: isHubAvailable ? '#08267e' : '#ef4444', flexShrink: 0 }}></div>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: isHubAvailable ? '#0369a1' : '#991b1b' }}>
                   Current Area: {getHubLabel(deliveryPincode, deliveryCity)}
                 </div>
-                <div style={{ fontSize: '11.5px', color: isHubAvailable ? '#0284c7' : '#b91c1c', marginTop: '2px' }}>
+                <div style={{ fontSize: '11.5px', color: isHubAvailable ? '#08267e' : '#b91c1c', marginTop: '2px' }}>
                   PIN Code: <strong>{deliveryPincode}</strong> {isHubAvailable ? '(Live Regional Stock & Direct Dispatch)' : '⚠️ (No Regional Hub — Delivery & Pickup Unavailable)'}
                 </div>
               </div>
@@ -1715,7 +1715,7 @@ export default function Header({
                   disabled={isLocating}
                   style={{
                     padding: '10px 20px',
-                    background: '#00a3e0',
+                    background: '#08267e',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
@@ -1752,9 +1752,9 @@ export default function Header({
                         padding: '5px 10px',
                         fontSize: '11.5px',
                         fontWeight: 700,
-                        background: !selectedSubArea ? '#00a3e0' : '#ffffff',
+                        background: !selectedSubArea ? '#08267e' : '#ffffff',
                         color: !selectedSubArea ? '#ffffff' : '#334155',
-                        border: !selectedSubArea ? '1px solid #00a3e0' : '1px solid #cbd5e1',
+                        border: !selectedSubArea ? '1px solid #08267e' : '1px solid #cbd5e1',
                         borderRadius: '16px',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease'
@@ -1776,9 +1776,9 @@ export default function Header({
                             padding: '5px 10px',
                             fontSize: '11.5px',
                             fontWeight: 600,
-                            background: isCurrent ? '#00a3e0' : '#ffffff',
+                            background: isCurrent ? '#08267e' : '#ffffff',
                             color: isCurrent ? '#ffffff' : '#334155',
-                            border: isCurrent ? '1px solid #00a3e0' : '1px solid #cbd5e1',
+                            border: isCurrent ? '1px solid #08267e' : '1px solid #cbd5e1',
                             borderRadius: '16px',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease'
@@ -1807,14 +1807,14 @@ export default function Header({
                 background: '#ffffff',
                 border: '1.5px solid #bae6fd',
                 borderRadius: '8px',
-                color: '#0284c7',
+                color: '#08267e',
                 fontSize: '13px',
                 fontWeight: 700,
                 cursor: isLocating ? 'not-allowed' : 'pointer',
                 transition: 'all 0.15s ease'
               }}
             >
-              <Navigation size={15} color="#00a3e0" className={isLocating ? 'animate-spin' : ''} />
+              <Navigation size={15} color="#08267e" className={isLocating ? 'animate-spin' : ''} />
               <span>{isLocating ? 'Detecting Live GPS Location...' : 'Use Current Live Location'}</span>
             </button>
 

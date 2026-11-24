@@ -2146,17 +2146,22 @@ export default function AdminDashboard({ onBackToStore }) {
                                     .filter(t => {
                                       const u = t.toUpperCase();
                                       if (u.includes('GST') || u.includes('FREE DELIVERY')) return false;
-                                      const stripped = u.replace(/^#/, '');
+                                      const stripped = u.replace(/^#+/, '').trim();
+                                      if (!stripped) return false;
                                       if (['HOME', 'ORALCARE', 'HAIRCARE', 'NEWARRIVAL', 'MAKEUPESSENTIAL', 'BRIGHTENING', 'SUNPROTECTION', 'DAILYCARE', 'POPULAR', 'NEW LAUNCH', 'BEST SELLER', 'BEAUTY', 'HEALTH', 'PERSONAL CARE', 'OTHERS'].includes(stripped)) {
                                         return false;
                                       }
                                       return true;
                                     })
-                                    .map((tag, idx) => (
-                                      <span key={idx} style={{ fontSize: '10.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 7px', borderRadius: '4px' }}>
-                                        {tag.startsWith('#') ? tag : '#' + tag}
-                                      </span>
-                                    ))}
+                                    .map((tag, idx) => {
+                                      const cleanTag = tag.replace(/^#+/, '').trim();
+                                      if (!cleanTag) return null;
+                                      return (
+                                        <span key={idx} style={{ fontSize: '10.5px', fontWeight: 600, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '1px 7px', borderRadius: '4px' }}>
+                                          {cleanTag}
+                                        </span>
+                                      );
+                                    })}
                                 </div>
                               </td>
                               <td>

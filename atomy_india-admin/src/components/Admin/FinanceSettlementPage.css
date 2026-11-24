@@ -1802,14 +1802,45 @@
 .hub-card-territory {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 6px 12px;
   font-size: 12px;
   color: #64748b;
   flex-wrap: wrap;
+  margin-top: 3px;
 }
 
-.hub-card-territory .territory-sep {
-  opacity: 0.5;
+.territory-tag-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #475569;
+}
+
+.territory-tag-location .territory-icon {
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
+.territory-tag-mgr {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.territory-tag-mgr .territory-icon {
+  color: #0369a1;
+  flex-shrink: 0;
+}
+
+.territory-tag-mgr strong {
+  color: #0f172a;
 }
 
 .hub-select-btn {
@@ -1836,7 +1867,7 @@
 .hub-stat-mini-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 8px 10px;
   background: #f8fafc;
   border-radius: 10px;
   padding: 10px 12px;
@@ -1844,36 +1875,51 @@
   border: 1px solid #e2e8f0;
 }
 
-@media (max-width: 600px) {
+/* On standard laptop screens (<= 1440px) or whenever side-by-side grid squeezes the left card column:
+   switch to a clean 2x2 grid so numbers and currency symbols fit generously without wrapping */
+@media (max-width: 1440px) {
   .hub-stat-mini-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 10px 14px;
+    padding: 12px 14px;
   }
 }
 
 .hub-mini-stat {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .hub-mini-stat .stat-lbl {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.25px;
 }
 
 .hub-mini-stat .stat-val {
   font-size: 13.5px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
 }
 
 .hub-mini-stat .stat-sub {
-  font-size: 10px;
+  font-size: 10.5px;
   color: #94a3b8;
   font-weight: 500;
   margin-top: 2px;
+  white-space: nowrap;
 }
 
 /* RIGHT COLUMN: PARTICULAR SELECTED HUB SALES GRAPH */

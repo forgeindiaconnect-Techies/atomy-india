@@ -26,7 +26,7 @@ export function MenuToggleIcon({ isOpen = false, size = 24 }) {
       {isOpen ? (
         <path
           d="M13.5 5.5L16.5 2.5L19.5 5.5"
-          stroke="#00A3E0"
+          stroke="#08267e"
           strokeWidth="2.3"
           strokeLinecap="round"
           strokeLinejoin="round"

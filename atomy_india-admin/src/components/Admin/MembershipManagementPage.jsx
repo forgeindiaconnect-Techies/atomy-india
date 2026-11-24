@@ -19,6 +19,7 @@ import {
   UserCheck,
   UserX,
   RefreshCw,
+  RotateCw,
   Clock
 } from 'lucide-react';
 import { 
@@ -126,12 +127,35 @@ export default function MembershipManagementPage() {
     }
   };
 
-  const handleToggleMemberStatus = async (memberId, currentStatus) => {
-    const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+  const handleToggleMemberStatus = async (memberId, currentStatus, isExpired = false) => {
+    let newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const now = new Date();
+    let newExpiryDate = null;
+
+    if (isExpired || newStatus === 'ACTIVE') {
+      newStatus = 'ACTIVE';
+      const mObj = members.find(m => m.id === memberId);
+      const isMonthly = String(mObj?.plan || '').toUpperCase() === 'MONTHLY';
+      const d = new Date();
+      if (isMonthly) d.setMonth(d.getMonth() + 1);
+      else d.setFullYear(d.getFullYear() + 1);
+      newExpiryDate = d.toISOString().split('T')[0];
+    }
+
     // Optimistic UI update
-    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, status: newStatus } : m));
+    setMembers(prev => prev.map(m => {
+      if (m.id === memberId) {
+        return { 
+          ...m, 
+          status: newStatus,
+          ...(newExpiryDate ? { expiryDate: newExpiryDate, startDate: now.toISOString().split('T')[0] } : {})
+        };
+      }
+      return m;
+    }));
+
     try {
-      const updated = await updateMemberStatus(memberId, newStatus);
+      const updated = await updateMemberStatus(memberId, newStatus, newExpiryDate);
       if (Array.isArray(updated)) {
         setMembers(updated);
       }
@@ -186,8 +210,25 @@ export default function MembershipManagementPage() {
     return matchPlan && matchSearch;
   });
 
+  const isMemberExpired = (m) => {
+    if (m.status === 'EXPIRED') return true;
+    if (m.expiryDate) {
+      try {
+        const exp = new Date(m.expiryDate);
+        if (!isNaN(exp.getTime())) {
+          const now = new Date();
+          const isToday = exp.getFullYear() === now.getFullYear() && exp.getMonth() === now.getMonth() && exp.getDate() === now.getDate();
+          return exp <= now || isToday;
+        }
+      } catch {}
+    }
+    return false;
+  };
+
+  const isMemberActive = (m) => m.status === 'ACTIVE' && !isMemberExpired(m);
+
   // Calculate KPIs
-  const activeMembers = members.filter(m => m.status === 'ACTIVE');
+  const activeMembers = members.filter(isMemberActive);
   const annualSubscribers = activeMembers.filter(m => m.plan === 'ANNUAL').length;
   const monthlySubscribers = activeMembers.filter(m => m.plan === 'MONTHLY').length;
   const totalPvAccumulated = activeMembers.reduce((sum, m) => sum + (m.lifetimePv || 0), 0);
@@ -534,23 +575,22 @@ export default function MembershipManagementPage() {
 
         {/* Members Table */}
         <div className="members-table-wrap">
-          <table className="members-table">
+          <table className="members-table" style={{ width: '100%', tableLayout: 'fixed' }}>
             <thead>
               <tr>
-                <th>Member Details</th>
-                <th>Billing Plan</th>
-                <th>Payment & Fee</th>
-                <th>Cycle Start</th>
-                <th>Renewal / Expiry</th>
-                <th>Personal PV Earned</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Action</th>
+                <th style={{ width: '28%', padding: '12px 14px' }}>Member Details</th>
+                <th style={{ width: '13%', padding: '12px 10px' }}>Billing Plan</th>
+                <th style={{ width: '15%', padding: '12px 10px' }}>Payment & Fee</th>
+                <th style={{ width: '12%', padding: '12px 10px' }}>Cycle Start</th>
+                <th style={{ width: '12%', padding: '12px 10px' }}>Renewal / Expiry</th>
+                <th style={{ width: '10%', textAlign: 'center', padding: '12px 10px' }}>Status</th>
+                <th style={{ width: '10%', textAlign: 'center', padding: '12px 10px' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredMembers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="table-empty-row">
+                  <td colSpan={7} className="table-empty-row" style={{ padding: '32px 14px' }}>
                     No members found matching your search or filter.
                   </td>
                 </tr>
@@ -562,90 +602,179 @@ export default function MembershipManagementPage() {
                   const amount = Number(member.amountPaid || (member.plan === 'ANNUAL' ? 2499 : 299));
                   const payMethod = member.paymentMethod || 'ONLINE';
                   const payId = member.paymentId || 'PAID';
+                  const expired = isMemberExpired(member);
+                  const active = isMemberActive(member);
 
                   return (
                     <tr key={member.id}>
-                      <td>
+                      <td style={{ padding: '12px 14px' }}>
                         <div className="member-name-cell">
                           <div className="member-avatar-circle">
                             {displayName.charAt(0)}
                           </div>
-                          <div>
-                            <div className="member-name">{displayName}</div>
-                            <div className="member-meta">
+                          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                            <div className="member-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {displayName}
+                            </div>
+                            <div className="member-meta" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               <span>{member.id}</span> • <span>{displayEmail}</span>
                               {displayPhone && <span> • {displayPhone}</span>}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td>
-                        <span className={`plan-pill ${member.plan.toLowerCase()}`}>
-                          {member.plan === 'ANNUAL' ? 'Annual Plan' : 'Monthly Plan'}
+                      <td style={{ padding: '12px 10px' }}>
+                        <span className={`plan-pill ${String(member.plan || 'MONTHLY').toLowerCase()}`}>
+                          {String(member.plan || '').toUpperCase() === 'ANNUAL' ? 'Annual Plan' : 'Monthly Plan'}
                         </span>
                       </td>
-                      <td>
+                      <td style={{ padding: '12px 10px' }}>
                         <div style={{ fontWeight: 700, color: '#0f172a' }}>
                           ₹ {amount.toLocaleString('en-IN')}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', gap: '4px', alignItems: 'center', marginTop: '2px' }}>
+                        <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', gap: '4px', alignItems: 'center', marginTop: '2px', whiteSpace: 'nowrap' }}>
                           <CreditCard size={11} />
                           <span>{payMethod}</span>
                           <span style={{ color: '#94a3b8' }}>•</span>
                           <span style={{ fontFamily: 'monospace', fontSize: '10.5px' }}>{payId.slice(0, 14)}...</span>
                         </div>
                       </td>
-                      <td>
+                      <td style={{ padding: '12px 10px' }}>
                         <div className="member-date" style={{ whiteSpace: 'nowrap' }}>
                           {formatDateDisplay(member.startDate || member.joinedAt || member.enrolledAt || member.createdAt)}
                         </div>
                       </td>
-                      <td>
-                        <div className="member-date" style={{ whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 10px' }}>
+                        <div className="member-date" style={{ whiteSpace: 'nowrap', color: expired ? '#dc2626' : '#15803d', fontWeight: expired ? 700 : 500 }}>
                           {formatDateDisplay(member.expiryDate)}
                         </div>
                       </td>
-                      <td>
-                        <div className="member-pv-val">
-                          <strong>{(member.lifetimePv || 0).toLocaleString('en-IN')}</strong> PV
-                        </div>
-                      </td>
-                      <td>
-                        {member.status === 'ACTIVE' ? (
-                          <span className="member-status-active">
-                            <span className="dot" />
-                            <span>Active (DP Unlocked)</span>
+                      <td style={{ textAlign: 'center', padding: '12px 10px' }}>
+                        {active ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3px 10px',
+                            borderRadius: '9999px',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            border: '1px solid #bbf7d0',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a' }} />
+                            Active
+                          </span>
+                        ) : expired ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '3px 10px',
+                            borderRadius: '9999px',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            background: '#fee2e2',
+                            color: '#dc2626',
+                            border: '1px solid #fecdd3',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Expired
                           </span>
                         ) : (
-                          <span className="member-status-inactive">
-                            <span>Suspended</span>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '3px 10px',
+                            borderRadius: '9999px',
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            background: '#f1f5f9',
+                            color: '#64748b',
+                            border: '1px solid #cbd5e1',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            Suspended
                           </span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right' }}>
-                      <button 
-                        type="button" 
-                        className={`btn-toggle-status ${member.status === 'ACTIVE' ? 'active' : 'inactive'}`}
-                        onClick={() => handleToggleMemberStatus(member.id, member.status)}
-                        title={member.status === 'ACTIVE' ? "Suspend Membership" : "Activate Membership"}
-                      >
-                        {member.status === 'ACTIVE' ? (
-                          <>
-                            <UserX size={13} />
+                      <td style={{ textAlign: 'center', padding: '12px 10px' }}>
+                        {active ? (
+                          <button 
+                            type="button" 
+                            onClick={() => handleToggleMemberStatus(member.id, member.status)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              border: '1px solid #fed7aa',
+                              background: '#fff7ed',
+                              color: '#c2410c',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title="Temporarily suspend this customer's membership"
+                          >
+                            <UserX size={12} />
                             <span>Suspend</span>
-                          </>
+                          </button>
+                        ) : expired ? (
+                          <button 
+                            type="button" 
+                            onClick={() => handleToggleMemberStatus(member.id, member.status, true)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              border: '1px solid #86efac',
+                              background: '#f0fdf4',
+                              color: '#15803d',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title="Renew & extend this expired membership by 1 billing cycle"
+                          >
+                            <RotateCw size={12} />
+                            <span>Renew Plan</span>
+                          </button>
                         ) : (
-                          <>
-                            <UserCheck size={13} />
+                          <button 
+                            type="button" 
+                            onClick={() => handleToggleMemberStatus(member.id, member.status)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              border: '1px solid #bae6fd',
+                              background: '#f0f9ff',
+                              color: '#0284c7',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title="Restore active membership privileges"
+                          >
+                            <UserCheck size={12} />
                             <span>Activate</span>
-                          </>
+                          </button>
                         )}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

@@ -61,7 +61,7 @@
 }
 
 .odrHead-pgs dd[aria-current="page"] {
-  color: #00b6f0;
+  color: #08267e;
   font-weight: 600;
 }
 
@@ -168,7 +168,7 @@
 .item-chk input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: #00b6f0;
+  accent-color: #08267e;
   cursor: pointer;
 }
 
@@ -241,7 +241,7 @@
 
 .cart-group_indi em {
   font-weight: 600;
-  color: #00b6f0;
+  color: #08267e;
   font-style: normal;
 }
 
@@ -321,7 +321,7 @@
 
 .pay-gds .tit:hover {
   text-decoration: underline;
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .pv-badge {
@@ -371,7 +371,7 @@
 }
 
 .qty-btn.qty-btn-plus {
-  background: #00b6f0;
+  background: #08267e;
   color: #ffffff;
 }
 
@@ -566,8 +566,8 @@
 
 .swiper-arrow:hover {
   background: #ffffff;
-  color: #00b6f0;
-  border-color: #00b6f0;
+  color: #08267e;
+  border-color: #08267e;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
 }
 
@@ -799,7 +799,7 @@
   height: 56px;
   margin-top: 14px;
   padding: 2px;
-  background: #00b6f0;
+  background: #08267e;
   border-radius: 4px;
   box-sizing: border-box;
 }
@@ -824,14 +824,20 @@
 
 .fxd-btn .easy {
   background: #ffffff;
-  color: #00b6f0;
+  color: #08267e;
   border-radius: 2px 0 0 2px;
 }
 
 .fxd-btn .sp {
-  background: #00b6f0;
+  background: #08267e;
   color: #ffffff;
   border-radius: 0 2px 2px 0;
+}
+
+.btn-cart-place-order:hover:not(:disabled),
+.fxd-btn .sp:hover:not(:disabled) {
+  background: var(--atomy-header-bg, #08267e) !important;
+  color: #ffffff !important;
 }
 
 /* Disabled state when 0 items */

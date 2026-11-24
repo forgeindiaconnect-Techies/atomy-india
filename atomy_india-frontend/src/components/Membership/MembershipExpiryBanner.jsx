@@ -7,7 +7,7 @@ export const TEST_MODE_FORCE_2_DAYS = false;
 
 export function getMembershipExpiryInfo(membership) {
   if (!membership) {
-    return { status: null, remainingDays: 0, expiryDateStr: '' };
+    return { status: null, remainingDays: 0, expiryDateStr: '', isToday: false };
   }
 
   // Temporary 2-day test period override
@@ -18,7 +18,7 @@ export function getMembershipExpiryInfo(membership) {
       month: 'short',
       year: 'numeric'
     });
-    return { status: 'EXPIRING_SOON', remainingDays: 2, expiryDateStr };
+    return { status: 'EXPIRING_SOON', remainingDays: 2, expiryDateStr, isToday: false };
   }
 
   let expiryDate = (typeof membership.expiryDate === 'string' || membership.expiryDate instanceof Date)
@@ -42,15 +42,22 @@ export function getMembershipExpiryInfo(membership) {
   }
 
   if (!expiryDate) {
-    return { status: null, remainingDays: 0, expiryDateStr: '' };
+    return { status: null, remainingDays: 0, expiryDateStr: '', isToday: false };
   }
 
   try {
     const expiry = new Date(expiryDate);
     if (isNaN(expiry.getTime())) {
-      return { status: null, remainingDays: 0, expiryDateStr: '' };
+      return { status: null, remainingDays: 0, expiryDateStr: '', isToday: false };
     }
     const now = new Date();
+
+    const isToday = (
+      expiry.getFullYear() === now.getFullYear() &&
+      expiry.getMonth() === now.getMonth() &&
+      expiry.getDate() === now.getDate()
+    );
+
     const diffMs = expiry.getTime() - now.getTime();
     const remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
@@ -60,15 +67,15 @@ export function getMembershipExpiryInfo(membership) {
       year: 'numeric'
     });
 
-    if (diffMs <= 0 || remainingDays <= 0) {
-      return { status: 'EXPIRED', remainingDays: 0, expiryDateStr };
+    if (diffMs <= 0 || remainingDays <= 0 || isToday) {
+      return { status: 'EXPIRED', remainingDays: 0, expiryDateStr, isToday };
     }
     if (remainingDays <= 2) {
-      return { status: 'EXPIRING_SOON', remainingDays, expiryDateStr };
+      return { status: 'EXPIRING_SOON', remainingDays, expiryDateStr, isToday: false };
     }
-    return { status: 'ACTIVE', remainingDays, expiryDateStr };
+    return { status: 'ACTIVE', remainingDays, expiryDateStr, isToday: false };
   } catch (e) {
-    return { status: null, remainingDays: 0, expiryDateStr: '' };
+    return { status: null, remainingDays: 0, expiryDateStr: '', isToday: false };
   }
 }
 
@@ -95,8 +102,12 @@ export default function MembershipExpiryBanner({
           <div className="banner-text-wrap">
             <span className="banner-headline">
               {isExpired
-                ? `Distributor Membership Expired on ${info.expiryDateStr}`
-                : `Distributor Membership Expiring in ${info.remainingDays} Day${info.remainingDays === 1 ? '' : 's'} (${info.expiryDateStr})`}
+                ? (info.isToday
+                    ? 'Distributor Membership Expired Today'
+                    : `Distributor Membership Expired on ${info.expiryDateStr}`)
+                : (info.isToday
+                    ? `Distributor Membership Expiring Today (${info.expiryDateStr})`
+                    : `Distributor Membership Expiring in ${info.remainingDays} Day${info.remainingDays === 1 ? '' : 's'} (${info.expiryDateStr})`)}
             </span>
             <span className="banner-subline">
               {isExpired

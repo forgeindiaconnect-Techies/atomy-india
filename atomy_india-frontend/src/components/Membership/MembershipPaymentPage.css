@@ -65,7 +65,7 @@
 }
 
 .topbar-breadcrumbs .crumb:hover {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .topbar-breadcrumbs .crumb.current {
@@ -168,7 +168,7 @@
 
 .strip-plan-badge {
   display: inline-block;
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   font-size: 11px;
   font-weight: 800;
@@ -214,8 +214,8 @@
 }
 
 .switcher-pill.active {
-  background: #00A3E0;
-  border-color: #00A3E0;
+  background: #08267e;
+  border-color: #08267e;
   color: #ffffff;
 }
 
@@ -283,9 +283,9 @@
 }
 
 .method-select-btn.active {
-  border-color: #00A3E0;
+  border-color: #08267e;
   background: #ffffff;
-  color: #00A3E0;
+  color: #08267e;
   box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.15);
 }
 
@@ -355,7 +355,7 @@
 
 .vpa-text-input:focus {
   outline: none;
-  border-color: #00A3E0;
+  border-color: #08267e;
   box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.12);
 }
 
@@ -410,7 +410,7 @@
 
 .btn-primary-pay-join {
   width: 100%;
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -515,7 +515,7 @@
 .total-amount-val {
   font-size: 22px;
   font-weight: 800;
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .account-credited-strip {
@@ -530,7 +530,7 @@
 .account-credited-strip .account-label {
   font-size: 10px;
   font-weight: 800;
-  color: #00A3E0;
+  color: #08267e;
   letter-spacing: 0.5px;
   display: block;
   margin-bottom: 3px;
@@ -548,7 +548,7 @@
 
 .sidebar-privileges-box {
   background: #f0f9ff;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c7d2fe;
   border-radius: 8px;
   padding: 14px;
   margin-top: 14px;
@@ -560,7 +560,7 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 800;
-  color: #0284c7;
+  color: #08267e;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   margin-bottom: 8px;
@@ -669,7 +669,7 @@
 }
 
 .receipt-col .r-val.id-code {
-  color: #0284c7;
+  color: #08267e;
   font-family: monospace;
   font-weight: 800;
   font-size: 15px;

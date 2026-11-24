@@ -43,6 +43,7 @@ import {
   markSingleNotificationRead,
   formatRelativeTime
 } from '../../services/customerNotificationService';
+import { getMembershipExpiryInfo } from '../Membership/MembershipExpiryBanner';
 import { updateCustomerProfile, getCustomerProfile } from '../../services/api';
 import { setCustomerDeliveryPincode } from '../../services/catalogSyncService';
 import { detectCustomerLiveLocation } from '../../services/locationService';
@@ -269,7 +270,11 @@ export default function CustomerProfilePage({
 }) {
   const [activeTab, setActiveTab] = useState('profile');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const hasActiveMembership = Boolean(isMember || currentUser?.isMember || currentUser?.membership?.status === 'ACTIVE');
+
+  const memObj = currentUser?.membership || currentUser;
+  const expiryInfo = useMemo(() => getMembershipExpiryInfo(memObj), [memObj]);
+  const isExpired = expiryInfo?.status === 'EXPIRED';
+  const hasActiveMembership = Boolean((isMember || currentUser?.isMember || currentUser?.membership?.status === 'ACTIVE') && !isExpired);
 
   const formatProfileDate = (dateVal) => {
     if (!dateVal) return '—';
@@ -1124,6 +1129,10 @@ export default function CustomerProfilePage({
                 <span className="profile-verified-tag profile-member-tag">
                   <Star size={11} fill="#f59e0b" color="#d97706" /> Member Active
                 </span>
+              ) : isExpired ? (
+                <span className="profile-verified-tag profile-expired-tag" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+                  <AlertCircle size={11} /> Membership Expired
+                </span>
               ) : (
                 <span className="profile-verified-tag">
                   <Shield size={11} /> Verified Customer
@@ -1221,10 +1230,12 @@ export default function CustomerProfilePage({
                 }
               }}
             >
-              <Crown size={18} style={{ color: '#f59e0b' }} />
+              <Crown size={18} style={{ color: hasActiveMembership ? '#f59e0b' : (isExpired ? '#ef4444' : '#94a3b8') }} />
               <span>Membership</span>
               {hasActiveMembership ? (
                 <span className="nav-item-pill" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>Active</span>
+              ) : isExpired ? (
+                <span className="nav-item-pill" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}>Expired</span>
               ) : (
                 <span className="nav-item-pill" style={{ background: '#e0f2fe', color: '#0369a1' }}>Join</span>
               )}
@@ -1371,7 +1382,7 @@ export default function CustomerProfilePage({
                   </div>
                 </div>
 
-                {hasActiveMembership && (
+                {hasActiveMembership ? (
                   <div style={{
                     marginTop: '20px',
                     padding: '16px 20px',
@@ -1437,7 +1448,73 @@ export default function CustomerProfilePage({
                       <Sparkles size={13} /> View Privileges
                     </button>
                   </div>
-                )}
+                ) : isExpired ? (
+                  <div style={{
+                    marginTop: '20px',
+                    padding: '16px 20px',
+                    background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+                    border: '1px solid #fecaca',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '10px',
+                        backgroundColor: '#fee2e2',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #fca5a5'
+                      }}>
+                        <AlertCircle size={22} color="#dc2626" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#991b1b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>Atomy Distributor Membership</span>
+                          <span style={{
+                            fontSize: '11px',
+                            background: '#dc2626',
+                            color: '#fff',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontWeight: 600
+                          }}>
+                            Expired
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#b91c1c', marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                          <span>{expiryInfo?.isToday ? 'Expired Today' : `Expired on ${expiryInfo?.expiryDateStr || formatProfileDate(memExpiry)}`}</span>
+                          <span>Reactivate to unlock wholesale DP rates and PV accumulation</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onNavigateMembership}
+                      style={{
+                        padding: '7px 14px',
+                        background: '#dc2626',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      Reactivate Membership
+                    </button>
+                  </div>
+                ) : null}
               </>
               ) : (
                 <form onSubmit={handleSaveProfile} className="profile-edit-form">
@@ -2017,7 +2094,7 @@ export default function CustomerProfilePage({
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <label className="field-label">PIN Code</label>
                         {isLookingUpPincode && (
-                          <span style={{ fontSize: '11px', color: '#00A3E0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '11px', color: '#08267e', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <Loader2 size={11} className="animate-spin" /> Finding...
                           </span>
                         )}
@@ -2049,8 +2126,8 @@ export default function CustomerProfilePage({
                                 alignItems: 'center',
                                 gap: '4px',
                                 background: (newAddressForm.street || '').toLowerCase().includes(area.toLowerCase()) ? '#e0f2fe' : '#ffffff',
-                                border: (newAddressForm.street || '').toLowerCase().includes(area.toLowerCase()) ? '1px solid #0284c7' : '1px solid #cbd5e1',
-                                color: (newAddressForm.street || '').toLowerCase().includes(area.toLowerCase()) ? '#0284c7' : '#475569',
+                                border: (newAddressForm.street || '').toLowerCase().includes(area.toLowerCase()) ? '1px solid #08267e' : '1px solid #cbd5e1',
+                                color: (newAddressForm.street || '').toLowerCase().includes(area.toLowerCase()) ? '#08267e' : '#475569',
                                 padding: '4px 8px',
                                 borderRadius: '12px',
                                 fontSize: '11.5px',
@@ -2140,7 +2217,7 @@ export default function CustomerProfilePage({
                         className="address-action-btn edit"
                         onClick={() => handleOpenEditAddress(addr)}
                         title="Edit this address"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#00A3E0', fontWeight: '600' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#08267e', fontWeight: '600' }}
                       >
                         <Edit3 size={13} />
                         <span>Edit</span>

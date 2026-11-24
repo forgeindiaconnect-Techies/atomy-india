@@ -1287,7 +1287,7 @@ export default function OrderSheetPage({
                     onClick={() => setIsProductsExpanded(!isProductsExpanded)}
                   >
                     <div className="card-header-title">
-                      <ShoppingBag size={20} color="#00A3E0" />
+                      <ShoppingBag size={20} color="#08267e" />
                       <span>Order Products ({totalQty} {totalQty === 1 ? 'item' : 'items'})</span>
                     </div>
                     <div className="card-header-toggle">
@@ -1483,7 +1483,7 @@ export default function OrderSheetPage({
                 <div className="sheet-card fulfillment-selection-card">
                   <div className="sheet-card-header">
                     <div className="card-header-title">
-                      <Store size={20} color="#00A3E0" />
+                      <Store size={20} color="#08267e" />
                       <span>Fulfillment &amp; Delivery Method</span>
                     </div>
                   </div>
@@ -1656,7 +1656,7 @@ export default function OrderSheetPage({
                                 {hubDetails?.hubName || 'Designated Regional Hub'}
                               </h4>
                               <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                                <MapPin size={14} color="#0284c7" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                <MapPin size={14} color="#08267e" style={{ flexShrink: 0, marginTop: '2px' }} />
                                 <span>{hubDetails?.hubAddress || 'Regional Logistics Hub Counter'}</span>
                               </p>
                             </div>
@@ -1664,7 +1664,7 @@ export default function OrderSheetPage({
                             {/* Hub Manager / Sub-Admin Contact */}
                             <div style={{ borderLeft: '1px solid #f1f5f9', paddingLeft: '14px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#0284c7', fontWeight: 700, letterSpacing: '0.5px' }}>
+                                <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#08267e', fontWeight: 700, letterSpacing: '0.5px' }}>
                                   Distributor / Hub Manager
                                 </span>
                                 {hubDetails?.isSubstituteActive && (
@@ -1692,7 +1692,7 @@ export default function OrderSheetPage({
                                 <a
                                   href={`tel:${(hubDetails?.phone || '+91 1800 123 4567').replace(/\s+/g, '')}`}
                                   style={{
-                                    color: '#0284c7',
+                                    color: '#08267e',
                                     textDecoration: 'none',
                                     fontWeight: 600,
                                     display: 'inline-flex',
@@ -1730,12 +1730,12 @@ export default function OrderSheetPage({
                     <div className="card-header-title">
                       {fulfillmentType === 'STORE_PICKUP' ? (
                         <>
-                          <Store size={20} color="#00A3E0" />
+                          <Store size={20} color="#08267e" />
                           <span>Customer Contact &amp; Pickup Verification Details</span>
                         </>
                       ) : (
                         <>
-                          <Truck size={20} color="#00A3E0" />
+                          <Truck size={20} color="#08267e" />
                           <span>Delivery Address (Doorstep Courier Delivery)</span>
                         </>
                       )}
@@ -1977,7 +1977,7 @@ export default function OrderSheetPage({
                     {/* Live Estimated Delivery Date Row in Summary */}
                     <div className="summary-line delivery-estimate-row">
                       <span className="line-label">
-                        <Truck size={14} color="#00A3E0" style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                        <Truck size={14} color="#08267e" style={{ verticalAlign: 'middle', marginRight: '6px' }} />
                         Estimated Delivery
                       </span>
                       <span className="line-value delivery-date-highlight">
@@ -2011,7 +2011,7 @@ export default function OrderSheetPage({
                             title="Click to view available coupons saved by store admin"
                           >
                             <div className="coupon-widget-title">
-                              <Ticket size={15} color="#00A3E0" />
+                              <Ticket size={15} color="#08267e" />
                               <span>Apply Gift Coupon / Promo Code</span>
                             </div>
                             {availableCoupons.length > 0 && (
@@ -2351,14 +2351,14 @@ export default function OrderSheetPage({
                 {currentSelectedAddress && (
                   <div className="pg-delivery-destination-mini">
                     <div className="pg-dest-header">
-                      <Truck size={14} color="#00A3E0" />
+                      <Truck size={14} color="#08267e" />
                       <span>Shipping to: <strong>{currentSelectedAddress.recipientName}</strong></span>
                     </div>
                     <p className="pg-dest-line">
                       {currentSelectedAddress.addressLine1 || currentSelectedAddress.street || currentSelectedAddress.address || 'Delivery Address'}, {currentSelectedAddress.city} - {currentSelectedAddress.pincode}
                     </p>
                     <div className="pg-delivery-eta-pill">
-                      <Clock size={12} color="#0284c7" />
+                      <Clock size={12} color="#08267e" />
                       <span>Est. Delivery: <strong>{estimatedDeliveryInfo.dateRange}</strong> ({estimatedDeliveryInfo.timeFrame})</span>
                     </div>
                   </div>
@@ -2837,8 +2837,8 @@ export default function OrderSheetPage({
                   {totalPV > 0 && (
                     <div className="pg-summary-section">
                       <div className="pg-summary-nested-row" style={{ marginTop: '6px' }}>
-                        <span className="pg-nested-label" style={{ color: '#00A3E0', fontWeight: 600 }}>Atomy PV Points Earned</span>
-                        <span className="pg-nested-val" style={{ color: '#00A3E0', fontWeight: 700 }}>+{totalPV.toLocaleString('en-IN')} PV</span>
+                        <span className="pg-nested-label" style={{ color: '#08267e', fontWeight: 600 }}>Atomy PV Points Earned</span>
+                        <span className="pg-nested-val" style={{ color: '#08267e', fontWeight: 700 }}>+{totalPV.toLocaleString('en-IN')} PV</span>
                       </div>
                     </div>
                   )}
@@ -2871,7 +2871,7 @@ export default function OrderSheetPage({
                   <div className="pg-summary-section pg-eta-section">
                     <div className="pg-summary-nested-row pg-eta-row">
                       <span className="pg-nested-label">
-                        <Truck size={13} color="#00A3E0" style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                        <Truck size={13} color="#08267e" style={{ verticalAlign: 'middle', marginRight: '4px' }} />
                         Estimated Delivery
                       </span>
                       <span className="pg-nested-val pg-eta-date-val">
@@ -2892,7 +2892,7 @@ export default function OrderSheetPage({
 
                 {/* Secure Guarantee Footer */}
                 <div className="pg-guarantee-strip">
-                  <ShieldCheck size={16} color="#00A3E0" />
+                  <ShieldCheck size={16} color="#08267e" />
                   <span>Safe and Secure Payments. 100% Authentic Atomy Guarantee.</span>
                 </div>
               </div>
@@ -2987,7 +2987,7 @@ export default function OrderSheetPage({
 
                   {/* PV Earned Banner */}
                   <div className="pv-earned-celebration">
-                    <Sparkles size={20} color="#00A3E0" />
+                    <Sparkles size={20} color="#08267e" />
                     <span>
                       Congratulations! You earned <strong>{placedOrderDetails.totalPV.toLocaleString('en-IN')} PV</strong> for your Atomy account on this order.
                     </span>
@@ -3015,14 +3015,14 @@ export default function OrderSheetPage({
                         {placedOrderDetails.hubPhone && (
                           <div>
                             <span style={{ color: '#64748b' }}>Contact Number: </span>
-                            <a href={`tel:${placedOrderDetails.hubPhone.replace(/\s+/g, '')}`} style={{ color: '#0284c7', fontWeight: 600, textDecoration: 'none' }}>
+                            <a href={`tel:${placedOrderDetails.hubPhone.replace(/\s+/g, '')}`} style={{ color: '#08267e', fontWeight: 600, textDecoration: 'none' }}>
                               📞 {placedOrderDetails.hubPhone}
                             </a>
                           </div>
                         )}
                         <div>
                           <span style={{ color: '#64748b' }}>Pickup Code / Order ID: </span>
-                          <strong style={{ color: '#0284c7' }}>#{placedOrderDetails.orderId}</strong>
+                          <strong style={{ color: '#08267e' }}>#{placedOrderDetails.orderId}</strong>
                         </div>
                       </div>
                       <div style={{ fontSize: '12px', color: '#166534' }}>
@@ -3031,7 +3031,7 @@ export default function OrderSheetPage({
                     </div>
                   ) : (
                     <div className="destination-summary-box">
-                      <MapPin size={18} color="#00A3E0" />
+                      <MapPin size={18} color="#08267e" />
                       <div>
                         <strong>Delivery Destination:</strong>
                         <p>{placedOrderDetails.address?.fullAddress || placedOrderDetails.address}</p>
@@ -3059,7 +3059,7 @@ export default function OrderSheetPage({
                   ) : (
                     <div className="delivery-confirmed-eta-box">
                       <div className="eta-icon-circle">
-                        <Truck size={22} color="#00A3E0" />
+                        <Truck size={22} color="#08267e" />
                       </div>
                       <div className="eta-content">
                         <div className="eta-badge">Doorstep Express Delivery</div>

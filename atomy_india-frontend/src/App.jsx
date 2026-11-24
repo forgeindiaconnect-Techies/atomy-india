@@ -49,7 +49,7 @@ import { detectCustomerLiveLocation } from './services/locationService';
 import MembershipModal from './components/Membership/MembershipModal';
 import MembershipPage from './components/Membership/MembershipPage';
 import MembershipPaymentPage from './components/Membership/MembershipPaymentPage';
-import MembershipExpiryBanner from './components/Membership/MembershipExpiryBanner';
+import MembershipExpiryBanner, { getMembershipExpiryInfo } from './components/Membership/MembershipExpiryBanner';
 import { isUserMember, calculateProductPricing, verifyUserMembershipWithBackend, fetchFullMembershipStatusWithBackend } from './services/membershipService';
 import { recordProductAddedToCart, recordProductPurchased } from './services/productStatsService';
 import { updateCustomerProfile, getCustomerProfile, fetchRatingsSummary } from './services/api';
@@ -1023,7 +1023,11 @@ export default function App() {
             localStorage.setItem('atomy_current_membership_data', JSON.stringify(data.membership));
           } catch { }
         }
-        if (data?.isMember) {
+        const activeMem = data?.membership || currentUser?.membership;
+        const expiry = getMembershipExpiryInfo(activeMem);
+        const isActuallyExpired = expiry?.status === 'EXPIRED' || data?.status === 'EXPIRED';
+
+        if (data?.isMember && !isActuallyExpired) {
           const updated = {
             ...currentUser,
             isMember: true,
@@ -1041,22 +1045,24 @@ export default function App() {
             } catch { }
             setMembershipVersion((v) => v + 1);
           }
-        } else if (data && !data.isMember && currentUser.isMember) {
+        } else if (isActuallyExpired || (data && !data.isMember && currentUser.isMember)) {
           const updated = {
             ...currentUser,
             isMember: false,
             membership: {
               ...(currentUser.membership || {}),
-              ...(data.membership || {}),
+              ...(data?.membership || {}),
               status: 'EXPIRED',
               active: false
             }
           };
-          setCurrentUser(updated);
-          try {
-            localStorage.setItem('atomy_current_user', JSON.stringify(updated));
-          } catch { }
-          setMembershipVersion((v) => v + 1);
+          if (currentUser.isMember || currentUser.membership?.status !== 'EXPIRED') {
+            setCurrentUser(updated);
+            try {
+              localStorage.setItem('atomy_current_user', JSON.stringify(updated));
+            } catch { }
+            setMembershipVersion((v) => v + 1);
+          }
         }
       });
     } else {

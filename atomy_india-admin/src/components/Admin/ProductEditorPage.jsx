@@ -35,7 +35,9 @@ import {
   Star,
   Layers,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  ShieldCheck,
+  Percent
 } from 'lucide-react';
 import officialProductDetails from '../../data/officialProductDetails.json';
 import './ProductEditorPage.css';
@@ -635,25 +637,33 @@ export default function ProductEditorPage({
             <div className="editor-grid-4">
               {/* Original / MRP (₹) */}
               <div className="editor-form-group">
-                <label>Original / MRP (₹) *</label>
-                <input
-                  type="number"
-                  value={formData.originalPrice}
-                  onChange={(e) => handleMrpChange(e.target.value)}
-                  placeholder="e.g. 15000"
-                  required
-                />
+                <div className="editor-label-row">
+                  <label>Original / MRP (₹) *</label>
+                </div>
+                <div className="input-with-affix">
+                  <span className="input-affix-left">₹</span>
+                  <input
+                    type="number"
+                    className="input-has-left-affix"
+                    value={formData.originalPrice}
+                    onChange={(e) => handleMrpChange(e.target.value)}
+                    placeholder="e.g. 15000"
+                    required
+                  />
+                </div>
                 <span className="editor-field-helper">Maximum Retail Price</span>
               </div>
 
               {/* Discount Percentage (%) */}
               <div className="editor-form-group">
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Discount Percentage (%)</span>
+                <div className="editor-label-row">
+                  <label>Discount Percentage (%)</label>
                   {discountPercent > 0 && (
-                    <span className="discount-calc-badge">{discountPercent}% OFF</span>
+                    <span className="discount-calc-badge">
+                      <Percent size={10} /> {discountPercent}% OFF
+                    </span>
                   )}
-                </label>
+                </div>
                 <div className="input-with-affix">
                   <input
                     type="number"
@@ -665,22 +675,40 @@ export default function ProductEditorPage({
                   />
                   <span className="input-affix-right">%</span>
                 </div>
-                <span className="editor-field-helper" style={{ color: '#0284c7', fontWeight: '600' }}>
+                <div className="discount-presets-row">
+                  {[5, 10, 15, 20].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      className={`discount-preset-btn ${Number(discountPercent) === pct ? 'active' : ''}`}
+                      onClick={() => handleDiscountChange(pct)}
+                      title={`Apply ${pct}% discount`}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                </div>
+                <span className="editor-field-helper text-sky-helper">
                   ⚡ Auto-deducts Offer Price from MRP
                 </span>
               </div>
 
               {/* Customer / Offer Price (₹) */}
               <div className="editor-form-group">
-                <label>Customer Offer Price (₹) *</label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => handlePriceChange(e.target.value)}
-                  placeholder="e.g. 12000"
-                  required
-                  style={{ fontWeight: '700', color: '#0284c7' }}
-                />
+                <div className="editor-label-row">
+                  <label>Customer Offer Price (₹) *</label>
+                </div>
+                <div className="input-with-affix">
+                  <span className="input-affix-left text-blue">₹</span>
+                  <input
+                    type="number"
+                    className="input-has-left-affix customer-price-input"
+                    value={formData.price}
+                    onChange={(e) => handlePriceChange(e.target.value)}
+                    placeholder="e.g. 12000"
+                    required
+                  />
+                </div>
                 <span className="editor-field-helper">
                   Selling price for direct customers
                 </span>
@@ -688,19 +716,24 @@ export default function ProductEditorPage({
 
               {/* Distributor Price / DP (₹) */}
               <div className="editor-form-group dp-highlight-group">
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Distributor Price / DP (₹)</span>
-                  <span className="dp-plan-badge">Upcoming Advantage</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.dpPrice}
-                  onChange={(e) => handleDpPriceChange(e.target.value)}
-                  placeholder="e.g. 10000"
-                  className="dp-input-field"
-                />
-                <span className="editor-field-helper" style={{ color: '#059669', fontWeight: '600' }}>
-                  Member advantage price (Membership plan)
+                <div className="editor-label-row">
+                  <label>Distributor Price / DP (₹)</label>
+                  <span className="dp-plan-badge">
+                    <ShieldCheck size={11} /> Member DP Plan
+                  </span>
+                </div>
+                <div className="input-with-affix">
+                  <span className="input-affix-left text-emerald">₹</span>
+                  <input
+                    type="text"
+                    className="input-has-left-affix dp-input-field"
+                    value={formData.dpPrice}
+                    onChange={(e) => handleDpPriceChange(e.target.value)}
+                    placeholder="e.g. 10000"
+                  />
+                </div>
+                <span className="editor-field-helper text-emerald-helper">
+                  Exclusive wholesale price for active members
                 </span>
               </div>
             </div>
@@ -886,11 +919,13 @@ export default function ProductEditorPage({
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. #GST REDUCED, #FREE DELIVERY"
+                      placeholder="e.g. GST REDUCED, FREE DELIVERY"
                       value={Array.isArray(formData.tags) ? formData.tags.join(', ') : (formData.tags || '')}
                       onChange={(e) => {
                         const val = e.target.value;
-                        const parsed = val.split(',').map(s => s.trim()).filter(Boolean);
+                        const parsed = val.split(',')
+                          .map(s => s.trim().replace(/^#+/, '').trim())
+                          .filter(Boolean);
                         setFormData({
                           ...formData,
                           tags: parsed,

@@ -14,7 +14,7 @@ import {
   KeyRound,
   RefreshCw
 } from 'lucide-react';
-import ficLogo from '../../assets/fic-symbol.png';
+import brandLogo from '../../assets/logo.png';
 import IndiaMap from '../Header/IndiaMap';
 import { 
   loginAdminOrDistributor,
@@ -199,11 +199,26 @@ export default function AdminLoginPage({ onLoginSuccess, onBackToStore }) {
         {/* Forge India Connect Brand Logo */}
         <div className="signin-logo-wrap" style={{ cursor: 'pointer' }} onClick={onBackToStore} title="Forge India Connect">
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <img
-              src={ficLogo}
-              alt="Forge India Connect"
-              style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
-            />
+            <div
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                backgroundColor: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 3px 12px rgba(0, 0, 0, 0.17)',
+                overflow: 'hidden',
+                flexShrink: 0
+              }}
+            >
+              <img
+                src={brandLogo}
+                alt="Forge India Connect"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+              />
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 800, fontSize: '24px', letterSpacing: '0.8px', lineHeight: 1.1 }}>
                 <span style={{ color: '#002C6C' }}>FORGE</span>

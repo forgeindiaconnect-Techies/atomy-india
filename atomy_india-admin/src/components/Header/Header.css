@@ -131,6 +131,40 @@
   align-items: center;
 }
 
+.brand-logo-circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.17);
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.brand-col-logo:hover .brand-logo-circle {
+  transform: scale(1.04);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22);
+}
+
+.brand-logo-circle .brand-logo-img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  transition: transform 0.2s ease;
+}
+
 .brand-logo-img {
   height: 52px;
   width: auto;
@@ -1865,6 +1899,11 @@
     gap: 8px !important;
   }
 
+  .brand-logo-circle {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
   .brand-logo-img {
     height: 36px !important;
     max-height: 38px !important;
@@ -2071,6 +2110,11 @@
   .main-header-bar.admin-header-bar {
     min-height: 74px !important;
     padding: 10px 0 !important;
+  }
+
+  .brand-logo-circle {
+    width: 44px !important;
+    height: 44px !important;
   }
 
   .brand-logo-img {

@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  Package, 
-  Truck, 
-  Search, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Clock, 
-  MapPin, 
-  Eye, 
-  X, 
+import {
+  Package,
+  Truck,
+  Search,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  Eye,
+  X,
   ChevronRight,
   ExternalLink,
   Calendar,
@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import DeliveryStatusStepper from '../Orders/DeliveryStatusStepper';
 import CustomDropdown from '../common/CustomDropdown';
-import { 
+import {
   sendDelayApologyEmail,
   triggerAllDelayedEmails
 } from '../../services/api';
@@ -40,10 +40,10 @@ import './DistributorOrdersPage.css';
 // Helper to reliably extract complete destination address across all order formats
 export const resolveOrderDestination = (order) => {
   if (!order) return { recipient: 'Customer', phone: '', street: '', city: '', state: '', pincode: '', fullAddress: 'Registered Delivery Destination' };
-  
+
   const recipient = order.customerName || order.recipient || order.shippingAddress?.recipient || order.address?.recipient || 'Customer';
   const phone = order.customerPhone || order.phone || order.shippingAddress?.phone || order.address?.phone || '';
-  
+
   let street = '';
   if (typeof order.shippingAddress === 'string' && order.shippingAddress.trim()) {
     street = order.shippingAddress.trim();
@@ -70,16 +70,19 @@ export const resolveOrderDestination = (order) => {
   return { recipient, phone, street, city, state, pincode, fullAddress };
 };
 
-export default function DistributorOrdersPage({ 
-  orders = [], 
-  distributor, 
-  onUpdateTracking, 
+export default function DistributorOrdersPage({
+  orders = [],
+  distributor,
+  onUpdateTracking,
   onUpdateOrderStatus,
   onOpenTrackingModal,
   onRefreshOrders,
   showToast,
   isLoading,
-  initialSelectedOrderId = null
+  initialSelectedOrderId = null,
+  isLeaveLocked = false,
+  substituteName = 'Temporary Substitute',
+  onResumeDuty
 }) {
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
@@ -117,13 +120,13 @@ export default function DistributorOrdersPage({
     }
     if (selectedOrderDetail) {
       try {
-        window.history.pushState({ subView: 'distributor-order-inspect' }, '', window.location.href);
+        window.history.pushState({ tab: 'orders', subView: 'distributor-order-inspect' }, '', window.location.href);
       } catch { }
     }
   }, [Boolean(selectedOrderDetail)]);
 
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = (e) => {
       if (selectedOrderDetail) {
         isPopNavigatingRef.current = true;
         setSelectedOrderDetail(null);
@@ -137,11 +140,12 @@ export default function DistributorOrdersPage({
   }, [selectedOrderDetail]);
 
   const handleCloseInspection = () => {
-    if (window.history.state?.subView === 'distributor-order-inspect') {
-      window.history.back();
-    } else {
-      setSelectedOrderDetail(null);
-    }
+    setSelectedOrderDetail(null);
+    try {
+      if (window.history.state?.subView === 'distributor-order-inspect') {
+        window.history.replaceState({ tab: 'orders', subView: null }, '', window.location.href);
+      }
+    } catch { }
   };
 
   const assignedPins = distributor?.assignedPincodes || [distributor?.primaryPincode].filter(Boolean);
@@ -208,7 +212,7 @@ export default function DistributorOrdersPage({
   // Exact SLA delivery logic identical to Super Admin
   const getOrderDeliverySLA = (order) => {
     if (!order) return { isDelayed: false, targetDate: null, targetDateStr: '', delayDays: 0, daysLeft: 0, statusText: 'On Schedule' };
-    
+
     const isDelivered = String(order.orderStatus || '').toUpperCase() === 'DELIVERED';
     const isCancelled = String(order.orderStatus || '').toUpperCase() === 'CANCELLED';
 
@@ -237,15 +241,15 @@ export default function DistributorOrdersPage({
       targetDateStr: targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
       delayDays: Math.max(1, delayDays),
       daysLeft: Math.max(0, daysLeft),
-      statusText: isDelivered 
-        ? 'Delivered' 
-        : isCancelled 
-        ? 'Cancelled' 
-        : isDelayed 
-        ? `Delayed by ${Math.max(1, delayDays)} day${delayDays > 1 ? 's' : ''}` 
-        : daysLeft === 0 
-        ? 'Due Today' 
-        : `${daysLeft} day${daysLeft > 1 ? 's' : ''} left`
+      statusText: isDelivered
+        ? 'Delivered'
+        : isCancelled
+          ? 'Cancelled'
+          : isDelayed
+            ? `Delayed by ${Math.max(1, delayDays)} day${delayDays > 1 ? 's' : ''}`
+            : daysLeft === 0
+              ? 'Due Today'
+              : `${daysLeft} day${daysLeft > 1 ? 's' : ''} left`
     };
   };
 
@@ -261,7 +265,7 @@ export default function DistributorOrdersPage({
       const rawName = String(it.productName || it.name || it.title || '').trim();
       const rawPrice = Number(it.unitPrice ?? it.price ?? 0);
 
-      const matched = 
+      const matched =
         (rawCode ? INITIAL_ADMIN_PRODUCTS.find(p => p && String(p.id).toLowerCase() === rawCode.toLowerCase()) : null) ||
         (rawName ? INITIAL_ADMIN_PRODUCTS.find(p => p && p.name && p.name.toLowerCase() === rawName.toLowerCase()) : null) ||
         (rawPrice > 0 ? INITIAL_ADMIN_PRODUCTS.find(p => Number(p.price) === rawPrice) : null);
@@ -487,10 +491,12 @@ export default function DistributorOrdersPage({
     { id: 'ALL', label: 'All Orders', count: territoryOrders.length },
     { id: 'PLACED', label: 'New Orders', count: territoryOrders.filter(o => String(o.orderStatus || 'PLACED').toUpperCase() === 'PLACED').length },
     { id: 'PROCESSING', label: 'Processing', count: territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() === 'PROCESSING').length },
-    { id: 'SHIPPED', label: 'Shipped & Out for Delivery', count: territoryOrders.filter(o => {
-      const st = String(o.orderStatus || '').toUpperCase();
-      return st === 'SHIPPED' || st === 'OUT_FOR_DELIVERY';
-    }).length },
+    {
+      id: 'SHIPPED', label: 'Shipped & Out for Delivery', count: territoryOrders.filter(o => {
+        const st = String(o.orderStatus || '').toUpperCase();
+        return st === 'SHIPPED' || st === 'OUT_FOR_DELIVERY';
+      }).length
+    },
     { id: 'DELIVERED', label: 'Delivered', count: territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() === 'DELIVERED').length },
     { id: 'CANCELLED', label: 'Cancelled', count: territoryOrders.filter(o => String(o.orderStatus || '').toUpperCase() === 'CANCELLED').length },
     { id: 'DELAYED', label: '⚠️ Delayed Deliveries', count: delayedOrders.length, isDelayedTab: true }
@@ -522,6 +528,10 @@ export default function DistributorOrdersPage({
   });
 
   const handleStatusChange = async (orderId, newStatus) => {
+    if (isLeaveLocked) {
+      if (showToast) showToast(`Action Locked: You are on leave. Physical fulfillment is delegated to ${substituteName}.`);
+      return;
+    }
     try {
       if (onUpdateOrderStatus) {
         await onUpdateOrderStatus(orderId, newStatus);
@@ -552,6 +562,10 @@ export default function DistributorOrdersPage({
   };
 
   const handleSendDelayApologyEmail = async (orderId, customerEmail) => {
+    if (isLeaveLocked) {
+      if (showToast) showToast(`Action Locked: You are on leave. Physical fulfillment is delegated to ${substituteName}.`);
+      return;
+    }
     try {
       if (showToast) showToast(`Sending delay apology email to ${customerEmail || 'customer'}...`);
       await sendDelayApologyEmail(orderId);
@@ -563,6 +577,10 @@ export default function DistributorOrdersPage({
   };
 
   const handleTriggerAllDelayEmails = async () => {
+    if (isLeaveLocked) {
+      if (showToast) showToast(`Action Locked: You are on leave. Physical fulfillment is delegated to ${substituteName}.`);
+      return;
+    }
     try {
       if (showToast) showToast('Scanning delayed territory orders and dispatching apology emails...');
       const res = await triggerAllDelayedEmails();
@@ -606,6 +624,35 @@ export default function DistributorOrdersPage({
         </div>
       </div>
 
+      {/* Dynamic Primary On-Leave Banner */}
+      {isLeaveLocked && (
+        <div className="distributor-onleave-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '14px 20px', background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '10px', marginBottom: '20px', color: '#92400e', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertTriangle size={20} color="#d97706" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#92400e' }}>
+                Customer Orders — View-Only Mode
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#78350f', marginTop: '2px' }}>
+                Action Locked: You are on leave. Physical fulfillment is delegated to <strong>{substituteName}</strong>.
+              </div>
+            </div>
+          </div>
+          {onResumeDuty && (
+            <button
+              type="button"
+              onClick={onResumeDuty}
+              style={{ background: '#059669', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <CheckCircle2 size={14} />
+              <span>Resume Active Duty</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* 2. Orders Status Nav Strip (Identical to Super Admin) */}
       <div className="orders-status-nav-strip">
         {statusTabs.map((tab) => (
@@ -633,9 +680,9 @@ export default function DistributorOrdersPage({
             className="atomy-search-input"
           />
           {orderSearchQuery && (
-            <button 
-              type="button" 
-              className="clear-search-btn" 
+            <button
+              type="button"
+              className="clear-search-btn"
               onClick={() => setOrderSearchQuery('')}
             >
               <X size={14} />
@@ -1007,9 +1054,15 @@ export default function DistributorOrdersPage({
                         <button
                           type="button"
                           className="action-pill-btn tracking"
-                          style={{ minWidth: '88px', justifyContent: 'center' }}
-                          onClick={() => onOpenTrackingModal && onOpenTrackingModal(o)}
-                          title="Update Courier Tracking Details"
+                          style={{ minWidth: '88px', justifyContent: 'center', ...(isLeaveLocked ? { opacity: 0.55, cursor: 'not-allowed' } : {}) }}
+                          onClick={() => {
+                            if (isLeaveLocked) {
+                              if (showToast) showToast(`Action Locked: You are on leave. Physical fulfillment is delegated to ${substituteName}.`);
+                              return;
+                            }
+                            if (onOpenTrackingModal) onOpenTrackingModal(o);
+                          }}
+                          title={isLeaveLocked ? `Action Locked: You are on leave. Physical fulfillment is delegated to ${substituteName}.` : "Update Courier Tracking Details"}
                         >
                           <Truck size={13} />
                           <span>Tracking</span>
@@ -1045,9 +1098,9 @@ export default function DistributorOrdersPage({
           {/* Top Fullscreen Header Bar */}
           <div className="inspection-fullscreen-topbar">
             <div className="inspection-topbar-left">
-              <button 
+              <button
                 type="button"
-                className="inspection-back-nav-btn" 
+                className="inspection-back-nav-btn"
                 onClick={handleCloseInspection}
               >
                 <ArrowLeft size={18} />
@@ -1111,9 +1164,9 @@ export default function DistributorOrdersPage({
                 <span className="mobile-btn-label">Print</span>
               </button>
 
-              <button 
-                type="button" 
-                className="inspection-topbar-close-btn" 
+              <button
+                type="button"
+                className="inspection-topbar-close-btn"
                 onClick={handleCloseInspection}
                 title="Close and return to orders"
               >
@@ -1132,53 +1185,53 @@ export default function DistributorOrdersPage({
               selectedOrderDetail.cancellationReason ||
               selectedOrderDetail.returnReason
             ) && (
-              <div style={{
-                background: '#fff1f2',
-                border: '1.5px solid #fecdd3',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                marginBottom: '18px',
-                boxShadow: '0 2px 8px rgba(225, 29, 72, 0.06)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#be123c', fontWeight: 800, fontSize: '14px' }}>
-                    <AlertTriangle size={18} />
-                    <span>CUSTOMER CANCELLATION & RETURN AUDIT</span>
-                  </div>
-                  <span style={{
-                    background: '#ffe4e6',
-                    color: '#9f1239',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: '20px',
-                    textTransform: 'uppercase'
-                  }}>
-                    {selectedOrderDetail.orderStatus || 'CANCELLED'}
-                  </span>
-                </div>
-
-                <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #ffe4e6', marginBottom: '10px' }}>
-                  <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Reason Provided by Customer:
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#9f1239', lineHeight: '1.4' }}>
-                    "{selectedOrderDetail.cancelReason || selectedOrderDetail.cancellationReason || selectedOrderDetail.returnReason || 'Ordered by mistake / Change of mind'}"
-                  </div>
-                  {selectedOrderDetail.cancelNotes && (
-                    <div style={{ marginTop: '8px', fontSize: '12.5px', color: '#334155', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #f43f5e' }}>
-                      <strong style={{ color: '#0f172a' }}>Customer Note:</strong> {selectedOrderDetail.cancelNotes}
+                <div style={{
+                  background: '#fff1f2',
+                  border: '1.5px solid #fecdd3',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginBottom: '18px',
+                  boxShadow: '0 2px 8px rgba(225, 29, 72, 0.06)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#be123c', fontWeight: 800, fontSize: '14px' }}>
+                      <AlertTriangle size={18} />
+                      <span>CUSTOMER CANCELLATION & RETURN AUDIT</span>
                     </div>
-                  )}
-                </div>
+                    <span style={{
+                      background: '#ffe4e6',
+                      color: '#9f1239',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: '20px',
+                      textTransform: 'uppercase'
+                    }}>
+                      {selectedOrderDetail.orderStatus || 'CANCELLED'}
+                    </span>
+                  </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: '#881337', fontWeight: 500 }}>
-                  <span>• <strong>Cancelled On:</strong> {selectedOrderDetail.cancelledAt ? new Date(selectedOrderDetail.cancelledAt).toLocaleString('en-IN') : 'Recent'}</span>
-                  <span>• <strong>Refund Settlement:</strong> 100% Refund Approved</span>
-                  <span>• <strong>Territory Commission Impact:</strong> Reconciled to ₹0</span>
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #ffe4e6', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Reason Provided by Customer:
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#9f1239', lineHeight: '1.4' }}>
+                      "{selectedOrderDetail.cancelReason || selectedOrderDetail.cancellationReason || selectedOrderDetail.returnReason || 'Ordered by mistake / Change of mind'}"
+                    </div>
+                    {selectedOrderDetail.cancelNotes && (
+                      <div style={{ marginTop: '8px', fontSize: '12.5px', color: '#334155', background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #f43f5e' }}>
+                        <strong style={{ color: '#0f172a' }}>Customer Note:</strong> {selectedOrderDetail.cancelNotes}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: '#881337', fontWeight: 500 }}>
+                    <span>• <strong>Cancelled On:</strong> {selectedOrderDetail.cancelledAt ? new Date(selectedOrderDetail.cancelledAt).toLocaleString('en-IN') : 'Recent'}</span>
+                    <span>• <strong>Refund Settlement:</strong> 100% Refund Approved</span>
+                    <span>• <strong>Territory Commission Impact:</strong> Reconciled to ₹0</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {Boolean(
               selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' ||
@@ -1188,27 +1241,27 @@ export default function DistributorOrdersPage({
               (typeof selectedOrderDetail.shippingAddress === 'string' && selectedOrderDetail.shippingAddress.toLowerCase().includes('direct store pickup')) ||
               (selectedOrderDetail.hubName && !selectedOrderDetail.courier)
             ) && (
-              <div style={{
-                background: '#f0fdf4',
-                border: '1.5px solid #86efac',
-                borderRadius: '10px',
-                padding: '14px 18px',
-                marginBottom: '18px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                <Building2 size={24} color="#16a34a" />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#15803d' }}>
-                    🏢 DIRECT HUB SELF-PICKUP ORDER
-                  </div>
-                  <div style={{ fontSize: '12.5px', color: '#334155', marginTop: '3px' }}>
-                    The customer will arrive at your hub counter in person to collect this parcel. <strong>Do not assign a courier or dispatch via vehicle.</strong> Pack items and keep them ready at the pickup desk.
+                <div style={{
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '10px',
+                  padding: '14px 18px',
+                  marginBottom: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <Building2 size={24} color="#16a34a" />
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#15803d' }}>
+                      🏢 DIRECT HUB SELF-PICKUP ORDER
+                    </div>
+                    <div style={{ fontSize: '12.5px', color: '#334155', marginTop: '3px' }}>
+                      The customer will arrive at your hub counter in person to collect this parcel. <strong>Do not assign a courier or dispatch via vehicle.</strong> Pack items and keep them ready at the pickup desk.
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Live Animated Delivery Stepper */}
             <div className="inspection-card stepper-card">
@@ -1239,8 +1292,8 @@ export default function DistributorOrdersPage({
                       <div className="meta-card-main">
                         {Boolean(selectedOrderDetail.fulfillmentType === 'STORE_PICKUP' || selectedOrderDetail.isPickup)
                           ? (selectedOrderDetail.hubAddress
-                              ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
-                              : (distributor?.hubAddress ? `${distributor?.businessName ? distributor.businessName + ' — ' : ''}${distributor.hubAddress}` : (selectedOrderDetail.assignedDistributorName ? `${selectedOrderDetail.assignedDistributorName} Counter (PIN: ${selectedOrderDetail.pincode || distributor?.primaryPincode || '635002'})` : 'Regional Hub Pickup Counter')))
+                            ? `${selectedOrderDetail.hubName ? selectedOrderDetail.hubName + ' — ' : ''}${selectedOrderDetail.hubAddress}`
+                            : (distributor?.hubAddress ? `${distributor?.businessName ? distributor.businessName + ' — ' : ''}${distributor.hubAddress}` : (selectedOrderDetail.assignedDistributorName ? `${selectedOrderDetail.assignedDistributorName} Counter (PIN: ${selectedOrderDetail.pincode || distributor?.primaryPincode || '635002'})` : 'Regional Hub Pickup Counter')))
                           : (dest.street || dest.fullAddress)}
                       </div>
                       <div className="meta-card-sub">
@@ -1365,6 +1418,12 @@ export default function DistributorOrdersPage({
 
             {/* Status Update Control Bar */}
             <div className="inspection-card status-actions-card">
+              {isLeaveLocked && (
+                <div style={{ padding: '10px 16px', background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '8px', color: '#92400e', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', width: '100%', marginBottom: '10px' }}>
+                  <AlertTriangle size={17} color="#d97706" style={{ flexShrink: 0 }} />
+                  <span>Action Locked: You are on leave. Physical fulfillment is delegated to {substituteName}.</span>
+                </div>
+              )}
               <div className="status-update-control">
                 <label className="status-update-label">Update Order Status:</label>
                 {Boolean(
@@ -1440,7 +1499,12 @@ export default function DistributorOrdersPage({
                 <button
                   type="button"
                   className="order-footer-btn courier-btn"
+                  style={isLeaveLocked ? { opacity: 0.55, cursor: 'not-allowed' } : {}}
                   onClick={() => {
+                    if (isLeaveLocked) {
+                      if (showToast) showToast(`Action Locked: You are on leave. Physical fulfillment is delegated to ${substituteName}.`);
+                      return;
+                    }
                     const currentSt = selectedOrderDetail.orderStatus || selectedOrderDetail.status || 'PLACED';
                     const o = {
                       ...selectedOrderDetail,
@@ -1454,13 +1518,14 @@ export default function DistributorOrdersPage({
                     };
                     if (onOpenTrackingModal) onOpenTrackingModal(o);
                   }}
+                  title={isLeaveLocked ? `Action Locked: You are on leave. Physical fulfillment is delegated to ${substituteName}.` : "Update Logistics Tracking"}
                 >
                   <Truck size={15} />
                   <span>Update Logistics Tracking</span>
                 </button>
-                <button 
-                  type="button" 
-                  className="order-footer-btn done-btn" 
+                <button
+                  type="button"
+                  className="order-footer-btn done-btn"
                   onClick={handleCloseInspection}
                 >
                   <span>Close Inspection</span>

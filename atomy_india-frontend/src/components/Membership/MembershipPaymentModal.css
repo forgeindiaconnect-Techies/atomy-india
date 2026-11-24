@@ -99,7 +99,7 @@
 
 .strip-plan-badge {
   display: inline-block;
-  background-color: #00A3E0;
+  background-color: #08267e;
   color: #ffffff;
   font-size: 10.5px;
   font-weight: 800;
@@ -178,9 +178,9 @@
 }
 
 .method-tab-btn.active {
-  border-color: #00A3E0;
+  border-color: #08267e;
   background-color: #f0f9ff;
-  color: #0284c7;
+  color: #08267e;
   font-weight: 700;
 }
 
@@ -240,7 +240,7 @@
 }
 
 .payment-text-input:focus {
-  border-color: #00A3E0;
+  border-color: #08267e;
   box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.15);
 }
 
@@ -278,7 +278,7 @@
 }
 
 .btn-payment-action.primary {
-  background: linear-gradient(135deg, #00A3E0 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #08267e 0%, #051a57 100%);
   color: #ffffff;
   box-shadow: 0 4px 14px rgba(0, 163, 224, 0.35);
 }
@@ -381,7 +381,7 @@
 }
 
 .receipt-val.highlight {
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 800;
   letter-spacing: 0.5px;
 }

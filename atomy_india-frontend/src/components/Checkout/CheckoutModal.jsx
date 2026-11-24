@@ -98,7 +98,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
             /* Order Placed Success Screen */
             <div className="checkout-success-view">
               <div className="success-icon-wrapper">
-                <CheckCircle2 size={56} color="#00A3E0" />
+                <CheckCircle2 size={56} color="#08267e" />
               </div>
               <h3 className="success-title">Order Placed Successfully!</h3>
               <p className="success-subtitle">
@@ -343,7 +343,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
                 </div>
 
                 <div className="safe-checkout-badge">
-                  <ShieldCheck size={18} color="#00A3E0" />
+                  <ShieldCheck size={18} color="#08267e" />
                   <span>100% Genuine Atomy Guarantee & Safe SSL Transaction</span>
                 </div>
 

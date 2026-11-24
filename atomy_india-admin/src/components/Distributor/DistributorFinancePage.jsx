@@ -41,7 +41,10 @@ export default function DistributorFinancePage({
   distributor,
   onInspectOrder,
   onNavigateToOrders,
-  onNavigateToSupport
+  onNavigateToSupport,
+  isLeaveLocked = false,
+  substituteName = 'Temporary Substitute',
+  onResumeDuty
 }) {
   // Sub-tabs: 'overview' | 'queue' | 'rules'
   const [activeFinanceSubTab, setActiveFinanceSubTab] = useState('overview');
@@ -289,6 +292,35 @@ export default function DistributorFinancePage({
           </button>
         </div>
       </div>
+
+      {/* Dynamic Primary On-Leave Banner */}
+      {isLeaveLocked && (
+        <div className="distributor-onleave-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '14px 20px', background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '10px', marginBottom: '20px', color: '#92400e', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertTriangle size={20} color="#d97706" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#92400e' }}>
+                Finance &amp; Settlements — Audit Mode
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#78350f', marginTop: '2px' }}>
+                Action Locked: You are on leave. Financial handovers and settlement approvals are delegated to <strong>{substituteName}</strong>.
+              </div>
+            </div>
+          </div>
+          {onResumeDuty && (
+            <button
+              type="button"
+              onClick={onResumeDuty}
+              style={{ background: '#059669', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <CheckCircle2 size={14} />
+              <span>Resume Active Duty</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 2. Top Metric KPI Grid - Today's Sale, Overall Orders, Overall Sale, Refunded Amount, Partner Commission, Replacements */}
       <div className="finance-kpi-grid">

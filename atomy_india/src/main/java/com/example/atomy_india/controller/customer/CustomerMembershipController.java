@@ -148,25 +148,67 @@ public class CustomerMembershipController {
 
         if (active.isPresent()) {
             Membership m = active.get();
-            if (m.getExpiryDate() != null && m.getExpiryDate().isBefore(LocalDateTime.now())) {
+            boolean isExpired = m.getExpiryDate() != null && (
+                m.getExpiryDate().isBefore(LocalDateTime.now()) ||
+                !m.getExpiryDate().toLocalDate().isAfter(java.time.LocalDate.now())
+            );
+            if (isExpired) {
                 m.setStatus("EXPIRED");
                 if (!Boolean.TRUE.equals(m.getExpiredEmailSent())) {
                     m.setExpiredEmailSent(true);
                     try {
                         brevoEmailService.sendMembershipExpiredEmail(m);
-                    } catch (Exception ignored) {}
+                    } catch (Exception e) {
+                        System.err.println("Failed to send membership expired email: " + e.getMessage());
+                    }
                 }
                 membershipRepository.save(m);
                 customerUserRepository.findByEmail(m.getCustomerEmail()).ifPresent(user -> {
                     user.setIsMember(false);
                     customerUserRepository.save(user);
                 });
+
+                // Also record in-app customer notification
+                try {
+                    String userEmail = m.getCustomerEmail().trim().toLowerCase();
+                    boolean exists = notificationRepository.findByEmailIgnoreCaseOrderByCreatedAtDesc(userEmail)
+                        .stream().anyMatch(n -> "membership_expired".equals(n.getType()));
+                    if (!exists) {
+                        notificationRepository.save(new com.example.atomy_india.model.CustomerNotification(
+                            userEmail,
+                            "⚠️ Distributor Membership Expired",
+                            "Your Atomy Distributor Membership has expired. Reactivate your plan now to unlock wholesale DP rates and PV accumulation.",
+                            "membership_expired",
+                            null
+                        ));
+                    }
+                } catch (Exception ignored) {}
+
                 result.put("isMember", false);
                 result.put("status", "EXPIRED");
+                result.put("membership", m);
                 return ResponseEntity.ok(result);
             }
 
             result.put("isMember", true);
+            result.put("membership", m);
+            return ResponseEntity.ok(result);
+        }
+
+        // Check if there is an existing expired or non-active membership record
+        Optional<Membership> anyMem = membershipRepository
+                .findFirstByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(email.trim().toLowerCase());
+        if (anyMem.isPresent()) {
+            Membership m = anyMem.get();
+            if ("EXPIRED".equalsIgnoreCase(m.getStatus()) && !Boolean.TRUE.equals(m.getExpiredEmailSent())) {
+                m.setExpiredEmailSent(true);
+                try {
+                    brevoEmailService.sendMembershipExpiredEmail(m);
+                } catch (Exception ignored) {}
+                membershipRepository.save(m);
+            }
+            result.put("isMember", false);
+            result.put("status", m.getStatus());
             result.put("membership", m);
             return ResponseEntity.ok(result);
         }

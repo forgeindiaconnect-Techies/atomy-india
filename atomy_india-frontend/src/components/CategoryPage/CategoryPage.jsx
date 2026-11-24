@@ -758,7 +758,7 @@ export default function CategoryPage({
                           style={
                             isOos
                               ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' }
-                              : (isInCart ? { background: '#00b6f0', borderColor: '#00b6f0', color: '#ffffff' } : {})
+                              : (isInCart ? { background: '#08267e', borderColor: '#08267e', color: '#ffffff' } : {})
                           }
                           onClick={(e) => {
                             e.stopPropagation();
@@ -917,7 +917,7 @@ export default function CategoryPage({
                           style={
                             isOos
                               ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' }
-                              : (isInCart ? { background: '#00b6f0', borderColor: '#00b6f0', color: '#ffffff' } : {})
+                              : (isInCart ? { background: '#08267e', borderColor: '#08267e', color: '#ffffff' } : {})
                           }
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1090,7 +1090,7 @@ export default function CategoryPage({
                       style={
                         isOos
                           ? { opacity: 0.4, cursor: 'not-allowed', background: '#94a3b8' }
-                          : (isInCart ? { background: '#00b6f0', borderColor: '#00b6f0', color: '#ffffff' } : {})
+                          : (isInCart ? { background: '#08267e', borderColor: '#08267e', color: '#ffffff' } : {})
                       }
                       onClick={(e) => {
                         e.stopPropagation();

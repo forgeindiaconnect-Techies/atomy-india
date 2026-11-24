@@ -3,7 +3,7 @@ import { Search, User, ShoppingCart, ChevronDown, ChevronUp, Menu, Globe, X, Bel
 import { MenuToggleIcon } from '../FloatingToolbar/FloatingToolbar';
 import { ALL_CATALOG_PRODUCTS } from '../../data/mockData';
 import PhoenixFlight from './PhoenixFlight';
-import ficLogo from '../../assets/fic-symbol.png';
+import brandLogo from '../../assets/logo.png';
 import IndiaMap from './IndiaMap';
 import './Header.css';
 
@@ -443,11 +443,13 @@ export default function Header({
                   }}
                 >
                   <div className="brand-logo-top-row">
-                    <img
-                      src={ficLogo}
-                      alt="Forge India Connect"
-                      className="brand-logo-img"
-                    />
+                    <div className="brand-logo-circle">
+                      <img
+                        src={brandLogo}
+                        alt="Forge India Connect"
+                        className="brand-logo-img"
+                      />
+                    </div>
                   </div>
                 </a>
 

@@ -47,7 +47,8 @@ import {
   fetchDistributorProfile,
   updateDistributorStock,
   fetchHubTeam,
-  fetchDistributorTickets
+  fetchDistributorTickets,
+  updateHubLeaveStatus
 } from '../../services/distributorService';
 import { playOrderAlertSound, playSupportAlertSound, sendDesktopNotification } from '../../services/soundAlerts';
 import '../Admin/AdminDashboard.css';
@@ -111,6 +112,40 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
     : Boolean(currentDist?.isSubstituteActive || currentDist?.status === 'ACTIVE');
   const isSubstituteInCommand = isSubDistributor && isPrimaryOnLeave;
   const isSubstituteStandby = isSubDistributor && !isPrimaryOnLeave;
+
+  // Primary Distributor myself on leave state & delegated substitute name
+  const isPrimaryMyselfOnLeave = !isSubDistributor && Boolean(currentDist?.onLeave || currentDist?.status === 'ON_LEAVE');
+  const substituteName = currentDist?.substituteManagerName || currentDist?.delegatedToName || hubTeamInfo?.substituteManager?.contactPerson || 'Temporary Substitute';
+
+  // Instant dynamic handler for Primary to Resume Duty from any locked page
+  const handleDirectResumeDuty = async () => {
+    try {
+      const distIdToUpdate = currentDist?.distributorId || currentDist?.id;
+      if (distIdToUpdate) {
+        await updateHubLeaveStatus(distIdToUpdate, {
+          onLeave: false,
+          status: 'ACTIVE',
+          leaveReason: null
+        });
+      }
+      const updated = { onLeave: false, status: 'ACTIVE', leaveReason: null };
+      setLiveDistributor(prev => ({ ...prev, ...updated }));
+      try {
+        const sessionStr = sessionStorage.getItem('atomy_admin_session') || localStorage.getItem('atomy_admin_session');
+        if (sessionStr) {
+          const sessionObj = JSON.parse(sessionStr);
+          if (sessionObj?.adminUser) {
+            sessionObj.adminUser = { ...sessionObj.adminUser, ...updated };
+            if (sessionStorage.getItem('atomy_admin_session')) sessionStorage.setItem('atomy_admin_session', JSON.stringify(sessionObj));
+            if (localStorage.getItem('atomy_admin_session')) localStorage.setItem('atomy_admin_session', JSON.stringify(sessionObj));
+          }
+        }
+      } catch (e) {}
+      showToast('🟢 Welcome back! You have resumed active duty. Full operational controls restored.');
+    } catch (err) {
+      showToast('Failed to resume duty: ' + err.message);
+    }
+  };
 
   const isSubstituteStandbyRef = useRef(isSubstituteStandby);
   useEffect(() => {
@@ -230,7 +265,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
     } catch { }
 
-    const handlePopState = () => {
+    const handlePopState = (e) => {
       // 1. Mobile Drawer
       if (isMobileNavOpen) {
         isPopNavigatingRef.current = true;
@@ -258,7 +293,21 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         return;
       }
 
-      // 3. Any other tab -> return to overview page
+      // 3. Child component subviews (e.g. distributor-order-inspect inside Customer Orders)
+      // When a child view is closing, do NOT reset activeTab to overview!
+      if (e?.state?.subView || window.history.state?.subView) {
+        return;
+      }
+
+      // 4. If popstate carries a specific tab in history state, restore that tab
+      if (e?.state?.tab) {
+        isPopNavigatingRef.current = true;
+        setActiveTab(e.state.tab);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      // 5. Any other tab -> return to overview page
       if (activeTab !== 'overview') {
         isPopNavigatingRef.current = true;
         setActiveTab('overview');
@@ -266,7 +315,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
         return;
       }
 
-      // 4. Already on overview with no modals -> let browser perform natural back navigation
+      // 6. Already on overview with no modals -> let browser perform natural back navigation
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -282,12 +331,13 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
   ]);
 
   const handleCloseProductEditor = () => {
-    if (window.history.state?.subView === 'product-editor') {
-      window.history.back();
-    } else {
-      setIsEditingProductView(false);
-      setCurrentEditingProduct(null);
-    }
+    setIsEditingProductView(false);
+    setCurrentEditingProduct(null);
+    try {
+      if (window.history.state?.subView === 'product-editor') {
+        window.history.replaceState({ tab: 'inventory', subView: null }, '', window.location.href);
+      }
+    } catch { }
   };
 
   const alertedOrderIdsRef = useRef(new Map());
@@ -1374,12 +1424,12 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
   const NAV_ITEMS = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard, isLocked: isSubstituteStandby },
-    { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Stock', icon: Boxes, isLocked: isSubstituteStandby },
-    { id: 'orders', label: 'Customer Orders', icon: Package, badge: (!isSubstituteStandby && delayedOrders.length > 0) ? `${delayedOrders.length} Late` : null, isLocked: isSubstituteStandby },
+    { id: 'inventory', label: isEditingProductView ? 'Catalog Editor (Active)' : 'Inventory & Stock', icon: Boxes, isLocked: isSubstituteStandby, isLeaveViewOnly: isPrimaryMyselfOnLeave },
+    { id: 'orders', label: 'Customer Orders', icon: Package, badge: (!isSubstituteStandby && delayedOrders.length > 0) ? `${delayedOrders.length} Late` : null, isLocked: isSubstituteStandby, isLeaveViewOnly: isPrimaryMyselfOnLeave },
     { id: 'customers', label: 'Customer Details', icon: Users, isLocked: isSubstituteStandby },
-    { id: 'support', label: 'Customer Support', icon: Headphones, isLocked: isSubstituteStandby },
+    { id: 'support', label: 'Customer Support', icon: Headphones, isLocked: isSubstituteStandby, isLeaveViewOnly: isPrimaryMyselfOnLeave },
     { id: 'membership', label: 'Membership Accounts', icon: Crown, isLocked: isSubstituteStandby },
-    { id: 'finance', label: 'Finance & Settlements', icon: IndianRupee, isLocked: isSubstituteStandby },
+    { id: 'finance', label: 'Finance & Settlements', icon: IndianRupee, isLocked: isSubstituteStandby, isLeaveViewOnly: isPrimaryMyselfOnLeave },
     { id: 'notifications', label: 'Notifications', icon: Bell, badge: (activeTab !== 'notifications' && unreadNotifsCount > 0) ? String(unreadNotifsCount) : null, isLocked: false },
     { id: 'settings', label: isSubDistributor ? 'Profile Settings' : 'Hub Settings', icon: isSubDistributor ? User : Settings, isLocked: false }
   ];
@@ -1499,7 +1549,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
             target="_blank"
             rel="noopener noreferrer"
             className="quick-refresh-btn"
-            style={{ textDecoration: 'none', background: '#00a3e0', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ textDecoration: 'none', background: '#08267e', color: '#ffffff', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
             title="Open Live Customer Store"
           >
             <ExternalLink size={13} />
@@ -1581,6 +1631,11 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     </div>
                     <span className="mobile-drawer-nav-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                       <span>{item.label}</span>
+                      {item.isLeaveViewOnly && (
+                        <span style={{ fontSize: '10px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: '4px', padding: '1px 5px', fontWeight: 700, marginLeft: 'auto', flexShrink: 0 }}>
+                          View Only
+                        </span>
+                      )}
                       {isLocked && <Lock size={12} style={{ color: '#d97706', marginLeft: 'auto', flexShrink: 0 }} />}
                     </span>
                     {item.badge && !isLocked && (
@@ -1633,6 +1688,11 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   <Icon size={20} />
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
                     <span>{item.label}</span>
+                    {item.isLeaveViewOnly && (
+                      <span style={{ fontSize: '10px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', borderRadius: '4px', padding: '1px 5px', fontWeight: 700, marginLeft: 'auto', flexShrink: 0 }}>
+                        View Only
+                      </span>
+                    )}
                     {isLocked && <Lock size={12} style={{ color: '#d97706', marginLeft: 'auto', flexShrink: 0 }} />}
                     {item.badge && !isLocked && <span className="sidebar-nav-badge">{item.badge}</span>}
                   </span>
@@ -1643,8 +1703,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
 
           <div className="sidebar-footer-box">
             <div className="admin-status-indicator">
-              <span className={isSubstituteStandby ? "dot-amber" : "dot-green"} style={isSubstituteStandby ? { background: '#f59e0b', width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' } : {}}></span>
-              <span>{isSubstituteStandby ? 'Standby' : 'Online'} • PIN {currentDist?.primaryPincode}</span>
+              <span className={isSubstituteStandby || isPrimaryMyselfOnLeave ? "dot-amber" : "dot-green"} style={isSubstituteStandby || isPrimaryMyselfOnLeave ? { background: '#f59e0b', width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block' } : {}}></span>
+              <span>{isPrimaryMyselfOnLeave ? '🌴 On Leave' : isSubstituteStandby ? 'Standby' : 'Online'} • PIN {currentDist?.primaryPincode}</span>
             </div>
           </div>
         </aside>
@@ -1830,6 +1890,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     refreshKey={refreshInventoryKey}
                     onOpenEditProduct={handleOpenEditProduct}
                     isStandby={isSubstituteStandby}
+                    isLeaveLocked={isPrimaryMyselfOnLeave}
+                    substituteName={substituteName}
+                    onResumeDuty={handleDirectResumeDuty}
                   />
                 </div>
               )}
@@ -1846,6 +1909,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   isLoading={isLoading}
                   isStandby={isSubstituteStandby}
                   initialSelectedOrderId={inspectingOrderId}
+                  isLeaveLocked={isPrimaryMyselfOnLeave}
+                  substituteName={substituteName}
+                  onResumeDuty={handleDirectResumeDuty}
                 />
               )}
 
@@ -1856,6 +1922,10 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     orders={orders}
                     distributor={currentDist}
                     isLoading={isLoading}
+                    onInspectOrder={(orderId) => {
+                      setInspectingOrderId(orderId);
+                      setActiveTab('orders');
+                    }}
                   />
                 </div>
               )}
@@ -1866,6 +1936,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     distributor={currentDist}
                     orders={orders}
                     customers={customers}
+                    isLeaveLocked={isPrimaryMyselfOnLeave}
+                    substituteName={substituteName}
+                    onResumeDuty={handleDirectResumeDuty}
                   />
                 </div>
               )}
@@ -1875,6 +1948,8 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   <DistributorMembershipsPage
                     distributor={currentDist}
                     territoryOrders={orders}
+                    isSubstitute={isSubDistributor}
+                    isStandby={isSubstituteStandby}
                   />
                 </div>
               )}
@@ -1886,6 +1961,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   distributor={currentDist}
                   onNavigateToOrders={() => setActiveTab('orders')}
                   onNavigateToSupport={() => setActiveTab('support')}
+                  isLeaveLocked={isPrimaryMyselfOnLeave}
+                  substituteName={substituteName}
+                  onResumeDuty={handleDirectResumeDuty}
                 />
               )}
 
@@ -1958,11 +2036,12 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
           order={selectedOrderForTracking}
           distributor={distributorUser}
           onClose={() => {
-            if (window.history.state?.subView === 'tracking-modal') {
-              window.history.back();
-            } else {
-              setSelectedOrderForTracking(null);
-            }
+            setSelectedOrderForTracking(null);
+            try {
+              if (window.history.state?.subView === 'tracking-modal') {
+                window.history.replaceState({ tab: activeTab, subView: null }, '', window.location.href);
+              }
+            } catch { }
           }}
           onUpdateSuccess={async (orderId, payload) => {
             await handleUpdateTracking(orderId, payload);

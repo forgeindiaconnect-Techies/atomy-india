@@ -1300,7 +1300,7 @@ export default function OrderHistoryPage({
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
           }
           .action-btn-pdf {
-            background: #00A3E0;
+            background: #08267e;
             color: #ffffff;
             border: none;
             border-radius: 6px;
@@ -1313,7 +1313,7 @@ export default function OrderHistoryPage({
             gap: 6px;
           }
           .action-btn-pdf:hover {
-            background: #0284c7;
+            background: #08267e;
           }
           .action-btn-close {
             background: #334155;
@@ -1331,14 +1331,14 @@ export default function OrderHistoryPage({
           .header-table {
             width: 100%;
             border-collapse: collapse;
-            border-bottom: 2px solid #00A3E0;
+            border-bottom: 2px solid #08267e;
             padding-bottom: 16px;
             margin-bottom: 20px;
           }
           .company-title {
             font-size: 22px;
             font-weight: 800;
-            color: #00A3E0;
+            color: #08267e;
             letter-spacing: -0.5px;
           }
           .badge-tax {
@@ -1448,7 +1448,7 @@ export default function OrderHistoryPage({
               <div class="company-title">ATOMY ENTERPRISE INDIA</div>
               <div style="font-size: 12px; color: #475569; margin-top: 3px;">Atomy Enterprise India Private Limited • Tax Invoice</div>
               <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Regd Office: Plot No. 89, Sector 44, Gurugram, Haryana - 122003</div>
-              <div style="font-size: 11px; color: #0284c7; font-weight: 600; margin-top: 2px;">GSTIN: 33AAACA0101A1Z5 • CIN: U51909HR2019FTC083759</div>
+              <div style="font-size: 11px; color: #08267e; font-weight: 600; margin-top: 2px;">GSTIN: 33AAACA0101A1Z5 • CIN: U51909HR2019FTC083759</div>
               <span class="badge-tax">TAX INVOICE / ORIGINAL FOR RECIPIENT</span>
             </td>
             <td style="width: 42%; vertical-align: top; text-align: right;">
@@ -1457,7 +1457,7 @@ export default function OrderHistoryPage({
               <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Order Date: ${orderDate}</div>
               <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Payment: <strong>${order.paymentMethod || 'Online UPI'}</strong> (${order.paymentStatus || 'PAID'})</div>
               <div style="font-size: 11px; color: #0f172a; margin-top: 6px; font-weight: 600;">Carrier: ${courierPartner}</div>
-              <div style="font-size: 11px; color: #0284c7; font-family: monospace; font-weight: 700;">AWB: ${trackingNumber}</div>
+              <div style="font-size: 11px; color: #08267e; font-family: monospace; font-weight: 700;">AWB: ${trackingNumber}</div>
             </td>
           </tr>
         </table>
@@ -1472,7 +1472,7 @@ export default function OrderHistoryPage({
                 ${dest.isPickup ? `
                   <strong style="color: #0f172a; font-size: 13px;">${hub.hubName}</strong><br/>
                   <span style="font-size: 12px; color: #475569;">${hub.hubAddress}</span><br/>
-                  <span style="font-size: 11px; color: #0284c7; font-weight: 700; display: inline-block; margin-top: 4px;">Direct Store Pickup • In-Person Collection Desk</span><br/>
+                  <span style="font-size: 11px; color: #08267e; font-weight: 700; display: inline-block; margin-top: 4px;">Direct Store Pickup • In-Person Collection Desk</span><br/>
                   <span style="font-size: 11px; color: #64748b;">Hub Helpline: ${hub.hubPhone} • Hours: ${hub.hubOperatingHours}</span>
                 ` : `
                   <strong style="color: #0f172a; font-size: 13px;">${hub.hubName}</strong><br/>
@@ -1514,7 +1514,7 @@ export default function OrderHistoryPage({
         <div class="summary-card">
           <div class="summary-row">
             <span>Total Earned PV:</span>
-            <span style="color: #0284c7; font-weight: 700;">${totalPV.toLocaleString('en-IN')} PV</span>
+            <span style="color: #08267e; font-weight: 700;">${totalPV.toLocaleString('en-IN')} PV</span>
           </div>
           <div class="summary-row">
             <span>Taxable Net Amount:</span>
@@ -1651,7 +1651,7 @@ export default function OrderHistoryPage({
             onClick={() => setIsRulesModalOpen(true)}
             title="Read Official Atomy India Refund, Replacement & Cancellation Rules"
           >
-            <ShieldCheck size={16} color="#00A3E0" />
+            <ShieldCheck size={16} color="#08267e" />
             <span>Refund & Replacement Rules</span>
             <ChevronRight size={14} />
           </button>
@@ -2141,7 +2141,7 @@ export default function OrderHistoryPage({
                           </div>
                         ) : (
                           <div className="inline-tracker-destination">
-                            <MapPin size={15} color="#00A3E0" />
+                            <MapPin size={15} color="#08267e" />
                             <span>
                               Shipping to: <strong>{order.shippingAddress?.recipient || 'Customer'}</strong>
                               {order.shippingAddress?.address ? ` — ${order.shippingAddress.address}` : ''}
@@ -2288,7 +2288,7 @@ export default function OrderHistoryPage({
                     </div>
 
                     <div className="policy-reminder-box">
-                      <ShieldCheck size={18} color="#00A3E0" />
+                      <ShieldCheck size={18} color="#08267e" />
                       <span>
                         <strong>Atomy ₹0 Cancellation Guarantee:</strong> No deduction or restocking fee will be levied. 100% of your invoice amount is refunded.
                       </span>
@@ -2475,7 +2475,7 @@ export default function OrderHistoryPage({
 
                 {/* Pickup Address Card */}
                 <div className="pickup-address-reminder">
-                  <MapPin size={18} color="#00A3E0" />
+                  <MapPin size={18} color="#08267e" />
                   <div>
                     <strong>Blue Dart Express Reverse Pickup Address:</strong>
                     <div>{modalOrder.shippingAddress?.recipient || 'Customer'} • {modalOrder.shippingAddress?.phone || 'Contact Phone'}</div>
@@ -2527,7 +2527,7 @@ export default function OrderHistoryPage({
           <div className="order-rules-full-modal animate-scale-up" onClick={(e) => e.stopPropagation()}>
             <div className="rules-modal-header">
               <div className="rules-m-icon">
-                <ShieldCheck size={28} color="#00A3E0" />
+                <ShieldCheck size={28} color="#08267e" />
               </div>
               <div>
                 <h2>Official Atomy India Cancellation, Replacement & Refund Policy</h2>
@@ -2749,7 +2749,7 @@ export default function OrderHistoryPage({
                 return isPickup ? (
                   <div className="invoice-shipping-box invoice-pickup-box">
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                      <span className="shipping-box-label" style={{ color: "#0284c7", fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0 }}>
+                      <span className="shipping-box-label" style={{ color: "#08267e", fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0 }}>
                         📍 PICKUP LOCATION:
                       </span>
                       <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "12px", border: "1px solid #bae6fd" }}>
@@ -2759,7 +2759,7 @@ export default function OrderHistoryPage({
 
                     {/* Regional Hub Counter */}
                     <div style={{ background: "#ffffff", border: "1px solid #bae6fd", borderRadius: "8px", padding: "12px 14px", marginBottom: "10px" }}>
-                      <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#0284c7", letterSpacing: "0.5px", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#08267e", letterSpacing: "0.5px", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
                         <span>🏬</span>
                         <span>REGIONAL HUB PICKUP COUNTER:</span>
                       </div>
@@ -2793,7 +2793,7 @@ export default function OrderHistoryPage({
                     {/* Dispatching Logistics Hub (Dynamic) */}
                     <div className="invoice-shipping-box" style={{ background: "#f8fafc", borderColor: "#cbd5e1", marginBottom: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                        <span className="shipping-box-label" style={{ color: "#0284c7", fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span className="shipping-box-label" style={{ color: "#08267e", fontWeight: 800, fontSize: "12px", letterSpacing: "0.5px", marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
                           <span>🏬</span>
                           <span>DISPATCHING LOGISTICS HUB:</span>
                         </span>

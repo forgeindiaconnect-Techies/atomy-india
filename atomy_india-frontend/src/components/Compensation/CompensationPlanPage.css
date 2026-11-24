@@ -405,10 +405,10 @@
 }
 
 .criteria-left-pane {
-  flex: 0 0 38%;
-  width: 38%;
+  flex: 0 0 34%;
+  width: 34%;
   background-color: #f8fafc;
-  padding: 18px 16px;
+  padding: 16px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -416,6 +416,17 @@
   flex-shrink: 0;
   min-width: 0;
   box-sizing: border-box;
+}
+
+/* First card ("No restriction on promotion") has shorter text, allow more room for mastership ranks */
+.cst-criteria-split-card:first-child .criteria-left-pane {
+  flex: 0 0 27%;
+  width: 27%;
+}
+
+.cst-criteria-split-card:first-child .criteria-right-pane {
+  flex: 0 0 73%;
+  width: 73%;
 }
 
 .criteria-dark-circle-icon {
@@ -437,9 +448,8 @@
 
 .criteria-right-pane {
   flex: 1;
-  width: 62%;
   background-color: #ffffff;
-  padding: 16px 18px;
+  padding: 14px 14px;
   display: flex;
   align-items: center;
   min-width: 0;
@@ -448,10 +458,12 @@
 
 .criteria-ranks-grid {
   display: grid;
-  grid-template-columns: minmax(max-content, 1fr) minmax(max-content, 1fr);
-  gap: 8px 16px;
+  grid-template-columns: auto auto;
+  column-gap: 14px;
+  row-gap: 8px;
   width: 100%;
   min-width: 0;
+  align-items: center;
 }
 
 .criteria-rank-item {
@@ -581,10 +593,17 @@
     flex-direction: column;
     align-items: flex-start;
   }
-  .criteria-left-pane {
+  .criteria-left-pane,
+  .cst-criteria-split-card:first-child .criteria-left-pane {
     width: 100%;
+    flex: none;
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
+  }
+  .criteria-right-pane,
+  .cst-criteria-split-card:first-child .criteria-right-pane {
+    width: 100%;
+    flex: none;
   }
   .cst-criteria-split-card {
     flex-direction: column;

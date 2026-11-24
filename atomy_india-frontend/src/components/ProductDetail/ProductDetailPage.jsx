@@ -825,15 +825,15 @@ export default function ProductDetailPage({
             {/* Social Proof Counter Stats (matches Screenshot 2 with cyan icons) */}
             <div className="pdp-stats-indicators-row">
               <div className="stat-indicator-item">
-                <Heart size={16} color="#00A3E0" />
+                <Heart size={16} color="#08267e" />
                 <span>{stats.likes.toLocaleString('en-IN')} Likes</span>
               </div>
               <div className="stat-indicator-item">
-                <FileText size={16} color="#00A3E0" />
+                <FileText size={16} color="#08267e" />
                 <span>{stats.purchased.toLocaleString('en-IN')} Purchased</span>
               </div>
               <div className="stat-indicator-item">
-                <ShoppingBag size={16} color="#00A3E0" />
+                <ShoppingBag size={16} color="#08267e" />
                 <span>{stats.addedToCart.toLocaleString('en-IN')} Added to cart</span>
               </div>
             </div>
@@ -957,7 +957,7 @@ export default function ProductDetailPage({
                   style={
                     isOutOfDelivery
                       ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' }
-                      : (isInCart ? { background: '#0284c7', borderColor: '#0284c7' } : {})
+                      : (isInCart ? { background: '#08267e', borderColor: '#08267e' } : {})
                   }
                   onClick={() => {
                     if (isOutOfDelivery) return;
@@ -1622,7 +1622,7 @@ export default function ProductDetailPage({
                         href="https://in.atomy.com/common/footerTermsInfo?isHtml=Y&tabIndex=2&subTabIndex=4"
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: '#00A3E0', textDecoration: 'underline' }}
+                        style={{ color: '#08267e', textDecoration: 'underline' }}
                       >
                         here
                       </a>.
@@ -1727,7 +1727,7 @@ export default function ProductDetailPage({
                     style={
                       isOutOfDelivery
                         ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' }
-                        : (isInCart ? { background: '#0284c7', borderColor: '#0284c7' } : {})
+                        : (isInCart ? { background: '#08267e', borderColor: '#08267e' } : {})
                     }
                     onClick={() => {
                       if (isOutOfDelivery) return;

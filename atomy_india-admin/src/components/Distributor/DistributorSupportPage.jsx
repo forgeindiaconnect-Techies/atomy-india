@@ -40,7 +40,14 @@ const defaultBaseUrl = isLocalhost ? 'http://localhost:8085/api' : 'https://atom
 const rawBase = (import.meta.env.VITE_API_BASE_URL || defaultBaseUrl).trim().replace(/\/+$/, '');
 const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
 
-export default function DistributorSupportPage({ distributor, orders = [], customers = [] }) {
+export default function DistributorSupportPage({ 
+  distributor, 
+  orders = [], 
+  customers = [],
+  isLeaveLocked = false,
+  substituteName = 'Temporary Substitute',
+  onResumeDuty
+}) {
   const [tickets, setTickets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -291,6 +298,10 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
   // Handle Send Reply
   const handleSendReply = async (e) => {
     e.preventDefault();
+    if (isLeaveLocked) {
+      showToast(`Action Locked: You are on leave. Ticket resolution and replies are delegated to ${substituteName}.`);
+      return;
+    }
     if (!replyMessage.trim() || !selectedTicket) return;
 
     setIsSubmittingReply(true);
@@ -608,6 +619,35 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
           </button>
         </div>
       </div>
+
+      {/* Dynamic Primary On-Leave Banner */}
+      {isLeaveLocked && (
+        <div className="distributor-onleave-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '14px 20px', background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '10px', marginBottom: '20px', color: '#92400e', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertTriangle size={20} color="#d97706" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#92400e' }}>
+                Customer Support — View-Only Mode
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#78350f', marginTop: '2px' }}>
+                Action Locked: You are on leave. Ticket replies, refund processing, and replacement dispatches are delegated to <strong>{substituteName}</strong>.
+              </div>
+            </div>
+          </div>
+          {onResumeDuty && (
+            <button
+              type="button"
+              onClick={onResumeDuty}
+              style={{ background: '#059669', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <CheckCircle2 size={14} />
+              <span>Resume Active Duty</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 2. KPI Cards */}
       <div className="dist-support-kpi-grid">
@@ -1190,28 +1230,30 @@ export default function DistributorSupportPage({ distributor, orders = [], custo
                   <form onSubmit={handleSendReply} style={{ display: 'flex', gap: '10px' }}>
                     <textarea
                       rows={2}
-                      placeholder={`Reply directly to ${selectedTicket.customerName || 'customer'}...`}
+                      placeholder={isLeaveLocked ? `Action locked: You are on leave. Delegated to ${substituteName}...` : `Reply directly to ${selectedTicket.customerName || 'customer'}...`}
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
-                      style={{ flex: 1, padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', outline: 'none', resize: 'none' }}
+                      disabled={isSubmittingReply || isLeaveLocked}
+                      style={{ flex: 1, padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13.5px', outline: 'none', resize: 'none', ...(isLeaveLocked ? { background: '#f8fafc', cursor: 'not-allowed' } : {}) }}
                     />
                     <button
                       type="submit"
-                      disabled={isSubmittingReply || !replyMessage.trim()}
+                      disabled={isSubmittingReply || !replyMessage.trim() || isLeaveLocked}
                       style={{
                         padding: '0 20px',
-                        background: '#0284c7',
+                        background: isLeaveLocked ? '#94a3b8' : '#08267e',
                         color: '#ffffff',
                         border: 'none',
                         borderRadius: '8px',
                         fontSize: '13.5px',
                         fontWeight: 700,
-                        cursor: isSubmittingReply || !replyMessage.trim() ? 'not-allowed' : 'pointer',
-                        opacity: isSubmittingReply || !replyMessage.trim() ? 0.6 : 1,
+                        cursor: isSubmittingReply || !replyMessage.trim() || isLeaveLocked ? 'not-allowed' : 'pointer',
+                        opacity: isSubmittingReply || !replyMessage.trim() || isLeaveLocked ? 0.6 : 1,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px'
                       }}
+                      title={isLeaveLocked ? `Action Locked: You are on leave. Delegated to ${substituteName}.` : "Send Reply"}
                     >
                       <Send size={15} />
                       <span>{isSubmittingReply ? 'Sending...' : 'Send'}</span>

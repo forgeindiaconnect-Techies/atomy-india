@@ -407,8 +407,8 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
               <span>Total Territory Sales</span>
               <IndianRupee size={16} color="#0284c7" />
             </div>
-            <div className="territory-stat-value" style={{ color: '#0284c7' }}>
-              ₹ {Number(dist.totalSales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            <div className="territory-stat-value" style={{ color: '#0284c7', whiteSpace: 'nowrap' }}>
+              ₹&nbsp;{Number(dist.totalSales || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
             <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
               Gross merchandise volume in PIN {dist.primaryPincode}
@@ -421,8 +421,8 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
               <span>Total Commission Earned</span>
               <TrendingUp size={16} color="#16a34a" />
             </div>
-            <div className="territory-stat-value" style={{ color: '#16a34a' }}>
-              ₹ {Number(dist.totalCommission || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            <div className="territory-stat-value" style={{ color: '#16a34a', whiteSpace: 'nowrap' }}>
+              ₹&nbsp;{Number(dist.totalCommission || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </div>
             <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
               {dist.commissionRate || 7.5}% auto-credited hub earnings
@@ -536,16 +536,16 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
         {/* 5A. SUB-VIEW: Customers Table */}
         {overviewTab === 'customers' && (
           <div className="territory-table-box" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', minWidth: '760px', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: '860px', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Customer Name</th>
-                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Contact Details</th>
-                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Delivery Location</th>
-                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center' }}>Territory Orders</th>
-                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Total Spend</th>
-                    <th style={{ padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right' }}>Action</th>
+                    <th style={{ width: '22%', minWidth: '180px', padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Customer Name</th>
+                    <th style={{ width: '22%', minWidth: '170px', padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Contact Details</th>
+                    <th style={{ width: '25%', minWidth: '200px', padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Delivery Location</th>
+                    <th style={{ width: '11%', minWidth: '110px', padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'center', whiteSpace: 'nowrap' }}>Territory Orders</th>
+                    <th style={{ width: '12%', minWidth: '120px', padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right', whiteSpace: 'nowrap' }}>Total Spend</th>
+                    <th style={{ width: '8%', minWidth: '90px', padding: '14px 18px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', textAlign: 'right', whiteSpace: 'nowrap' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -561,28 +561,66 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
                     filteredOverviewCustomers.map((c, idx) => (
                       <tr key={c.email || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '14px 18px' }}>
-                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>{c.name || 'Atomy Shopper'}</div>
-                          <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, background: '#dcfce7', padding: '2px 6px', borderRadius: '4px' }}>
-                            PIN: {c.pincode || dist.primaryPincode}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '34px',
+                              height: '34px',
+                              borderRadius: '50%',
+                              background: '#e0f2fe',
+                              color: '#0284c7',
+                              fontWeight: 800,
+                              fontSize: '13px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}>
+                              {(c.name || 'C').slice(0, 1).toUpperCase()}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '13.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {c.name || 'Atomy Shopper'}
+                              </div>
+                              <div>
+                                <span style={{
+                                  display: 'inline-block',
+                                  fontSize: '10.5px',
+                                  color: '#15803d',
+                                  fontWeight: 700,
+                                  background: '#dcfce7',
+                                  padding: '2px 7px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #bbf7d0',
+                                  whiteSpace: 'nowrap',
+                                  lineHeight: 1.2
+                                }}>
+                                  PIN: {c.pincode || dist.primaryPincode}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </td>
                         <td style={{ padding: '14px 18px' }}>
                           <div style={{ fontSize: '13px', color: '#334155', fontWeight: 600 }}>{c.phone || 'N/A'}</div>
                           <div style={{ fontSize: '12px', color: '#64748b' }}>{c.email}</div>
                         </td>
                         <td style={{ padding: '14px 18px' }}>
-                          <div style={{ fontSize: '13px', color: '#334155' }}>{c.address || c.city || `${dist.city}, ${dist.state}`}</div>
-                          <div style={{ fontSize: '11.5px', color: '#64748b' }}>{c.city || dist.city}, {c.state || dist.state} - {c.pincode || dist.primaryPincode}</div>
+                          <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.35, wordBreak: 'break-word' }}>
+                            {c.address || c.city || `${dist.city}, ${dist.state}`}
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '3px' }}>
+                            {c.city || dist.city}, {c.state || dist.state} - {c.pincode || dist.primaryPincode}
+                          </div>
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+                        <td style={{ padding: '14px 18px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                           <span style={{ padding: '4px 10px', background: '#e0f2fe', color: '#0369a1', borderRadius: '12px', fontWeight: 700, fontSize: '12px' }}>
                             {c.computedOrders || 1} order{(c.computedOrders || 1) !== 1 ? 's' : ''}
                           </span>
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
-                          ₹ {Number(c.computedSpend || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                          ₹&nbsp;{Number(c.computedSpend || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                        <td style={{ padding: '14px 18px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <button
                             type="button"
                             className="action-pill-btn detail"
@@ -680,11 +718,11 @@ export default function TerritoryManagementPage({ showToast, orders = [], custom
                               {o.items?.length || 1} item{(o.items?.length || 1) !== 1 ? 's' : ''}
                             </span>
                           </td>
-                          <td style={{ textAlign: 'right', fontWeight: 800 }}>
-                            ₹ {totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          <td style={{ textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                            ₹&nbsp;{totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
-                          <td style={{ textAlign: 'right', color: '#16a34a', fontWeight: 700 }}>
-                            +₹ {comm.toFixed(2)}
+                          <td style={{ textAlign: 'right', color: '#16a34a', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            +₹&nbsp;{comm.toFixed(2)}
                           </td>
                           <td style={{ textAlign: 'center' }}>
                             <span className={`status-badge ${status.toLowerCase()}`}>

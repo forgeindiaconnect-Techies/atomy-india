@@ -14,6 +14,8 @@ public interface MembershipRepository extends MongoRepository<Membership, String
 
     List<Membership> findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(String customerEmail);
 
+    Optional<Membership> findFirstByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(String customerEmail);
+
     Optional<Membership> findFirstByCustomerEmailIgnoreCaseAndStatusOrderByCreatedAtDesc(String customerEmail, String status);
 
     long countByStatus(String status);

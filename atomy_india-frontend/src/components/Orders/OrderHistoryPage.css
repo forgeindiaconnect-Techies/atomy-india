@@ -31,7 +31,7 @@
 }
 
 .breadcrumb-link:hover {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .breadcrumb-separator {
@@ -43,7 +43,7 @@
 }
 
 .breadcrumb-active {
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 600;
 }
 
@@ -83,19 +83,19 @@
   align-items: center;
   gap: 7px;
   background-color: #f0f9ff;
-  color: #0284c7;
+  color: #08267e;
   padding: 8px 16px;
   border-radius: 24px;
   font-size: 13px;
   font-weight: 600;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c7d2fe;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-decoration: none;
 }
 
 .order-header-policy-link:hover {
-  background-color: #e0f2fe;
+  background-color: #eef2ff;
   color: #0369a1;
   border-color: #7dd3fc;
   box-shadow: 0 2px 10px rgba(0, 163, 224, 0.14);
@@ -141,7 +141,7 @@
   font-size: 11px;
   text-transform: uppercase;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   letter-spacing: 0.5px;
   margin-bottom: 2px;
 }
@@ -174,11 +174,11 @@
 }
 
 .tracker-lookup-input:focus {
-  border-color: #00A3E0;
+  border-color: #08267e;
 }
 
 .tracker-lookup-btn {
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -240,8 +240,8 @@
 }
 
 .stepper-node.current .node-icon-circle {
-  background: #00A3E0;
-  border-color: #00A3E0;
+  background: #08267e;
+  border-color: #08267e;
   color: #ffffff;
   box-shadow: 0 0 0 4px rgba(0, 163, 224, 0.2);
 }
@@ -289,14 +289,14 @@
 }
 
 .status-tracker-card:hover {
-  border-color: #00A3E0;
+  border-color: #08267e;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .status-tracker-card.active {
-  background: #00A3E0;
-  border-color: #00A3E0;
+  background: #08267e;
+  border-color: #08267e;
   color: #ffffff;
 }
 
@@ -375,8 +375,8 @@
 }
 
 .period-btn.active {
-  background: #00A3E0;
-  border-color: #00A3E0;
+  background: #08267e;
+  border-color: #08267e;
   color: #ffffff;
   font-weight: 600;
 }
@@ -448,7 +448,7 @@
 }
 
 .empty-state-btn {
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -514,7 +514,7 @@
 }
 
 .order-id-code strong {
-  color: #00A3E0;
+  color: #08267e;
   font-family: monospace;
   font-size: 14px;
 }
@@ -630,7 +630,7 @@
 }
 
 .product-title:hover {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .product-meta-sub {
@@ -649,7 +649,7 @@
 }
 
 .pv-tag {
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 600;
 }
 
@@ -707,7 +707,7 @@
 
 .summary-stat .value-pv {
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   white-space: nowrap;
 }
 
@@ -743,8 +743,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #00A3E0;
-  border: 1px solid #00A3E0;
+  background: #08267e;
+  border: 1px solid #08267e;
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 13px;
@@ -796,7 +796,7 @@
   height: 44px;
   border-radius: 50%;
   background: #e8f7fc;
-  color: #00A3E0;
+  color: #08267e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -867,7 +867,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #00A3E0;
+  color: #08267e;
   letter-spacing: 0.5px;
 }
 
@@ -952,7 +952,7 @@
 .meta-value.mono, .invoice-val.bold {
   font-weight: 700;
   font-family: monospace;
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .invoice-shipping-box, .invoice-address-box {
@@ -965,7 +965,7 @@
 
 .invoice-shipping-box.invoice-pickup-box {
   background: #f8fafc;
-  border: 1.5px solid #bae6fd;
+  border: 1.5px solid #c7d2fe;
 }
 
 .shipping-box-label, .address-box-title {
@@ -1090,12 +1090,12 @@
 }
 
 .pv-highlight {
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 700;
 }
 
 .price-total {
-  color: #00A3E0;
+  color: #08267e;
   font-size: 18px;
 }
 
@@ -1110,8 +1110,8 @@
   align-items: center;
   gap: 6px;
   background: #f0f9ff;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
+  color: #08267e;
+  border: 1px solid #c7d2fe;
   border-radius: 6px;
   padding: 6px 12px;
   font-size: 12px;
@@ -1121,9 +1121,9 @@
 }
 
 .invoice-quick-dl-btn:hover {
-  background: #0284c7;
+  background: #08267e;
   color: #ffffff;
-  border-color: #0284c7;
+  border-color: #08267e;
 }
 
 .invoice-modal-footer {
@@ -1176,8 +1176,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #0284c7;
-  border: 1px solid #0284c7;
+  background: #08267e;
+  border: 1px solid #08267e;
   border-radius: 8px;
   padding: 8px 18px;
   font-size: 13px;
@@ -1194,22 +1194,22 @@
 }
 
 .order-btn-invoice-download {
-  color: #0284c7 !important;
-  border-color: #bae6fd !important;
+  color: #08267e !important;
+  border-color: #c7d2fe !important;
   background: #f0f9ff !important;
 }
 
 .order-btn-invoice-download:hover {
-  background: #0284c7 !important;
+  background: #08267e !important;
   color: #ffffff !important;
-  border-color: #0284c7 !important;
+  border-color: #08267e !important;
 }
 
 .invoice-track-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #00A3E0;
+  background: #08267e;
   border: none;
   border-radius: 8px;
   padding: 8px 18px;
@@ -1457,7 +1457,7 @@
 .rules-quick-banner {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-left: 4px solid #00a3e0;
+  border-left: 4px solid #08267e;
   border-radius: 12px;
   padding: 18px 22px;
   margin-bottom: 24px;
@@ -1477,7 +1477,7 @@
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: #e0f2fe;
+  background: #eef2ff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1488,7 +1488,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #0284c7;
+  color: #08267e;
   letter-spacing: 0.5px;
   margin-bottom: 3px;
 }
@@ -1531,7 +1531,7 @@
   flex-shrink: 0;
 }
 
-.pillar-dot.blue { background: #0284c7; }
+.pillar-dot.blue { background: #08267e; }
 .pillar-dot.indigo { background: #4f46e5; }
 .pillar-dot.emerald { background: #16a34a; }
 
@@ -1559,8 +1559,8 @@
   align-items: center;
   gap: 6px;
   background: #f0f9ff;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
+  color: #08267e;
+  border: 1px solid #c7d2fe;
   border-radius: 7px;
   padding: 7px 14px;
   font-size: 12px;
@@ -1570,9 +1570,9 @@
 }
 
 .view-rules-btn:hover {
-  background: #00a3e0;
+  background: #08267e;
   color: #ffffff;
-  border-color: #00a3e0;
+  border-color: #08267e;
 }
 
 /* 2. Tracker Actions Strip */
@@ -2126,9 +2126,9 @@
 }
 
 .reason-radio-tile.selected {
-  border-color: #00a3e0;
+  border-color: #08267e;
   background: #f0f9ff;
-  box-shadow: 0 0 0 1px #00a3e0;
+  box-shadow: 0 0 0 1px #08267e;
 }
 
 .reason-radio-tile.selected.danger-tone {
@@ -2140,7 +2140,7 @@
 .reason-radio-tile input[type="radio"] {
   margin-top: 3px;
   cursor: pointer;
-  accent-color: #00a3e0;
+  accent-color: #08267e;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
@@ -2285,7 +2285,7 @@
 }
 
 .form-select-input:focus, .form-textarea-input:focus {
-  border-color: #00a3e0;
+  border-color: #08267e;
   box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.15);
 }
 
@@ -2306,7 +2306,7 @@
   margin-top: 2px;
   width: 16px;
   height: 16px;
-  accent-color: #00a3e0;
+  accent-color: #08267e;
   cursor: pointer;
 }
 
@@ -2451,7 +2451,7 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: #e0f2fe;
+  background: #eef2ff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2504,8 +2504,8 @@
 }
 
 .rules-tab-btn.active {
-  color: #00a3e0;
-  border-bottom-color: #00a3e0;
+  color: #08267e;
+  border-bottom-color: #08267e;
   font-weight: 700;
 }
 
@@ -2535,7 +2535,7 @@
   margin-bottom: 8px;
 }
 
-.policy-badge-num.blue { background: #e0f2fe; color: #0284c7; }
+.policy-badge-num.blue { background: #eef2ff; color: #08267e; }
 .policy-badge-num.indigo { background: #e0e7ff; color: #4338ca; }
 .policy-badge-num.emerald { background: #dcfce7; color: #15803d; }
 .policy-badge-num.amber { background: #fef3c7; color: #b45309; }
@@ -2602,7 +2602,7 @@
 }
 
 .btn-rules-got-it {
-  background: #00a3e0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   padding: 10px 22px;
@@ -2614,7 +2614,7 @@
 }
 
 .btn-rules-got-it:hover {
-  background: #0284c7;
+  background: #08267e;
 }
 
 /* Toast */
@@ -2709,7 +2709,7 @@
 .inline-tracker-meta .mono {
   font-family: monospace;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .inline-tracker-close-btn {

@@ -23,7 +23,7 @@ export default function RecentlyViewedDrawer({
         {/* Header */}
         <div className="rv-header">
           <div className="rv-header-title">
-            <Clock size={20} color="#00A3E0" />
+            <Clock size={20} color="#08267e" />
             <span>Recently Viewed ({items.length})</span>
           </div>
 

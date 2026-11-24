@@ -1243,10 +1243,14 @@ export default function FinanceSettlementPage({
                                 )}
                               </div>
                               <div className="hub-card-territory">
-                                <MapPin size={13} />
-                                <span>PIN: <strong>{hub.primaryPincode}</strong> • {hub.city}, {hub.state}</span>
-                                <span className="territory-sep">•</span>
-                                <span>Mgr: <strong>{hub.contactPerson}</strong></span>
+                                <div className="territory-tag-location">
+                                  <MapPin size={12} className="territory-icon" />
+                                  <span>PIN: <strong>{hub.primaryPincode}</strong> ({hub.city}, {hub.state})</span>
+                                </div>
+                                <div className="territory-tag-mgr">
+                                  <UserCheck size={12} className="territory-icon" />
+                                  <span>Mgr: <strong>{hub.contactPerson}</strong></span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1271,7 +1275,7 @@ export default function FinanceSettlementPage({
                           <div className="hub-mini-stat">
                             <span className="stat-lbl">Today's Sales</span>
                             <span className="stat-val text-blue">
-                              ₹ {hub.todayGrossSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              ₹{'\u00A0'}{hub.todayGrossSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                             <span className="stat-sub">{hub.todayOrdersCount} today</span>
                           </div>
@@ -1279,7 +1283,7 @@ export default function FinanceSettlementPage({
                           <div className="hub-mini-stat">
                             <span className="stat-lbl">This Month</span>
                             <span className="stat-val text-amber">
-                              ₹ {hub.monthGrossSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              ₹{'\u00A0'}{hub.monthGrossSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                             <span className="stat-sub">{hub.monthOrdersCount} this month</span>
                           </div>
@@ -1287,7 +1291,7 @@ export default function FinanceSettlementPage({
                           <div className="hub-mini-stat">
                             <span className="stat-lbl">Lifetime Gross</span>
                             <span className="stat-val text-emerald">
-                              ₹ {hub.lifetimeGrossSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                              ₹{'\u00A0'}{hub.lifetimeGrossSales.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </span>
                             <span className="stat-sub">{hub.lifetimeOrdersCount} total orders</span>
                           </div>
@@ -1295,7 +1299,7 @@ export default function FinanceSettlementPage({
                           <div className="hub-mini-stat">
                             <span className="stat-lbl">Hub Commission</span>
                             <span className="stat-val text-indigo">
-                              ₹ {commissionAmount.toLocaleString('en-IN')}
+                              ₹{'\u00A0'}{commissionAmount.toLocaleString('en-IN')}
                             </span>
                             <span className="stat-sub">{hub.commissionRate || 8.0}% rate</span>
                           </div>

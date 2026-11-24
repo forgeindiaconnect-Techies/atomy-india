@@ -10,6 +10,7 @@ const API_BASE = `${BACKEND_URL}/membership`;
 const ADMIN_API_BASE = `${BACKEND_URL}/admin/membership`;
 
 import { OFFICIAL_DISTRIBUTOR_PRICES } from '../data/officialDistributorPrices';
+import { getMembershipExpiryInfo } from '../components/Membership/MembershipExpiryBanner';
 
 const SETTINGS_KEY = 'atomy_membership_settings';
 const MEMBERS_KEY = 'atomy_members_registry';
@@ -191,6 +192,33 @@ export function cancelMembership(user) {
 export function isUserMember(currentUser) {
   if (!currentUser) return false;
 
+  // 0. Check expiration first: if membership object has expired, user is NOT an active member
+  try {
+    const memObj = currentUser.membership || currentUser;
+    const expiryInfo = getMembershipExpiryInfo(memObj);
+    if (expiryInfo && expiryInfo.status === 'EXPIRED') {
+      return false;
+    }
+  } catch {}
+
+  // Check registry for expiration or active record by email
+  try {
+    const reg = getMembersRegistry();
+    const userEmail = (currentUser.email || '').toLowerCase().trim();
+    if (userEmail) {
+      const regRecord = reg.find(m => (m.customerEmail || m.email || '').toLowerCase().trim() === userEmail);
+      if (regRecord) {
+        const regExpiryInfo = getMembershipExpiryInfo(regRecord);
+        if (regExpiryInfo && regExpiryInfo.status === 'EXPIRED') {
+          return false;
+        }
+        if (regRecord.status === 'ACTIVE' || !regRecord.status) {
+          return true;
+        }
+      }
+    }
+  } catch {}
+
   // 1. Explicit membership flag from database / session
   if (currentUser.isMember === true) {
     return true;
@@ -200,15 +228,6 @@ export function isUserMember(currentUser) {
   if (currentUser.membership && (currentUser.membership.status === 'ACTIVE' || currentUser.membership.active === true)) {
     return true;
   }
-
-  // 3. Check registry for active membership by email
-  try {
-    const reg = getMembersRegistry();
-    const userEmail = (currentUser.email || '').toLowerCase().trim();
-    if (userEmail && reg.some(m => (m.customerEmail || m.email || '').toLowerCase().trim() === userEmail && (m.status === 'ACTIVE' || !m.status))) {
-      return true;
-    }
-  } catch {}
 
   return false;
 }

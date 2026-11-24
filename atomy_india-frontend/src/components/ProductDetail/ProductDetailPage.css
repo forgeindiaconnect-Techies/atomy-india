@@ -28,8 +28,8 @@
   display: inline-flex;
   align-items: center;
   background: #e6f6fc;
-  border: 1px solid #bae6fd;
-  color: #00A3E0;
+  border: 1px solid #c7d2fe;
+  color: #08267e;
   font-size: 13px;
   font-weight: 600;
   padding: 3px 9px;
@@ -39,7 +39,7 @@
 }
 
 .pdp-back-button:hover {
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
 }
 
@@ -57,7 +57,7 @@
 }
 
 .pdp-breadcrumbs a:hover {
-  color: #00A3E0;
+  color: #08267e;
   text-decoration: underline;
 }
 
@@ -196,7 +196,7 @@
 }
 
 .pdp-img-expand-btn:hover {
-  color: #00A3E0;
+  color: #08267e;
   transform: scale(1.12);
 }
 
@@ -225,7 +225,7 @@
 }
 
 .pdp-thumb-item.active {
-  border-color: #00A3E0;
+  border-color: #08267e;
   border-width: 2px;
 }
 
@@ -278,7 +278,7 @@
 }
 
 .pdp-review-link-btn:hover {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .pdp-action-icons-right {
@@ -301,7 +301,7 @@
 }
 
 .pdp-icon-tool-btn:hover {
-  color: #00A3E0;
+  color: #08267e;
   background-color: #f1f5f9;
   transform: scale(1.1);
 }
@@ -420,11 +420,11 @@
 }
 
 .pdp-including-tax-toggle-btn:hover .pdp-including-tax-label {
-  color: #0284c7;
+  color: #08267e;
 }
 
 .pdp-including-tax-toggle-btn:hover .pdp-tax-arrow-box {
-  background: #bae6fd;
+  background: #c7d2fe;
   border-color: #7dd3fc;
   color: #0369a1;
   transform: translateY(1px);
@@ -443,10 +443,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
   border-radius: 6px;
-  color: #0284c7;
+  color: #08267e;
   transition: all 0.15s ease;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(2, 132, 199, 0.08);
@@ -463,7 +463,7 @@
 .pdp-pv-amount-hero {
   font-size: 23px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   letter-spacing: -0.3px;
   display: inline-flex;
   align-items: center;
@@ -599,9 +599,9 @@
 
 .pdp-pv-member-tag {
   font-size: 12px;
-  color: #0284c7;
+  color: #08267e;
   font-weight: 600;
-  background: #e0f2fe;
+  background: #eef2ff;
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -681,7 +681,7 @@
 .pdp-pv-amount {
   font-size: 20px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   letter-spacing: -0.3px;
   display: block;
 }
@@ -849,7 +849,7 @@
 .pdp-qty-box-pv {
   font-size: 14.5px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   margin-top: 3px;
   line-height: 1.2;
 }
@@ -923,7 +923,7 @@
 .pdp-total-pv-summary-row .total-pv-box {
   font-size: 22px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   letter-spacing: -0.3px;
 }
 
@@ -966,7 +966,7 @@
   width: 50% !important;
   min-width: 0 !important;
   height: 50px !important;
-  background-color: #00A3E0 !important;
+  background-color: var(--atomy-header-bg, #08267e) !important;
   color: #ffffff !important;
   font-size: 15.5px !important;
   font-weight: 700 !important;
@@ -982,7 +982,7 @@
 }
 
 .pdp-buy-now-btn:hover {
-  background-color: #008cc0 !important;
+  background-color: #051a57 !important;
   transform: translateY(-1px);
 }
 
@@ -1041,36 +1041,40 @@
   gap: 8px;
   height: 38px;
   padding: 0 14px 0 12px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border: 1px solid #bae6fd;
+  background: var(--atomy-header-bg, #08267e);
+  border: 1px solid #08267e;
   border-radius: 20px;
-  color: #0369a1;
+  color: #ffffff;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.12);
+  box-shadow: 0 2px 8px rgba(8, 38, 126, 0.28);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .pdp-tabs-quick-corner .quick-menu-corner-pill:hover {
-  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-  border-color: #00A3E0;
-  color: #0284c7;
+  background: #0d3b82;
+  border-color: #0d3b82;
+  color: #ffffff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.22);
+  box-shadow: 0 4px 14px rgba(8, 38, 126, 0.38);
 }
 
 .pdp-tabs-quick-corner .quick-menu-corner-pill.active {
-  background: #00A3E0;
-  border-color: #0087ba;
+  background: #051a57;
+  border-color: #041444;
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(0, 163, 224, 0.35);
+  box-shadow: 0 4px 14px rgba(5, 26, 87, 0.45);
 }
 
 .pdp-tabs-quick-corner .quick-menu-corner-pill.active .pulse-ping {
   display: none;
+}
+
+.pdp-tabs-quick-corner .quick-menu-corner-pill.active .pulse-dot {
+  background-color: #ffffff;
 }
 
 .pdp-tabs-quick-corner .quick-menu-corner-pill.active .pulse-dot {
@@ -1087,7 +1091,7 @@
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
-  z-index: 1000;
+  z-index: 10000;
   padding: 8px 0;
 }
 
@@ -1146,13 +1150,13 @@
 }
 
 .pdp-tab-nav-btn:hover {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .pdp-tab-nav-btn.active {
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 600;
-  border-bottom: 2px solid #00A3E0;
+  border-bottom: 2px solid #08267e;
 }
 
 /* 3/4 + 1/4 Grid Layout (matches User Screenshots) */
@@ -1285,7 +1289,7 @@
 .pdp-qty-box-pv {
   font-size: 13px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   margin-top: 2px;
   line-height: 1.2;
 }
@@ -1306,7 +1310,7 @@
 .pdp-total-pv-summary-row .total-pv-box {
   font-size: 15px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
 }
 
 
@@ -1327,8 +1331,8 @@
 }
 
 .pdp-brand-quality-card {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border: 1px solid #bae6fd;
+  background: linear-gradient(135deg, #f0f9ff 0%, #eef2ff 100%);
+  border: 1px solid #c7d2fe;
   border-radius: 6px;
   padding: 24px;
 }
@@ -1521,7 +1525,7 @@
 }
 
 .atomy-policy-header {
-  border-bottom: 2px solid #00A3E0;
+  border-bottom: 2px solid #08267e;
   padding-bottom: 14px;
   margin-bottom: 24px;
 }
@@ -1543,8 +1547,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background-color: #f0f9fd;
-  border: 1px solid #bae6fd;
+  background-color: #f5f7ff;
+  border: 1px solid #c7d2fe;
   border-radius: 6px;
   padding: 16px 20px;
   margin-bottom: 24px;
@@ -1554,7 +1558,7 @@
   width: 44px;
   height: 44px;
   border-radius: 8px;
-  background-color: #e0f2fe;
+  background-color: #eef2ff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1583,7 +1587,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  background: linear-gradient(135deg, #00A3E0 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #08267e 0%, #051a57 100%);
   color: #ffffff;
   border-radius: 8px;
   padding: 20px 24px;
@@ -1676,7 +1680,7 @@
 }
 
 .badge-free {
-  background-color: #00A3E0;
+  background-color: #08267e;
   color: #ffffff;
   font-weight: 700;
   font-size: 11px;
@@ -1695,7 +1699,7 @@
 .atomy-guideline-box {
   background-color: #fbfcfe;
   border: 1px solid #e2e8f0;
-  border-left: 4px solid #00A3E0;
+  border-left: 4px solid #08267e;
   border-radius: 4px;
   padding: 16px 20px;
   margin-top: 14px;
@@ -1740,8 +1744,8 @@
 .payment-card-icon {
   width: 44px;
   height: 44px;
-  background-color: #f0f9fd;
-  color: #00A3E0;
+  background-color: #f5f7ff;
+  color: #08267e;
   font-weight: 800;
   font-size: 12px;
   border-radius: 6px;
@@ -1750,7 +1754,7 @@
   justify-content: center;
   flex-shrink: 0;
   letter-spacing: 0.5px;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c7d2fe;
 }
 
 .payment-card-body h5 {
@@ -1885,7 +1889,7 @@
   display: inline-block;
   font-size: 18px;
   font-weight: 800;
-  color: #00A3E0;
+  color: #08267e;
   margin-bottom: 6px;
 }
 
@@ -1929,7 +1933,7 @@
 
 .support-card p {
   font-size: 13px;
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 600;
   margin: 0 0 2px;
 }
@@ -2004,7 +2008,7 @@
 
 .related-arrow-btn:hover {
   background-color: #ffffff;
-  color: #00A3E0;
+  color: #08267e;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
@@ -2094,7 +2098,7 @@
   border-radius: 50%;
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
-  color: #00A3E0;
+  color: #08267e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2132,7 +2136,7 @@
 }
 
 .related-item-title:hover {
-  color: #00A3E0;
+  color: #08267e;
   text-decoration: underline;
 }
 
@@ -2145,7 +2149,7 @@
 
 .related-distributor-note {
   font-size: 12px;
-  color: #00A3E0;
+  color: #08267e;
   line-height: 1.3;
   margin: 0 0 6px;
 }
@@ -2202,8 +2206,8 @@
 }
 
 .pdp-expand-details-btn:hover {
-  border-color: #00A3E0;
-  color: #00A3E0;
+  border-color: #08267e;
+  color: #08267e;
 }
 
 /* Presentation Container */
@@ -2255,7 +2259,7 @@
   display: inline-block;
   font-size: 11px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   letter-spacing: 1px;
   margin-bottom: 6px;
   text-transform: uppercase;
@@ -2420,7 +2424,7 @@
 }
 
 .pdp-modal-close-btn:hover {
-  color: #00A3E0;
+  color: #08267e;
   transform: scale(1.15);
 }
 
@@ -2515,7 +2519,7 @@
 }
 
 .pdp-modal-zoom-btn:hover {
-  color: #00A3E0;
+  color: #08267e;
   transform: scale(1.15);
 }
 
@@ -2605,7 +2609,7 @@
 }
 
 .atomy-original-faq-link:hover {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .atomy-original-block {
@@ -2750,7 +2754,7 @@
 }
 
 .atomy-original-accordion-btn:hover {
-  color: #00A3E0;
+  color: #08267e;
 }
 
 .atomy-original-accordion-body {
@@ -3329,7 +3333,7 @@
     height: 44px !important;
     font-size: 14px !important;
     border-radius: 4px !important;
-    background: #00A3E0 !important;
+    background: #08267e !important;
     color: #ffffff !important;
   }
 
@@ -3411,7 +3415,7 @@
 .pdp-video-link-anchor {
   display: inline-flex;
   align-items: center;
-  color: #0284c7;
+  color: #08267e;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -3425,7 +3429,7 @@
 
 .pdp-video-link-url {
   font-weight: 600;
-  color: #0284c7;
+  color: #08267e;
 }
 
 .pdp-video-link-title {
@@ -3438,7 +3442,7 @@
 .pdp-video-link-arrow {
   margin-left: 4px;
   font-size: 13px;
-  color: #0284c7;
+  color: #08267e;
 }
 
 /* Footer banner under specifications table */
@@ -3447,7 +3451,7 @@
   margin-bottom: 6px;
   padding: 12px 16px;
   background-color: #f0f9ff;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c7d2fe;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -3465,7 +3469,7 @@
 .pdp-video-footer-link {
   display: inline-flex;
   align-items: center;
-  color: #0284c7;
+  color: #08267e;
   font-weight: 600;
   text-decoration: none;
   word-break: break-all;
@@ -3477,7 +3481,7 @@
 }
 
 .pdp-video-footer-url {
-  color: #0284c7;
+  color: #08267e;
   font-weight: 600;
 }
 
@@ -3491,5 +3495,5 @@
 .pdp-video-footer-arrow {
   margin-left: 4px;
   font-size: 13px;
-  color: #0284c7;
+  color: #08267e;
 }

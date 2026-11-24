@@ -102,12 +102,12 @@
 
 .cate-dropdown-item:hover {
   background-color: #f0f7fd;
-  color: #009fe3;
+  color: #08267e;
 }
 
 .cate-dropdown-item.active {
   background-color: #e6f4fc;
-  color: #009fe3;
+  color: #08267e;
   font-weight: 700;
 }
 
@@ -377,11 +377,11 @@
 }
 
 .cate-sub-tab-btn:hover {
-  color: #009fe3;
+  color: #08267e;
 }
 
 .cate-sub-tab-btn.active {
-  color: #009fe3;
+  color: #08267e;
   font-weight: 700;
 }
 
@@ -392,7 +392,7 @@
   right: 0;
   bottom: -1px;
   height: 2.5px;
-  background-color: #009fe3;
+  background-color: #08267e;
 }
 
 /* 4. Best Product Section (matches User's Image 3) */
@@ -463,9 +463,9 @@
 }
 
 .cate-slider-arrow:hover {
-  background: #009fe3;
+  background: #08267e;
   color: #ffffff;
-  border-color: #009fe3;
+  border-color: #08267e;
 }
 
 .cate-slider-arrow.left {
@@ -632,20 +632,20 @@
   height: 38px;
   border-radius: 50%;
   background-color: #ffffff;
-  border: 1.5px solid var(--atomy-blue, #009fe3);
-  color: var(--atomy-blue, #009fe3);
+  border: 1.5px solid var(--atomy-header-bg, #08267e);
+  color: var(--atomy-header-bg, #08267e);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.22);
+  box-shadow: 0 2px 6px rgba(8, 38, 126, 0.16);
   transition: all 0.2s ease;
   flex-shrink: 0;
   margin-left: auto;
 }
 
 .cate-cart-btn svg {
-  stroke: var(--atomy-blue, #009fe3);
+  stroke: var(--atomy-header-bg, #08267e);
   transition: stroke 0.2s ease;
 }
 
@@ -679,7 +679,7 @@
 }
 
 .cate-product-name:hover {
-  color: #009fe3;
+  color: #08267e;
 }
 
 .cate-pricing-wrap {
@@ -748,7 +748,7 @@
 .cate-product-pv {
   font-size: 15.5px;
   font-weight: 700;
-  color: #00A3E0;
+  color: #08267e;
   margin-top: 3px;
   line-height: 1.25;
   letter-spacing: -0.2px;
@@ -858,7 +858,7 @@
 }
 
 .cate-total-count strong {
-  color: #009fe3;
+  color: #08267e;
   font-weight: 700;
 }
 
@@ -881,7 +881,7 @@
 }
 
 .cate-sort-select-btn:hover {
-  border-color: #009fe3;
+  border-color: #08267e;
 }
 
 .cate-sort-dropdown-menu {
@@ -912,12 +912,12 @@
 
 .cate-sort-option:hover {
   background-color: #f5f8fb;
-  color: #009fe3;
+  color: #08267e;
 }
 
 .cate-sort-option.selected {
   font-weight: 700;
-  color: #009fe3;
+  color: #08267e;
   background-color: #f0f7fd;
 }
 

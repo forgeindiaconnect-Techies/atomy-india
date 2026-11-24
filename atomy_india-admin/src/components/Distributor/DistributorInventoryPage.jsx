@@ -34,7 +34,10 @@ import '../Admin/AdminDashboard.css';
 export default function DistributorInventoryPage({ 
   distributor,
   refreshKey,
-  onOpenEditProduct
+  onOpenEditProduct,
+  isLeaveLocked = false,
+  substituteName = 'Temporary Substitute',
+  onResumeDuty
 }) {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -255,6 +258,10 @@ export default function DistributorInventoryPage({
   // Save Stock Edit Modal
   const handleSaveStockEdit = async (e) => {
     e.preventDefault();
+    if (isLeaveLocked) {
+      showToast(`Action Locked: You are on leave. Stock edits, manual quantity changes, or price edits are delegated to ${substituteName}.`);
+      return;
+    }
     if (!editingStockProduct) return;
     setIsSavingEdit(true);
     try {
@@ -354,14 +361,50 @@ export default function DistributorInventoryPage({
           <button 
             type="button" 
             className="primary-action-btn"
-            onClick={() => setShowAddModal(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#00a3e0' }}
+            onClick={() => {
+              if (isLeaveLocked) {
+                showToast(`Action Locked: You are on leave. Stock edits, manual quantity changes, or price edits are delegated to ${substituteName}.`);
+                return;
+              }
+              setShowAddModal(true);
+            }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#08267e', ...(isLeaveLocked ? { opacity: 0.55, cursor: 'not-allowed' } : {}) }}
+            title={isLeaveLocked ? `Action Locked: You are on leave. Stock edits are delegated to ${substituteName}.` : "Add Products from Master Catalog"}
           >
             <Plus size={16} />
             <span>Add Products from Catalog</span>
           </button>
         </div>
       </div>
+
+      {/* Dynamic Primary On-Leave Banner */}
+      {isLeaveLocked && (
+        <div className="distributor-onleave-banner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '14px 20px', background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: '10px', marginBottom: '20px', color: '#92400e', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertTriangle size={20} color="#d97706" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#92400e' }}>
+                Inventory &amp; Stock — View-Only Mode
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#78350f', marginTop: '2px' }}>
+                Action Locked: You are on leave. Stock edits, manual quantity changes, or price edits are delegated to <strong>{substituteName}</strong>.
+              </div>
+            </div>
+          </div>
+          {onResumeDuty && (
+            <button
+              type="button"
+              onClick={onResumeDuty}
+              style={{ background: '#059669', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 700, fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <CheckCircle2 size={14} />
+              <span>Resume Active Duty</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 2. Top Inventory KPI Cards Strip */}
       <div className="kpi-gradient-grid four-cols" style={{ marginBottom: '28px' }}>
@@ -743,7 +786,12 @@ export default function DistributorInventoryPage({
                         <button
                           type="button"
                           className="action-icon-btn edit"
+                          style={isLeaveLocked ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                           onClick={() => {
+                            if (isLeaveLocked) {
+                              showToast(`Action Locked: You are on leave. Stock edits, manual quantity changes, or price edits are delegated to ${substituteName}.`);
+                              return;
+                            }
                             if (onOpenEditProduct) {
                               onOpenEditProduct(p);
                             } else {
@@ -752,15 +800,22 @@ export default function DistributorInventoryPage({
                               setEditThreshold(p.lowStockThreshold || 10);
                             }
                           }}
-                          title="Full Edit: Product Details, Prices, Description, Photos & Stock"
+                          title={isLeaveLocked ? `Action Locked: You are on leave. Stock edits are delegated to ${substituteName}.` : "Full Edit: Product Details, Prices, Description, Photos & Stock"}
                         >
                           <Edit2 size={14} />
                         </button>
                         <button
                           type="button"
                           className="action-icon-btn delete"
-                          onClick={() => setProductToRemove(p)}
-                          title="Remove from Hub Inventory"
+                          style={isLeaveLocked ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                          onClick={() => {
+                            if (isLeaveLocked) {
+                              showToast(`Action Locked: You are on leave. Stock edits are delegated to ${substituteName}.`);
+                              return;
+                            }
+                            setProductToRemove(p);
+                          }}
+                          title={isLeaveLocked ? `Action Locked: You are on leave. Stock edits are delegated to ${substituteName}.` : "Remove from Hub Inventory"}
                         >
                           <Trash2 size={14} />
                         </button>

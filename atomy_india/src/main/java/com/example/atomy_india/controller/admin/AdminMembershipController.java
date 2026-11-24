@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -42,7 +43,24 @@ public class AdminMembershipController {
 
     @GetMapping("/members")
     public ResponseEntity<List<Membership>> getAllMembers() {
-        return ResponseEntity.ok(membershipRepository.findAllByOrderByCreatedAtDesc());
+        List<Membership> list = membershipRepository.findAllByOrderByCreatedAtDesc();
+        LocalDateTime now = LocalDateTime.now();
+        boolean modified = false;
+        for (Membership m : list) {
+            boolean isExpired = m.getExpiryDate() != null && (
+                m.getExpiryDate().isBefore(now) ||
+                !m.getExpiryDate().toLocalDate().isAfter(java.time.LocalDate.now())
+            );
+            if ("ACTIVE".equalsIgnoreCase(m.getStatus()) && isExpired) {
+                m.setStatus("EXPIRED");
+                membershipRepository.save(m);
+                modified = true;
+            }
+        }
+        if (modified) {
+            list = membershipRepository.findAllByOrderByCreatedAtDesc();
+        }
+        return ResponseEntity.ok(list);
     }
 
     @PostMapping("/members")
@@ -86,9 +104,23 @@ public class AdminMembershipController {
             return ResponseEntity.badRequest().body(Map.of("error", "Status field is required"));
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        String newExpiryDate = body.get("expiryDate");
+
         return membershipRepository.findById(id).map(m -> {
             m.setStatus(newStatus.toUpperCase());
-            m.setUpdatedAt(LocalDateTime.now());
+            m.setUpdatedAt(now);
+
+            if (newExpiryDate != null && !newExpiryDate.isEmpty()) {
+                try {
+                    m.setExpiryDate(LocalDate.parse(newExpiryDate).atTime(23, 59, 59));
+                    m.setStartDate(now);
+                } catch (Exception e) {}
+            } else if ("ACTIVE".equalsIgnoreCase(newStatus) && (m.getExpiryDate() == null || m.getExpiryDate().isBefore(now) || m.getExpiryDate().toLocalDate().isEqual(now.toLocalDate()))) {
+                int months = "MONTHLY".equalsIgnoreCase(m.getPlan()) ? 1 : 12;
+                m.setExpiryDate(now.plusMonths(months));
+                m.setStartDate(now);
+            }
             membershipRepository.save(m);
 
             boolean active = "ACTIVE".equalsIgnoreCase(newStatus);

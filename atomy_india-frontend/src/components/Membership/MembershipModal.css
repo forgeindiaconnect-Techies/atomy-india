@@ -130,8 +130,8 @@
 }
 
 .perk-icon-circle.blue {
-  background-color: #e0f2fe;
-  color: #0284c7;
+  background-color: #eef2ff;
+  color: #08267e;
 }
 
 .perk-icon-circle.purple {
@@ -183,20 +183,20 @@
 }
 
 .plan-card-option:hover {
-  border-color: #00A3E0;
+  border-color: #08267e;
 }
 
 .plan-card-option.selected {
-  border-color: #00A3E0;
+  border-color: #08267e;
   background-color: #f0f9ff;
-  box-shadow: 0 0 0 1px #00A3E0;
+  box-shadow: 0 0 0 1px #08267e;
 }
 
 .save-badge {
   position: absolute;
   top: -10px;
   right: 12px;
-  background-color: #00A3E0;
+  background-color: #08267e;
   color: #ffffff;
   font-size: 9.5px;
   font-weight: 800;
@@ -228,14 +228,14 @@
 }
 
 .custom-radio.checked {
-  border-color: #00A3E0;
+  border-color: #08267e;
 }
 
 .radio-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #00A3E0;
+  background-color: #08267e;
 }
 
 .plan-period-title {
@@ -291,7 +291,7 @@
 }
 
 .btn-modal-action.primary {
-  background-color: #00A3E0;
+  background-color: #08267e;
   color: #ffffff;
 }
 

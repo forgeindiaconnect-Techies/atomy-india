@@ -80,8 +80,8 @@
 }
 
 .support-tab-btn.active {
-  color: #00A3E0;
-  border-bottom-color: #00A3E0;
+  color: #08267e;
+  border-bottom-color: #08267e;
   background: #ffffff;
 }
 
@@ -131,7 +131,7 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -180,7 +180,7 @@
 }
 
 .ticket-id-badge strong {
-  color: #00A3E0;
+  color: #08267e;
   font-family: monospace;
 }
 
@@ -191,7 +191,7 @@
 }
 
 .ticket-track-btn {
-  background: #00A3E0;
+  background: #08267e;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -220,7 +220,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -248,7 +248,7 @@
 .thread-ticket-id {
   font-family: monospace;
   font-size: 0.82rem;
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 700;
 }
 
@@ -304,7 +304,7 @@
 }
 
 .from-customer .message-bubble {
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   border-bottom-right-radius: 2px;
 }
@@ -348,7 +348,7 @@
 }
 
 .reply-send-btn {
-  background: #00A3E0;
+  background: #08267e;
   color: white;
   border: none;
   border-radius: 6px;

@@ -234,19 +234,19 @@ export default function MembershipPaymentPage({
               <h4>Privileges Unlocked on Your Account</h4>
               <div className="privilege-grid">
                 <div className="privilege-item">
-                  <Check size={16} color="#00A3E0" />
+                  <Check size={16} color="#08267e" />
                   <span>Wholesale DP prices active across entire Atomy catalog (~18%-20% savings)</span>
                 </div>
                 <div className="privilege-item">
-                  <Check size={16} color="#00A3E0" />
+                  <Check size={16} color="#08267e" />
                   <span>Personal Point Value (PV) points accumulated on every completed order</span>
                 </div>
                 <div className="privilege-item">
-                  <Check size={16} color="#00A3E0" />
+                  <Check size={16} color="#08267e" />
                   <span>Priority dispatch & courier delivery directly from verified Atomy warehouses</span>
                 </div>
                 <div className="privilege-item">
-                  <Check size={16} color="#00A3E0" />
+                  <Check size={16} color="#08267e" />
                   <span>Exclusive member access to new product launches and seminars</span>
                 </div>
               </div>
@@ -591,7 +591,7 @@ export default function MembershipPaymentPage({
                 {/* Guaranteed Privileges Box */}
                 <div className="sidebar-privileges-box">
                   <div className="privilege-title">
-                    <Sparkles size={15} color="#00A3E0" />
+                    <Sparkles size={15} color="#08267e" />
                     <span>Included Distributor Benefits</span>
                   </div>
                   <ul className="privilege-bullets">

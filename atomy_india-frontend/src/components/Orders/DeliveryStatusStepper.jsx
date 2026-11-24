@@ -282,9 +282,9 @@ export default function DeliveryStatusStepper({ order }) {
                       <div className="mover-object message-mover">
                         <svg width="34" height="24" viewBox="0 0 34 24" fill="none">
                           <line x1="1" y1="8" x2="6" y2="8" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
-                          <line x1="0" y1="12" x2="5" y2="12" stroke="#00A3E0" strokeWidth="2" strokeLinecap="round" />
+                          <line x1="0" y1="12" x2="5" y2="12" stroke="#08267e" strokeWidth="2" strokeLinecap="round" />
                           <line x1="2" y1="16" x2="6" y2="16" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
-                          <rect x="7" y="3" width="25" height="18" rx="3" fill="#00A3E0" stroke="#0284c7" strokeWidth="1.2" />
+                          <rect x="7" y="3" width="25" height="18" rx="3" fill="#08267e" stroke="#08267e" strokeWidth="1.2" />
                           <path d="M8 5L19.5 14L31 5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           <circle cx="19.5" cy="14" r="2.2" fill="#fef08a" />
                         </svg>
@@ -349,10 +349,10 @@ export default function DeliveryStatusStepper({ order }) {
                           <svg width="56" height="32" viewBox="0 0 56 32" fill="none">
                             <circle cx="2" cy="19" r="1.5" fill="#94a3b8" opacity="0.6" />
                             <circle cx="0.5" cy="17.5" r="1" fill="#cbd5e1" opacity="0.4" />
-                            <rect x="4" y="5" width="32" height="17" rx="2" fill="#00A3E0" stroke="#0284c7" strokeWidth="1.4" />
+                            <rect x="4" y="5" width="32" height="17" rx="2" fill="#08267e" stroke="#08267e" strokeWidth="1.4" />
                             <rect x="6" y="9" width="28" height="5" rx="1" fill="#ffffff" />
-                            <text x="8" y="13" fontSize="3.8" fontWeight="900" fill="#00A3E0" fontFamily="sans-serif">BLUE DART</text>
-                            <path d="M36 10H46L51 16V23H36V10Z" fill="#0284c7" stroke="#0369a1" strokeWidth="1.4" />
+                            <text x="8" y="13" fontSize="3.8" fontWeight="900" fill="#08267e" fontFamily="sans-serif">BLUE DART</text>
+                            <path d="M36 10H46L51 16V23H36V10Z" fill="#08267e" stroke="#0369a1" strokeWidth="1.4" />
                             <path d="M38 12H44.5L48 16H38V12Z" fill="#e0f2fe" />
                             <circle cx="50" cy="19" r="1.5" fill="#fef08a" />
                             <path d="M51 18.5L55 17V21L51 19.5Z" fill="#fef08a" opacity="0.6" />
@@ -379,13 +379,13 @@ export default function DeliveryStatusStepper({ order }) {
                       <div className="mover-object bike-mover">
                         <svg width="52" height="36" viewBox="0 0 52 36" fill="none">
                           <line x1="1" y1="20" x2="6" y2="20" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" />
-                          <line x1="3" y1="24" x2="8" y2="24" stroke="#00A3E0" strokeWidth="2" strokeLinecap="round" />
+                          <line x1="3" y1="24" x2="8" y2="24" stroke="#08267e" strokeWidth="2" strokeLinecap="round" />
                           <rect x="13" y="11" width="8" height="10" rx="1.5" fill="#10b981" stroke="#047857" strokeWidth="1.2" />
                           <rect x="15" y="13" width="4" height="4.5" rx="0.5" fill="#ffffff" opacity="0.9" />
-                          <circle cx="26" cy="7" r="4.2" fill="#00A3E0" stroke="#0284c7" strokeWidth="1.2" />
+                          <circle cx="26" cy="7" r="4.2" fill="#08267e" stroke="#08267e" strokeWidth="1.2" />
                           <path d="M27 6.5H30.5" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
-                          <path d="M25 11L27 18L22 22" stroke="#0284c7" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M25 13L32 16" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round" />
+                          <path d="M25 11L27 18L22 22" stroke="#08267e" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M25 13L32 16" stroke="#08267e" strokeWidth="2.5" strokeLinecap="round" />
                           <circle cx="33" cy="16" r="1.2" fill="#0f172a" />
                           <path d="M14 26L23 23L32 16L34 22L38 26" stroke="#0f172a" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
                           <path d="M23 23H29" stroke="#ef4444" strokeWidth="3.5" strokeLinecap="round" />

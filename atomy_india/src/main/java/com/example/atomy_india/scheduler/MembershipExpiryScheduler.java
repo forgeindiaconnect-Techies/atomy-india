@@ -31,6 +31,9 @@ public class MembershipExpiryScheduler {
     @Autowired
     private BrevoEmailService brevoEmailService;
 
+    @Autowired
+    private com.example.atomy_india.repository.CustomerNotificationRepository notificationRepository;
+
     // Run automatically every 6 hours, and 2 minutes after startup
     @Scheduled(initialDelay = 120000, fixedDelay = 21600000)
     public void scanAndNotifyExpiredMemberships() {
@@ -41,7 +44,11 @@ public class MembershipExpiryScheduler {
             int notifiedCount = 0;
 
             for (Membership m : activeList) {
-                if ("ACTIVE".equalsIgnoreCase(m.getStatus()) && m.getExpiryDate() != null && m.getExpiryDate().isBefore(now)) {
+                boolean isExpired = m.getExpiryDate() != null && (
+                    m.getExpiryDate().isBefore(now) ||
+                    !m.getExpiryDate().toLocalDate().isAfter(java.time.LocalDate.now())
+                );
+                if ("ACTIVE".equalsIgnoreCase(m.getStatus()) && isExpired) {
                     m.setStatus("EXPIRED");
                     if (!Boolean.TRUE.equals(m.getExpiredEmailSent())) {
                         m.setExpiredEmailSent(true);
@@ -51,10 +58,25 @@ public class MembershipExpiryScheduler {
                     membershipRepository.save(m);
 
                     if (m.getCustomerEmail() != null) {
-                        customerUserRepository.findByEmail(m.getCustomerEmail()).ifPresent(u -> {
+                        String userEmail = m.getCustomerEmail().trim().toLowerCase();
+                        customerUserRepository.findByEmail(userEmail).ifPresent(u -> {
                             u.setIsMember(false);
                             customerUserRepository.save(u);
                         });
+
+                        try {
+                            boolean exists = notificationRepository.findByEmailIgnoreCaseOrderByCreatedAtDesc(userEmail)
+                                .stream().anyMatch(n -> "membership_expired".equals(n.getType()));
+                            if (!exists) {
+                                notificationRepository.save(new com.example.atomy_india.model.CustomerNotification(
+                                    userEmail,
+                                    "⚠️ Distributor Membership Expired",
+                                    "Your Atomy Distributor Membership has expired. Reactivate your plan now to unlock wholesale DP rates and PV accumulation.",
+                                    "membership_expired",
+                                    null
+                                ));
+                            }
+                        } catch (Exception ignored) {}
                     }
                 }
             }

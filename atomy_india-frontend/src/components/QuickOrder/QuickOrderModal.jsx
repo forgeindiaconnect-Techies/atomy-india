@@ -149,7 +149,7 @@ export default function QuickOrderModal({
         <div className="quick-order-header">
           <div className="header-title-box">
             <div className="quick-order-icon-badge">
-              <Zap size={20} color="#00A3E0" />
+              <Zap size={20} color="#08267e" />
             </div>
             <div>
               <h3>Atomy Quick Order (간편주문)</h3>
@@ -169,7 +169,7 @@ export default function QuickOrderModal({
         {/* Shortcuts Bar */}
         <div className="quick-order-shortcuts">
           <span className="shortcuts-label">
-            <Sparkles size={13} color="#00A3E0" /> Quick Add Popular:
+            <Sparkles size={13} color="#08267e" /> Quick Add Popular:
           </span>
           <div className="shortcuts-chips-row">
             {POPULAR_SHORTCUTS.map(sc => (
