@@ -17,14 +17,14 @@ function MastershipHexBadge({ type }) {
     case 'sales':
       return (
         <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
-          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#08267e" />
           <text x="17" y="26" textAnchor="middle" fill="#ffffff" fontSize="21" fontWeight="700" fontFamily="sans-serif">$</text>
         </svg>
       );
     case 'diamond':
       return (
         <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
-          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#08267e" />
           <path d="M17 10L24.5 16.5L17 28L9.5 16.5L17 10Z" stroke="#ffffff" strokeWidth="1.5" fill="none" strokeLinejoin="round" />
           <path d="M9.5 16.5H24.5M17 10V28M12.5 16.5L17 28M21.5 16.5L17 28" stroke="#ffffff" strokeWidth="1" strokeLinejoin="round" />
         </svg>
@@ -32,7 +32,7 @@ function MastershipHexBadge({ type }) {
     case 'sharon':
       return (
         <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
-          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#08267e" />
           <circle cx="17" cy="16.5" r="3" fill="#ffffff" />
           <path d="M17 11.5C15 11.5 13.5 13 13.5 15C13.5 17.5 17 22 17 22C17 22 20.5 17.5 20.5 15C20.5 13 19 11.5 17 11.5Z" stroke="#ffffff" strokeWidth="1.3" fill="none" />
           <path d="M14 20C11.5 21.5 11 24.5 11 26" stroke="#ffffff" strokeWidth="1.3" strokeLinecap="round" />
@@ -42,14 +42,14 @@ function MastershipHexBadge({ type }) {
     case 'star':
       return (
         <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
-          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#08267e" />
           <polygon points="17,9 19.5,15 26,15.5 21.2,19.5 22.8,26 17,22.5 11.2,26 12.8,19.5 8,15.5 14.5,15" fill="#ffffff" />
         </svg>
       );
     case 'royal':
       return (
         <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
-          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#08267e" />
           <path d="M9 25H25M9 25L11 15.5L14 19.5L17 13L20 19.5L23 15.5L25 25H9Z" stroke="#ffffff" strokeWidth="1.6" fill="none" strokeLinejoin="round" />
           <circle cx="11" cy="14" r="1.2" fill="#ffffff" />
           <circle cx="17" cy="11.5" r="1.2" fill="#ffffff" />
@@ -59,7 +59,7 @@ function MastershipHexBadge({ type }) {
     case 'crown':
       return (
         <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
-          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#08267e" />
           <path d="M9 25H25L26 16.5L20.5 20L17 12L13.5 20L8 16.5L9 25Z" fill="#ffffff" />
           <circle cx="8" cy="15" r="1.3" fill="#ffffff" />
           <circle cx="17" cy="10.5" r="1.3" fill="#ffffff" />
@@ -69,7 +69,7 @@ function MastershipHexBadge({ type }) {
     case 'imperial':
       return (
         <svg width="34" height="38" viewBox="0 0 34 38" fill="none" className="mastership-hex-badge">
-          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#0096e6" />
+          <path d="M17 1L33 9.5V28.5L17 37L1 28.5V9.5L17 1Z" fill="#08267e" />
           <path d="M8 25H26M10.5 25L10.5 18C10.5 15 13.5 13 17 13C20.5 13 23.5 15 23.5 18L23.5 25M17 13V8.5M14.5 10.5H19.5" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           <circle cx="17" cy="17" r="1.6" fill="#ffffff" />
         </svg>

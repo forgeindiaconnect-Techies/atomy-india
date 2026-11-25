@@ -1617,6 +1617,9 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     className={`mobile-drawer-nav-item ${isActive ? 'active' : ''} ${isLocked ? 'is-locked-tab' : ''}`}
                     onClick={() => {
                       setIsEditingProductView(false);
+                      setCurrentEditingProduct(null);
+                      setInspectingOrderId(null);
+                      setSelectedOrderForTracking(null);
                       setActiveTab(item.id);
                       setIsMobileNavOpen(false);
                       if (isLocked) {
@@ -1677,10 +1680,14 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   className={`sidebar-nav-button ${isActive ? 'active' : ''} ${isLocked ? 'is-locked-tab' : ''}`}
                   onClick={() => {
                     setIsEditingProductView(false);
+                    setCurrentEditingProduct(null);
+                    setInspectingOrderId(null);
+                    setSelectedOrderForTracking(null);
                     setActiveTab(item.id);
                     if (isLocked) {
                       showToast(`Access Blocked: ${item.label} is locked while Primary is on active duty.`);
                     }
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   style={isLocked ? { opacity: 0.68 } : {}}
                   title={isLocked ? `${item.label} (Locked — Primary Active)` : item.label}
@@ -1877,8 +1884,14 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                     orders={orders}
                     customers={customers}
                     distributor={currentDist}
-                    onNavigateTab={(tab) => setActiveTab(tab)}
-                    onSelectOrderForDispatch={(order) => setSelectedOrderForTracking(order)}
+                    onNavigateTab={(tab, filter, targetId) => {
+                      if (targetId) setInspectingOrderId(targetId);
+                      setActiveTab(tab);
+                    }}
+                    onSelectOrderForDispatch={(order) => {
+                      if (order) setInspectingOrderId(order.orderId || order.id);
+                      setActiveTab('orders');
+                    }}
                   />
                 </div>
               )}
@@ -1909,6 +1922,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                   isLoading={isLoading}
                   isStandby={isSubstituteStandby}
                   initialSelectedOrderId={inspectingOrderId}
+                  onClearInitialOrderId={() => setInspectingOrderId(null)}
                   isLeaveLocked={isPrimaryMyselfOnLeave}
                   substituteName={substituteName}
                   onResumeDuty={handleDirectResumeDuty}

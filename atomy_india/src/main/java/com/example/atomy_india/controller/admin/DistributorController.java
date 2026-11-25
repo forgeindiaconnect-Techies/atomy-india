@@ -322,6 +322,8 @@ public class DistributorController {
             orderMap.put("distributorDispatchStatus", o.getDistributorDispatchStatus());
             orderMap.put("estimatedDeliveryDate", o.getEstimatedDeliveryDate());
             orderMap.put("estimatedDelivery", o.getEstimatedDelivery());
+            orderMap.put("delayEmailSent", o.getDelayEmailSent() != null ? o.getDelayEmailSent() : false);
+            orderMap.put("delayEmailSentAt", o.getDelayEmailSentAt());
             orderMap.put("items", o.getItems());
 
             Optional<OrderTracking> tracking = trackingRepository.findFirstByOrderId(o.getOrderId());

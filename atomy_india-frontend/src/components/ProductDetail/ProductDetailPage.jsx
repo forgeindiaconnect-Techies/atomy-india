@@ -962,7 +962,7 @@ export default function ProductDetailPage({
                   style={
                     isOutOfDelivery
                       ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' }
-                      : (isInCart ? { background: '#08267e', borderColor: '#08267e' } : {})
+                      : (isInCart ? { background: '#08267e', borderColor: '#08267e', color: '#ffffff' } : {})
                   }
                   onClick={() => {
                     if (isOutOfDelivery) return;
@@ -1744,7 +1744,7 @@ export default function ProductDetailPage({
                     style={
                       isOutOfDelivery
                         ? { background: '#cbd5e1', cursor: 'not-allowed', color: '#64748b' }
-                        : (isInCart ? { background: '#08267e', borderColor: '#08267e' } : {})
+                        : (isInCart ? { background: '#08267e', borderColor: '#08267e', color: '#ffffff' } : {})
                     }
                     onClick={() => {
                       if (isOutOfDelivery) return;

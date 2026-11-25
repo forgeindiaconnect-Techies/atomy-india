@@ -782,8 +782,7 @@
   box-sizing: border-box;
 }
 
-.stepper-btn-minus,
-.stepper-btn-plus {
+.stepper-btn-minus {
   width: 30px;
   height: 30px;
   background-color: transparent;
@@ -800,9 +799,36 @@
   border-radius: 2px;
 }
 
-.stepper-btn-minus:hover:not(:disabled),
-.stepper-btn-plus:hover {
+.stepper-btn-plus {
+  width: 30px;
+  height: 30px;
+  background-color: #08267e !important;
+  color: #ffffff !important;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+  border-radius: 3px;
+}
+
+.stepper-btn-minus:hover:not(:disabled) {
   background-color: #f3f4f6;
+}
+
+.stepper-btn-plus:hover:not(:disabled) {
+  background-color: #051a57 !important;
+  color: #ffffff !important;
+}
+
+.stepper-btn-plus:disabled {
+  background-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed;
 }
 
 .stepper-btn-minus:disabled {
@@ -941,11 +967,11 @@
   width: 50% !important;
   min-width: 0 !important;
   height: 50px !important;
-  background-color: #2f3337 !important;
-  color: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #08267e !important;
   font-size: 15.5px !important;
   font-weight: 700 !important;
-  border: none !important;
+  border: 1.5px solid #08267e !important;
   border-radius: 6px !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
@@ -957,7 +983,9 @@
 }
 
 .pdp-cart-btn:hover {
-  background-color: #1f2937 !important;
+  background-color: #eef2ff !important;
+  border-color: #051a57 !important;
+  color: #051a57 !important;
   transform: translateY(-1px);
 }
 
@@ -3336,8 +3364,13 @@
     height: 44px !important;
     font-size: 14px !important;
     border-radius: 4px !important;
-    background: #08267e !important;
-    color: #ffffff !important;
+    background: #ffffff !important;
+    color: #08267e !important;
+    border: 1.5px solid #08267e !important;
+  }
+
+  .pdp-details-sticky-col.visible .pdp-cart-btn:hover {
+    background: #eef2ff !important;
   }
 
   .pdp-details-sticky-col.visible .pdp-buy-now-btn {

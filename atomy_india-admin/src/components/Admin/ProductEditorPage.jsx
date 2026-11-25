@@ -717,7 +717,7 @@ export default function ProductEditorPage({
               {/* Distributor Price / DP (₹) */}
               <div className="editor-form-group dp-highlight-group">
                 <div className="editor-label-row">
-                  <label>Distributor Price / DP (₹)</label>
+                  <label>Distributor Price (₹ DP)</label>
                   <span className="dp-plan-badge">
                     <ShieldCheck size={11} /> Member DP Plan
                   </span>

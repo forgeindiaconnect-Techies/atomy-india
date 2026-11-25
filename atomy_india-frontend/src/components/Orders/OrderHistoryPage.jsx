@@ -1696,15 +1696,13 @@ export default function OrderHistoryPage({
             <div className="tracker-card-label">Delivered</div>
             <div className="tracker-card-count highlight">{counters.delivered}</div>
           </div>
-          {counters.cancelled > 0 && (
-            <div
-              className={`status-tracker-card cancelled-tracker-card ${statusFilter === 'Cancelled' ? 'active' : ''}`}
-              onClick={() => setStatusFilter('Cancelled')}
-            >
-              <div className="tracker-card-label">Cancelled / Refunded</div>
-              <div className="tracker-card-count text-red">{counters.cancelled}</div>
-            </div>
-          )}
+          <div
+            className={`status-tracker-card cancelled-tracker-card ${statusFilter === 'Cancelled' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('Cancelled')}
+          >
+            <div className="tracker-card-label">Cancelled / Refunded</div>
+            <div className={`tracker-card-count ${counters.cancelled > 0 ? 'text-red' : ''}`}>{counters.cancelled}</div>
+          </div>
         </div>
 
         {/* 4. Filter Toolbar: Period Buttons & Search */}
@@ -2649,24 +2647,24 @@ export default function OrderHistoryPage({
                     <thead>
                       <tr>
                         <th>Payment Mode</th>
-                        <th>Settlement SLA</th>
+                        <th style={{ whiteSpace: 'nowrap', minWidth: '140px' }}>Settlement SLA</th>
                         <th>Payout Destination</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
                         <td><strong>UPI (GPay / PhonePe / Paytm / BHIM)</strong></td>
-                        <td><span className="fast-tag">Within 24 Hours</span></td>
+                        <td style={{ whiteSpace: 'nowrap' }}><span className="fast-tag">Within 24 Hours</span></td>
                         <td>Original Virtual Payment Address (VPA)</td>
                       </tr>
                       <tr>
                         <td><strong>Credit / Debit Cards (Visa / MasterCard / RuPay)</strong></td>
-                        <td>3 to 5 Banking Days</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>3 to 5 Banking Days</td>
                         <td>Direct card reversal through acquiring bank</td>
                       </tr>
                       <tr>
                         <td><strong>Net Banking (SBI / HDFC / ICICI / Axis / Others)</strong></td>
-                        <td>5 to 7 Banking Days</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>5 to 7 Banking Days</td>
                         <td>Original linked bank account (via NEFT/IMPS)</td>
                       </tr>
                     </tbody>

@@ -524,9 +524,14 @@
   transition: all 0.15s ease;
 }
 
-.sheet-qty-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+.sheet-qty-btn.plus {
+  background: #08267e !important;
+  color: #ffffff !important;
+}
+
+.sheet-qty-btn.plus:hover {
+  background: #051a57 !important;
+  color: #ffffff !important;
 }
 
 .sheet-qty-num {

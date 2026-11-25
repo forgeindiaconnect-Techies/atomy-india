@@ -21,6 +21,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
   position: sticky;
   top: 0;
   left: 0;
@@ -34,6 +35,8 @@
   display: flex;
   align-items: center;
   gap: 18px;
+  min-width: 0;
+  flex: 1;
 }
 
 .editor-back-btn {
@@ -49,6 +52,8 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.16s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .editor-back-btn:hover {
@@ -60,7 +65,9 @@
 .editor-title-group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .editor-main-title {
@@ -80,17 +87,22 @@
   padding: 3px 9px;
   border-radius: 4px;
   border: 1px solid #c7d2fe;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .top-nav-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  flex-shrink: 0;
 }
 
 .editor-save-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   gap: 8px;
   background-color: #08267e;
   color: #ffffff;
@@ -1311,7 +1323,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 22px;
+  min-height: 26px;
+  height: 26px;
   gap: 8px;
 }
 
@@ -1426,18 +1439,20 @@
 }
 
 .dp-plan-badge {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   background: #ecfdf5;
   color: #047857;
   border: 1px solid #a7f3d0;
-  padding: 2px 8px;
+  padding: 1px 7px;
   border-radius: 9999px;
   letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;
   gap: 3px;
   line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dp-input-field {

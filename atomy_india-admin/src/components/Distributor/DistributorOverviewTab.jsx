@@ -569,8 +569,9 @@ export default function DistributorOverviewTab({
                   key={o.orderId || o.id}
                   className="recent-order-row clickable"
                   onClick={() => {
-                    onNavigateTab('orders');
-                    if (onSelectOrderForDispatch) onSelectOrderForDispatch(o);
+                    if (onNavigateTab) {
+                      onNavigateTab('orders', null, o.orderId || o.id);
+                    }
                   }}
                 >
                   <div className="recent-order-left">

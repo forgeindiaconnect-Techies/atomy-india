@@ -80,12 +80,20 @@ export default function DistributorOrdersPage({
   showToast,
   isLoading,
   initialSelectedOrderId = null,
+  onClearInitialOrderId,
   isLeaveLocked = false,
   substituteName = 'Temporary Substitute',
   onResumeDuty
 }) {
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [localSentApologyIds, setLocalSentApologyIds] = useState(new Set());
+
+  const isOrderApologyDispatched = (order) => {
+    if (!order) return false;
+    const key = String(order.orderId || order.id || '');
+    return Boolean(order.delayEmailSent || (key && localSentApologyIds.has(key)));
+  };
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(() => {
     if (initialSelectedOrderId) {
       return orders.find(o => String(o.orderId || o.id) === String(initialSelectedOrderId)) || null;
@@ -141,6 +149,7 @@ export default function DistributorOrdersPage({
 
   const handleCloseInspection = () => {
     setSelectedOrderDetail(null);
+    if (onClearInitialOrderId) onClearInitialOrderId();
     try {
       if (window.history.state?.subView === 'distributor-order-inspect') {
         window.history.replaceState({ tab: 'orders', subView: null }, '', window.location.href);
@@ -570,6 +579,16 @@ export default function DistributorOrdersPage({
       if (showToast) showToast(`Sending delay apology email to ${customerEmail || 'customer'}...`);
       await sendDelayApologyEmail(orderId);
       if (showToast) showToast(`✓ Apology email successfully sent to ${customerEmail || 'customer'}!`);
+      const key = String(orderId);
+      setLocalSentApologyIds(prev => new Set(prev).add(key));
+      const targetOrder = orders.find(o => String(o.orderId || o.id) === key);
+      if (targetOrder) {
+        targetOrder.delayEmailSent = true;
+        targetOrder.delayEmailSentAt = new Date().toISOString();
+      }
+      if (selectedOrderDetail && String(selectedOrderDetail.orderId || selectedOrderDetail.id) === key) {
+        setSelectedOrderDetail(prev => prev ? ({ ...prev, delayEmailSent: true, delayEmailSentAt: new Date().toISOString() }) : null);
+      }
       if (onRefreshOrders) onRefreshOrders();
     } catch (err) {
       if (showToast) showToast(`Failed to send apology email: ${err.message}`);
@@ -585,6 +604,18 @@ export default function DistributorOrdersPage({
       if (showToast) showToast('Scanning delayed territory orders and dispatching apology emails...');
       const res = await triggerAllDelayedEmails();
       if (showToast) showToast(`✓ ${res.emailsSent || 0} apology email(s) dispatched to delayed customers!`);
+      const allDelayedKeys = filteredOrders.filter(o => getOrderDeliverySLA(o).isDelayed).map(o => String(o.orderId || o.id));
+      setLocalSentApologyIds(prev => {
+        const next = new Set(prev);
+        allDelayedKeys.forEach(k => next.add(k));
+        return next;
+      });
+      orders.forEach(o => {
+        if (getOrderDeliverySLA(o).isDelayed) {
+          o.delayEmailSent = true;
+          o.delayEmailSentAt = new Date().toISOString();
+        }
+      });
       if (onRefreshOrders) onRefreshOrders();
     } catch (err) {
       if (showToast) showToast(`Error: ${err.message}`);
@@ -879,15 +910,15 @@ export default function DistributorOrdersPage({
                       {sla.isDelayed && (
                         <div style={{
                           fontSize: '11px',
-                          color: o.delayEmailSent ? '#16a34a' : '#ea580c',
+                          color: isOrderApologyDispatched(o) ? '#16a34a' : '#ea580c',
                           fontWeight: 600,
                           marginTop: '3px',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '3px'
                         }}>
-                          {o.delayEmailSent ? <CheckCircle2 size={11} color="#16a34a" /> : <Mail size={11} color="#ea580c" />}
-                          <span>{o.delayEmailSent ? 'Apology email dispatched' : 'Apology email pending'}</span>
+                          {isOrderApologyDispatched(o) ? <CheckCircle2 size={11} color="#16a34a" /> : <Mail size={11} color="#ea580c" />}
+                          <span>{isOrderApologyDispatched(o) ? 'Apology email dispatched' : 'Apology email pending'}</span>
                         </div>
                       )}
                     </td>
@@ -1072,13 +1103,13 @@ export default function DistributorOrdersPage({
                           {sla.isDelayed && (
                             <button
                               type="button"
-                              className={`action-pill-btn apology ${o.delayEmailSent ? 'sent' : ''}`}
+                              className={`action-pill-btn apology ${isOrderApologyDispatched(o) ? 'sent' : ''}`}
                               style={{ width: '100%', justifyContent: 'center' }}
                               onClick={() => handleSendDelayApologyEmail(o.orderId || o.id, o.customerEmail)}
-                              title={o.delayEmailSent ? `Apology email sent. Click to resend.` : 'Send Customer Delay Apology Email'}
+                              title={isOrderApologyDispatched(o) ? `Apology email sent. Click to resend.` : 'Send Customer Delay Apology Email'}
                             >
                               <Mail size={13} />
-                              <span>{o.delayEmailSent ? 'Resend' : 'Send Apology'}</span>
+                              <span>{isOrderApologyDispatched(o) ? 'Resend' : 'Send Apology'}</span>
                             </button>
                           )}
                         </div>
@@ -1339,8 +1370,8 @@ export default function DistributorOrdersPage({
                       </div>
                       {sla.isDelayed && (
                         <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                          <div style={{ fontSize: '11.5px', color: selectedOrderDetail.delayEmailSent ? '#16a34a' : '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {selectedOrderDetail.delayEmailSent ? (
+                          <div style={{ fontSize: '11.5px', color: isOrderApologyDispatched(selectedOrderDetail) ? '#16a34a' : '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {isOrderApologyDispatched(selectedOrderDetail) ? (
                               <>
                                 <CheckCircle2 size={13} color="#16a34a" />
                                 <span>Apology Dispatched ({selectedOrderDetail.delayEmailSentAt ? new Date(selectedOrderDetail.delayEmailSentAt).toLocaleDateString('en-IN') : 'Sent'})</span>
@@ -1358,7 +1389,7 @@ export default function DistributorOrdersPage({
                             onClick={() => handleSendDelayApologyEmail(selectedOrderDetail.orderId || selectedOrderDetail.id, selectedOrderDetail.customerEmail)}
                           >
                             <Mail size={12} />
-                            <span>{selectedOrderDetail.delayEmailSent ? 'Resend Apology Email' : 'Send Apology Email Now'}</span>
+                            <span>{isOrderApologyDispatched(selectedOrderDetail) ? 'Resend Apology Email' : 'Send Apology Email Now'}</span>
                           </button>
                         </div>
                       )}

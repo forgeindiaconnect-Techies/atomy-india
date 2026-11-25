@@ -223,17 +223,29 @@
   }
 }
 
+.quick-strip-desktop-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .live-status-title {
   font-weight: 700;
   color: #0f172a;
+  font-size: 13.5px;
 }
 
 .live-store-tag {
   background-color: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
   color: #475569;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .quick-strip-right {
@@ -926,6 +938,8 @@
 .primary-action-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   gap: 8px;
   background: #08267e;
   color: #ffffff;

@@ -57,7 +57,7 @@
 }
 
 .cst-breadcrumb .bread-link:hover {
-  color: #0096e6;
+  color: #08267e;
   text-decoration: underline;
 }
 
@@ -67,7 +67,7 @@
 }
 
 .cst-breadcrumb .bread-active {
-  color: #0096e6;
+  color: #08267e;
   font-weight: 600;
 }
 
@@ -75,23 +75,23 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: #0096e6;
+  background-color: #08267e;
   color: #ffffff;
-  border: 1px solid #0096e6;
+  border: 1px solid #08267e;
   padding: 7px 16px;
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(0, 150, 230, 0.2);
+  box-shadow: 0 2px 6px rgba(8, 38, 126, 0.2);
 }
 
 .cst-pdf-download-btn:hover {
-  background-color: #0082c8;
-  border-color: #0082c8;
+  background-color: #051a57;
+  border-color: #051a57;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 150, 230, 0.3);
+  box-shadow: 0 4px 10px rgba(8, 38, 126, 0.3);
 }
 
 /* 2. Visual Banner */
@@ -143,11 +143,11 @@
 }
 
 .cst-tab-btn:hover {
-  color: #0096e6;
+  color: #08267e;
 }
 
 .cst-tab-btn.active {
-  color: #0096e6;
+  color: #08267e;
   font-weight: 700;
 }
 
@@ -158,7 +158,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background-color: #0096e6;
+  background-color: #08267e;
 }
 
 /* 4. Section Header Block */
@@ -219,8 +219,8 @@
 }
 
 .cst-class-card:hover {
-  border-color: #0096e6;
-  box-shadow: 0 4px 14px rgba(0, 150, 230, 0.12);
+  border-color: #08267e;
+  box-shadow: 0 4px 14px rgba(8, 38, 126, 0.12);
   transform: translateY(-2px);
 }
 
@@ -232,7 +232,7 @@
   top: calc(50% - 9px);
   width: 0;
   height: 0;
-  border-bottom: #0096e6 solid 13px;
+  border-bottom: #08267e solid 13px;
   border-left: transparent solid 13px;
   transform: rotate(-45deg);
   z-index: 2;
@@ -252,12 +252,12 @@
 }
 
 .cst-class-icon {
-  color: #0096e6;
+  color: #08267e;
   flex-shrink: 0;
 }
 
 .cst-class-title {
-  color: #0096e6;
+  color: #08267e;
   font-weight: 700;
   font-size: 15px;
   line-height: 1.25;
@@ -310,7 +310,7 @@
 .cst-master-name {
   font-size: 14.5px;
   font-weight: 600;
-  color: #0096e6;
+  color: #08267e;
 }
 
 /* Tables matching Atomy India standards */
@@ -361,13 +361,13 @@
 
 .cst-data-table .inr-cell {
   font-weight: 700;
-  color: #0096e6;
+  color: #08267e;
 }
 
 /* Callout notes */
 .cst-note-callout {
   background-color: #f8fafc;
-  border-left: 3px solid #0096e6;
+  border-left: 3px solid #08267e;
   padding: 14px 18px;
   margin: 16px 0 32px 0;
   font-size: 13px;
