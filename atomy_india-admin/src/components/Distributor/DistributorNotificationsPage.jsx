@@ -400,7 +400,7 @@ export default function DistributorNotificationsPage({
                       }}
                       title="Permanently delete notification"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={14} color="#dc2626" />
                       <span className="mobile-only-delete-text">Delete</span>
                     </button>
                   </div>
