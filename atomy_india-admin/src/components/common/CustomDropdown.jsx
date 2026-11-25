@@ -80,14 +80,14 @@ export default function CustomDropdown({
           padding: '9px 12px',
           background: disabled ? '#f1f5f9' : '#ffffff',
           color: selectedOpt ? '#0f172a' : '#94a3b8',
-          border: isOpen ? '1.5px solid #00A3E0' : '1.5px solid #cbd5e1',
+          border: isOpen ? '1.5px solid #08267e' : '1.5px solid #cbd5e1',
           borderRadius: '8px',
           fontSize: '13px',
           fontWeight: 600,
           cursor: disabled ? 'not-allowed' : 'pointer',
           textAlign: 'left',
           boxSizing: 'border-box',
-          boxShadow: isOpen ? '0 0 0 3px rgba(0, 163, 224, 0.12)' : 'none',
+          boxShadow: isOpen ? '0 0 0 3px rgba(8, 38, 126, 0.12)' : 'none',
           transition: 'all 0.15s ease',
           ...triggerStyle
         }}
@@ -166,7 +166,7 @@ export default function CustomDropdown({
                     justifyContent: 'space-between',
                     gap: '8px',
                     boxSizing: 'border-box',
-                    background: isSelected ? '#f0f9ff' : '#ffffff',
+                    background: isSelected ? '#eef2ff' : '#ffffff',
                     border: 'none',
                     borderBottom: idx < normalizedOptions.length - 1 ? '1px solid #f1f5f9' : 'none',
                     cursor: 'pointer',
@@ -177,7 +177,7 @@ export default function CustomDropdown({
                     <div style={{
                       fontSize: '13px',
                       fontWeight: isSelected ? 700 : 500,
-                      color: isSelected ? '#00A3E0' : '#1e293b',
+                      color: isSelected ? '#08267e' : '#1e293b',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -192,8 +192,8 @@ export default function CustomDropdown({
                           borderRadius: '5px',
                           fontSize: '11px',
                           fontWeight: 800,
-                          background: opt.bg || '#e0f2fe',
-                          color: opt.color || '#0284c7'
+                          background: opt.bg || '#eef2ff',
+                          color: opt.color || '#08267e'
                         }}>
                           {opt.label}
                         </span>
@@ -207,7 +207,7 @@ export default function CustomDropdown({
                       </div>
                     )}
                   </div>
-                  {isSelected && <Check size={14} color="#00A3E0" strokeWidth={2.5} style={{ flexShrink: 0 }} />}
+                  {isSelected && <Check size={14} color="#08267e" strokeWidth={2.5} style={{ flexShrink: 0 }} />}
                 </button>
               );
             })

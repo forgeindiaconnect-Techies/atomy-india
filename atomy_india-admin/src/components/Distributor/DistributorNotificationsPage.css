@@ -39,8 +39,8 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: #e0f2fe;
-  color: #0284c7;
+  background: #eef2ff;
+  color: #08267e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -165,8 +165,8 @@
 
 .notifs-search-input:focus {
   background: #ffffff;
-  border-color: #0284c7;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+  border-color: #08267e;
+  box-shadow: 0 0 0 3px rgba(8, 38, 126, 0.12);
 }
 
 .notifs-search-clear {
@@ -222,9 +222,9 @@
 }
 
 .notif-filter-pill.active {
-  background: #0284c7;
+  background: #08267e;
   color: #ffffff;
-  border-color: #0284c7;
+  border-color: #08267e;
 }
 
 .pill-count {
@@ -278,7 +278,7 @@
 
 .notif-card-item.is-unread {
   background: #f8fafc;
-  border-left: 4px solid #0284c7;
+  border-left: 4px solid #08267e;
 }
 
 .notif-card-item.is-unread.delayed_order {
@@ -318,8 +318,8 @@
 }
 
 .notif-type-icon-box.order {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: #eef2ff;
+  color: #08267e;
 }
 
 .notif-type-icon-box.pickup {
@@ -383,7 +383,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #0284c7;
+  background: #08267e;
   margin-left: auto;
 }
 
@@ -417,8 +417,8 @@
   display: inline-block;
   margin-top: 6px;
   font-size: 11px;
-  color: #0284c7;
-  background: #e0f2fe;
+  color: #08267e;
+  background: #eef2ff;
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -450,16 +450,17 @@
 }
 
 .notif-row-btn.primary-btn {
-  background: #e0f2fe;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
+  background: #08267e;
+  color: #ffffff;
+  border: 1px solid #08267e;
 }
 
 .notif-row-btn.primary-btn:hover,
 .notif-row-btn.primary-btn:focus,
 .notif-row-btn.primary-btn:active {
-  background: #0284c7;
+  background: #051a57;
   color: #ffffff;
+  border-color: #051a57;
 }
 
 .notif-row-btn.toggle-read-btn {

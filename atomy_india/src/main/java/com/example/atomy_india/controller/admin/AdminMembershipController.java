@@ -43,24 +43,97 @@ public class AdminMembershipController {
 
     @GetMapping("/members")
     public ResponseEntity<List<Membership>> getAllMembers() {
-        List<Membership> list = membershipRepository.findAllByOrderByCreatedAtDesc();
+        List<Membership> rawList = membershipRepository.findAllByOrderByCreatedAtDesc();
         LocalDateTime now = LocalDateTime.now();
-        boolean modified = false;
-        for (Membership m : list) {
-            boolean isExpired = m.getExpiryDate() != null && (
-                m.getExpiryDate().isBefore(now) ||
-                !m.getExpiryDate().toLocalDate().isAfter(java.time.LocalDate.now())
-            );
+
+        Map<String, Membership> byEmail = new LinkedHashMap<>();
+        List<Membership> toDelete = new ArrayList<>();
+
+        for (Membership m : rawList) {
+            boolean isExpired = m.getExpiryDate() != null && m.getExpiryDate().isBefore(now);
             if ("ACTIVE".equalsIgnoreCase(m.getStatus()) && isExpired) {
                 m.setStatus("EXPIRED");
                 membershipRepository.save(m);
-                modified = true;
+            }
+
+            String emailKey = m.getCustomerEmail() != null ? m.getCustomerEmail().trim().toLowerCase() : "";
+            if (emailKey.isEmpty()) {
+                continue;
+            }
+
+            if (!byEmail.containsKey(emailKey)) {
+                // Ensure purchase history has at least current cycle
+                if (m.getPurchaseHistory().isEmpty() && m.getStartDate() != null) {
+                    Map<String, Object> initHistory = new HashMap<>();
+                    initHistory.put("plan", m.getPlan());
+                    initHistory.put("amountPaid", m.getAmountPaid());
+                    initHistory.put("paymentMethod", m.getPaymentMethod());
+                    initHistory.put("paymentId", m.getPaymentId());
+                    initHistory.put("startDate", m.getStartDate().toString());
+                    initHistory.put("expiryDate", m.getExpiryDate() != null ? m.getExpiryDate().toString() : null);
+                    initHistory.put("status", m.getStatus());
+                    m.getPurchaseHistory().add(initHistory);
+                }
+                byEmail.put(emailKey, m);
+            } else {
+                Membership primary = byEmail.get(emailKey);
+                // If m is ACTIVE while primary was EXPIRED, elevate m as primary
+                if ("ACTIVE".equalsIgnoreCase(m.getStatus()) && !"ACTIVE".equalsIgnoreCase(primary.getStatus())) {
+                    toDelete.add(primary);
+                    if (!primary.getPurchaseHistory().isEmpty()) {
+                        m.getPurchaseHistory().addAll(primary.getPurchaseHistory());
+                    } else if (primary.getStartDate() != null) {
+                        Map<String, Object> oldItem = new HashMap<>();
+                        oldItem.put("plan", primary.getPlan());
+                        oldItem.put("amountPaid", primary.getAmountPaid());
+                        oldItem.put("paymentMethod", primary.getPaymentMethod());
+                        oldItem.put("paymentId", primary.getPaymentId());
+                        oldItem.put("startDate", primary.getStartDate().toString());
+                        oldItem.put("expiryDate", primary.getExpiryDate() != null ? primary.getExpiryDate().toString() : null);
+                        oldItem.put("status", primary.getStatus());
+                        m.getPurchaseHistory().add(oldItem);
+                    }
+                    byEmail.put(emailKey, m);
+                } else {
+                    toDelete.add(m);
+                    if (!m.getPurchaseHistory().isEmpty()) {
+                        for (Map<String, Object> h : m.getPurchaseHistory()) {
+                            if (!primary.getPurchaseHistory().contains(h)) {
+                                primary.getPurchaseHistory().add(h);
+                            }
+                        }
+                    } else if (m.getStartDate() != null) {
+                        Map<String, Object> oldItem = new HashMap<>();
+                        oldItem.put("plan", m.getPlan());
+                        oldItem.put("amountPaid", m.getAmountPaid());
+                        oldItem.put("paymentMethod", m.getPaymentMethod());
+                        oldItem.put("paymentId", m.getPaymentId());
+                        oldItem.put("startDate", m.getStartDate().toString());
+                        oldItem.put("expiryDate", m.getExpiryDate() != null ? m.getExpiryDate().toString() : null);
+                        oldItem.put("status", m.getStatus());
+                        primary.getPurchaseHistory().add(oldItem);
+                    }
+                }
             }
         }
-        if (modified) {
-            list = membershipRepository.findAllByOrderByCreatedAtDesc();
+
+        // Clean up redundant duplicate rows from database
+        for (Membership dup : toDelete) {
+            try {
+                membershipRepository.delete(dup);
+            } catch (Exception ignored) {}
         }
-        return ResponseEntity.ok(list);
+
+        List<Membership> uniqueMembers = new ArrayList<>(byEmail.values());
+        for (Membership u : uniqueMembers) {
+            int histCount = u.getPurchaseHistory() != null ? u.getPurchaseHistory().size() : 1;
+            u.setTimesPurchased(Math.max(u.getTimesPurchased(), histCount));
+            try {
+                membershipRepository.save(u);
+            } catch (Exception ignored) {}
+        }
+
+        return ResponseEntity.ok(uniqueMembers);
     }
 
     @PostMapping("/members")

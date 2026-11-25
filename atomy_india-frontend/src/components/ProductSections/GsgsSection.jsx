@@ -116,8 +116,9 @@ export default function GsgsSection({
                     </h3>
                     <ProductPriceDisplay product={product} isMember={isMember} hidePercentBadge={showRibbon} />
 
+                    {/* Showcase Only - Non-clickable likes indicator */}
                     <div className="product-meta-row">
-                      <div className="likes-counter">
+                      <div className="likes-counter" style={{ cursor: 'default', pointerEvents: 'none', userSelect: 'none' }}>
                         <Heart
                           size={14}
                           fill={isLiked ? "#e53935" : "none"}

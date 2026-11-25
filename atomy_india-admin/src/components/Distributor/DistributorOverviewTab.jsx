@@ -266,7 +266,8 @@ export default function DistributorOverviewTab({
               {todayOrdersCount} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>orders</span>
             </div>
             <div className="kpi-curve-sub">
-              Direct public consumer orders received • <span style={{ color: '#15803d', fontWeight: 600 }}>View Orders →</span>
+              <span className="kpi-sub-desc">Direct public consumer orders received</span>
+              <span className="kpi-sub-action" style={{ color: '#15803d' }}>View Orders →</span>
             </div>
           </div>
           <div className="kpi-curve-right-wing">
@@ -282,7 +283,7 @@ export default function DistributorOverviewTab({
         {/* Card 2: Today's Total Sale */}
         <div 
           className="kpi-curve-card interactive-kpi-card" 
-          style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
+          style={{ '--accent-color': '#08267e', cursor: 'pointer' }}
           onClick={() => onNavigateTab('finance')}
           title="View Today's Financial Settlement & Details"
         >
@@ -293,15 +294,16 @@ export default function DistributorOverviewTab({
               ₹ {todaySale.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="kpi-curve-sub">
-              From <strong>{todayOrdersCount} orders</strong> placed today • <span style={{ color: '#0284c7', fontWeight: 600 }}>View Finance →</span>
+              <span className="kpi-sub-desc">From <strong>{todayOrdersCount} orders</strong> placed today</span>
+              <span className="kpi-sub-action" style={{ color: '#08267e' }}>View Finance →</span>
             </div>
           </div>
           <div className="kpi-curve-right-wing">
             <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
-              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0f2fe" />
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#eef2ff" />
             </svg>
             <div className="kpi-curve-icon-badge">
-              <TrendingUp size={22} color="#0284c7" />
+              <TrendingUp size={22} color="#08267e" />
             </div>
           </div>
         </div>
@@ -309,7 +311,7 @@ export default function DistributorOverviewTab({
         {/* Card 3: Overall Total Sale */}
         <div 
           className="kpi-curve-card interactive-kpi-card" 
-          style={{ '--accent-color': '#334155', cursor: 'pointer' }}
+          style={{ '--accent-color': '#08267e', cursor: 'pointer' }}
           onClick={() => onNavigateTab('finance')}
           title="Open Financial Ledger, Refunds & Settlements"
         >
@@ -320,7 +322,8 @@ export default function DistributorOverviewTab({
               ₹ {overallSale.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="kpi-curve-sub">
-              Total lifetime gross revenue in territory • <span style={{ color: '#00a3e0', fontWeight: 600 }}>Ledger &amp; Audit →</span>
+              <span className="kpi-sub-desc">Total lifetime gross revenue in territory</span>
+              <span className="kpi-sub-action" style={{ color: '#08267e' }}>Ledger &amp; Audit →</span>
             </div>
           </div>
           <div className="kpi-curve-right-wing">
@@ -328,7 +331,7 @@ export default function DistributorOverviewTab({
               <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#f1f5f9" />
             </svg>
             <div className="kpi-curve-icon-badge">
-              <IndianRupee size={22} color="#334155" />
+              <IndianRupee size={22} color="#08267e" />
             </div>
           </div>
         </div>
@@ -347,7 +350,8 @@ export default function DistributorOverviewTab({
               ₹ {totalComm.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="kpi-curve-sub">
-              {commRate}% Margin per delivery • <span style={{ color: '#ea580c', fontWeight: 600 }}>Settlements →</span>
+              <span className="kpi-sub-desc">{commRate}% Margin per delivery</span>
+              <span className="kpi-sub-action" style={{ color: '#ea580c' }}>Settlements →</span>
             </div>
           </div>
           <div className="kpi-curve-right-wing">
@@ -374,7 +378,8 @@ export default function DistributorOverviewTab({
               {customers.length} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>Customers</span>
             </div>
             <div className="kpi-curve-sub">
-              Registered territory buyers • <span style={{ color: '#7c3aed', fontWeight: 600 }}>View Customers →</span>
+              <span className="kpi-sub-desc">Registered territory buyers</span>
+              <span className="kpi-sub-action" style={{ color: '#7c3aed' }}>View Customers →</span>
             </div>
           </div>
           <div className="kpi-curve-right-wing">
@@ -390,7 +395,7 @@ export default function DistributorOverviewTab({
         {/* Card 6: In-Stock Health */}
         <div 
           className="kpi-curve-card interactive-kpi-card" 
-          style={{ '--accent-color': '#0284c7', cursor: 'pointer' }}
+          style={{ '--accent-color': '#08267e', cursor: 'pointer' }}
           onClick={() => onNavigateTab('inventory')}
           title="Manage Warehouse Inventory & Stock Levels"
         >
@@ -401,15 +406,16 @@ export default function DistributorOverviewTab({
               {stockStats.inStockCount} <span style={{ fontSize: '15px', fontWeight: 600, color: '#64748b' }}>In-Stock</span>
             </div>
             <div className="kpi-curve-sub">
-              Out of {stockStats.totalSkus} catalog items • <span style={{ color: '#0284c7', fontWeight: 600 }}>Manage Stock →</span>
+              <span className="kpi-sub-desc">Out of {stockStats.totalSkus} catalog items</span>
+              <span className="kpi-sub-action" style={{ color: '#08267e' }}>Manage Stock →</span>
             </div>
           </div>
           <div className="kpi-curve-right-wing">
             <svg viewBox="0 0 120 140" preserveAspectRatio="none" className="kpi-curve-wing-svg">
-              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#e0f2fe" />
+              <path d="M 50 0 C 15 35 15 105 50 140 L 120 140 L 120 0 Z" fill="#eef2ff" />
             </svg>
             <div className="kpi-curve-icon-badge">
-              <Boxes size={22} color="#0284c7" />
+              <Boxes size={22} color="#08267e" />
             </div>
           </div>
         </div>
@@ -420,13 +426,13 @@ export default function DistributorOverviewTab({
         {/* Step 01: PLACED */}
         <div
           className="kpi-step-card"
-          style={{ '--step-bg': '#f0f9ff', '--step-color': '#0284c7' }}
+          style={{ '--step-bg': '#eef2ff', '--step-color': '#08267e' }}
           onClick={() => onNavigateTab('orders')}
           title="Filter New Placed Orders"
         >
           <div className="kpi-step-top-header">
             <div className="kpi-step-icon-badge">
-              <Package size={20} color="#0284c7" />
+              <Package size={20} color="#08267e" />
             </div>
             <div className="kpi-step-number">01</div>
             <svg viewBox="0 0 100 24" preserveAspectRatio="none" className="kpi-step-wave-svg">
@@ -543,7 +549,7 @@ export default function DistributorOverviewTab({
         <div className="atomy-card-box">
           <div className="card-box-header">
             <div className="box-title-group">
-              <Package size={18} color="#00A3E0" />
+              <Package size={18} color="#08267e" />
               <h3>Recent Customer Orders</h3>
             </div>
             <button className="link-button" onClick={() => onNavigateTab('orders')}>
@@ -597,7 +603,7 @@ export default function DistributorOverviewTab({
         <div className="atomy-card-box">
           <div className="card-box-header">
             <div className="box-title-group">
-              <Boxes size={18} color="#00A3E0" />
+              <Boxes size={18} color="#08267e" />
               <h3>Inventory &amp; Stock Health</h3>
             </div>
             <button className="link-button" onClick={() => onNavigateTab('inventory')}>

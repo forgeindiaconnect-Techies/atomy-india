@@ -47,9 +47,9 @@
 }
 
 .dist-filter-pill.active {
-  background: #0284c7;
+  background: #08267e;
   color: #ffffff;
-  border-color: #0284c7;
+  border-color: #08267e;
 }
 
 .dist-orders-card {
@@ -110,8 +110,8 @@
 }
 
 .dist-status-badge.shipped {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: #eef2ff;
+  color: #08267e;
 }
 
 .dist-status-badge.delivered {
@@ -126,7 +126,7 @@
 
 .dist-btn-action {
   padding: 6px 14px;
-  background: #0284c7;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -140,7 +140,7 @@
 }
 
 .dist-btn-action:hover {
-  background: #0369a1;
+  background: #051a57;
 }
 
 .dist-empty-box {
@@ -296,8 +296,8 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  background: #e0f2fe;
-  color: #0284c7;
+  background: #eef2ff;
+  color: #08267e;
 }
 
 .dist-invoice-download-btn {
@@ -305,7 +305,7 @@
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  background: #0284c7;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
@@ -316,7 +316,7 @@
 }
 
 .dist-invoice-download-btn:hover {
-  background: #0369a1;
+  background: #051a57;
 }
 
 .dist-invoice-grid {

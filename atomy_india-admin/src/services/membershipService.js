@@ -120,7 +120,7 @@ export async function fetchMembersFromBackend() {
         const list = await res.json();
         if (Array.isArray(list)) {
           // Normalize real database records
-          const normalized = list.map(m => {
+          const rawNormalized = list.map(m => {
             const startDateStr = m.startDate ? (typeof m.startDate === 'string' ? m.startDate.split('T')[0] : m.startDate) : (m.createdAt ? String(m.createdAt).split('T')[0] : '');
             let expiryDateStr = m.expiryDate ? (typeof m.expiryDate === 'string' ? m.expiryDate.split('T')[0] : m.expiryDate) : '';
             if (!expiryDateStr && startDateStr) {
@@ -149,9 +149,50 @@ export async function fetchMembersFromBackend() {
               joinedAt: startDateStr,
               enrolledAt: startDateStr,
               expiryDate: expiryDateStr,
-              createdAt: m.createdAt || startDateStr
+              createdAt: m.createdAt || startDateStr,
+              timesPurchased: m.timesPurchased || (Array.isArray(m.purchaseHistory) ? m.purchaseHistory.length : 1),
+              purchaseHistory: Array.isArray(m.purchaseHistory) ? m.purchaseHistory : []
             };
           });
+
+          // Deduplicate by email so each customer only has ONE consolidated membership
+          const emailMap = new Map();
+          for (const item of rawNormalized) {
+            const key = (item.customerEmail || item.email || '').toLowerCase().trim();
+            if (!key) continue;
+            if (!emailMap.has(key)) {
+              emailMap.set(key, { ...item });
+            } else {
+              const prev = emailMap.get(key);
+              // Prefer ACTIVE record as primary
+              const primary = item.status === 'ACTIVE' && prev.status !== 'ACTIVE' ? { ...item } : prev;
+              const secondary = primary === item ? prev : item;
+
+              // Consolidate purchase history
+              const combinedHistory = [
+                ...(Array.isArray(primary.purchaseHistory) ? primary.purchaseHistory : []),
+                ...(Array.isArray(secondary.purchaseHistory) ? secondary.purchaseHistory : [])
+              ];
+
+              // If secondary has a purchase not recorded in primary's history
+              if (secondary.startDate && !combinedHistory.some(h => h.startDate === secondary.startDate)) {
+                combinedHistory.push({
+                  plan: secondary.plan,
+                  amountPaid: secondary.amountPaid || (secondary.plan === 'ANNUAL' ? 2499 : 299),
+                  paymentMethod: secondary.paymentMethod || 'UPI',
+                  startDate: secondary.startDate,
+                  expiryDate: secondary.expiryDate,
+                  status: secondary.status
+                });
+              }
+
+              primary.purchaseHistory = combinedHistory;
+              primary.timesPurchased = Math.max(combinedHistory.length, (primary.timesPurchased || 1) + 1);
+              emailMap.set(key, primary);
+            }
+          }
+
+          const normalized = Array.from(emailMap.values());
           localStorage.setItem(MEMBERS_KEY, JSON.stringify(normalized));
           window.dispatchEvent(new CustomEvent('atomy:members-registry-updated', { detail: normalized }));
           return normalized;

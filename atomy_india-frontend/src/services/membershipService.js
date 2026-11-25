@@ -392,7 +392,7 @@ export async function enrollMembership(user, plan = 'ANNUAL', paymentDetails = {
     console.warn('Database membership save error, applying local fallback:', err);
   }
 
-  // 2. Format member record for UI cache
+  // 2. Format member record for UI cache & retain existing Member ID
   const now = new Date();
   const expiry = new Date();
   if (plan === 'ANNUAL') {
@@ -401,8 +401,38 @@ export async function enrollMembership(user, plan = 'ANNUAL', paymentDetails = {
     expiry.setMonth(expiry.getMonth() + 1);
   }
 
-  const memberRecord = savedMember || {
-    id: `ATM-MEM-${Math.floor(100 + Math.random() * 900)}`,
+  const existingReg = registry.find(m => (m.customerEmail || m.email || '').toLowerCase() === email);
+  const retainedId = (savedMember?.id || savedMember?.memberId) || existingReg?.id || existingReg?.memberId || `ATM-MEM-${Math.floor(100 + Math.random() * 900)}`;
+
+  const prevHistory = Array.isArray(savedMember?.purchaseHistory && savedMember.purchaseHistory.length > 0 ? savedMember.purchaseHistory : existingReg?.purchaseHistory)
+    ? (savedMember?.purchaseHistory || existingReg.purchaseHistory)
+    : (existingReg?.startDate ? [{
+        cycle: 1,
+        plan: existingReg.plan || 'MONTHLY',
+        amountPaid: existingReg.amountPaid || (existingReg.plan === 'ANNUAL' ? 2499 : 299),
+        paymentMethod: existingReg.paymentMethod || 'UPI',
+        startDate: existingReg.startDate,
+        expiryDate: existingReg.expiryDate,
+        status: 'EXPIRED'
+      }] : []);
+
+  const currentCycleItem = {
+    cycle: prevHistory.length + 1,
+    plan,
+    amountPaid,
+    paymentMethod,
+    paymentId,
+    startDate: now.toISOString().split('T')[0],
+    expiryDate: expiry.toISOString().split('T')[0],
+    status: 'ACTIVE'
+  };
+
+  const consolidatedHistory = [...prevHistory.filter(h => h.status !== 'ACTIVE'), currentCycleItem];
+
+  const memberRecord = {
+    ...(savedMember || {}),
+    id: retainedId,
+    memberId: retainedId,
     name,
     customerName: name,
     email,
@@ -417,32 +447,40 @@ export async function enrollMembership(user, plan = 'ANNUAL', paymentDetails = {
     paymentStatus: 'PAID',
     startDate: now.toISOString().split('T')[0],
     expiryDate: expiry.toISOString().split('T')[0],
-    lifetimePv: 0,
-    totalSavings: 0
+    timesPurchased: consolidatedHistory.length,
+    purchaseHistory: consolidatedHistory,
+    lifetimePv: savedMember?.lifetimePv || existingReg?.lifetimePv || 0,
+    totalSavings: savedMember?.totalSavings || existingReg?.totalSavings || 0
   };
 
   const updatedRegistry = [memberRecord, ...registry.filter(m => (m.customerEmail || m.email || '').toLowerCase() !== email)];
   saveMembersRegistry(updatedRegistry);
 
-  // Update current user session if applicable
+  // Update current user session in localStorage so customer dashboard immediately reflects active status
   try {
-    const sessionUser = JSON.parse(localStorage.getItem('atomy_current_user') || '{}');
-    if (sessionUser && (sessionUser.email === email || sessionUser.username === user.username)) {
+    const rawSession = localStorage.getItem('atomy_current_user');
+    const sessionUser = rawSession ? JSON.parse(rawSession) : {};
+    if (sessionUser && (sessionUser.email === email || sessionUser.username === user.username || !sessionUser.email)) {
       sessionUser.isMember = true;
       sessionUser.membership = {
         active: true,
         status: 'ACTIVE',
         plan,
-        startDate: memberRecord.startDate || memberRecord.joinedAt || now.toISOString().split('T')[0],
-        joinedAt: memberRecord.startDate || memberRecord.joinedAt || now.toISOString().split('T')[0],
+        startDate: memberRecord.startDate,
+        joinedAt: memberRecord.startDate,
         expiryDate: memberRecord.expiryDate,
-        id: memberRecord.id,
-        memberId: memberRecord.id
+        id: retainedId,
+        memberId: retainedId,
+        timesPurchased: memberRecord.timesPurchased,
+        purchaseHistory: memberRecord.purchaseHistory
       };
       localStorage.setItem('atomy_current_user', JSON.stringify(sessionUser));
+      localStorage.setItem('atomy_current_membership_data', JSON.stringify(memberRecord));
+      window.dispatchEvent(new CustomEvent('atomy:auth-change', { detail: sessionUser }));
     }
   } catch {}
 
   window.dispatchEvent(new CustomEvent('atomy:membership-activated', { detail: memberRecord }));
+  window.dispatchEvent(new CustomEvent('atomy:membership-updated', { detail: memberRecord }));
   return memberRecord;
 }

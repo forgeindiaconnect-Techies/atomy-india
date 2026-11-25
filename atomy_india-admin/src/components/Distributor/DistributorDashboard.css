@@ -31,7 +31,7 @@
 }
 
 .dist-badge-pill {
-  background: #0284c7;
+  background: #08267e;
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
@@ -42,8 +42,8 @@
 }
 
 .dist-territory-pill {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: #eef2ff;
+  color: #08267e;
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;
@@ -51,7 +51,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c7d2fe;
 }
 
 .dist-actions-right {
@@ -100,7 +100,7 @@
 }
 
 .dist-kpi-banner {
-  background: linear-gradient(135deg, #002c6c 0%, #0369a1 100%);
+  background: linear-gradient(135deg, #002c6c 0%, #08267e 100%);
   color: #ffffff;
   padding: 24px 32px;
   display: flex;
@@ -186,12 +186,12 @@
 }
 
 .dist-nav-tab:hover {
-  color: #0284c7;
+  color: #08267e;
 }
 
 .dist-nav-tab.active {
-  color: #0284c7;
-  border-bottom-color: #0284c7;
+  color: #08267e;
+  border-bottom-color: #08267e;
 }
 
 .dist-toast-popup {

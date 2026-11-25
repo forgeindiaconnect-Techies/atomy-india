@@ -542,7 +542,7 @@ export default function ProductEditorPage({
         {/* SECTION 1: Product Classification & Identity */}
         <div className="editor-card-panel">
           <div className="panel-header">
-            <Boxes size={20} color="#00A3E0" />
+            <Boxes size={20} color="#08267e" />
             <div>
               <h3>1. Product Identity & Category</h3>
               <p>Basic information displayed in catalog browsing and search autocomplete</p>
@@ -591,7 +591,7 @@ export default function ProductEditorPage({
                         }}
                       >
                         <span>{opt.label}</span>
-                        {formData.categoryId === opt.value && <Check size={14} color="#00A3E0" />}
+                        {formData.categoryId === opt.value && <Check size={14} color="#08267e" />}
                       </button>
                     ))}
                   </div>
@@ -626,7 +626,7 @@ export default function ProductEditorPage({
         {/* SECTION 2: Pricing, Automated Discount Deduction, DP Price & Stock */}
         <div className="editor-card-panel">
           <div className="panel-header">
-            <IndianRupee size={20} color="#00A3E0" />
+            <IndianRupee size={20} color="#08267e" />
             <div>
               <h3>2. Pricing, Discount Deduction, DP (Distributor Price) & Stock</h3>
               <p>Commercial pricing, automated discount deductions, member distributor rates, and fulfillment</p>
@@ -784,7 +784,7 @@ export default function ProductEditorPage({
         {/* SECTION 3: Primary Showcase Image & Badges */}
         <div className="editor-card-panel">
           <div className="panel-header">
-            <ImageIcon size={20} color="#00A3E0" />
+            <ImageIcon size={20} color="#08267e" />
             <div>
               <h3>3. Primary Product Photography & Consumer Badges</h3>
               <p>Primary thumbnail shown in catalog grid, cart, and order sheets</p>
@@ -902,9 +902,9 @@ export default function ProductEditorPage({
                             fontSize: '12px',
                             fontWeight: 600,
                             cursor: 'pointer',
-                            border: isSelected ? '1.5px solid #00A3E0' : '1px solid #cbd5e1',
-                            background: isSelected ? '#e0f2fe' : '#ffffff',
-                            color: isSelected ? '#0284c7' : '#64748b',
+                            border: isSelected ? '1.5px solid #08267e' : '1px solid #cbd5e1',
+                            background: isSelected ? '#eef2ff' : '#ffffff',
+                            color: isSelected ? '#08267e' : '#64748b',
                             transition: 'all 0.15s ease'
                           }}
                         >
@@ -1182,7 +1182,7 @@ export default function ProductEditorPage({
                       }}
                     >
                       <span>{opt.label}</span>
-                      {activeHeading === opt.value && <Check size={13} color="#00A3E0" />}
+                      {activeHeading === opt.value && <Check size={13} color="#08267e" />}
                     </button>
                   ))}
                 </div>
@@ -1316,7 +1316,7 @@ export default function ProductEditorPage({
           </div>
 
           <div className="word-canvas-footer-tip">
-            <HelpCircle size={14} color="#00A3E0" />
+            <HelpCircle size={14} color="#08267e" />
             <span>
               <strong>Tip:</strong> You can copy any image from your computer or internet and press <code>Ctrl+V</code> inside the document to paste photos instantly, or drag & drop image files onto the page!
             </span>

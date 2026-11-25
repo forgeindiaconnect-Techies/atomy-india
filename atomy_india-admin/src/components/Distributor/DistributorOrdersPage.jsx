@@ -336,11 +336,11 @@ export default function DistributorOrdersPage({
           .invoice-box { max-width: 800px; margin: auto; border: 1px solid #cbd5e1; padding: 28px; border-radius: 8px; }
           .header-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
           .header-table td { vertical-align: top; }
-          .brand-title { font-size: 24px; font-weight: 800; color: #00A3E0; letter-spacing: -0.5px; }
+          .brand-title { font-size: 24px; font-weight: 800; color: #08267e; letter-spacing: -0.5px; }
           .brand-subtitle { font-size: 11.5px; color: #475569; font-weight: 600; margin-top: 2px; }
           .invoice-title { font-size: 20px; font-weight: 800; color: #0f172a; text-align: right; }
           .invoice-meta { font-size: 12px; color: #475569; text-align: right; margin-top: 4px; }
-          .section-divider { border-top: 2px solid #00A3E0; margin: 18px 0; }
+          .section-divider { border-top: 2px solid #08267e; margin: 18px 0; }
           .grid-2 { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
           .grid-2 td { width: 50%; vertical-align: top; padding: 6px 10px; font-size: 12px; }
           .box-panel { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 14px; }
@@ -349,7 +349,7 @@ export default function DistributorOrdersPage({
           .items-table th { background: #f1f5f9; padding: 10px; text-align: left; font-size: 11.5px; text-transform: uppercase; color: #475569; border-bottom: 2px solid #cbd5e1; }
           .summary-table { width: 45%; margin-left: auto; border-collapse: collapse; margin-bottom: 24px; }
           .summary-table td { padding: 6px 10px; font-size: 12px; }
-          .summary-table tr.total-row td { font-size: 15px; font-weight: 800; color: #00A3E0; border-top: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; }
+          .summary-table tr.total-row td { font-size: 15px; font-weight: 800; color: #08267e; border-top: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1; }
           .footer-note { font-size: 11px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 24px; }
         </style>
       </head>
@@ -808,7 +808,7 @@ export default function DistributorOrdersPage({
                         </span>
                       </div>
                       <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>
-                        Deadline: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#0369a1' }}>{sla.targetDateStr}</strong>
+                        Deadline: <strong style={{ color: sla.isDelayed ? '#dc2626' : '#08267e' }}>{sla.targetDateStr}</strong>
                       </div>
                       <div style={{ marginTop: '4px' }}>
                         {sla.isDelivered ? (
@@ -860,7 +860,7 @@ export default function DistributorOrdersPage({
                       )}
                       <div style={{
                         fontSize: '11px',
-                        color: sla.isDelayed ? '#dc2626' : '#0284c7',
+                        color: sla.isDelayed ? '#dc2626' : '#08267e',
                         fontWeight: sla.isDelayed ? 700 : 600,
                         marginTop: '5px',
                         display: 'flex',
@@ -938,12 +938,12 @@ export default function DistributorOrdersPage({
                             badgeSub = 'Available at Counter';
                             badgeIcon = <Store size={12} color="#b45309" />;
                           } else if (currentStatus === 'PROCESSING') {
-                            badgeBg = '#e0f2fe';
-                            badgeBorder = '#bae6fd';
-                            badgeColor = '#0369a1';
+                            badgeBg = '#eef2ff';
+                            badgeBorder = '#c7d2fe';
+                            badgeColor = '#08267e';
                             badgeLabel = 'PREPARING';
                             badgeSub = 'Hub Staff Packing';
-                            badgeIcon = <Clock size={12} color="#0284c7" />;
+                            badgeIcon = <Clock size={12} color="#08267e" />;
                           } else if (currentStatus === 'PLACED') {
                             badgeBg = '#f0fdf4';
                             badgeBorder = '#bbf7d0';
@@ -976,12 +976,12 @@ export default function DistributorOrdersPage({
                             badgeSub = 'On Delivery Vehicle';
                             badgeIcon = <Truck size={12} color="#a21caf" />;
                           } else if (currentStatus === 'SHIPPED') {
-                            badgeBg = '#e0f2fe';
-                            badgeBorder = '#7dd3fc';
-                            badgeColor = '#0369a1';
+                            badgeBg = '#eef2ff';
+                            badgeBorder = '#c7d2fe';
+                            badgeColor = '#08267e';
                             badgeLabel = 'SHIPPED';
                             badgeSub = 'In Courier Transit';
-                            badgeIcon = <Truck size={12} color="#0284c7" />;
+                            badgeIcon = <Truck size={12} color="#08267e" />;
                           } else if (currentStatus === 'PROCESSING') {
                             badgeBg = '#fef3c7';
                             badgeBorder = '#fde68a';
@@ -1108,7 +1108,7 @@ export default function DistributorOrdersPage({
               </button>
               <div className="inspection-topbar-divider" />
               <div className="inspection-order-headline">
-                <Package size={22} color="#00A3E0" />
+                <Package size={22} color="#08267e" />
                 <h3>Order Inspection: <span className="inspection-order-id">{selectedOrderDetail.orderId || selectedOrderDetail.id}</span></h3>
                 <span className={`inspection-status-pill status-${(selectedOrderDetail.orderStatus || 'placed').toLowerCase()}`}>
                   {selectedOrderDetail.orderStatus || 'PLACED'}
@@ -1143,7 +1143,7 @@ export default function DistributorOrdersPage({
               <button
                 type="button"
                 className="inspection-action-btn download-invoice-btn"
-                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: 600, fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                style={{ background: '#08267e', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: 600, fontSize: '12.5px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
                 onClick={() => handleDownloadInvoice(selectedOrderDetail)}
                 title="Download Official Tax Invoice as PDF"
               >
@@ -1330,7 +1330,7 @@ export default function DistributorOrdersPage({
                       </div>
                       <div
                         className="meta-card-main"
-                        style={{ color: sla.isDelayed ? '#dc2626' : '#00A3E0', fontWeight: 700 }}
+                        style={{ color: sla.isDelayed ? '#dc2626' : '#08267e', fontWeight: 700 }}
                       >
                         {sla.targetDateStr ? `Deadline: ${sla.targetDateStr}` : getFormattedEstimatedDelivery(selectedOrderDetail)}
                       </div>
@@ -1537,7 +1537,7 @@ export default function DistributorOrdersPage({
             <div className="inspection-card invoice-settlement-card" style={{ padding: '22px 26px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', marginBottom: '20px' }}>
               <div className="invoice-settlement-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px', marginBottom: '16px', flexWrap: 'wrap', gap: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#eef2ff', color: '#08267e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FileText size={22} />
                   </div>
                   <div>
@@ -1552,7 +1552,7 @@ export default function DistributorOrdersPage({
                   <button
                     type="button"
                     className="invoice-action-btn primary"
-                    style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '9px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', transition: 'all 0.15s ease' }}
+                    style={{ background: '#08267e', color: '#ffffff', border: 'none', padding: '9px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', transition: 'all 0.15s ease' }}
                     onClick={() => handleDownloadInvoice(selectedOrderDetail)}
                     title="Download Official Tax Invoice as PDF"
                   >
@@ -1601,7 +1601,7 @@ export default function DistributorOrdersPage({
                     </div>
                     <div>
                       <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#64748b' }}>Invoice Grand Total</div>
-                      <div style={{ fontSize: '15px', fontWeight: 800, color: '#00A3E0', marginTop: '2px' }}>
+                      <div style={{ fontSize: '15px', fontWeight: 800, color: '#08267e', marginTop: '2px' }}>
                         ₹ {totalAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
                     </div>

@@ -407,7 +407,7 @@
 }
 
 .plan-box {
-  border: 2px solid #e2e8f0;
+  border: 2px solid #08267e;
   border-radius: 14px;
   padding: 28px;
   cursor: pointer;
@@ -419,12 +419,13 @@
 }
 
 .plan-box:hover {
-  border-color: #94a3b8;
+  border-color: #061a58;
 }
 
 .plan-box.active {
   border-color: #08267e;
   background-color: #f0f9ff;
+  box-shadow: 0 4px 16px rgba(8, 38, 126, 0.12);
 }
 
 .plan-box.featured {
@@ -468,7 +469,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid #cbd5e1;
+  border: 2px solid #08267e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -536,13 +537,18 @@
   width: 100%;
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #cbd5e1;
+  border: 1.5px solid #08267e;
   background: #ffffff;
-  color: #1e293b;
+  color: #08267e;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.plan-select-btn:hover {
+  background-color: #08267e;
+  color: #ffffff;
 }
 
 .plan-select-btn.btn-active {

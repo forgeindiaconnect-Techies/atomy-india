@@ -175,7 +175,7 @@
 .plan-card-option {
   position: relative;
   background-color: #ffffff;
-  border: 2px solid #cbd5e1;
+  border: 2px solid #08267e;
   border-radius: 10px;
   padding: 16px;
   cursor: pointer;
@@ -183,7 +183,7 @@
 }
 
 .plan-card-option:hover {
-  border-color: #08267e;
+  border-color: #061a58;
 }
 
 .plan-card-option.selected {

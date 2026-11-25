@@ -38,11 +38,11 @@ export default function DistributorEarningsPage({ stats, distributor }) {
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>Commission Rate</span>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#eef2ff', color: '#08267e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Percent size={18} />
             </div>
           </div>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#0369a1' }}>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#08267e' }}>
             {commRate}%
           </div>
           <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
@@ -74,7 +74,7 @@ export default function DistributorEarningsPage({ stats, distributor }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
           <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
             <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Distributor ID</div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#0284c7', marginTop: '4px' }}>{distributor?.distributorId}</div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#08267e', marginTop: '4px' }}>{distributor?.distributorId}</div>
           </div>
 
           <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>

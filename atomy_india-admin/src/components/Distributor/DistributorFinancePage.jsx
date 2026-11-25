@@ -509,7 +509,7 @@ export default function DistributorFinancePage({
           {/* Payment Method Distribution Strip */}
           <div className="payment-distribution-card">
             <div className="payment-dist-title">
-              <CreditCard size={17} color="#00a3e0" />
+              <CreditCard size={17} color="#08267e" />
               <span>Real-Time Payment Gateway &amp; Channel Settlement</span>
             </div>
             <div className="payment-methods-grid">
@@ -641,8 +641,9 @@ export default function DistributorFinancePage({
 
                         <td style={{ textAlign: 'center' }}>
                           <span style={{
-                            background: '#e0f2fe',
-                            color: '#0369a1',
+                            background: '#eef2ff',
+                            color: '#08267e',
+                            border: '1px solid #c7d2fe',
                             padding: '3px 8px',
                             borderRadius: '12px',
                             fontSize: '11.5px',
@@ -855,7 +856,7 @@ export default function DistributorFinancePage({
         <div className="finance-subtab-pane">
           <div className="rules-hero-card">
             <div className="rules-hero-header">
-              <ShieldCheck size={28} color="#00a3e0" />
+              <ShieldCheck size={28} color="#08267e" />
               <div>
                 <h3>Official Atomy India Cancellation, Refund &amp; Replacement Rules Engine</h3>
                 <p>Standard Operating Procedures (SOP) governing customer rights, regional hub authorizations, and financial accounting</p>
@@ -967,7 +968,7 @@ export default function DistributorFinancePage({
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#08267e' }}>
                   <Package size={20} />
                 </div>
                 <div>

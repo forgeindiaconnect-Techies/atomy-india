@@ -130,7 +130,7 @@ export default function DistributorNotificationsPage({
       case 'delivery':
         return { label: 'COMPLETED', bg: '#ecfdf5', color: '#047857' };
       case 'order':
-        return { label: 'CUSTOMER ORDER', bg: '#e0f2fe', color: '#0369a1' };
+        return { label: 'CUSTOMER ORDER', bg: '#eef2ff', color: '#08267e' };
       case 'support':
         return { label: 'CUSTOMER TICKET', bg: '#fef3c7', color: '#b45309' };
       case 'inventory':
@@ -414,7 +414,7 @@ export default function DistributorNotificationsPage({
       {/* Live Toast Confirmation */}
       {actionToast && (
         <div className="notifs-live-toast">
-          <CheckCircle2 size={16} color="#38bdf8" />
+          <CheckCircle2 size={16} color="#10b981" />
           <span>{actionToast}</span>
         </div>
       )}

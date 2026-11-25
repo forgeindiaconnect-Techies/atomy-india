@@ -338,8 +338,8 @@
 }
 
 .atomy-sites-close-btn:hover {
-  border-color: #00A3E0;
-  color: #00A3E0;
+  border-color: #08267e;
+  color: #08267e;
   background-color: #f0f9ff;
   transform: scale(1.05);
 }
@@ -372,7 +372,7 @@
 }
 
 .atomy-site-item:hover {
-  color: #00A3E0;
+  color: #08267e;
   background-color: #f8fafc;
   transform: translateX(2px);
 }
@@ -775,7 +775,7 @@
   height: 7.5px;
   background-color: #ef4444;
   border-radius: 50%;
-  border: 1.5px solid var(--atomy-blue, #00A3E0);
+  border: 1.5px solid var(--atomy-blue, #08267e);
 }
 
 .profile-action-container {
@@ -880,7 +880,7 @@
   border-radius: 4px;
   background: transparent;
   border: 1px solid transparent;
-  color: #00A3E0;
+  color: #08267e;
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
@@ -954,29 +954,29 @@
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border: 1px solid #bae6fd;
   border-radius: 20px;
-  color: #0369a1;
+  color: #08267e;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   user-select: none;
-  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.12);
+  box-shadow: 0 2px 6px rgba(8, 38, 126, 0.12);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .quick-menu-corner-pill:hover {
-  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-  border-color: #00A3E0;
-  color: #0284c7;
+  background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 100%);
+  border-color: #08267e;
+  color: #08267e;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.22);
+  box-shadow: 0 4px 12px rgba(8, 38, 126, 0.22);
 }
 
 .quick-menu-corner-pill.active {
-  background: #00A3E0;
-  border-color: #0087ba;
+  background: #08267e;
+  border-color: #051a57;
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(0, 163, 224, 0.35);
+  box-shadow: 0 4px 14px rgba(8, 38, 126, 0.35);
 }
 
 .quick-menu-corner-pill.active .pulse-ping {
@@ -1003,7 +1003,7 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background-color: #00A3E0;
+  background-color: #08267e;
   opacity: 0.75;
   animation: quickMenuPulsePing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
@@ -1013,7 +1013,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #00A3E0;
+  background-color: #08267e;
 }
 
 @keyframes quickMenuPulsePing {
@@ -1086,7 +1086,7 @@
   background-color: #ffffff;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
   border: 1px solid #e2e8f0;
-  border-top: 2px solid #00A3E0;
+  border-top: 2px solid #08267e;
   border-radius: 0 0 6px 6px;
   z-index: 1000;
   min-height: 384px;
@@ -1107,7 +1107,7 @@
 /* Left Sidebar - Vibrant Cyan Primary Categories */
 .category-popup-sidebar {
   width: 220px;
-  background-color: #00A3E0;
+  background-color: #08267e;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -1200,7 +1200,7 @@
 
 .category-subsidebar-item:hover {
   background-color: #f0f9ff;
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 600;
   padding-left: 18px;
 }
@@ -1380,7 +1380,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00A3E0 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #08267e 0%, #1e40af 100%);
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -1388,7 +1388,7 @@
   font-weight: 700;
   font-size: 14px;
   border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(8, 38, 126, 0.25);
   transition: transform 0.2s ease;
 }
 
@@ -1530,11 +1530,11 @@
 
 .admin-master-bell-btn:hover,
 .admin-master-bell-btn.active {
-  border-color: #00A3E0;
-  color: #00A3E0;
+  border-color: #08267e;
+  color: #08267e;
   background: #f0f9ff;
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 163, 224, 0.35);
+  box-shadow: 0 6px 18px rgba(8, 38, 126, 0.35);
 }
 
 .admin-master-bell-btn svg {
@@ -1582,10 +1582,10 @@
 }
 
 .admin-master-profile-pill:hover {
-  border-color: #00A3E0;
+  border-color: #08267e;
   background: #f8fafc;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 163, 224, 0.25);
+  box-shadow: 0 4px 12px rgba(8, 38, 126, 0.25);
 }
 
 .desktop-pin-text {
@@ -1600,14 +1600,14 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00A3E0, #0284c7);
+  background: linear-gradient(135deg, #08267e, #1e40af);
   color: #ffffff;
   font-size: 14px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 163, 224, 0.35);
+  box-shadow: 0 2px 6px rgba(8, 38, 126, 0.35);
   flex-shrink: 0;
 }
 
@@ -1627,7 +1627,7 @@
 .admin-master-assigned-pin {
   font-size: 11px;
   font-weight: 700;
-  color: #0369a1;
+  color: #08267e;
   letter-spacing: 0.01em;
   white-space: nowrap;
   display: block;
@@ -1639,7 +1639,7 @@
 }
 
 .admin-master-assigned-pin.is-primary {
-  color: #0369a1;
+  color: #08267e;
 }
 
 .admin-master-role {
@@ -1681,7 +1681,7 @@
 .notif-count-pill {
   font-size: 11px;
   font-weight: 700;
-  color: #0284c7;
+  color: #08267e;
   background: #e0f2fe;
   padding: 2px 9px;
   border-radius: 9999px;
@@ -1720,7 +1720,7 @@
 
 .notif-icon-circle.placed {
   background: #dbeafe;
-  color: #0284c7;
+  color: #08267e;
 }
 
 .notif-icon-circle.support {
@@ -1768,7 +1768,7 @@
 }
 
 .notif-item.order-specific-item {
-  border-left: 3px solid #00A3E0;
+  border-left: 3px solid #08267e;
   background: #f8fafc;
 }
 
@@ -1777,7 +1777,7 @@
 }
 
 .notif-eta-badge {
-  color: #0284c7 !important;
+  color: #08267e !important;
   font-weight: 600;
   font-size: 11px;
 }
@@ -1785,7 +1785,7 @@
 .notif-clear-btn {
   background: transparent;
   border: none;
-  color: #00A3E0;
+  color: #08267e;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -1796,7 +1796,7 @@
 
 .notif-clear-btn:hover {
   background: #e0f2fe;
-  color: #0284c7;
+  color: #08267e;
 }
 
 .notif-dismiss-btn {
@@ -1832,7 +1832,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #0284c7;
+  background: #08267e;
   color: #ffffff;
   border: none;
   border-radius: 7px;
@@ -1844,7 +1844,7 @@
 }
 
 .notif-view-all-page-btn:hover {
-  background: #0369a1;
+  background: #08267e;
 }
 
 /* ==========================================================================
@@ -2033,7 +2033,7 @@
     font-size: 13px !important;
     font-weight: 800 !important;
     flex-shrink: 0 !important;
-    background: linear-gradient(135deg, #00A3E0, #0284c7) !important;
+    background: linear-gradient(135deg, #08267e, #08267e) !important;
     color: #ffffff !important;
   }
 
@@ -2057,7 +2057,7 @@
   .admin-master-assigned-pin {
     font-size: 9.5px !important;
     font-weight: 700 !important;
-    color: #0284c7 !important;
+    color: #08267e !important;
     white-space: nowrap !important;
     display: block !important;
   }
@@ -2067,7 +2067,7 @@
   }
 
   .admin-master-assigned-pin.is-primary {
-    color: #0284c7 !important;
+    color: #08267e !important;
   }
 
   .desktop-pin-text {

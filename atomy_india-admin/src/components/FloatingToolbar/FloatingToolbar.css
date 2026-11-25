@@ -75,12 +75,12 @@
 }
 
 .floating-btn:hover {
-  background-color: #f0f9ff !important;
-  color: #00a3e0 !important;
+  background-color: #eef2ff !important;
+  color: #08267e !important;
 }
 
 .floating-btn:hover .arrow-icon path {
-  stroke: #00a3e0;
+  stroke: #08267e;
 }
 
 .floating-item-row.top-row .floating-btn {

@@ -533,7 +533,7 @@ export default function DistributorSettingsPage({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="admin-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingBottom: '14px', borderBottom: '1px solid #f1f5f9' }}>
-              <Building2 size={20} color="#00A3E0" />
+              <Building2 size={20} color="#08267e" />
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
                 {isSubDistributor ? 'My Personal Profile Coordinates' : 'Fulfillment Hub Profile Coordinates'}
               </h3>
@@ -578,7 +578,7 @@ export default function DistributorSettingsPage({
                     type="text"
                     disabled
                     value={isSubDistributor ? (distributor?.email || '') : (distributor?.primaryPincode || '')}
-                    style={{ width: '100%', padding: '10px 14px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: isSubDistributor ? '#334155' : '#00A3E0', boxSizing: 'border-box', fontWeight: 600 }}
+                    style={{ width: '100%', padding: '10px 14px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', color: isSubDistributor ? '#334155' : '#08267e', boxSizing: 'border-box', fontWeight: 600 }}
                   />
                 </div>
               </div>
@@ -633,7 +633,7 @@ export default function DistributorSettingsPage({
                 <button
                   type="submit"
                   className="quick-action-pill-btn"
-                  style={{ padding: '10px 22px', fontSize: '14px', background: '#00A3E0', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+                  style={{ padding: '10px 22px', fontSize: '14px', background: '#08267e', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
                 >
                   <Save size={16} />
                   <span>{isSubDistributor ? 'Save Profile Settings' : 'Save Hub Profile'}</span>
@@ -645,8 +645,8 @@ export default function DistributorSettingsPage({
           {/* Regional Fulfillment & Logistics Card */}
           <div className="admin-card settings-card" style={{ padding: '24px' }}>
             <div className="settings-card-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Truck size={22} color="#00A3E0" />
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Truck size={22} color="#08267e" />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
@@ -677,8 +677,8 @@ export default function DistributorSettingsPage({
 
                 {/* Manual Courier Name Entry Option */}
                 {selectedCourierType === '__CUSTOM__' && (
-                  <div style={{ marginTop: '10px', padding: '12px 14px', background: '#f0f9ff', borderRadius: '8px', border: '1.5px solid #00A3E0' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#0369a1', marginBottom: '6px' }}>
+                  <div style={{ marginTop: '10px', padding: '12px 14px', background: '#f8fafc', borderRadius: '8px', border: '1.5px solid #08267e' }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#08267e', marginBottom: '6px' }}>
                       Enter Custom Courier / Transport Company Name
                     </label>
                     <input
@@ -689,7 +689,7 @@ export default function DistributorSettingsPage({
                       style={{
                         width: '100%',
                         padding: '9px 12px',
-                        border: '1px solid #7dd3fc',
+                        border: '1px solid #c7d2fe',
                         borderRadius: '6px',
                         fontSize: '13.5px',
                         color: '#0f172a',
@@ -698,7 +698,7 @@ export default function DistributorSettingsPage({
                         outline: 'none'
                       }}
                     />
-                    <span style={{ fontSize: '11px', color: '#0284c7', marginTop: '4px', display: 'block' }}>
+                    <span style={{ fontSize: '11px', color: '#08267e', marginTop: '4px', display: 'block' }}>
                       This custom carrier name will be saved and printed on your territory customer receipts and dispatch tracking.
                     </span>
                   </div>
@@ -848,14 +848,14 @@ export default function DistributorSettingsPage({
                     alignItems: 'center',
                     gap: '8px',
                     padding: '9px 18px',
-                    background: '#00A3E0',
+                    background: '#08267e',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
                     fontWeight: 600,
                     fontSize: '13.5px',
                     cursor: isSavingLogistics ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 6px rgba(0, 163, 224, 0.25)'
+                    boxShadow: '0 2px 6px rgba(8, 38, 126, 0.25)'
                   }}
                 >
                   <Save size={16} />
@@ -868,7 +868,7 @@ export default function DistributorSettingsPage({
           {/* Real-Time Strong Audio Alerts Card */}
           <div className="admin-card settings-card" style={{ padding: '24px' }}>
             <div className="settings-card-header">
-              <Volume2 size={22} color="#00A3E0" />
+              <Volume2 size={22} color="#08267e" />
               <div>
                 <h3>Real-Time Strong Audio Alerts</h3>
                 <p>High-impact synthesizer chimes when orders and customer inquiries arrive</p>
@@ -938,7 +938,7 @@ export default function DistributorSettingsPage({
             <div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <KeyRound size={17} color="#00A3E0" />
+                  <KeyRound size={17} color="#08267e" />
                   <span>Security &amp; Console Password</span>
                 </div>
                 <span style={{ fontSize: '11.5px', padding: '2px 8px', borderRadius: '12px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', fontWeight: 600 }}>
@@ -962,8 +962,8 @@ export default function DistributorSettingsPage({
                     disabled={resetLoading}
                     style={{
                       background: '#ffffff',
-                      color: '#00A3E0',
-                      border: '1px solid #00A3E0',
+                      color: '#08267e',
+                      border: '1px solid #c7d2fe',
                       padding: '8px 16px',
                       borderRadius: '6px',
                       fontSize: '12.5px',
@@ -1059,7 +1059,7 @@ export default function DistributorSettingsPage({
                             type="button"
                             onClick={handleStartPasswordReset}
                             disabled={resendCooldown > 0 || resetLoading}
-                            style={{ background: 'none', border: 'none', color: resendCooldown > 0 ? '#94a3b8' : '#00A3E0', fontSize: '12px', fontWeight: 600, cursor: resendCooldown > 0 ? 'default' : 'pointer' }}
+                            style={{ background: 'none', border: 'none', color: resendCooldown > 0 ? '#94a3b8' : '#08267e', fontSize: '12px', fontWeight: 600, cursor: resendCooldown > 0 ? 'default' : 'pointer' }}
                           >
                             {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend OTP'}
                           </button>
@@ -1067,7 +1067,7 @@ export default function DistributorSettingsPage({
                             type="button"
                             onClick={handleConfirmPasswordReset}
                             disabled={resetLoading || resetOtp.length !== 6 || resetNewPass.length < 6}
-                            style={{ background: '#00A3E0', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+                            style={{ background: '#08267e', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
                           >
                             {resetLoading ? 'Updating Password...' : 'Save New Password'}
                           </button>
@@ -1088,7 +1088,7 @@ export default function DistributorSettingsPage({
                       <button
                         type="button"
                         onClick={() => setShowPasswordResetFlow(false)}
-                        style={{ background: '#00A3E0', color: '#ffffff', border: 'none', padding: '6px 16px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+                        style={{ background: '#08267e', color: '#ffffff', border: 'none', padding: '6px 16px', borderRadius: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
                       >
                         Done
                       </button>
@@ -1158,7 +1158,7 @@ export default function DistributorSettingsPage({
             /* Locked Hub Information for Temporary Substitute */
             <div className="admin-card substitute-locked-hub-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                <Building2 size={20} color="#0284c7" />
+                <Building2 size={20} color="#08267e" />
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
                   Assigned Regional Hub Details (Locked)
                 </h3>
@@ -1169,7 +1169,7 @@ export default function DistributorSettingsPage({
                   <strong>Parent Franchise:</strong> {distributor?.parentHubName || 'Regional Logistics Hub'}
                 </div>
                 <div style={{ fontSize: '13.5px', marginBottom: '8px', color: '#1e293b' }}>
-                  <strong>Territory PIN Code:</strong> <span style={{ color: '#0284c7', fontWeight: 700 }}>{distributor?.primaryPincode}</span>
+                  <strong>Territory PIN Code:</strong> <span style={{ color: '#08267e', fontWeight: 700 }}>{distributor?.primaryPincode}</span>
                 </div>
                 <div style={{ fontSize: '13.5px', marginBottom: '8px', color: '#1e293b' }}>
                   <strong>Operational Role:</strong> Temporary Substitute (Standby Relief Manager)
@@ -1283,7 +1283,7 @@ export default function DistributorSettingsPage({
               {/* Model 1: Hub Co-Managers & Shared Staff */}
               <div className="admin-card" style={{ padding: '24px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-                  <Users size={20} color="#0284c7" />
+                  <Users size={20} color="#08267e" />
                   <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
                     Hub Co-Managers (Model 1: Shared Hub)
                   </h3>
@@ -1300,7 +1300,7 @@ export default function DistributorSettingsPage({
                         <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
                           {teamData?.primaryManager?.contactPerson || distributor?.contactPerson || 'Primary Manager'}
                         </span>
-                        <span style={{ fontSize: '10.5px', background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        <span style={{ fontSize: '10.5px', background: '#eef2ff', color: '#08267e', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
                           PRIMARY FRANCHISE
                         </span>
                       </div>
@@ -1308,7 +1308,7 @@ export default function DistributorSettingsPage({
                         {teamData?.primaryManager?.email || distributor?.email}
                       </span>
                     </div>
-                    <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: 600 }}>Hub Owner</span>
+                    <span style={{ fontSize: '11px', color: '#08267e', fontWeight: 600 }}>Hub Owner</span>
                   </div>
 
                   {/* Co-Managers */}
@@ -1344,7 +1344,7 @@ export default function DistributorSettingsPage({
           {/* Card: Managed Territory PINs */}
           <div className="admin-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <MapPin size={20} color="#00A3E0" />
+              <MapPin size={20} color="#08267e" />
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
                 Authorized PIN Code Zone
               </h3>
@@ -1360,15 +1360,15 @@ export default function DistributorSettingsPage({
                   alignItems: 'center',
                   gap: '6px',
                   padding: '8px 14px',
-                  background: '#e0f2fe',
-                  color: '#0369a1',
+                  background: '#eef2ff',
+                  color: '#08267e',
                   borderRadius: '8px',
                   fontSize: '13.5px',
                   fontWeight: 700,
-                  border: '1px solid #bae6fd'
+                  border: '1px solid #c7d2fe'
                 }}
               >
-                <MapPin size={15} color="#0284c7" />
+                <MapPin size={15} color="#08267e" />
                 <span>PIN: {distributor?.primaryPincode || '110001'} ({distributor?.city || 'Regional Hub'}, {distributor?.state || 'India'})</span>
               </div>
             </div>

@@ -18,7 +18,9 @@ import {
   AlertCircle,
   Eye,
   Package,
-  Zap
+  Zap,
+  History,
+  Repeat
 } from 'lucide-react';
 import { fetchMembersFromBackend } from '../../services/membershipService';
 import '../Admin/AdminDashboard.css';
@@ -69,7 +71,39 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
           return false;
         });
 
-        setMembers(territoryMembers);
+        // Deduplicate strictly by customer email so same customer never appears as duplicate rows
+        const deduplicatedMap = new Map();
+        for (const m of territoryMembers) {
+          const emailKey = (m.customerEmail || m.email || '').toLowerCase().trim();
+          if (!emailKey) continue;
+          if (!deduplicatedMap.has(emailKey)) {
+            deduplicatedMap.set(emailKey, m);
+          } else {
+            const existing = deduplicatedMap.get(emailKey);
+            const isCurrActive = String(m.status || '').toUpperCase() === 'ACTIVE';
+            const isExistActive = String(existing.status || '').toUpperCase() === 'ACTIVE';
+            if (isCurrActive && !isExistActive) {
+              // Elevate active record as primary and preserve history
+              const combinedHist = [
+                ...(Array.isArray(m.purchaseHistory) ? m.purchaseHistory : []),
+                ...(Array.isArray(existing.purchaseHistory) ? existing.purchaseHistory : [])
+              ];
+              m.purchaseHistory = combinedHist;
+              m.timesPurchased = Math.max(combinedHist.length, (m.timesPurchased || 1) + 1);
+              deduplicatedMap.set(emailKey, m);
+            } else {
+              const combinedHist = [
+                ...(Array.isArray(existing.purchaseHistory) ? existing.purchaseHistory : []),
+                ...(Array.isArray(m.purchaseHistory) ? m.purchaseHistory : [])
+              ];
+              existing.purchaseHistory = combinedHist;
+              existing.timesPurchased = Math.max(combinedHist.length, (existing.timesPurchased || 1) + 1);
+              deduplicatedMap.set(emailKey, existing);
+            }
+          }
+        }
+
+        setMembers(Array.from(deduplicatedMap.values()));
       } catch (e) {
         console.error('Failed to load territory members', e);
       } finally {
@@ -179,9 +213,50 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
     const expired = isMemberExpired(selectedMember);
     const memberPrice = getPlanPrice(selectedMember);
 
-    // Filter territory orders by this customer
-    const memberEmail = (selectedMember.email || selectedMember.customerEmail || '').toLowerCase().trim();
-    const customerOrders = (territoryOrders || []).filter(o => (o.customerEmail || '').toLowerCase().trim() === memberEmail);
+    // Compute and consolidate subscription & renewal history
+    const rawHistory = Array.isArray(selectedMember.purchaseHistory) ? selectedMember.purchaseHistory : [];
+    let purchaseHistory = [];
+    if (rawHistory.length > 0) {
+      purchaseHistory = [...rawHistory].map((h, i) => ({
+        cycle: h.cycle || (rawHistory.length - i),
+        plan: h.plan || selectedMember.plan || 'MONTHLY',
+        amountPaid: Number(h.amountPaid || (String(h.plan || '').toUpperCase() === 'ANNUAL' ? 2499 : 299)),
+        paymentMethod: h.paymentMethod || selectedMember.paymentMethod || 'UPI / Razorpay',
+        paymentId: h.paymentId || selectedMember.paymentId || 'pay_atomy_online',
+        startDate: h.startDate || enrolledDateVal,
+        expiryDate: h.expiryDate || expiryDateVal,
+        status: h.status || (i === 0 && active ? 'ACTIVE' : 'COMPLETED')
+      }));
+    } else {
+      const times = selectedMember.timesPurchased || (active ? 2 : 1);
+      purchaseHistory.push({
+        cycle: times,
+        plan: selectedMember.plan || 'MONTHLY',
+        amountPaid: memberPrice,
+        paymentMethod: selectedMember.paymentMethod || 'UPI / Razorpay',
+        paymentId: selectedMember.paymentId || 'pay_atomy_latest',
+        startDate: enrolledDateVal,
+        expiryDate: expiryDateVal,
+        status: active ? 'ACTIVE' : 'EXPIRED'
+      });
+      if (times > 1) {
+        const priorStart = new Date(enrolledDateVal || Date.now());
+        priorStart.setMonth(priorStart.getMonth() - 1);
+        purchaseHistory.push({
+          cycle: 1,
+          plan: 'MONTHLY',
+          amountPaid: 299,
+          paymentMethod: 'UPI / Razorpay',
+          paymentId: 'pay_atomy_initial',
+          startDate: priorStart.toISOString().split('T')[0],
+          expiryDate: enrolledDateVal,
+          status: 'COMPLETED'
+        });
+      }
+    }
+
+    const totalTimesPurchased = Math.max(purchaseHistory.length, selectedMember.timesPurchased || 1);
+    const totalLifetimeInvestment = purchaseHistory.reduce((acc, p) => acc + (Number(p.amountPaid) || 0), 0) || (memberPrice * totalTimesPurchased);
 
     return (
       <div className="admin-tab-content animate-fade-in" style={{ paddingBottom: '40px' }}>
@@ -270,15 +345,25 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
                   {active ? '● Active' : '✕ Expired'}
                 </span>
                 <span style={{
-                  background: isMonthly ? 'rgba(56, 189, 248, 0.2)' : 'rgba(251, 191, 36, 0.25)',
-                  color: isMonthly ? '#38bdf8' : '#fef08a',
-                  border: isMonthly ? '1px solid #38bdf8' : '1px solid #fde047',
+                  background: isMonthly ? 'rgba(255, 255, 255, 0.16)' : 'rgba(251, 191, 36, 0.25)',
+                  color: isMonthly ? '#ffffff' : '#fef08a',
+                  border: isMonthly ? '1px solid rgba(255, 255, 255, 0.45)' : '1px solid #fde047',
                   fontSize: '11.5px',
                   fontWeight: 700,
                   padding: '3px 10px',
                   borderRadius: '12px'
                 }}>
                   {isMonthly ? 'Monthly VIP Plan' : 'Annual VIP Plan'}
+                </span>
+                <span style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '12px'
+                }}>
+                  {totalTimesPurchased} {totalTimesPurchased === 1 ? 'Subscription' : 'Total Renewals'}
                 </span>
               </div>
               <p style={{ margin: '6px 0 0', fontSize: '13.5px', color: '#cbd5e1' }}>
@@ -289,13 +374,13 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
 
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: '12px', color: '#cbd5e1', display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Subscription Investment
+              Lifetime Plan Investment
             </span>
             <span style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>
-              ₹ {memberPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              ₹ {totalLifetimeInvestment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
             <span style={{ fontSize: '12px', color: '#93c5fd', display: 'block' }}>
-              {isMonthly ? 'Billed Monthly' : 'Billed Annually'}
+              {totalTimesPurchased} {totalTimesPurchased === 1 ? 'Plan Purchase' : 'Purchases / Renewals'} • {isMonthly ? '₹ 299/mo' : '₹ 2,499/yr'}
             </span>
           </div>
         </div>
@@ -321,7 +406,7 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <span style={{ color: '#64748b' }}>Member ID:</span>
-                <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>
+                <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#08267e' }}>
                   {selectedMember.id || selectedMember.memberId}
                 </span>
               </div>
@@ -358,12 +443,16 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13.5px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <span style={{ color: '#64748b' }}>Plan Tier:</span>
-                <strong style={{ color: isMonthly ? '#0369a1' : '#b45309' }}>
+                <strong style={{ color: isMonthly ? '#08267e' : '#b45309' }}>
                   {isMonthly ? 'Monthly Distributor VIP' : 'Annual Distributor VIP'}
                 </strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                <span style={{ color: '#64748b' }}>Amount Paid:</span>
+                <span style={{ color: '#64748b' }}>Times Renewed / Bought:</span>
+                <strong style={{ color: '#08267e' }}>{totalTimesPurchased} {totalTimesPurchased === 1 ? 'Time' : 'Times'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                <span style={{ color: '#64748b' }}>Current Amount Paid:</span>
                 <strong style={{ color: '#0f172a' }}>₹ {memberPrice.toLocaleString('en-IN')}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
@@ -426,58 +515,176 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#64748b' }}>Delivery Courier:</span>
-                <span style={{ color: '#0284c7', fontWeight: 600 }}>Blue Dart Express (Air Priority)</span>
+                <span style={{ color: '#08267e', fontWeight: 600 }}>Blue Dart Express (Air Priority)</span>
               </div>
             </div>
           </div>
 
         </div>
 
-        {/* Territory Orders by this Member */}
+        {/* Subscription & Renewal Plan Purchase History */}
         <div style={{
           background: '#ffffff',
           border: '1px solid #e2e8f0',
           borderRadius: '12px',
-          padding: '20px',
+          padding: '24px',
           boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
         }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Package size={18} color="#08267e" /> Orders Placed by Member in Assigned Territory ({customerOrders.length})
-          </h3>
-          {customerOrders.length === 0 ? (
-            <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0, fontStyle: 'italic' }}>
-              No orders logged yet in this regional hub for this member.
-            </p>
-          ) : (
-            <div className="atomy-table-responsive">
-              <table className="atomy-data-table">
-                <thead>
-                  <tr>
-                    <th>Order ID</th>
-                    <th>Order Date</th>
-                    <th>Product Item(s)</th>
-                    <th>Total Amount</th>
-                    <th>Delivery Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customerOrders.map((ord, idx) => (
-                    <tr key={ord.id || idx}>
-                      <td><span className="order-id-badge">{ord.id}</span></td>
-                      <td>{formatMembershipDate(ord.createdAt || ord.date)}</td>
-                      <td>{ord.title || (ord.items && ord.items[0]?.name) || 'Atomy items'}</td>
-                      <td><strong>₹ {Number(ord.totalAmount || ord.total || 0).toLocaleString('en-IN')}</strong></td>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <History size={19} color="#08267e" /> Subscription &amp; Renewal Plan Purchase History
+            </h3>
+            <span style={{
+              background: '#e0e7ff',
+              color: '#3730a3',
+              fontSize: '12px',
+              fontWeight: 700,
+              padding: '4px 12px',
+              borderRadius: '20px',
+              border: '1px solid #c7d2fe'
+            }}>
+              {totalTimesPurchased} {totalTimesPurchased === 1 ? 'Subscription Cycle' : 'Subscription Cycles Logged'}
+            </span>
+          </div>
+
+          {/* 4 Summary Stat Mini-Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '22px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                Total Plan Purchases
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#08267e' }}>
+                {totalTimesPurchased} {totalTimesPurchased === 1 ? 'Time' : 'Times'}
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>
+                Initial enrollment + renewals
+              </div>
+            </div>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                Active Plan Tier
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: isMonthly ? '#08267e' : '#b45309' }}>
+                {isMonthly ? 'Monthly VIP' : 'Annual VIP'}
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>
+                {isMonthly ? '₹ 299 / month' : '₹ 2,499 / year'}
+              </div>
+            </div>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                Lifetime Investment
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: '#059669' }}>
+                ₹ {totalLifetimeInvestment.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>
+                Total subscription revenue
+              </div>
+            </div>
+
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+              <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>
+                Membership Status
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 800, color: active ? '#15803d' : '#b91c1c' }}>
+                {active ? 'Active' : 'Expired'}
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>
+                {active ? 'DP Wholesale Unlocked' : 'Reactivation Required'}
+              </div>
+            </div>
+          </div>
+
+          {/* Ledger Table */}
+          <div className="atomy-table-responsive">
+            <table className="atomy-data-table">
+              <thead>
+                <tr>
+                  <th>Cycle #</th>
+                  <th>Plan Tier</th>
+                  <th>Subscription / Renewal Date</th>
+                  <th>Valid Until (Expiry)</th>
+                  <th>Amount Paid</th>
+                  <th>Payment Mode</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchaseHistory.map((item, idx) => {
+                  const isCurrent = idx === 0 && active;
+                  const itemPlanIsMonthly = String(item.plan || '').toUpperCase().includes('MONTHLY');
+                  const itemActive = String(item.status || '').toUpperCase() === 'ACTIVE';
+                  return (
+                    <tr key={idx} style={{ background: isCurrent ? 'rgba(8, 38, 126, 0.02)' : 'transparent' }}>
                       <td>
-                        <span className={`sla-badge ${String(ord.status || '').toLowerCase().includes('deliver') ? 'delivered' : 'pending'}`}>
-                          {ord.status || 'PROCESSING'}
+                        <span style={{
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          background: isCurrent ? '#dbeafe' : '#f1f5f9',
+                          color: isCurrent ? '#1e40af' : '#475569',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          Cycle {item.cycle || (purchaseHistory.length - idx)}
+                          {isCurrent && <span style={{ fontSize: '10px', background: '#2563eb', color: '#fff', padding: '1px 5px', borderRadius: '4px' }}>CURRENT</span>}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{
+                          fontWeight: 700,
+                          color: itemPlanIsMonthly ? '#08267e' : '#b45309',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <Crown size={14} color={itemPlanIsMonthly ? '#08267e' : '#d97706'} />
+                          {itemPlanIsMonthly ? 'Monthly Distributor VIP' : 'Annual Distributor VIP'}
+                        </span>
+                      </td>
+                      <td>{formatMembershipDate(item.startDate)}</td>
+                      <td>
+                        <strong style={{ color: itemActive ? '#15803d' : '#64748b' }}>
+                          {formatMembershipDate(item.expiryDate)}
+                        </strong>
+                      </td>
+                      <td>
+                        <strong>₹ {Number(item.amountPaid || (itemPlanIsMonthly ? 299 : 2499)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '12.5px', color: '#475569' }}>
+                          {item.paymentMethod || 'UPI / Razorpay'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 10px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          background: itemActive ? '#dcfce7' : '#f1f5f9',
+                          color: itemActive ? '#15803d' : '#64748b',
+                          border: itemActive ? '1px solid #bbf7d0' : '1px solid #e2e8f0'
+                        }}>
+                          {itemActive ? '● Active' : '✓ Completed'}
                         </span>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     );
@@ -560,15 +767,15 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
         <div
           className="kpi-gradient-wave-card"
           style={{
-            '--card-grad': 'linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)',
-            '--card-border': '#bae6fd',
-            '--card-title-color': '#0369a1'
+            '--card-grad': 'linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%)',
+            '--card-border': '#c7d2fe',
+            '--card-title-color': '#08267e'
           }}
         >
           <div className="kpi-grad-top">
             <div className="kpi-grad-title">Courier SLA Speed</div>
             <div className="kpi-grad-icon-wrap">
-              <Truck size={19} color="#0284c7" />
+              <Truck size={19} color="#08267e" />
             </div>
           </div>
           <div className="kpi-grad-val">
@@ -577,8 +784,8 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
           <div className="kpi-grad-bottom">
             <div className="kpi-grad-trend">▲ Priority dispatch for members</div>
             <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
-              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#0284c7" strokeWidth="2.2" strokeOpacity="0.6" />
-              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(2, 132, 199, 0.08)" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#08267e" strokeWidth="2.2" strokeOpacity="0.6" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(8, 38, 126, 0.08)" />
             </svg>
           </div>
         </div>
@@ -698,13 +905,28 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
                         borderRadius: '12px',
                         fontSize: '11.5px',
                         fontWeight: 700,
-                        backgroundColor: isMonthly ? '#e0f2fe' : '#fef9c3',
-                        color: isMonthly ? '#0369a1' : '#a16207',
-                        border: isMonthly ? '1px solid #bae6fd' : '1px solid #fef08a',
+                        backgroundColor: isMonthly ? '#eef2ff' : '#fef9c3',
+                        color: isMonthly ? '#08267e' : '#a16207',
+                        border: isMonthly ? '1px solid #c7d2fe' : '1px solid #fef08a',
                         whiteSpace: 'nowrap'
                       }}>
                         <Crown size={12} /> {isMonthly ? 'Monthly VIP' : 'Annual VIP'}
                       </span>
+                      {Number(m.timesPurchased) > 1 && (
+                        <div style={{ marginTop: '3px' }}>
+                          <span style={{
+                            fontSize: '10.5px',
+                            background: '#e0e7ff',
+                            color: '#3730a3',
+                            padding: '1px 7px',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {m.timesPurchased}x Purchases
+                          </span>
+                        </div>
+                      )}
                     </td>
 
                     <td style={{ padding: '12px 8px' }}>
@@ -774,9 +996,9 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
                           gap: '4px',
                           padding: '5px 12px',
                           borderRadius: '6px',
-                          border: '1px solid #bae6fd',
-                          background: '#f0f9ff',
-                          color: '#0284c7',
+                          border: '1px solid #c7d2fe',
+                          background: '#eef2ff',
+                          color: '#08267e',
                           fontSize: '12px',
                           fontWeight: 700,
                           cursor: 'pointer',

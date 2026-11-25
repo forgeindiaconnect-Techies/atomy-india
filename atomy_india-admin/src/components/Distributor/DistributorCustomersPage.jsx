@@ -410,50 +410,114 @@ export default function DistributorCustomersPage({
           </div>
         </div>
 
-        {/* 4. Customer Key Metrics Strip (4 Dim Light Gradient Wave Cards) */}
+        {/* 4. Customer Key Metrics Strip (Professional KPI Wave Cards) */}
         <div className="kpi-gradient-grid four-cols" style={{ marginBottom: '28px' }}>
           {/* Lifetime Purchases */}
-          <div className="kpi-gradient-wave-card" style={{ '--card-grad': 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)', '--card-border': '#bbf7d0', '--card-title-color': '#166534' }}>
-            <div className="kpi-wave-watermark"><ShoppingBag size={80} /></div>
-            <div className="kpi-wave-header">
-              <span className="kpi-wave-title">LIFETIME ORDERS</span>
-              <div className="kpi-wave-icon" style={{ background: '#dcfce7', color: '#15803d' }}><ShoppingBag size={18} /></div>
+          <div
+            className="kpi-gradient-wave-card"
+            style={{
+              '--card-grad': 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
+              '--card-border': '#bbf7d0',
+              '--card-title-color': '#166534'
+            }}
+          >
+            <div className="kpi-grad-top">
+              <div className="kpi-grad-title">Lifetime Orders</div>
+              <div className="kpi-grad-icon-wrap" style={{ background: '#ffffff', color: '#16a34a' }}>
+                <ShoppingBag size={19} color="#16a34a" />
+              </div>
             </div>
-            <div className="kpi-wave-value" style={{ color: '#14532d' }}>{selectedCustomer.computedOrders} Purchases</div>
-            <div className="kpi-wave-footer"><span>Total completed orders</span></div>
+            <div className="kpi-grad-val" style={{ color: '#14532d' }}>
+              {selectedCustomer.computedOrders} <span className="kpi-grad-unit">Purchases</span>
+            </div>
+            <div className="kpi-grad-bottom">
+              <div className="kpi-grad-trend">✓ Total completed orders</div>
+              <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+                <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeOpacity="0.6" />
+                <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(22, 163, 74, 0.08)" />
+              </svg>
+            </div>
           </div>
 
           {/* Lifetime Spend */}
-          <div className="kpi-gradient-wave-card" style={{ '--card-grad': 'linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)', '--card-border': '#bae6fd', '--card-title-color': '#0369a1' }}>
-            <div className="kpi-wave-watermark"><IndianRupee size={80} /></div>
-            <div className="kpi-wave-header">
-              <span className="kpi-wave-title">LIFETIME SPEND</span>
-              <div className="kpi-wave-icon" style={{ background: '#e0f2fe', color: '#08267e' }}><IndianRupee size={18} /></div>
+          <div
+            className="kpi-gradient-wave-card"
+            style={{
+              '--card-grad': 'linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%)',
+              '--card-border': '#c7d2fe',
+              '--card-title-color': '#08267e'
+            }}
+          >
+            <div className="kpi-grad-top">
+              <div className="kpi-grad-title">Lifetime Spend</div>
+              <div className="kpi-grad-icon-wrap" style={{ background: '#ffffff', color: '#08267e' }}>
+                <IndianRupee size={19} color="#08267e" />
+              </div>
             </div>
-            <div className="kpi-wave-value" style={{ color: '#08267e' }}>₹ {Number(selectedCustomer.computedSpend).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-            <div className="kpi-wave-footer"><span>Territory gross revenue</span></div>
+            <div className="kpi-grad-val" style={{ color: '#08267e', fontSize: '24px' }}>
+              ₹ {Number(selectedCustomer.computedSpend).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="kpi-grad-bottom">
+              <div className="kpi-grad-trend">▲ Territory gross revenue</div>
+              <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+                <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#08267e" strokeWidth="2.2" strokeOpacity="0.6" />
+                <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(8, 38, 126, 0.08)" />
+              </svg>
+            </div>
           </div>
 
           {/* Average Order Value */}
-          <div className="kpi-gradient-wave-card" style={{ '--card-grad': 'linear-gradient(145deg, #faf5ff 0%, #f3e8ff 100%)', '--card-border': '#e9d5ff', '--card-title-color': '#6b21a8' }}>
-            <div className="kpi-wave-watermark"><Package size={80} /></div>
-            <div className="kpi-wave-header">
-              <span className="kpi-wave-title">AVG ORDER VALUE</span>
-              <div className="kpi-wave-icon" style={{ background: '#f3e8ff', color: '#7e22ce' }}><Package size={18} /></div>
+          <div
+            className="kpi-gradient-wave-card"
+            style={{
+              '--card-grad': 'linear-gradient(145deg, #faf5ff 0%, #f3e8ff 100%)',
+              '--card-border': '#e9d5ff',
+              '--card-title-color': '#6b21a8'
+            }}
+          >
+            <div className="kpi-grad-top">
+              <div className="kpi-grad-title">Avg Order Value</div>
+              <div className="kpi-grad-icon-wrap" style={{ background: '#ffffff', color: '#7e22ce' }}>
+                <Package size={19} color="#7e22ce" />
+              </div>
             </div>
-            <div className="kpi-wave-value" style={{ color: '#581c87' }}>₹ {avgOrderVal.toLocaleString('en-IN')}</div>
-            <div className="kpi-wave-footer"><span>Average ticket size</span></div>
+            <div className="kpi-grad-val" style={{ color: '#581c87', fontSize: '24px' }}>
+              ₹ {Number(avgOrderVal).toLocaleString('en-IN')}
+            </div>
+            <div className="kpi-grad-bottom">
+              <div className="kpi-grad-trend">● Average ticket size</div>
+              <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+                <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#7e22ce" strokeWidth="2.2" strokeOpacity="0.6" />
+                <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(126, 34, 206, 0.08)" />
+              </svg>
+            </div>
           </div>
 
           {/* Account Tier */}
-          <div className="kpi-gradient-wave-card" style={{ '--card-grad': 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)', '--card-border': '#fde68a', '--card-title-color': '#92400e' }}>
-            <div className="kpi-wave-watermark"><ShieldCheck size={80} /></div>
-            <div className="kpi-wave-header">
-              <span className="kpi-wave-title">CUSTOMER STATUS</span>
-              <div className="kpi-wave-icon" style={{ background: '#fef3c7', color: '#b45309' }}><ShieldCheck size={18} /></div>
+          <div
+            className="kpi-gradient-wave-card"
+            style={{
+              '--card-grad': 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
+              '--card-border': '#fde68a',
+              '--card-title-color': '#92400e'
+            }}
+          >
+            <div className="kpi-grad-top">
+              <div className="kpi-grad-title">Customer Status</div>
+              <div className="kpi-grad-icon-wrap" style={{ background: '#ffffff', color: '#b45309' }}>
+                <ShieldCheck size={19} color="#b45309" />
+              </div>
             </div>
-            <div className="kpi-wave-value" style={{ color: '#78350f', fontSize: '20px' }}>{tierInfo.tier}</div>
-            <div className="kpi-wave-footer"><span>Verified consumer</span></div>
+            <div className="kpi-grad-val" style={{ color: '#78350f', fontSize: '22px' }}>
+              {tierInfo.tier}
+            </div>
+            <div className="kpi-grad-bottom">
+              <div className="kpi-grad-trend">★ Verified consumer</div>
+              <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
+                <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#b45309" strokeWidth="2.2" strokeOpacity="0.6" />
+                <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(180, 83, 9, 0.08)" />
+              </svg>
+            </div>
           </div>
         </div>
 
@@ -567,15 +631,15 @@ export default function DistributorCustomersPage({
         <div
           className="kpi-gradient-wave-card"
           style={{
-            '--card-grad': 'linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)',
-            '--card-border': '#bae6fd',
-            '--card-title-color': '#0369a1'
+            '--card-grad': 'linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%)',
+            '--card-border': '#c7d2fe',
+            '--card-title-color': '#08267e'
           }}
         >
           <div className="kpi-grad-top">
             <div className="kpi-grad-title">Territory Consumers</div>
             <div className="kpi-grad-icon-wrap">
-              <Users size={19} color="#0284c7" />
+              <Users size={19} color="#08267e" />
             </div>
           </div>
           <div className="kpi-grad-val">
@@ -584,8 +648,8 @@ export default function DistributorCustomersPage({
           <div className="kpi-grad-bottom">
             <div className="kpi-grad-trend">▲ Active delivery zone shoppers</div>
             <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
-              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#0284c7" strokeWidth="2.2" strokeOpacity="0.6" />
-              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(2, 132, 199, 0.08)" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#08267e" strokeWidth="2.2" strokeOpacity="0.6" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(8, 38, 126, 0.08)" />
             </svg>
           </div>
         </div>
@@ -714,7 +778,7 @@ export default function DistributorCustomersPage({
                         <div>
                           <div className="cell-primary-text">{c.name || 'Customer'}</div>
                           {c.customerId && (
-                            <div className="cell-secondary-text" style={{ fontSize: '11px', color: '#00A3E0', fontWeight: '700' }}>
+                            <div className="cell-secondary-text" style={{ fontSize: '11px', color: '#08267e', fontWeight: '700' }}>
                               {c.customerId}
                             </div>
                           )}

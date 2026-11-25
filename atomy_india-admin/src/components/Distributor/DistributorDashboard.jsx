@@ -1720,7 +1720,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
             />
           ) : isSubDistributor && hubTeamInfo === null && isLoading ? (
             <div className="admin-tab-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '440px', gap: '14px' }}>
-              <RefreshCw size={32} className="animate-spin" color="#00a3e0" />
+              <RefreshCw size={32} className="animate-spin" color="#08267e" />
               <span style={{ fontSize: '14px', fontWeight: 600, color: '#475569' }}>
                 Connecting to Regional Logistics Hub...
               </span>
@@ -1752,7 +1752,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
                       Regional Hub Franchise
                     </span>
                     <span className="standby-summary-value text-slate">
-                      <Building2 size={15} color="#00A3E0" />
+                      <Building2 size={15} color="#08267e" />
                       {currentDist?.parentHubName || currentDist?.businessName || 'Regional Hub'}
                     </span>
                     <span className="standby-summary-sub">
@@ -2052,7 +2052,7 @@ export default function DistributorDashboard({ distributorUser, onLogout, onBack
       {/* 5. Live Toast Notification */}
       {toastMessage && (
         <div style={{ position: 'fixed', bottom: '24px', right: '24px', background: '#0f172a', color: '#ffffff', padding: '12px 20px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 10000 }}>
-          <CheckCircle2 size={16} color="#38bdf8" />
+          <CheckCircle2 size={16} color="#10b981" />
           <span>{toastMessage}</span>
         </div>
       )}

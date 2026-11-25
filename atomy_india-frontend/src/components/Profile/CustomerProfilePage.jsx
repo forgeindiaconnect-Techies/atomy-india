@@ -1754,7 +1754,7 @@ export default function CustomerProfilePage({
                                 key={i}
                                 size={15}
                                 fill={i < (rev.rating || 5) ? "#f59e0b" : "none"}
-                                stroke={i < (rev.rating || 5) ? "#f59e0b" : "#cbd5e1"}
+                                stroke="#f59e0b"
                               />
                             ))}
                             <span className="review-rating-number">({rev.rating || 5}/5)</span>

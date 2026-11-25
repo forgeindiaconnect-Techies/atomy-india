@@ -46,6 +46,7 @@
 
 .rating-star-icon {
   flex-shrink: 0;
+  stroke: #de7921;
 }
 
 .product-rating-count {

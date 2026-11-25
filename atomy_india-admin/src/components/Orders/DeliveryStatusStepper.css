@@ -35,8 +35,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #00A3E0;
-  box-shadow: 0 0 0 4px rgba(0, 163, 224, 0.2);
+  background-color: #08267e;
+  box-shadow: 0 0 0 4px rgba(8, 38, 126, 0.2);
   animation: pulseLiveDot 1.4s infinite;
 }
 
@@ -54,13 +54,13 @@
 }
 
 .shipping-carrier-pill {
-  background: #f0f9ff;
-  color: #0284c7;
+  background: #eef2ff;
+  color: #08267e;
   font-weight: 700;
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
-  border: 1px solid #bae6fd;
+  border: 1px solid #c7d2fe;
 }
 
 .shipping-current-step-label {
@@ -69,7 +69,7 @@
 }
 
 .stage-highlight {
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 700;
 }
 
@@ -158,11 +158,12 @@
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.stepper-stage-node.completed .stage-circle {
-  background: #10b981;
-  border-color: #10b981;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+.stepper-stage-node.completed .stage-circle,
+.stepper-stage-node.completed.current .stage-circle {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.25), 0 6px 16px rgba(16, 185, 129, 0.4) !important;
 }
 
 .stage-check-icon {
@@ -170,11 +171,11 @@
   color: #ffffff;
 }
 
-.stepper-stage-node.current .stage-circle {
-  background: #00A3E0;
-  border-color: #00A3E0;
+.stepper-stage-node.current:not(.completed) .stage-circle {
+  background: #08267e;
+  border-color: #08267e;
   color: #ffffff;
-  box-shadow: 0 0 0 5px rgba(0, 163, 224, 0.2), 0 6px 16px rgba(0, 163, 224, 0.35);
+  box-shadow: 0 0 0 5px rgba(8, 38, 126, 0.2), 0 6px 16px rgba(8, 38, 126, 0.35);
   transform: scale(1.06);
 }
 
@@ -182,8 +183,13 @@
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  border: 2px dashed rgba(0, 163, 224, 0.65);
+  border: 2px dashed rgba(8, 38, 126, 0.65);
   animation: rotateStageGlow 6s linear infinite;
+}
+
+.stepper-stage-node.completed .stage-glow-ring,
+.stepper-stage-node.completed.current .stage-glow-ring {
+  border: 2px dashed rgba(16, 185, 129, 0.75) !important;
 }
 
 @keyframes rotateStageGlow {
@@ -210,7 +216,7 @@
 }
 
 .stepper-stage-node.current .stage-title {
-  color: #00A3E0;
+  color: #08267e;
   font-weight: 800;
 }
 
@@ -229,7 +235,7 @@
 
 .stage-live-badge {
   display: inline-block;
-  background: #00A3E0;
+  background: #08267e;
   color: #ffffff;
   font-size: 9px;
   font-weight: 800;
@@ -280,8 +286,8 @@
 .connector-fill-dots {
   width: 1000px;
   height: 0;
-  border-top: 4px dotted #00A3E0;
-  filter: drop-shadow(0 0 2px rgba(0, 163, 224, 0.7));
+  border-top: 4px dotted #08267e;
+  filter: drop-shadow(0 0 2px rgba(8, 38, 126, 0.7));
 }
 
 /* When Stage is Completed -> Turn Green Dotted Line */
@@ -344,7 +350,7 @@
 }
 
 .stepper-connector-track.is-active-track .connector-fill-dots {
-  border-top-color: #00A3E0 !important;
+  border-top-color: #08267e !important;
   animation: liveTrackPulse 1.2s ease-in-out infinite alternate !important;
 }
 
@@ -451,7 +457,7 @@
 }
 
 .narrative-tag {
-  background: #0284c7;
+  background: #08267e;
   color: #ffffff;
   font-size: 10px;
   font-weight: 800;
@@ -461,7 +467,7 @@
 }
 
 .narrative-tag.orange { background: #ea580c; }
-.narrative-tag.blue { background: #0284c7; }
+.narrative-tag.blue { background: #08267e; }
 .narrative-tag.purple { background: #7c3aed; }
 .narrative-tag.green { background: #059669; }
 
@@ -618,7 +624,7 @@
     width: 0 !important;
     height: 100% !important;
     border-top: none !important;
-    border-left: 3px dotted #00A3E0 !important;
+    border-left: 3px dotted #08267e !important;
   }
 
   .stepper-connector-track.is-completed .connector-fill-dots {

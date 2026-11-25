@@ -64,8 +64,8 @@
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: #e0f2fe;
-  color: #0284c7;
+  background: #eef2ff;
+  color: #08267e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -133,8 +133,8 @@
 
 .dist-form-input:focus,
 .dist-form-select:focus {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  border-color: #08267e;
+  box-shadow: 0 0 0 3px rgba(8, 38, 126, 0.15);
 }
 
 .dist-meta-strip {
@@ -192,7 +192,7 @@
 
 .dist-btn-primary {
   padding: 10px 22px;
-  background: #0284c7;
+  background: #08267e;
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -206,7 +206,7 @@
 }
 
 .dist-btn-primary:hover:not(:disabled) {
-  background: #0369a1;
+  background: #051a57;
 }
 
 .dist-btn-primary:disabled {

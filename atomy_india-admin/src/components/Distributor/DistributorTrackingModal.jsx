@@ -309,7 +309,7 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
               </>
             ) : (
               <>
-                <Truck size={20} color="#00A3E0" />
+                <Truck size={20} color="#08267e" />
                 <h3>Shipment Tracking: {order?.orderId || order?.id}</h3>
               </>
             )}
@@ -382,21 +382,21 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
               <div>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Customer Name</div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                  <User size={13} color="#0284c7" />
+                  <User size={13} color="#08267e" />
                   {order?.customerName || order?.user?.fullName || order?.shippingName || 'Customer'}
                 </div>
               </div>
               <div>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Registered Email (For OTP)</div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                  <Mail size={13} color="#0284c7" />
+                  <Mail size={13} color="#08267e" />
                   {order?.customerEmail || 'No email attached'}
                 </div>
               </div>
               <div>
                 <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Phone Number</div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                  <Phone size={13} color="#0284c7" />
+                  <Phone size={13} color="#08267e" />
                   {order?.customerPhone || order?.shippingPhone || order?.phone || 'Not provided'}
                 </div>
               </div>
@@ -521,11 +521,11 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
                       ) : (
                         <div style={{
                           background: '#f8fafc',
-                          border: '1.5px dashed #0284c7',
+                          border: '1.5px dashed #08267e',
                           borderRadius: '8px',
                           padding: '14px 18px'
                         }}>
-                          <div style={{ fontSize: '12px', color: '#0369a1', fontWeight: 600, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ fontSize: '12px', color: '#08267e', fontWeight: 600, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Mail size={14} />
                             6-digit OTP dispatched to {maskedEmail || order?.customerEmail}. Ask customer for code:
                           </div>
@@ -546,7 +546,7 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
                                 fontWeight: 800,
                                 textAlign: 'center',
                                 fontFamily: 'monospace',
-                                border: '2px solid #0284c7',
+                                border: '2px solid #08267e',
                                 borderRadius: '8px',
                                 outline: 'none',
                                 background: '#ffffff',
@@ -591,8 +591,8 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
                               disabled={isSendingOtp || otpCooldown > 0}
                               style={{
                                 background: '#ffffff',
-                                color: otpCooldown > 0 ? '#94a3b8' : '#0284c7',
-                                border: `1.5px solid ${otpCooldown > 0 ? '#cbd5e1' : '#0284c7'}`,
+                                color: otpCooldown > 0 ? '#94a3b8' : '#08267e',
+                                border: `1.5px solid ${otpCooldown > 0 ? '#cbd5e1' : '#08267e'}`,
                                 borderRadius: '8px',
                                 padding: '9px 14px',
                                 fontSize: '12.5px',
@@ -686,9 +686,9 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
                       type="button"
                       onClick={() => setCurrentStatus('DELIVERED')}
                       style={{
-                        background: currentStatus === 'DELIVERED' ? '#dbeafe' : '#ffffff',
-                        border: '1.5px solid #0284c7',
-                        color: '#0284c7',
+                        background: currentStatus === 'DELIVERED' ? '#eef2ff' : '#ffffff',
+                        border: '1.5px solid #08267e',
+                        color: '#08267e',
                         fontWeight: 700,
                         fontSize: '12px',
                         padding: '6px 12px',
@@ -731,7 +731,7 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
               <div className="modal-form-group" style={{ marginBottom: '18px', marginTop: '14px' }}>
                 <label style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <span>Fulfillment &amp; Delivery Stage</span>
-                  <span style={{ fontSize: '11.5px', color: '#00A3E0', fontWeight: 'normal' }}>
+                  <span style={{ fontSize: '11.5px', color: '#08267e', fontWeight: 'normal' }}>
                     Select a stage to preview vehicle movement animation
                   </span>
                 </label>
@@ -746,9 +746,9 @@ export default function DistributorTrackingModal({ order, distributor, onClose, 
                     { value: 'DELIVERED', label: 'Stage 5: DELIVERED (Package Received)' }
                   ]}
                   triggerStyle={{
-                    border: '1.5px solid #00A3E0',
+                    border: '1.5px solid #08267e',
                     background: '#f0fdf4',
-                    color: '#0284c7',
+                    color: '#08267e',
                     fontWeight: 700
                   }}
                 />

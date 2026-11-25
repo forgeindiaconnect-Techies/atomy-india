@@ -61,6 +61,12 @@ public class Membership {
     @Field("updated_at")
     private LocalDateTime updatedAt;
 
+    @Field("times_purchased")
+    private Integer timesPurchased = 1;
+
+    @Field("purchase_history")
+    private java.util.List<java.util.Map<String, Object>> purchaseHistory = new java.util.ArrayList<>();
+
     public Membership() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -231,5 +237,24 @@ public class Membership {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Integer getTimesPurchased() {
+        return timesPurchased != null && timesPurchased > 0 ? timesPurchased : 1;
+    }
+
+    public void setTimesPurchased(Integer timesPurchased) {
+        this.timesPurchased = timesPurchased;
+    }
+
+    public java.util.List<java.util.Map<String, Object>> getPurchaseHistory() {
+        if (purchaseHistory == null) {
+            purchaseHistory = new java.util.ArrayList<>();
+        }
+        return purchaseHistory;
+    }
+
+    public void setPurchaseHistory(java.util.List<java.util.Map<String, Object>> purchaseHistory) {
+        this.purchaseHistory = purchaseHistory;
     }
 }

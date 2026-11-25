@@ -385,7 +385,7 @@ export default function AdminLoginPage({ onLoginSuccess, onBackToStore }) {
                     setForgotError('');
                     setForgotSuccess('');
                   }}
-                  style={{ background: 'none', border: 'none', color: '#00A3E0', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                  style={{ background: 'none', border: 'none', color: '#08267e', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', padding: 0 }}
                 >
                   <ArrowLeft size={16} />
                   <span>Back to Sign In</span>

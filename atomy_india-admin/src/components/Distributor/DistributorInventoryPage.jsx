@@ -412,15 +412,15 @@ export default function DistributorInventoryPage({
         <div
           className="kpi-gradient-wave-card"
           style={{
-            '--card-grad': 'linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)',
-            '--card-border': '#bae6fd',
-            '--card-title-color': '#0369a1'
+            '--card-grad': 'linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%)',
+            '--card-border': '#c7d2fe',
+            '--card-title-color': '#08267e'
           }}
         >
           <div className="kpi-grad-top">
             <div className="kpi-grad-title">Stocked in Hub</div>
             <div className="kpi-grad-icon-wrap">
-              <Boxes size={19} color="#0284c7" />
+              <Boxes size={19} color="#08267e" />
             </div>
           </div>
           <div className="kpi-grad-val">
@@ -429,8 +429,8 @@ export default function DistributorInventoryPage({
           <div className="kpi-grad-bottom">
             <div className="kpi-grad-trend">▲ Active in PIN {hubPincode}</div>
             <svg viewBox="0 0 160 35" preserveAspectRatio="none" className="kpi-grad-wave-svg">
-              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#0284c7" strokeWidth="2.2" strokeOpacity="0.6" />
-              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(2, 132, 199, 0.08)" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8" fill="none" stroke="#08267e" strokeWidth="2.2" strokeOpacity="0.6" />
+              <path d="M 0 25 Q 20 10 40 22 T 80 14 T 120 24 T 160 8 L 160 35 L 0 35 Z" fill="rgba(8, 38, 126, 0.08)" />
             </svg>
           </div>
         </div>
@@ -565,7 +565,7 @@ export default function DistributorInventoryPage({
                   }}
                 >
                   <span>All Stock Statuses</span>
-                  {selectedStockFilter === 'ALL' && <Check size={14} color="#0284c7" />}
+                  {selectedStockFilter === 'ALL' && <Check size={14} color="#08267e" />}
                 </button>
 
                 <button
@@ -577,7 +577,7 @@ export default function DistributorInventoryPage({
                   }}
                 >
                   <span>In Stock Only</span>
-                  {selectedStockFilter === 'IN_STOCK' && <Check size={14} color="#0284c7" />}
+                  {selectedStockFilter === 'IN_STOCK' && <Check size={14} color="#08267e" />}
                 </button>
 
                 <button
@@ -589,7 +589,7 @@ export default function DistributorInventoryPage({
                   }}
                 >
                   <span>Low Stock Only (&le; 10)</span>
-                  {selectedStockFilter === 'LOW' && <Check size={14} color="#0284c7" />}
+                  {selectedStockFilter === 'LOW' && <Check size={14} color="#08267e" />}
                 </button>
 
                 <button
@@ -601,7 +601,7 @@ export default function DistributorInventoryPage({
                   }}
                 >
                   <span>Out of Stock (0)</span>
-                  {selectedStockFilter === 'OUT' && <Check size={14} color="#0284c7" />}
+                  {selectedStockFilter === 'OUT' && <Check size={14} color="#08267e" />}
                 </button>
               </div>
             )}
@@ -673,7 +673,7 @@ export default function DistributorInventoryPage({
                       type="button"
                       className="primary-action-btn"
                       onClick={() => setShowAddModal(true)}
-                      style={{ background: '#00a3e0', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                      style={{ background: '#08267e', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                     >
                       <Plus size={16} />
                       <span>Browse Master Catalog &amp; Add Products</span>
@@ -701,7 +701,7 @@ export default function DistributorInventoryPage({
                     </td>
 
                     <td className="mono-col">
-                      <span className="order-id-badge" style={{ background: '#f8fafc', color: '#0369a1', borderColor: '#bae6fd' }}>
+                      <span className="order-id-badge" style={{ background: '#f8fafc', color: '#08267e', borderColor: '#c7d2fe' }}>
                         {p.id}
                       </span>
                     </td>
@@ -711,7 +711,7 @@ export default function DistributorInventoryPage({
                       <div className="cell-secondary-text">{p.subcategory || 'Official Atomy Product'}</div>
                       <div style={{ display: 'flex', gap: '5px', marginTop: '4px', flexWrap: 'wrap' }}>
                         {p.gstReduced && (
-                          <span style={{ fontSize: '10px', fontWeight: 700, background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd', padding: '1px 6px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 700, background: '#eef2ff', color: '#08267e', border: '1px solid #c7d2fe', padding: '1px 6px', borderRadius: '4px' }}>
                             5% GST Reduced
                           </span>
                         )}
@@ -933,7 +933,7 @@ export default function DistributorInventoryPage({
                               {prod.name}
                             </div>
                             <div className="catalog-product-pricing">
-                              ₹ {Number(prod.price || 0).toLocaleString('en-IN')} • <strong style={{ color: '#0284c7' }}>{(Number(prod.pv) || 0).toLocaleString('en-IN')} PV</strong>
+                              ₹ {Number(prod.price || 0).toLocaleString('en-IN')} • <strong style={{ color: '#08267e' }}>{(Number(prod.pv) || 0).toLocaleString('en-IN')} PV</strong>
                             </div>
                           </div>
                         </div>
@@ -1053,7 +1053,7 @@ export default function DistributorInventoryPage({
                   <button type="button" className="atomy-btn-secondary" onClick={() => setEditingStockProduct(null)}>
                     Cancel
                   </button>
-                  <button type="submit" className="primary-action-btn" style={{ background: '#00a3e0' }} disabled={isSavingEdit}>
+                  <button type="submit" className="primary-action-btn" style={{ background: '#08267e' }} disabled={isSavingEdit}>
                     {isSavingEdit ? 'Saving...' : 'Update Hub Stock'}
                   </button>
                 </div>
@@ -1098,7 +1098,7 @@ export default function DistributorInventoryPage({
       {/* Toast Notification */}
       {toastMsg && (
         <div style={{ position: 'fixed', bottom: '24px', right: '24px', background: '#0f172a', color: '#ffffff', padding: '12px 20px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 10000 }}>
-          <CheckCircle2 size={16} color="#38bdf8" />
+          <CheckCircle2 size={16} color="#10b981" />
           <span>{toastMsg}</span>
         </div>
       )}

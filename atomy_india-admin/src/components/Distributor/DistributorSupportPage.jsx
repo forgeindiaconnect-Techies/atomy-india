@@ -34,6 +34,7 @@ import {
 import { isDemoTicket } from '../../services/api';
 import CustomDropdown from '../common/CustomDropdown';
 import '../Admin/AdminDashboard.css';
+import './DistributorDashboard.css';
 
 const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const defaultBaseUrl = isLocalhost ? 'http://localhost:8085/api' : 'https://atomy-india-1ezb.onrender.com/api';
@@ -586,7 +587,7 @@ export default function DistributorSupportPage({
       {/* 1. Header Row */}
       <div className="content-heading-row with-filter">
         <div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '16px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#eef2ff', color: '#08267e', padding: '4px 10px', borderRadius: '16px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '6px' }}>
             <Headphones size={13} />
             <span>Regional Customer Care &amp; Assistance Desk</span>
           </div>
@@ -612,7 +613,7 @@ export default function DistributorSupportPage({
             type="button"
             className="btn-create-category"
             onClick={() => setIsCreateModalOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#08267e', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
           >
             <Plus size={16} />
             <span>+ Log Customer Inquiry</span>
@@ -650,32 +651,138 @@ export default function DistributorSupportPage({
       )}
 
       {/* 2. KPI Cards */}
-      <div className="dist-support-kpi-grid">
-        <div className="dist-support-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
-          <div className="dist-support-kpi-title" style={{ color: '#64748b' }}>Total Inquiries</div>
-          <div className="dist-support-kpi-val" style={{ color: '#0f172a' }}>{tickets.length}</div>
-          <div className="dist-support-kpi-sub" style={{ color: '#94a3b8' }}>Lifetime customer tickets</div>
-        </div>
-
-        <div className="dist-support-kpi-card" style={{ background: '#ffffff', border: '1px solid #fed7aa' }}>
-          <div className="dist-support-kpi-title" style={{ color: '#c2410c', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ea580c' }}></span>
-            <span>Awaiting Action</span>
+      <div 
+        className="dist-support-kpi-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '16px',
+          margin: '20px 0 24px'
+        }}
+      >
+        {/* Card 1: Total Inquiries */}
+        <div 
+          className="dist-support-kpi-card" 
+          style={{ 
+            background: '#ffffff', 
+            border: '1.5px solid #e2e8f0',
+            borderRadius: '14px',
+            padding: '20px 22px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <span className="dist-support-kpi-title" style={{ color: '#475569', fontSize: '12px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              Total Inquiries
+            </span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Headphones size={18} color="#475569" />
+            </div>
           </div>
-          <div className="dist-support-kpi-val" style={{ color: '#ea580c' }}>{openCount}</div>
-          <div className="dist-support-kpi-sub" style={{ color: '#9a3412' }}>Open tickets requiring response</div>
+          <div className="dist-support-kpi-val" style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+            {tickets.length}
+          </div>
+          <div className="dist-support-kpi-sub" style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>
+            Lifetime customer tickets
+          </div>
         </div>
 
-        <div className="dist-support-kpi-card" style={{ background: '#ffffff', border: '1px solid #bae6fd' }}>
-          <div className="dist-support-kpi-title" style={{ color: '#0369a1' }}>In Progress</div>
-          <div className="dist-support-kpi-val" style={{ color: '#0284c7' }}>{inProgressCount}</div>
-          <div className="dist-support-kpi-sub" style={{ color: '#0284c7' }}>Discussions actively underway</div>
+        {/* Card 2: Awaiting Action */}
+        <div 
+          className="dist-support-kpi-card" 
+          style={{ 
+            background: '#ffffff', 
+            border: '1.5px solid #fed7aa',
+            borderRadius: '14px',
+            padding: '20px 22px',
+            boxShadow: '0 2px 8px rgba(234, 88, 12, 0.06)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <span className="dist-support-kpi-title" style={{ color: '#c2410c', fontSize: '12px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ea580c' }}></span>
+              <span>Awaiting Action</span>
+            </span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertCircle size={18} color="#ea580c" />
+            </div>
+          </div>
+          <div className="dist-support-kpi-val" style={{ fontSize: '28px', fontWeight: 800, color: '#ea580c', lineHeight: 1.1 }}>
+            {openCount}
+          </div>
+          <div className="dist-support-kpi-sub" style={{ fontSize: '12px', color: '#9a3412', marginTop: '6px' }}>
+            Open tickets requiring response
+          </div>
         </div>
 
-        <div className="dist-support-kpi-card" style={{ background: '#ffffff', border: '1px solid #bbf7d0' }}>
-          <div className="dist-support-kpi-title" style={{ color: '#15803d' }}>Resolved / Closed</div>
-          <div className="dist-support-kpi-val" style={{ color: '#16a34a' }}>{resolvedCount}</div>
-          <div className="dist-support-kpi-sub" style={{ color: '#16a34a' }}>Successfully resolved inquiries</div>
+        {/* Card 3: In Progress */}
+        <div 
+          className="dist-support-kpi-card" 
+          style={{ 
+            background: '#ffffff', 
+            border: '1.5px solid #c7d2fe',
+            borderRadius: '14px',
+            padding: '20px 22px',
+            boxShadow: '0 2px 8px rgba(8, 38, 126, 0.06)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <span className="dist-support-kpi-title" style={{ color: '#08267e', fontSize: '12px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              In Progress
+            </span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={18} color="#08267e" />
+            </div>
+          </div>
+          <div className="dist-support-kpi-val" style={{ fontSize: '28px', fontWeight: 800, color: '#08267e', lineHeight: 1.1 }}>
+            {inProgressCount}
+          </div>
+          <div className="dist-support-kpi-sub" style={{ fontSize: '12px', color: '#08267e', marginTop: '6px' }}>
+            Discussions actively underway
+          </div>
+        </div>
+
+        {/* Card 4: Resolved / Closed */}
+        <div 
+          className="dist-support-kpi-card" 
+          style={{ 
+            background: '#ffffff', 
+            border: '1.5px solid #bbf7d0',
+            borderRadius: '14px',
+            padding: '20px 22px',
+            boxShadow: '0 2px 8px rgba(22, 163, 74, 0.06)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <span className="dist-support-kpi-title" style={{ color: '#15803d', fontSize: '12px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              Resolved / Closed
+            </span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={18} color="#16a34a" />
+            </div>
+          </div>
+          <div className="dist-support-kpi-val" style={{ fontSize: '28px', fontWeight: 800, color: '#16a34a', lineHeight: 1.1 }}>
+            {resolvedCount}
+          </div>
+          <div className="dist-support-kpi-sub" style={{ fontSize: '12px', color: '#16a34a', marginTop: '6px' }}>
+            Successfully resolved inquiries
+          </div>
         </div>
       </div>
 
@@ -740,7 +847,7 @@ export default function DistributorSupportPage({
                     }}
                   >
                     <span>{opt.label}</span>
-                    {statusFilter === opt.id && <Check size={14} color="#00A3E0" />}
+                    {statusFilter === opt.id && <Check size={14} color="#08267e" />}
                   </button>
                 ))}
               </div>
@@ -793,7 +900,7 @@ export default function DistributorSupportPage({
                     }}
                   >
                     <span>{opt.label}</span>
-                    {categoryFilter === opt.id && <Check size={14} color="#00A3E0" />}
+                    {categoryFilter === opt.id && <Check size={14} color="#08267e" />}
                   </button>
                 ))}
               </div>
@@ -805,7 +912,7 @@ export default function DistributorSupportPage({
       {/* 4. Split-Pane Workspace */}
       {tickets.length === 0 ? (
         <div className="support-empty-state-box" style={{ padding: '60px 20px', textAlign: 'center', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#eef2ff', color: '#08267e', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
             <Headphones size={32} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>Customer Support Inbox is Clear</h3>
@@ -815,7 +922,7 @@ export default function DistributorSupportPage({
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            style={{ background: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
+            style={{ background: '#08267e', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
           >
             + Log First Customer Inquiry
           </button>
@@ -846,13 +953,13 @@ export default function DistributorSupportPage({
                         padding: '14px 16px',
                         borderBottom: '1px solid #f1f5f9',
                         cursor: 'pointer',
-                        background: isSelected ? '#f0f9ff' : '#ffffff',
-                        borderLeft: isSelected ? '4px solid #0284c7' : '4px solid transparent',
+                        background: isSelected ? '#f8fafc' : '#ffffff',
+                        borderLeft: isSelected ? '4px solid #08267e' : '4px solid transparent',
                         transition: 'all 0.15s ease'
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 700, color: '#0284c7' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '12px', fontWeight: 700, color: '#08267e' }}>
                           #{t.ticketId || t.id}
                         </span>
                         <span style={{
@@ -860,8 +967,8 @@ export default function DistributorSupportPage({
                           fontWeight: 700,
                           padding: '2px 8px',
                           borderRadius: '12px',
-                          background: t.status === 'OPEN' ? '#fed7aa' : t.status === 'IN_PROGRESS' ? '#bae6fd' : '#bbf7d0',
-                          color: t.status === 'OPEN' ? '#9a3412' : t.status === 'IN_PROGRESS' ? '#0369a1' : '#15803d'
+                          background: t.status === 'OPEN' ? '#fed7aa' : t.status === 'IN_PROGRESS' ? '#c7d2fe' : '#bbf7d0',
+                          color: t.status === 'OPEN' ? '#9a3412' : t.status === 'IN_PROGRESS' ? '#08267e' : '#15803d'
                         }}>
                           {t.status}
                         </span>
@@ -901,7 +1008,7 @@ export default function DistributorSupportPage({
                   <div className="thread-top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', padding: 0 }}>
                     <div className="thread-title-info" style={{ flex: '1 1 auto', minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 800, color: '#0284c7', background: '#e0f2fe', padding: '3px 8px', borderRadius: '6px' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '13px', fontWeight: 800, color: '#08267e', background: '#eef2ff', padding: '3px 8px', borderRadius: '6px' }}>
                           #{selectedTicket.ticketId || selectedTicket.id}
                         </span>
                         <span style={{ fontSize: '11.5px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: '#f1f5f9', color: '#475569' }}>
@@ -937,7 +1044,7 @@ export default function DistributorSupportPage({
                         {isTicketStatusOpen && (
                           <div className="custom-dropdown-menu thread-status-menu">
                             {[
-                              { id: 'OPEN', label: 'OPEN', color: '#0284c7', bg: '#e0f2fe' },
+                              { id: 'OPEN', label: 'OPEN', color: '#08267e', bg: '#eef2ff' },
                               { id: 'IN_PROGRESS', label: 'IN PROGRESS', color: '#d97706', bg: '#fef3c7' },
                               { id: 'RESOLVED', label: 'RESOLVED', color: '#16a34a', bg: '#dcfce7' },
                               { id: 'CLOSED', label: 'CLOSED', color: '#64748b', bg: '#f1f5f9' }
@@ -963,7 +1070,7 @@ export default function DistributorSupportPage({
                                 }}>
                                   {opt.label}
                                 </span>
-                                {selectedTicket.status === opt.id && <Check size={14} color="#00A3E0" strokeWidth={2.5} />}
+                                {selectedTicket.status === opt.id && <Check size={14} color="#08267e" strokeWidth={2.5} />}
                               </button>
                             ))}
                           </div>
@@ -985,14 +1092,14 @@ export default function DistributorSupportPage({
                   {/* Customer Quick Info Card */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', fontSize: '12.5px', color: '#475569' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <User size={13} color="#0284c7" />
+                      <User size={13} color="#08267e" />
                       <strong>{selectedTicket.customerName || 'Customer'}</strong>
                     </div>
 
                     {selectedTicket.customerEmail && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Mail size={13} color="#0284c7" />
-                        <a href={`mailto:${selectedTicket.customerEmail}`} style={{ color: '#0284c7', textDecoration: 'none' }}>
+                        <Mail size={13} color="#08267e" />
+                        <a href={`mailto:${selectedTicket.customerEmail}`} style={{ color: '#08267e', textDecoration: 'none' }}>
                           {selectedTicket.customerEmail}
                         </a>
                       </div>
@@ -1000,8 +1107,8 @@ export default function DistributorSupportPage({
 
                     {selectedTicket.customerPhone && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Phone size={13} color="#0284c7" />
-                        <a href={`tel:${selectedTicket.customerPhone}`} style={{ color: '#0284c7', textDecoration: 'none' }}>
+                        <Phone size={13} color="#08267e" />
+                        <a href={`tel:${selectedTicket.customerPhone}`} style={{ color: '#08267e', textDecoration: 'none' }}>
                           {selectedTicket.customerPhone}
                         </a>
                       </div>
@@ -1033,11 +1140,11 @@ export default function DistributorSupportPage({
                         width: '38px',
                         height: '38px',
                         borderRadius: '8px',
-                        background: '#e0f2fe',
+                        background: '#eef2ff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#0284c7'
+                        color: '#08267e'
                       }}>
                         <Package size={20} />
                       </div>
@@ -1174,7 +1281,7 @@ export default function DistributorSupportPage({
                           style={{
                             alignSelf: isAdmin ? 'flex-end' : 'flex-start',
                             maxWidth: '75%',
-                            background: isAdmin ? '#0284c7' : '#ffffff',
+                            background: isAdmin ? '#08267e' : '#ffffff',
                             color: isAdmin ? '#ffffff' : '#0f172a',
                             borderRadius: '12px',
                             borderTopRightRadius: isAdmin ? '2px' : '12px',
@@ -1276,7 +1383,7 @@ export default function DistributorSupportPage({
           <div style={{ background: '#ffffff', borderRadius: '14px', width: '100%', maxWidth: '540px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eef2ff', color: '#08267e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Headphones size={20} />
                 </div>
                 <div>
@@ -1432,7 +1539,7 @@ export default function DistributorSupportPage({
                 <button
                   type="submit"
                   disabled={isCreatingTicket}
-                  style={{ padding: '8px 20px', background: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '8px 20px', background: '#08267e', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
                 >
                   {isCreatingTicket ? 'Saving...' : 'Register Ticket'}
                 </button>
@@ -1643,7 +1750,7 @@ export default function DistributorSupportPage({
       {/* 6. Toast Notification */}
       {toastMessage && (
         <div style={{ position: 'fixed', bottom: '24px', right: '24px', background: '#0f172a', color: '#ffffff', padding: '12px 20px', borderRadius: '10px', fontSize: '13.5px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 10000 }}>
-          <CheckCircle2 size={16} color="#38bdf8" />
+          <CheckCircle2 size={16} color="#10b981" />
           <span>{toastMessage}</span>
         </div>
       )}

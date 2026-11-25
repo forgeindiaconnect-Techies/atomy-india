@@ -98,7 +98,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
             /* Order Placed Success Screen */
             <div className="checkout-success-view">
               <div className="success-icon-wrapper">
-                <CheckCircle2 size={56} color="#08267e" />
+                <CheckCircle2 size={56} color="#10b981" />
               </div>
               <h3 className="success-title">Order Placed Successfully!</h3>
               <p className="success-subtitle">

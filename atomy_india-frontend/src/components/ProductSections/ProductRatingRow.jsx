@@ -119,7 +119,7 @@ export default function ProductRatingRow({ product, className = '' }) {
                 key={starIdx}
                 size={13}
                 fill="none"
-                stroke={hasReviews ? "#de7921" : "#cbd5e1"}
+                stroke="#de7921"
                 strokeWidth={1.6}
                 className="rating-star-icon"
               />

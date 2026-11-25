@@ -1,10 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
 :root {
-  --atomy-blue: #00A3E0;
-  --atomy-blue-dark: #008cc2;
-  --atomy-blue-light: #e6f6fc;
-  --atomy-navy: #0d2b45;
+  --atomy-header-bg: #08267e;
+  --atomy-blue: #08267e;
+  --atomy-blue-dark: #051a57;
+  --atomy-blue-light: #eef2ff;
+  --atomy-navy: #08267e;
   --atomy-black: #222222;
   --atomy-gray-dark: #555555;
   --atomy-gray-mid: #888888;

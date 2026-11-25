@@ -601,7 +601,7 @@ export default function ProductDetailPage({
             {/* Top Review Rating & Action Icons (Print, Heart, Share) (matches Screenshot 1) */}
             <div className="pdp-top-meta-row">
               <div className="pdp-review-summary-left">
-                <Star size={16} fill={reviewsCount > 0 ? "#111" : "#94A3B8"} color={reviewsCount > 0 ? "#111" : "#94A3B8"} />
+                <Star size={16} fill={reviewsCount > 0 ? "#de7921" : "none"} color="#de7921" stroke="#de7921" />
                 <span className="pdp-rating-num">{ratingValue}</span>
                 <span className="pdp-reviews-count-text">
                   {reviewsCount} no(s){' '}
@@ -635,8 +635,8 @@ export default function ProductDetailPage({
                   <Heart
                     size={26}
                     strokeWidth={1.8}
-                    fill={isFavorite ? "#ef4444" : "none"}
-                    color={isFavorite ? "#ef4444" : "#1e293b"}
+                    fill={isFavorite ? "#e53935" : "none"}
+                    color={isFavorite ? "#e53935" : "#1e293b"}
                   />
                 </button>
                 <button
@@ -824,8 +824,13 @@ export default function ProductDetailPage({
 
             {/* Social Proof Counter Stats (matches Screenshot 2 with cyan icons) */}
             <div className="pdp-stats-indicators-row">
-              <div className="stat-indicator-item">
-                <Heart size={16} color="#08267e" />
+              <div
+                className="stat-indicator-item"
+                onClick={handleToggleLike}
+                style={{ cursor: 'pointer' }}
+                title={isFavorite ? "Remove from Favorites" : "Save to Favorites"}
+              >
+                <Heart size={16} color={isFavorite ? "#e53935" : "#08267e"} fill={isFavorite ? "#e53935" : "none"} />
                 <span>{stats.likes.toLocaleString('en-IN')} Likes</span>
               </div>
               <div className="stat-indicator-item">
@@ -1091,7 +1096,7 @@ export default function ProductDetailPage({
                       <Heart
                         size={20}
                         className="quick-menu-corner-lucide"
-                        style={{ color: '#ef4444', fill: favorites.length > 0 ? '#ef4444' : 'none' }}
+                        style={{ color: favorites.length > 0 ? '#e53935' : '#64748b', fill: favorites.length > 0 ? '#e53935' : 'none' }}
                       />
                       <span>Favorites {favorites.length > 0 ? `(${favorites.length})` : ''}</span>
                     </button>
@@ -1359,7 +1364,13 @@ export default function ProductDetailPage({
                         <div className="overall-score">{ratingValue}</div>
                         <div className="stars-row">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={18} fill="#f59e0b" color="#f59e0b" />
+                            <Star
+                              key={i}
+                              size={18}
+                              fill={i < Math.round(Number(ratingValue) || 0) ? "#f59e0b" : "none"}
+                              color="#f59e0b"
+                              stroke="#f59e0b"
+                            />
                           ))}
                         </div>
                         <div className="total-ratings-text">Based on {productReviews.length} Verified Customer Reviews</div>
@@ -1390,8 +1401,14 @@ export default function ProductDetailPage({
                             <div className="review-headline-title">{rev.title}</div>
                           )}
                           <div className="review-stars">
-                            {[...Array(Number(rev.rating) || 5)].map((_, i) => (
-                              <Star key={i} size={14} fill="#f59e0b" color="#f59e0b" />
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                size={14}
+                                fill={i < (Number(rev.rating) || 5) ? "#f59e0b" : "none"}
+                                color="#f59e0b"
+                                stroke="#f59e0b"
+                              />
                             ))}
                           </div>
                           <p className="review-body">{rev.comment || rev.reviewBody || rev.text}</p>
@@ -1823,9 +1840,23 @@ export default function ProductDetailPage({
                           {(itemPricing.pv || item.pv || 4000).toLocaleString('en-IN')} PV
                         </p>
 
-                        <div className="related-likes-line">
-                          {getProductStats(item).likes} Likes
-                        </div>
+                        {(() => {
+                          const isItemLiked = (favorites || []).some(f => String(f.id) === String(item.id));
+                          return (
+                            <div
+                              className="related-likes-line"
+                              style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleFavorite && onToggleFavorite(item);
+                              }}
+                              title={isItemLiked ? "Remove from wishlist" : "Add to wishlist"}
+                            >
+                              <Heart size={13} color={isItemLiked ? "#e53935" : "#64748b"} fill={isItemLiked ? "#e53935" : "none"} />
+                              <span>{getProductStats(item, isItemLiked).likes} Likes</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );

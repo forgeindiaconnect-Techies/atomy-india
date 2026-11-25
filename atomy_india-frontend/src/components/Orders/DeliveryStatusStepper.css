@@ -156,11 +156,12 @@
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.stepper-stage-node.completed .stage-circle {
-  background: #10b981;
-  border-color: #10b981;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+.stepper-stage-node.completed .stage-circle,
+.stepper-stage-node.completed.current .stage-circle {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.25), 0 6px 16px rgba(16, 185, 129, 0.4) !important;
 }
 
 .stage-check-icon {
@@ -168,11 +169,11 @@
   color: #ffffff;
 }
 
-.stepper-stage-node.current .stage-circle {
+.stepper-stage-node.current:not(.completed) .stage-circle {
   background: #08267e;
   border-color: #08267e;
   color: #ffffff;
-  box-shadow: 0 0 0 6px rgba(0, 163, 224, 0.2), 0 6px 16px rgba(0, 163, 224, 0.35);
+  box-shadow: 0 0 0 6px rgba(8, 38, 126, 0.2), 0 6px 16px rgba(8, 38, 126, 0.35);
   transform: scale(1.08);
 }
 
@@ -180,8 +181,13 @@
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  border: 2px dashed rgba(0, 163, 224, 0.65);
+  border: 2px dashed rgba(8, 38, 126, 0.65);
   animation: rotateStageGlow 6s linear infinite;
+}
+
+.stepper-stage-node.completed .stage-glow-ring,
+.stepper-stage-node.completed.current .stage-glow-ring {
+  border: 2px dashed rgba(16, 185, 129, 0.75) !important;
 }
 
 @keyframes rotateStageGlow {

@@ -3050,7 +3050,8 @@ export default function OrderHistoryPage({
                           <Star
                             size={32}
                             fill={isFilled ? "#f59e0b" : "transparent"}
-                            color={isFilled ? "#f59e0b" : "#cbd5e1"}
+                            color="#f59e0b"
+                            stroke="#f59e0b"
                           />
                         </button>
                       );

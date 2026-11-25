@@ -5535,7 +5535,7 @@ export default function AdminDashboard({ onBackToStore, onLogout, adminProfilePr
               </button>
               <div className="inspection-topbar-divider" />
               <div className="inspection-order-headline">
-                <Package size={22} color="#00A3E0" />
+                <Package size={22} color="#08267e" />
                 <h3>Order Inspection: <span className="inspection-order-id">{selectedOrderDetail.orderId}</span></h3>
                 <span className={`inspection-status-pill status-${(selectedOrderDetail.orderStatus || 'placed').toLowerCase()}`}>
                   {selectedOrderDetail.orderStatus || 'PLACED'}

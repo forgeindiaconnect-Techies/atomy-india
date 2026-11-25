@@ -1424,7 +1424,7 @@ export default function Header({
                     <Heart
                       size={20}
                       className="quick-menu-corner-lucide"
-                      style={{ color: '#ef4444', fill: favoritesCount > 0 ? '#ef4444' : 'none' }}
+                      style={{ color: favoritesCount > 0 ? '#ef4444' : '#64748b', fill: favoritesCount > 0 ? '#ef4444' : 'none' }}
                     />
                     <span>Favorites {favoritesCount > 0 ? `(${favoritesCount})` : ''}</span>
                   </button>
