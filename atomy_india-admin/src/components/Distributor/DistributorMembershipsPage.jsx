@@ -141,13 +141,17 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
       try {
         const exp = new Date(expiryVal);
         if (!isNaN(exp.getTime())) {
+          // If date has no time, extend validity through end-of-day 23:59:59
+          if (typeof expiryVal === 'string' && (expiryVal.length === 10 || !expiryVal.includes(':'))) {
+            exp.setHours(23, 59, 59, 999);
+          }
           const now = new Date();
           const isToday = (
             exp.getFullYear() === now.getFullYear() &&
             exp.getMonth() === now.getMonth() &&
             exp.getDate() === now.getDate()
           );
-          return exp <= now || isToday;
+          return exp <= now && !isToday;
         }
       } catch {}
     }

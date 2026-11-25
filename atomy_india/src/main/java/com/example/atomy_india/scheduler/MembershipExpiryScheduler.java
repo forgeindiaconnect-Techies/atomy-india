@@ -44,10 +44,15 @@ public class MembershipExpiryScheduler {
             int notifiedCount = 0;
 
             for (Membership m : activeList) {
-                boolean isExpired = m.getExpiryDate() != null && (
-                    m.getExpiryDate().isBefore(now) ||
-                    !m.getExpiryDate().toLocalDate().isAfter(java.time.LocalDate.now())
-                );
+                boolean isExpired = false;
+                if (m.getExpiryDate() != null) {
+                    LocalDateTime exp = m.getExpiryDate();
+                    // If time is set to midnight (00:00:00), grant validity through the end of the expiry day
+                    if (exp.toLocalTime().equals(java.time.LocalTime.MIN)) {
+                        exp = exp.toLocalDate().atTime(23, 59, 59);
+                    }
+                    isExpired = exp.isBefore(now);
+                }
                 if ("ACTIVE".equalsIgnoreCase(m.getStatus()) && isExpired) {
                     m.setStatus("EXPIRED");
                     if (!Boolean.TRUE.equals(m.getExpiredEmailSent())) {

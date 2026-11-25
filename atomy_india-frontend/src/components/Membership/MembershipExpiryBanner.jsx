@@ -46,10 +46,16 @@ export function getMembershipExpiryInfo(membership) {
   }
 
   try {
-    const expiry = new Date(expiryDate);
+    let expiry = new Date(expiryDate);
     if (isNaN(expiry.getTime())) {
       return { status: null, remainingDays: 0, expiryDateStr: '', isToday: false };
     }
+
+    // If expiry date string has no time or is YYYY-MM-DD, give full validity through end-of-day 23:59:59
+    if (typeof expiryDate === 'string' && (expiryDate.length === 10 || !expiryDate.includes(':'))) {
+      expiry.setHours(23, 59, 59, 999);
+    }
+
     const now = new Date();
 
     const isToday = (
@@ -67,8 +73,13 @@ export function getMembershipExpiryInfo(membership) {
       year: 'numeric'
     });
 
-    if (diffMs <= 0 || remainingDays <= 0 || isToday) {
-      return { status: 'EXPIRED', remainingDays: 0, expiryDateStr, isToday };
+    // If time has completely passed and today has concluded, it is EXPIRED
+    if (diffMs <= 0 && !isToday) {
+      return { status: 'EXPIRED', remainingDays: 0, expiryDateStr, isToday: false };
+    }
+    // If today is the expiration day, the member remains active throughout today but receives warning
+    if (isToday) {
+      return { status: 'EXPIRING_SOON', remainingDays: 0, expiryDateStr, isToday: true };
     }
     if (remainingDays <= 2) {
       return { status: 'EXPIRING_SOON', remainingDays, expiryDateStr, isToday: false };

@@ -50,7 +50,11 @@ public class AdminMembershipController {
         List<Membership> toDelete = new ArrayList<>();
 
         for (Membership m : rawList) {
-            boolean isExpired = m.getExpiryDate() != null && m.getExpiryDate().isBefore(now);
+            LocalDateTime exp = m.getExpiryDate();
+            if (exp != null && exp.toLocalTime().equals(java.time.LocalTime.MIN)) {
+                exp = exp.toLocalDate().atTime(23, 59, 59);
+            }
+            boolean isExpired = exp != null && exp.isBefore(now);
             if ("ACTIVE".equalsIgnoreCase(m.getStatus()) && isExpired) {
                 m.setStatus("EXPIRED");
                 membershipRepository.save(m);
@@ -151,8 +155,71 @@ public class AdminMembershipController {
             String paymentMethod = "ADMIN_MANUAL";
             String paymentId = "admin_enrolled_" + System.currentTimeMillis();
 
-            String memberId = "ATM-MEM-" + (100 + new Random().nextInt(900));
-            Membership m = new Membership(memberId, name, email, phone, plan, amountPaid, paymentMethod, paymentId);
+            // Look up existing membership for this email to retain ID & history
+            List<Membership> existingList = membershipRepository
+                    .findByCustomerEmailIgnoreCaseOrderByCreatedAtDesc(email);
+
+            Membership m;
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime newExpiry = "MONTHLY".equalsIgnoreCase(plan) ? now.plusMonths(1) : now.plusYears(1);
+
+            if (!existingList.isEmpty()) {
+                m = existingList.get(0);
+                if (m.getStartDate() != null) {
+                    Map<String, Object> prevItem = new HashMap<>();
+                    prevItem.put("plan", m.getPlan());
+                    prevItem.put("amountPaid", m.getAmountPaid());
+                    prevItem.put("paymentMethod", m.getPaymentMethod());
+                    prevItem.put("paymentId", m.getPaymentId());
+                    prevItem.put("startDate", m.getStartDate().toString());
+                    prevItem.put("expiryDate", m.getExpiryDate() != null ? m.getExpiryDate().toString() : null);
+                    prevItem.put("status", m.getStatus());
+                    m.getPurchaseHistory().add(prevItem);
+                }
+                m.setCustomerName(name);
+                m.setCustomerPhone(phone);
+                m.setPlan(plan);
+                m.setAmountPaid(amountPaid);
+                m.setPaymentMethod(paymentMethod);
+                m.setPaymentId(paymentId);
+                m.setPaymentStatus("PAID");
+                m.setStatus("ACTIVE");
+                m.setStartDate(now);
+                m.setExpiryDate(newExpiry);
+                m.setUpdatedAt(now);
+                m.setTimesPurchased(m.getPurchaseHistory().size() + 1);
+
+                Map<String, Object> currentItem = new HashMap<>();
+                currentItem.put("plan", plan);
+                currentItem.put("amountPaid", amountPaid);
+                currentItem.put("paymentMethod", paymentMethod);
+                currentItem.put("paymentId", paymentId);
+                currentItem.put("startDate", now.toString());
+                currentItem.put("expiryDate", newExpiry.toString());
+                currentItem.put("status", "ACTIVE");
+                m.getPurchaseHistory().add(currentItem);
+
+                if (existingList.size() > 1) {
+                    for (int i = 1; i < existingList.size(); i++) {
+                        try {
+                            membershipRepository.delete(existingList.get(i));
+                        } catch (Exception ignored) {}
+                    }
+                }
+            } else {
+                String memberId = "ATM-MEM-" + (100 + new Random().nextInt(900));
+                m = new Membership(memberId, name, email, phone, plan, amountPaid, paymentMethod, paymentId);
+                m.setTimesPurchased(1);
+                Map<String, Object> firstItem = new HashMap<>();
+                firstItem.put("plan", plan);
+                firstItem.put("amountPaid", amountPaid);
+                firstItem.put("paymentMethod", paymentMethod);
+                firstItem.put("paymentId", paymentId);
+                firstItem.put("startDate", m.getStartDate().toString());
+                firstItem.put("expiryDate", m.getExpiryDate().toString());
+                firstItem.put("status", "ACTIVE");
+                m.getPurchaseHistory().add(firstItem);
+            }
             Membership saved = membershipRepository.save(m);
 
             // Synchronize with CustomerUser in database

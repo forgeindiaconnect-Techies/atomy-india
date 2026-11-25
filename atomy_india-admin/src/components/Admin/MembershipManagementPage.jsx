@@ -216,9 +216,12 @@ export default function MembershipManagementPage() {
       try {
         const exp = new Date(m.expiryDate);
         if (!isNaN(exp.getTime())) {
+          if (typeof m.expiryDate === 'string' && (m.expiryDate.length === 10 || !m.expiryDate.includes(':'))) {
+            exp.setHours(23, 59, 59, 999);
+          }
           const now = new Date();
           const isToday = exp.getFullYear() === now.getFullYear() && exp.getMonth() === now.getMonth() && exp.getDate() === now.getDate();
-          return exp <= now || isToday;
+          return exp <= now && !isToday;
         }
       } catch {}
     }

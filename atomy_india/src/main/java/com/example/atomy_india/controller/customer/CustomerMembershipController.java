@@ -214,7 +214,11 @@ public class CustomerMembershipController {
 
         if (active.isPresent()) {
             Membership m = active.get();
-            boolean isExpired = m.getExpiryDate() != null && m.getExpiryDate().isBefore(LocalDateTime.now());
+            LocalDateTime exp = m.getExpiryDate();
+            if (exp != null && exp.toLocalTime().equals(java.time.LocalTime.MIN)) {
+                exp = exp.toLocalDate().atTime(23, 59, 59);
+            }
+            boolean isExpired = exp != null && exp.isBefore(LocalDateTime.now());
             if (isExpired) {
                 m.setStatus("EXPIRED");
                 if (!Boolean.TRUE.equals(m.getExpiredEmailSent())) {
