@@ -189,13 +189,11 @@ export default function BestProductsSection({
               const likesCount = stats.likes;
               const isOutOfStock = product.inStock === false || (product.stockQuantity !== undefined && product.stockQuantity < 2);
               const { showRibbon } = getProductRibbonInfo(product, isMember);
-              const displayRank = index + 1;
 
               return (
                 <div key={product.id} className="product-card" style={isOutOfStock ? { opacity: 0.6 } : {}}>
                   {/* Product Image Box */}
                   <div className="product-img-wrap">
-                    <div className="product-rank-badge">{displayRank}</div>
                     {isOutOfStock && (
                       <div style={{
                         position: 'absolute',

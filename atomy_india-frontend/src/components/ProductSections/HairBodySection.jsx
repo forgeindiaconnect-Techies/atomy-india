@@ -69,9 +69,6 @@ export default function HairBodySection({
                 <div key={product.id} className="product-card" style={isOutOfStock ? { opacity: 0.6 } : {}}>
                   {/* Product Image Box */}
                   <div className="product-img-wrap">
-                    {product.rank && (
-                      <div className="product-rank-badge">{product.rank}</div>
-                    )}
                     {isOutOfStock && (
                       <div style={{
                         position: 'absolute',
