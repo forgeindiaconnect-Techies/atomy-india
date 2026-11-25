@@ -599,82 +599,105 @@ export default function DistributorMembershipsPage({ distributor, territoryOrder
           </div>
 
           {/* Ledger Table */}
-          <div className="atomy-table-responsive">
-            <table className="atomy-data-table">
+          <div className="atomy-table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="atomy-data-table" style={{ width: '100%', minWidth: '820px', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th>Cycle #</th>
-                  <th>Plan Tier</th>
-                  <th>Subscription / Renewal Date</th>
-                  <th>Valid Until (Expiry)</th>
-                  <th>Amount Paid</th>
-                  <th>Payment Mode</th>
-                  <th>Status</th>
+                  <th style={{ width: '14%', whiteSpace: 'nowrap', verticalAlign: 'middle', padding: '12px 16px' }}>Cycle #</th>
+                  <th style={{ width: '22%', whiteSpace: 'nowrap', verticalAlign: 'middle', padding: '12px 16px' }}>Plan Tier</th>
+                  <th style={{ width: '16%', whiteSpace: 'nowrap', verticalAlign: 'middle', padding: '12px 16px' }}>Subscription Date</th>
+                  <th style={{ width: '16%', whiteSpace: 'nowrap', verticalAlign: 'middle', padding: '12px 16px' }}>Valid Until (Expiry)</th>
+                  <th style={{ width: '12%', whiteSpace: 'nowrap', verticalAlign: 'middle', padding: '12px 16px' }}>Amount Paid</th>
+                  <th style={{ width: '10%', whiteSpace: 'nowrap', verticalAlign: 'middle', padding: '12px 16px' }}>Payment Mode</th>
+                  <th style={{ width: '10%', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center', padding: '12px 16px' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {purchaseHistory.map((item, idx) => {
-                  const isCurrent = idx === 0 && active;
                   const itemPlanIsMonthly = String(item.plan || '').toUpperCase().includes('MONTHLY');
                   const itemActive = String(item.status || '').toUpperCase() === 'ACTIVE';
+                  const isCurrent = itemActive; // Only show current badge when cycle is actively in effect
                   return (
                     <tr key={idx} style={{ background: isCurrent ? 'rgba(8, 38, 126, 0.02)' : 'transparent' }}>
-                      <td>
+                      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', padding: '14px 16px' }}>
                         <span style={{
                           fontFamily: 'monospace',
                           fontWeight: 700,
-                          fontSize: '12px',
+                          fontSize: '12.5px',
                           background: isCurrent ? '#dbeafe' : '#f1f5f9',
                           color: isCurrent ? '#1e40af' : '#475569',
-                          padding: '3px 8px',
+                          padding: '4px 10px',
                           borderRadius: '6px',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px'
+                          gap: '6px',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1
                         }}>
                           Cycle {item.cycle || (purchaseHistory.length - idx)}
-                          {isCurrent && <span style={{ fontSize: '10px', background: '#2563eb', color: '#fff', padding: '1px 5px', borderRadius: '4px' }}>CURRENT</span>}
+                          {isCurrent && (
+                            <span style={{
+                              fontSize: '10px',
+                              background: '#2563eb',
+                              color: '#fff',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 700,
+                              letterSpacing: '0.3px',
+                              lineHeight: 1
+                            }}>
+                              CURRENT
+                            </span>
+                          )}
                         </span>
                       </td>
-                      <td>
+                      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', padding: '14px 16px' }}>
                         <span style={{
                           fontWeight: 700,
                           color: itemPlanIsMonthly ? '#08267e' : '#b45309',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px'
+                          gap: '6px',
+                          whiteSpace: 'nowrap',
+                          fontSize: '13.5px'
                         }}>
-                          <Crown size={14} color={itemPlanIsMonthly ? '#08267e' : '#d97706'} />
+                          <Crown size={15} color={itemPlanIsMonthly ? '#08267e' : '#d97706'} />
                           {itemPlanIsMonthly ? 'Monthly Distributor VIP' : 'Annual Distributor VIP'}
                         </span>
                       </td>
-                      <td>{formatMembershipDate(item.startDate)}</td>
-                      <td>
+                      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', padding: '14px 16px', color: '#334155' }}>
+                        {formatMembershipDate(item.startDate)}
+                      </td>
+                      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', padding: '14px 16px' }}>
                         <strong style={{ color: itemActive ? '#15803d' : '#64748b' }}>
                           {formatMembershipDate(item.expiryDate)}
                         </strong>
                       </td>
-                      <td>
-                        <strong>₹ {Number(item.amountPaid || (itemPlanIsMonthly ? 299 : 2499)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>
+                      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', padding: '14px 16px' }}>
+                        <strong style={{ color: '#0f172a' }}>
+                          ₹ {Number(item.amountPaid || (itemPlanIsMonthly ? 299 : 2499)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </strong>
                       </td>
-                      <td>
-                        <span style={{ fontSize: '12.5px', color: '#475569' }}>
+                      <td style={{ verticalAlign: 'middle', whiteSpace: 'nowrap', padding: '14px 16px' }}>
+                        <span style={{ fontSize: '13px', color: '#475569', whiteSpace: 'nowrap' }}>
                           {item.paymentMethod || 'UPI / Razorpay'}
                         </span>
                       </td>
-                      <td>
+                      <td style={{ verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap', padding: '14px 16px' }}>
                         <span style={{
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
-                          padding: '3px 10px',
+                          padding: '4px 12px',
                           borderRadius: '12px',
                           fontSize: '11px',
                           fontWeight: 700,
                           textTransform: 'uppercase',
                           background: itemActive ? '#dcfce7' : '#f1f5f9',
                           color: itemActive ? '#15803d' : '#64748b',
-                          border: itemActive ? '1px solid #bbf7d0' : '1px solid #e2e8f0'
+                          border: itemActive ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.2
                         }}>
                           {itemActive ? '● Active' : '✓ Completed'}
                         </span>
