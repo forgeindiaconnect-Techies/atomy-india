@@ -507,6 +507,24 @@ export default function ProductDetailPage({
                 />
               )}
 
+              {/* Veg / Non-Veg Indicator Badge */}
+              {product.isVeg && (
+                <span className="pdp-flag-veg" title="Vegetarian" aria-label="Vegetarian">
+                  <svg width="22" height="22" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="16" height="16" rx="3" fill="#ffffff" stroke="#16a34a" strokeWidth="1.6" />
+                    <circle cx="9" cy="9" r="4.2" fill="#16a34a" />
+                  </svg>
+                </span>
+              )}
+              {product.isNonVeg && (
+                <span className="pdp-flag-nonveg" title="Non-Vegetarian" aria-label="Non-Vegetarian">
+                  <svg width="22" height="22" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="16" height="16" rx="3" fill="#ffffff" stroke="#dc2626" strokeWidth="1.6" />
+                    <circle cx="9" cy="9" r="4.2" fill="#dc2626" />
+                  </svg>
+                </span>
+              )}
+
               {isOutOfDelivery && (
                 <div style={{
                   position: 'absolute',

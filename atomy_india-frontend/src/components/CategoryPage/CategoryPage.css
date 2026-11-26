@@ -566,32 +566,28 @@
   pointer-events: none;
 }
 
-.cate-flag-veg {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: #2e7d32;
-  color: #ffffff;
-  fontSize: 11px;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 2px;
-  letter-spacing: 0.5px;
-  z-index: 2;
-}
-
+/* Veg / Non-Veg Indicator Badge - Standard Indian Dietary Mark (Clean square with centered dot) */
+.cate-flag-veg,
 .cate-flag-nonveg {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #d32f2f;
-  color: #ffffff;
-  fontSize: 11px;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 2px;
-  letter-spacing: 0.5px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   z-index: 2;
+  border-radius: 3px;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.18));
+  line-height: 1;
+}
+
+.cate-flag-veg svg,
+.cate-flag-nonveg svg {
+  display: block;
+  width: 18px;
+  height: 18px;
 }
 
 /* Product Info */

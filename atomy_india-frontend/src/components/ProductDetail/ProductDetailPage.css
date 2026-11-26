@@ -130,6 +130,30 @@
   z-index: 3;
 }
 
+/* Veg / Non-Veg Indicator Badge on PDP Main Image */
+.pdp-flag-veg,
+.pdp-flag-nonveg {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  border-radius: 3px;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.18));
+  line-height: 1;
+}
+
+.pdp-flag-veg svg,
+.pdp-flag-nonveg svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
 /* Gallery Navigation Arrows overlay on image (matches Image 1) */
 .pdp-img-nav-btn {
   position: absolute;

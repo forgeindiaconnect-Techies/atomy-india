@@ -12,6 +12,30 @@ import './CategoryPage.css';
 const FALLBACK_PRODUCT_IMAGE = "https://resources.atomy.com/20261001111257/common/images/no_img_square.jpg";
 const SVG_FALLBACK_IMAGE = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Crect width='300' height='300' fill='%23f5f6f8'/%3E%3Cpath d='M100 180 L130 140 L160 170 L200 120 L230 180 Z' fill='%23d0d5dd'/%3E%3Ccircle cx='125' cy='120' r='15' fill='%23d0d5dd'/%3E%3Ctext x='50%25' y='75%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='13' fill='%23888888'%3EAtomy Product%3C/text%3E%3C/svg%3E";
 
+const renderDietaryIndicator = (product) => {
+  if (product.isVeg) {
+    return (
+      <span className="cate-flag-veg" title="Vegetarian" aria-label="Vegetarian">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="16" height="16" rx="3" fill="#ffffff" stroke="#16a34a" strokeWidth="1.6" />
+          <circle cx="9" cy="9" r="4.2" fill="#16a34a" />
+        </svg>
+      </span>
+    );
+  }
+  if (product.isNonVeg) {
+    return (
+      <span className="cate-flag-nonveg" title="Non-Vegetarian" aria-label="Non-Vegetarian">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="16" height="16" rx="3" fill="#ffffff" stroke="#dc2626" strokeWidth="1.6" />
+          <circle cx="9" cy="9" r="4.2" fill="#dc2626" />
+        </svg>
+      </span>
+    );
+  }
+  return null;
+};
+
 export default function CategoryPage({
   categoryId = 'health',
   onSelectCategory,
@@ -680,12 +704,7 @@ export default function CategoryPage({
                           className="cate-flag-gst"
                         />
                       )}
-                      {product.isVeg && (
-                        <span className="cate-flag-veg">VEG</span>
-                      )}
-                      {product.isNonVeg && (
-                        <span className="cate-flag-nonveg">NON-VEG</span>
-                      )}
+                      {renderDietaryIndicator(product)}
                       {isOos && (
                         <span style={{
                           position: 'absolute',
@@ -839,12 +858,7 @@ export default function CategoryPage({
                           className="cate-flag-gst"
                         />
                       )}
-                      {product.isVeg && (
-                        <span className="cate-flag-veg">VEG</span>
-                      )}
-                      {product.isNonVeg && (
-                        <span className="cate-flag-nonveg">NON-VEG</span>
-                      )}
+                      {renderDietaryIndicator(product)}
                       {isOos && (
                         <span style={{
                           position: 'absolute',
@@ -1012,12 +1026,7 @@ export default function CategoryPage({
                       className="cate-flag-gst"
                     />
                   )}
-                  {product.isVeg && (
-                    <span className="cate-flag-veg">VEG</span>
-                  )}
-                  {product.isNonVeg && (
-                    <span className="cate-flag-nonveg">NON-VEG</span>
-                  )}
+                  {renderDietaryIndicator(product)}
                   {isOos && (
                     <span style={{
                       position: 'absolute',

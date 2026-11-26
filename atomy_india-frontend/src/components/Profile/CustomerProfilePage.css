@@ -2845,11 +2845,35 @@
 
 
 
-/* Mobile Menu Toggle Bar - Hidden by default on Desktop */
+/* ==========================================================================
+   CUSTOMER PROFILE MENU: DESKTOP VS MOBILE TOGGLE
+   On Desktop (min-width: 993px):
+   - Menu bar stays permanently open (never collapsed/hidden)
+   - Mobile menu toggle bar is strictly hidden
+   On Mobile/Tablet (max-width: 992px):
+   - Toggle bar is visible and controls collapsing/opening the menu
+   ========================================================================== */
+
+/* Desktop Default & Screens >= 993px */
 .profile-mobile-menu-toggle-bar {
-  display: none;
+  display: none !important;
 }
 
+@media (min-width: 993px) {
+  .profile-mobile-menu-toggle-bar {
+    display: none !important;
+  }
+
+  .profile-nav-menu,
+  .profile-nav-menu.mobile-collapsed,
+  .profile-nav-menu.mobile-open {
+    display: flex !important;
+    animation: none !important;
+  }
+}
+
+/* Mobile & Tablet Screens <= 992px */
+@media (max-width: 992px) {
   /* Mobile Menu Toggle Bar - Tap icon to open menu bar */
   .profile-mobile-menu-toggle-bar {
     display: block !important;
@@ -2942,14 +2966,15 @@
     flex-direction: column !important;
     animation: menuSlideDown 0.2s ease-out !important;
   }
+}
 
-  @keyframes menuSlideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+@keyframes menuSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
